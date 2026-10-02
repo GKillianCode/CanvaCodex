@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { makeSlide, normalizeSlides, neighbor, nextFreeGrid, fragmentOrders, memorySlides, transitionDirection } from '../src/model.js';
+import { makeSlide, normalizeSlides, neighbor, nextFreeGrid, fragmentOrders, memorySlides, transitionDirection, presets, visibleBlocks, applyLayout, reorderSlides, blockText, setBlockText } from '../src/model.js';
 import { javaLines } from '../src/code.js';
 import { formatJava } from '../src/formatter.js';
 
@@ -31,7 +31,7 @@ test('fragment ordering groups equal steps and ignores hidden layout blocks', ()
   assert.deepEqual(fragmentOrders(s), [5]);
   s.fragments.code.order = 2;
   assert.deepEqual(fragmentOrders(s), [2, 5]);
-  s.layout = 'title';
+  applyLayout(s,'title');
   assert.deepEqual(fragmentOrders(s), [5]);
 });
 
@@ -66,4 +66,36 @@ test('Java formatter indents classes and snippets but preserves incomplete paste
   assert.equal(snippet.code, 'int n = 42;\nSystem.out.println(n);');
   const incomplete = 'public class Demo {\nint value =';
   assert.deepEqual(await formatJava(incomplete), { ok: false, code: incomplete });
+});
+
+
+test('twenty templates offer distinct compositions with independent text and image blocks', () => {
+  assert.equal(presets.length,20);
+  const signatures=new Set();
+  for(const p of presets){ const s=makeSlide(p.id); const keys=visibleBlocks(s); assert.ok(keys.length>=2); for(const k of keys){assert.ok(s.positions[k]);assert.ok(s.fragments[k]);} signatures.add(JSON.stringify(keys.map(k=>[k,s.positions[k]]))); }
+  assert.equal(signatures.size,20);
+  const s=makeSlide('three');assert.deepEqual(fragmentOrders(s),[1,2,3]);setBlockText(s,'text1','Un texte indépendant.');assert.equal(blockText(s,'text1'),'Un texte indépendant.');
+});
+
+test('custom text, image, placement, and departure survive export migration', () => {
+ const s=makeSlide('image-right');s.elements.image1.src='data:image/png;base64,aGVsbG8=';s.elements.textCustom={type:'text',name:'Détail',text:'Mémoire'};s.positions.textCustom={x:200,y:700,w:1200,size:35};s.fragments.textCustom={order:3,animation:'zoom'};s.exitDirection='down';s.grid={x:-1200,y:340};
+ const copy=normalizeSlides([JSON.parse(JSON.stringify(s))])[0];assert.equal(copy.elements.image1.src,s.elements.image1.src);assert.equal(blockText(copy,'textCustom'),'Mémoire');assert.deepEqual(copy.grid,s.grid);assert.deepEqual(copy.fragments.textCustom,s.fragments.textCustom);assert.equal(copy.exitDirection,'down');assert.equal(copy.positions.image1.h,680);
+ copy.elements.image1.src='https://example.com/image.png';assert.equal(normalizeSlides([copy])[0].elements.image1.src,'');
+ delete s.elements.textCustom;delete s.elements.image1;s.blockKeys=s.blockKeys.filter(k=>k!=='image1');const deleted=normalizeSlides([s])[0];assert.equal(deleted.elements.image1,undefined);assert.ok(!visibleBlocks(deleted).includes('image1'));
+});
+
+test('reordering changes the start without moving spatial positions or mutating the source', () => {
+ const s=[makeSlide('title'),makeSlide('three',{x:0,y:1}),makeSlide('code',{x:1,y:1})];const moved=reorderSlides(s,1,0);assert.equal(moved[0].id,s[1].id);assert.equal(s[0].layout,'title');assert.deepEqual(moved[0].grid,{x:0,y:1});assert.deepEqual(reorderSlides(s,0,2).map(s=>s.layout),['three','code','title']);
+});
+
+test('explicit departure describes the outgoing slide and overrides automatic geometry', () => {
+ const a=makeSlide(),b=makeSlide('title',{x:0,y:1});assert.deepEqual(transitionDirection(a,b),{x:0,y:1});
+ for(const [direction,vector] of Object.entries({left:{x:1,y:0},right:{x:-1,y:0},up:{x:0,y:1},down:{x:0,y:-1}})){a.exitDirection=direction;const result=transitionDirection(a,b);assert.equal(result.x||0,vector.x);assert.equal(result.y||0,vector.y);}
+});
+
+
+test('changing a composition preserves image sources without leaving old template blocks visible', () => {
+ const s=makeSlide('image-right');s.elements.image1.src='data:image/png;base64,aGVsbG8=';s.elements.textOwn={type:'text',custom:true,text:'À conserver',name:'Détail'};s.positions.textOwn={x:100,y:800,w:1200,size:30};s.fragments.textOwn={order:4,animation:'fade'};
+ applyLayout(s,'three');assert.ok(!visibleBlocks(s).includes('image1'));assert.ok(visibleBlocks(s).includes('textOwn'));assert.ok(s.elements.image1.src);
+ applyLayout(s,'image-right');assert.ok(visibleBlocks(s).includes('image1'));assert.equal(s.elements.image1.src,'data:image/png;base64,aGVsbG8=');
 });

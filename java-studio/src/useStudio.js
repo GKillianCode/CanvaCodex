@@ -1,6 +1,6 @@
 import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick, toRaw } from 'vue';
-import { themes, presets, blocks, visibleBlocks, makeSlide, normalizeSlides, neighbor, nextFreeGrid, fragmentOrders, transitionDirection, memorySlides, positionsFor, WIDTH, HEIGHT } from './model.js';
-import { renderSlide, renderBanner, blockBounds } from './render.js';
+import { themes, presets, blocks, visibleBlocks, makeSlide, normalizeSlides, neighbor, nextFreeGrid, fragmentOrders, transitionDirection, memorySlides, positionsFor, applyLayout, blockType, blockText, setBlockText, reorderSlides, WIDTH, HEIGHT } from './model.js';
+import { renderSlide, renderBanner, blockBounds, prepareImages } from './render.js';
 
 export function useStudio() {
   const sample = [
@@ -17,13 +17,18 @@ export function useStudio() {
   const index = ref(0), view = ref('slides'), tab = ref('layout'), selected = ref('title'), presenting = ref(false), canvas = ref(null), stage = ref(null), stageWidth = ref(900);
   const toast = ref(''), saved = ref(true), zoom = ref(100), recording = ref(false), elapsed = ref(0), laser = ref('#ff756d'), laserSize = ref(12), tool = ref('laser');
   const lastExport = ref(null), videoPreview = ref(false), videoMeta = ref(''), finalizing = ref(false), gallery = ref(false), editing = ref(null), formatting = ref(false);
+  const workspace = ref('canvas'), listDrag = ref(null), listTarget = ref(null);
   const thumbs = shallowRef({}), step = ref(0), transitionMs = ref(initial?.transitionMs ?? 650), moving = ref(false), gridDraft = ref({ x: 0, y: 0 });
   const current = computed(() => slides.value[index.value]), theme = computed(() => themes.find(t => t.id === themeId.value) || themes[0]);
-  const position = computed(() => current.value.positions[selected.value]);
+  const position = computed(() => current.value.positions[selected.value] || current.value.positions.title);
+  const selectedType = computed(()=>blockType(current.value,selected.value));
+  const editedText = computed(()=>blockText(current.value,editing.value));
+  const exitLabel = computed(()=>{ if(current.value.exitDirection!=='auto') return ({left:'← Vers la gauche',right:'→ Vers la droite',up:'↑ Vers le haut',down:'↓ Vers le bas'})[current.value.exitDirection]; const next=slides.value[index.value+1];if(!next)return 'Fin du diaporama'; const d=transitionDirection(current.value,next);return d.x>0?'← Vers la gauche':d.x<0?'→ Vers la droite':d.y>0?'↑ Vers le haut':'↓ Vers le bas'; });
   const orders = computed(() => fragmentOrders(current.value));
+  const measurement = document.createElement('canvas').getContext('2d');
   const editStyle = computed(() => {
     if (!editing.value) return {};
-    const k = editing.value, b = blockBounds(canvas.value.getContext('2d'), current.value, k);
+    const k = editing.value, b = blockBounds(measurement, current.value, k);
     return { left: `${(b.x + (k === 'code' ? 80 : 0)) / WIDTH * 100}%`, top: `${(b.y + (k === 'code' ? 103 : 0)) / HEIGHT * 100}%`, width: `${(b.w - (k === 'code' ? 110 : 0)) / WIDTH * 100}%`, height: `${Math.max(k === 'code' ? b.h - 120 : b.h + 25, 85) / HEIGHT * 100}%` };
   });
   let toastTimer, saveTimer, thumbTimer, raf = 0, drag = null, pointer = null, pointerDown = null, strokes = [], activeStroke = null, slideMotion = null, revealMotion = null;
@@ -31,7 +36,7 @@ export function useStudio() {
   const modelController = new AbortController();
   const thumbnailKeys = new Map(), formatRequests = new Map();
   const metrics = { frames: 0, thumbnails: 0, dragCommits: 0 };
-  const snapshot = () => ({ version: 2, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
+  const snapshot = () => ({ version: 3, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
   const renderOptions = (s, n, order = Infinity) => ({ ...frame.value, project: project.value, n, total: slides.value.length, order });
   function notify(message) { toast.value = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 3500); }
   function queueSave() {
@@ -53,8 +58,8 @@ export function useStudio() {
   }
   function queueThumbnails() { clearTimeout(thumbTimer); thumbTimer = setTimeout(updateThumbnails, 220); }
   watch([slides, project, themeId, banner, frame, transitionMs], () => { queueSave(); queueThumbnails(); requestDraw(); }, { deep: true });
-  watch([view, selected, presenting, zoom, editing], async () => { await nextTick(); observeStage(); requestDraw(); });
-  watch(current, s => { gridDraft.value = { ...s.grid }; });
+  watch([view, selected, presenting, zoom, editing, workspace], async () => { await nextTick(); observeStage(); requestDraw(); });
+  watch(current, s => { gridDraft.value = { ...s.grid }; if(!visibleBlocks(s).includes(selected.value))selected.value='title'; });
   watch([laser, laserSize, tool], requestDraw);
   function observeStage() { if (!stage.value) return; observer?.disconnect(); observer = new ResizeObserver(entries => { stageWidth.value = entries[0].contentRect.width; }); observer.observe(stage.value); }
   function requestDraw() { if (!raf) raf = requestAnimationFrame(tick); }
@@ -117,9 +122,9 @@ export function useStudio() {
     pointerDown = null; activeStroke = null; requestDraw();
   }
   function leave() { pointer = null; requestDraw(); }
-  function doubleClick(e) { if (presenting.value || view.value !== 'slides') return; const hit = hitBlock(coords(e)); if (!hit) return; drag = null; selected.value = hit; editing.value = hit; requestDraw(); }
+  function doubleClick(e) { if (presenting.value || view.value !== 'slides') return; const hit = hitBlock(coords(e)); if (!hit) return; drag = null; selected.value = hit; if(blockType(current.value,hit)!=='image') editing.value = hit; requestDraw(); }
   function closeEdit() { editing.value = null; requestDraw(); }
-  function editSelected() { if (!visibleBlocks(current.value).includes(selected.value)) selected.value = 'title'; editing.value = selected.value; }
+  function editSelected() { if (!visibleBlocks(current.value).includes(selected.value)) selected.value = 'title'; if(selectedType.value!=='image') editing.value = selected.value; }
   function chooseSlide(n) {
     if (n < 0 || n >= slides.value.length || n === index.value || moving.value) return;
     closeEdit(); drag = null; pointer = null; strokes = [];
@@ -127,7 +132,7 @@ export function useStudio() {
       const old = current.value, oldIndex = index.value, oldOrder = currentOrder(), next = slides.value[n];
       const from = snapshotCanvas(old, oldIndex, oldOrder), to = snapshotCanvas(next, n, 0);
       const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : transitionMs.value;
-      if (duration > 0) { slideMotion = { from, to, started: performance.now(), duration, direction: transitionDirection(old, next) }; moving.value = true; }
+      if (duration > 0) { slideMotion = { from, to, started: performance.now(), duration, direction: n < oldIndex ? (()=>{const d=transitionDirection(next,old);return {x:-d.x,y:-d.y};})() : transitionDirection(old, next) }; moving.value = true; }
     }
     revealMotion = null; index.value = n; step.value = 0; gridDraft.value = { ...current.value.grid }; requestDraw();
   }
@@ -137,21 +142,63 @@ export function useStudio() {
   function goDirection(direction) { if (moving.value) return; const target = neighbor(slides.value, index.value, direction); if (target >= 0) chooseSlide(target); }
   function canGo(direction) { return neighbor(slides.value, index.value, direction) >= 0 && !moving.value; }
   function add() { closeEdit(); gallery.value = true; }
-  function chooseLayout(layout, direction) { const s = makeSlide(layout, nextFreeGrid(slides.value, current.value.grid, direction)); slides.value.push(s); gallery.value = false; chooseSlide(slides.value.length - 1); selected.value = 'title'; }
+  function chooseLayout(layout) { if(slides.value.length>=100){notify('Le projet contient déjà 100 diapos.');return;} const s = makeSlide(layout, nextFreeGrid(slides.value, current.value.grid, 'right')); slides.value.push(s); gallery.value = false; chooseSlide(slides.value.length - 1); selected.value = 'title'; }
   function addMemory() {
+    if(slides.value.length>96){notify('Il faut quatre places libres dans ce projet de 100 diapos maximum.');return;}
     let x = current.value.grid.x + 1;
     while (slides.value.some(s => s.grid.x === x)) x++;
     const first = slides.value.length; slides.value.push(...memorySlides({ x, y: 0 })); gallery.value = false; chooseSlide(first); notify('Parcours mémoire ajouté : descends avec ↓, révèle avec Espace.');
   }
-  function applyPreset(id) { closeEdit(); current.value.layout = id; current.value.positions = positionsFor(id); if (!visibleBlocks(current.value).includes(selected.value)) selected.value = 'title'; }
-  function duplicate() { const s = JSON.parse(JSON.stringify(current.value)); s.id = crypto.randomUUID(); s.grid = nextFreeGrid(slides.value, current.value.grid, 'right'); slides.value.splice(index.value + 1, 0, s); chooseSlide(index.value + 1); }
+  function applyPreset(id) { closeEdit(); applyLayout(current.value,id); if (!visibleBlocks(current.value).includes(selected.value)) selected.value = 'title'; }
+  function changeText(value) { setBlockText(current.value,editing.value,value); }
+  function addBlock(type) {
+    if(Object.keys(current.value.elements).length>=40){notify('Cette diapo contient déjà 40 éléments ajoutés.');return;}
+    closeEdit(); const key=type+crypto.randomUUID().replaceAll('-','').slice(0,8), s=current.value;
+    const count=type==='text'?visibleBlocks(s).filter(k=>k!=='title'&&blockType(s,k)==='text').length+1:Object.values(s.elements).filter(e=>e.type===type).length+1;
+    s.elements[key]=type==='text'?{type,custom:true,name:'Texte '+count,text:'Ton nouveau texte.'}:{type,custom:true,name:'Image '+count,src:'',fit:'contain'};
+    const bottom=Math.max(250,...visibleBlocks(s).filter(k=>k!==key&&blockType(s,k)==='text').map(k=>{const b=blockBounds(measurement,s,k);return b.y+b.h;}));
+    s.positions[key]={x:200,y:type==='text'?Math.min(900,Math.round(bottom+55)):Math.min(820,300+count*120),w:type==='text'?(visibleBlocks(s).includes('code')?650:1200):700,h:400,size:42};
+    s.fragments[key]={order:Math.min(20,Math.max(0,...Object.values(s.fragments).map(f=>f.order))+1),animation:'up'};
+    selected.value=key;if(type==='text')editing.value=key;
+  }
+  function removeBlock() { const k=selected.value;if(!current.value.elements[k])return;closeEdit();delete current.value.elements[k];delete current.value.positions[k];delete current.value.fragments[k];current.value.blockKeys=current.value.blockKeys.filter(key=>key!==k);selected.value='title'; }
+  async function uploadImage(event) {
+    const file=event.target.files?.[0], s=current.value, key=selected.value; event.target.value='';
+    if(!file)return;
+    if(!['image/png','image/jpeg','image/webp'].includes(file.type)||file.size>20*1024*1024){notify('Choisis un PNG, JPEG ou WebP de moins de 20 Mo.');return;}
+    try {
+      const image=await createImageBitmap(file), ratio=Math.min(1,1600/Math.max(image.width,image.height));
+      const c=document.createElement('canvas');c.width=Math.round(image.width*ratio);c.height=Math.round(image.height*ratio);c.getContext('2d').drawImage(image,0,0,c.width,c.height);image.close();
+      const src=c.toDataURL('image/webp',.85);if(src.length>=3000000)throw Error();
+      if(s.elements[key]?.type==='image')s.elements[key].src=src;
+      await prepareImages([s]);notify('Image ajoutée et intégrée au projet.');
+    }catch{notify('Cette image n’a pas pu être chargée.');}
+  }
+  function reorder(from,to) { const id=current.value.id;slides.value=reorderSlides(slides.value,from,to);index.value=slides.value.findIndex(s=>s.id===id);requestDraw(); }
+  function listDown(event,n) {
+    if(event.button!==0)return;
+    event.preventDefault();let moved=false;
+    const move=e=>{
+      if(Math.hypot(e.clientX-event.clientX,e.clientY-event.clientY)>5)moved=true;
+      if(!moved)return;
+      listDrag.value=n;
+      const list=document.querySelector('.slide-list'),rect=list?.getBoundingClientRect();
+      if(rect){if(e.clientY<rect.top+20)list.scrollTop-=12;else if(e.clientY>rect.bottom-20)list.scrollTop+=12;if(e.clientX<rect.left+20)list.scrollLeft-=12;else if(e.clientX>rect.right-20)list.scrollLeft+=12;}
+      const el=document.elementFromPoint(e.clientX,e.clientY)?.closest('[data-slide-index]');if(el)listTarget.value=Number(el.dataset.slideIndex);
+    };
+    const end=()=>{if(moved&&listTarget.value!==null)reorder(n,listTarget.value);listDrag.value=null;listTarget.value=null;window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',end);window.removeEventListener('pointercancel',cancel);};
+    const cancel=()=>{moved=false;end();};window.addEventListener('pointermove',move);window.addEventListener('pointerup',end);window.addEventListener('pointercancel',cancel);
+  }
+  function moveGrid(id,x,y) { if(!Number.isInteger(x)||!Number.isInteger(y)||Math.abs(x)>10000||Math.abs(y)>10000)return; const s=slides.value.find(s=>s.id===id);if(!s)return;if(slides.value.some(other=>other.id!==id&&other.grid.x===x&&other.grid.y===y)){notify('Cette case est occupée. Dépose la diapo sur une case libre.');return;}s.grid={x,y}; }
+  function imagesReady() {thumbnailKeys.clear();queueThumbnails();requestDraw();}
+  function duplicate() { if(slides.value.length>=100){notify('Le projet contient déjà 100 diapos.');return;} const s = JSON.parse(JSON.stringify(current.value)); s.id = crypto.randomUUID(); s.grid = nextFreeGrid(slides.value, current.value.grid, 'right'); slides.value.splice(index.value + 1, 0, s); chooseSlide(index.value + 1); }
   function remove() { if (slides.value.length <= 1) return; closeEdit(); slides.value.splice(index.value, 1); index.value = Math.min(index.value, slides.value.length - 1); gridDraft.value = { ...current.value.grid }; requestDraw(); }
   function applyGrid() {
     const { x, y } = gridDraft.value;
-    if (!Number.isInteger(x) || !Number.isInteger(y) || Math.abs(x) > 100 || Math.abs(y) > 100 || slides.value.some(s => s.id !== current.value.id && s.grid.x === x && s.grid.y === y)) { gridDraft.value = { ...current.value.grid }; notify('Cette case est occupée ou sa position est invalide.'); return; }
+    if (!Number.isInteger(x) || !Number.isInteger(y) || Math.abs(x) > 10000 || Math.abs(y) > 10000 || slides.value.some(s => s.id !== current.value.id && s.grid.x === x && s.grid.y === y)) { gridDraft.value = { ...current.value.grid }; notify('Cette case est occupée ou sa position est invalide.'); return; }
     current.value.grid = { x, y };
   }
-  function setPosition(key, event) { const value = Number(event.target.value); const min = key === 'w' ? 80 : key === 'size' ? 10 : 0, max = key === 'y' ? HEIGHT : key === 'size' ? 260 : WIDTH; position.value[key] = Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : position.value[key]; event.target.value = position.value[key]; }
+  function setPosition(key, event) { const value = Number(event.target.value); const min = key === 'w' || key === 'h' ? 80 : key === 'size' ? 10 : 0, max = key === 'y' || key === 'h' ? HEIGHT : key === 'size' ? 260 : WIDTH; position.value[key] = Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : position.value[key]; event.target.value = position.value[key]; }
   function updateFragment(event) { current.value.fragments[selected.value].order = Math.max(0, Math.min(20, Math.round(Number(event.target.value) || 0))); }
   function formatCode(source = current.value.code) {
     const slideId = current.value.id;
@@ -179,8 +226,8 @@ export function useStudio() {
     } catch { notify('Ce fichier n’est pas un projet Frame valide.'); }
     event.target.value = '';
   }
-  function png() { const c = document.createElement('canvas'); c.width = WIDTH; c.height = HEIGHT; const ctx = c.getContext('2d'); if (view.value === 'banners') renderBanner(ctx, banner.value, theme.value); else renderSlide(ctx, current.value, theme.value, renderOptions(current.value, index.value)); c.toBlob(blob => { if (blob) download(blob, view.value === 'banners' ? 'frame-bandeau.png' : `frame-diapo-${index.value + 1}.png`); }, 'image/png'); }
-  async function startPresentation() { closeEdit(); view.value = 'slides'; presenting.value = true; step.value = 0; revealMotion = null; strokes = []; await nextTick(); observeStage(); requestDraw(); }
+  async function png() { await prepareImages([current.value]); const c = document.createElement('canvas'); c.width = WIDTH; c.height = HEIGHT; const ctx = c.getContext('2d'); if (view.value === 'banners') renderBanner(ctx, banner.value, theme.value); else renderSlide(ctx, current.value, theme.value, renderOptions(current.value, index.value)); c.toBlob(blob => { if (blob) download(blob, view.value === 'banners' ? 'frame-bandeau.png' : `frame-diapo-${index.value + 1}.png`); }, 'image/png'); }
+  async function startPresentation(fromStart=true) { await prepareImages(slides.value); closeEdit(); if(fromStart)index.value=0; view.value = 'slides'; presenting.value = true; step.value = 0; revealMotion = null; strokes = []; await nextTick(); observeStage(); requestDraw(); }
   function exit() { if (recording.value) stopRecord(); slideMotion = null; moving.value = false; presenting.value = false; strokes = []; requestDraw(); }
   function startRecord() {
     if (finalizing.value) return;
@@ -207,9 +254,9 @@ export function useStudio() {
   }
   function beforeUnload(e) { if (recording.value || finalizing.value) { e.preventDefault(); e.returnValue = ''; } }
   onMounted(() => {
-    gridDraft.value = { ...current.value.grid }; updateThumbnails(); observeStage(); requestDraw(); window.addEventListener('keydown', keys); window.addEventListener('beforeunload', beforeUnload);
+    gridDraft.value = { ...current.value.grid }; updateThumbnails(); observeStage(); requestDraw(); window.addEventListener('frame-images-ready',imagesReady); window.addEventListener('keydown', keys); window.addEventListener('beforeunload', beforeUnload);
     if (document.modelContext?.registerTool) try { Promise.resolve(document.modelContext.registerTool({ name: 'read_frame_project', description: 'Read the current slide project and presentation state', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: input => { if (!input || typeof input !== 'object' || Object.keys(input).length) throw Error('Expected an empty object'); return { ...JSON.parse(JSON.stringify(snapshot())), index: index.value, step: step.value, diagnostics: { ...metrics } }; } }, { signal: modelController.signal })).catch(() => {}); } catch { /* Browser support is optional. */ }
   });
-  onUnmounted(() => { modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('keydown', keys); window.removeEventListener('beforeunload', beforeUnload); });
-  return { slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
+  onUnmounted(() => { modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('frame-images-ready',imagesReady); window.removeEventListener('keydown', keys); window.removeEventListener('beforeunload', beforeUnload); });
+  return { workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
 }

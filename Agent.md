@@ -43,7 +43,7 @@ L’application est un outil personnel de production vidéo. Elle doit permettre
 - [x] Quatre diapos d’exemple autour du bytecode et de la JVM.
 - [x] Ajout, duplication et suppression de diapos (au moins une conservée).
 - [x] Modification des surtitres, titres, explications et exemples de code.
-- [x] Six compositions : explication + code, ouverture, code en grand, deux colonnes, chiffre/unité et texte en grand ; galerie lors de l’ajout.
+- [x] Vingt compositions distinctes, dont six avec images ; galerie lors de l’ajout, sans choix de direction.
 - [x] Déplacement des blocs à la souris et réglages X, Y, largeur, taille du texte.
 - [x] Quatre thèmes globaux partagés entre diapos et incrustations.
 - [x] Trois formats de bandeaux : titre inférieur, titre de chapitre, À retenir.
@@ -55,6 +55,10 @@ L’application est un outil personnel de production vidéo. Elle doit permettre
 - [x] Parcours spatial sur quatre axes, transitions continues enregistrées dans le Canvas.
 - [x] Apparitions ordonnées des blocs au clic (fondu, montée, zoom ou immédiate).
 - [x] Exemple mémoire vertical Go → Mo → Ko → octet, unités décimales distinguées des binaires.
+- [x] Canvas spatial avec déplacement des diapos sur une grille, déplacement de la vue, zoom et recadrage ; double-clic pour éditer.
+- [x] Liste réordonnable par glisser-déposer des miniatures/poignées et clavier ; « Présenter » commence au début.
+- [x] Sortie de chaque diapo visible et configurable dans les propriétés ; aperçu depuis la diapo sélectionnée.
+- [x] Textes et images ajoutables, supprimables et animables indépendamment ; import local, dimensions et recadrage des images.
 - [x] Interface adaptée aux petits écrans.
 - [ ] Backend Symfony, base de données et gestion de plusieurs projets.
 - [ ] Hébergement opérationnel distant.
@@ -109,7 +113,7 @@ Ces éléments sont des pistes, pas des fonctionnalités commandées ou livrées
 
 1. **Versionner la première version** : mémoire projet, dépôt, issue de livraison initiale, commits, PR et guide de lancement.
 2. **Fiabiliser les exports** : vérifier les PNG transparents dans le logiciel de montage de Killian ; vérifier laser et crayon dans les fichiers vidéo ; tester les séquences longues et prévenir la perte d’un enregistrement.
-3. **Améliorer l’édition** : annuler/rétablir, réordonner les diapos, guides d’alignement, repères de marges et détection de dépassement.
+3. **Améliorer l’édition** : annuler/rétablir, guides d’alignement, repères de marges et détection de dépassement. Le réordonnancement est livré.
 4. **Affiner les templates techniques** : compositions diagrammes, comparaisons avant/après, stack/heap, pipeline JVM, code avec lignes mises en évidence ; sauvegarder ses propres compositions.
 5. **Ajouter Symfony si nécessaire** : persistance de plusieurs projets, modèles réutilisables et sauvegardes serveur, sans mécanisme commercial.
 6. **Choisir un hébergement personnel** : local ou distant, en conservant l’accès adapté à un usage privé.
@@ -141,3 +145,15 @@ Validation : six tests passent (migration, quatre directions, groupes d’appari
 Les blocs actuels restent titre, explication et code : pas encore de système arbitraire d’objets ou de schémas. L’ordre concerne ces blocs entiers. Les coordonnées spatiales sont distinctes des positions X/Y des éléments. La navigation par flèches suit le voisin sur le même axe ; Espace suit les apparitions puis l’ordre de la liste. Pas de bibliothèque Reveal.js intégrée : transitions Canvas pour garantir le même résultat dans l’export vidéo.
 
 Publication confirmée : commit applicatif distant `f2826c8`, [PR #4](https://github.com/GKillianCode/CanvaCodex/pull/4) ouverte de `feat/spatial-slides` vers `feat/frame-studio-initial`. L’issue #3 décrit les critères réalisés et reste ouverte jusqu’à la revue/fusion. Aucune PR fusionnée. L’affichage mobile à 390 px a été revérifié sans débordement. Le commit local d’origine est conservé dans `archive/local-spatial-20261002` lors de l’alignement sur les commits du connecteur GitHub.
+
+### 2 octobre 2026 — canvas, images et compositions étendues
+
+Killian confirme que l’interface ne lag plus. Il demande de supprimer le choix de direction de la galerie, d’afficher le départ de la diapo dans les propriétés, d’avoir au minimum 20 templates avec images, trois textes révélés aux clics successifs, le réordonnancement par glisser-déposer et une grille spatiale inspirée du Canvas d’Obsidian. Suivi : [issue #5](https://github.com/GKillianCode/CanvaCodex/issues/5), branche `feat/deck-canvas`.
+
+Décisions : le canvas est la vue initiale ; la vue Éditer conserve la liste pour réordonner. L’ordre de lecture et les positions spatiales sont indépendants. Les connexions et numéros du canvas indiquent l’ordre de lecture. Les diapos se déposent sur des cases libres ; une case occupée refuse le dépôt. Le fond se déplace librement, le zoom va de 12 % à 200 %, et le recadrage retrouve toutes les diapos. Les coordonnées sont bornées à ±10 000 cases, sans page de taille fixe. La direction automatique découle de la position de la suivante ; la propriété explicite indique le mouvement de la diapo **sortante**. Le retour en arrière inverse la transition. Présenter commence à la première diapo ; Tester cette diapo commence à la sélection.
+
+Modèle version 3 compatible avec les sauvegardes précédentes : les champs titre/explication/code sont conservés, avec des éléments texte/image supplémentaires et leurs positions/animations. Les anciens éléments de template restent stockés mais sont masqués lorsqu’une nouvelle composition ne les utilise pas ; les éléments ajoutés manuellement restent visibles. Vingt dispositions réellement distinctes, dont six avec emplacements d’image. Les templates à trois textes proposent les ordres 1, 2, 3 par défaut. On peut ajouter et supprimer ses propres éléments, choisir leurs ordres, animations et positions. Limites du modèle : 100 diapos et 40 éléments supplémentaires par diapo.
+
+Images : import PNG/JPEG/WebP local, fichier de 20 Mo maximum, conversion en WebP à 1 600 px maximum avec conservation de la transparence, source intégrée au JSON (moins de 3 Mo par source). Pas d’URL distante ni de ressource générée par IA. Le rendu Canvas partage les images mises en cache entre miniatures, PNG, transitions et WebM ; elles sont préchargées avant la présentation et les exports. La limite de stockage local du navigateur demeure : en cas d’échec, l’interface propose l’export JSON.
+
+Validation dans une origine de test séparée : galerie avec 20 choix et aucune direction à la création ; sélection et sortie configurée vers le bas ; trois clics vérifiés aux étapes 1/3, 2/3 et 3/3 puis passage à la suivante ; déplacement de la deuxième diapo en première par poignée, puis réordonnancement depuis la miniature entière ; départ de la présentation à 1/9 avec le nouveau contenu ; déplacement spatial d’une diapo en (1,1), déplacement de la vue et zoom ; image PNG importée et visible ; nouveau texte édité directement ; export PNG de 81 Ko ; enregistrement avec image et sortie vers le bas, WebM de 355 Ko reconnu en 1920 × 1080. Après rechargement, ordre, positions, texte ajouté et source de l’image conservés. Mobile à 390 px sans débordement. Onze tests du modèle/Java passent ; build vérifié. Pas de test de longue session ni de mesure FPS.

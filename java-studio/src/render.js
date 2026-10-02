@@ -1,6 +1,32 @@
-import { WIDTH, HEIGHT, visibleBlocks } from './model.js';
+import { WIDTH, HEIGHT, visibleBlocks, blockType, blockText } from './model.js';
 import { javaLines, codeColor } from './code.js';
 const backgrounds = new Map();
+const images = new Map();
+function imageAsset(src) {
+  if (!images.has(src)) {
+    const image = new Image();
+    const entry = {image,ready:false,promise:null};
+    entry.promise = new Promise(resolve=> { image.onload = ()=>{entry.ready=true;window.dispatchEvent(new Event('frame-images-ready'));resolve();}; image.onerror=()=>resolve(); });
+    image.src=src; images.set(src,entry);
+    if (images.size>100) images.delete(images.keys().next().value);
+  }
+  return images.get(src);
+}
+export async function prepareImages(slides) { await Promise.all(slides.flatMap(s=>Object.values(s.elements||{}).filter(e=>e.type==='image'&&e.src).map(e=>imageAsset(e.src).promise))); }
+function drawImageBlock(ctx,s,key,theme) {
+  const p=s.positions[key], e=s.elements[key], h=p.h||360;
+  round(ctx,p.x,p.y,p.w,h,18,theme.panel);
+  const asset=e.src?imageAsset(e.src):null;
+  if (!asset?.ready) {
+    ctx.strokeStyle=theme.accent+'50';ctx.lineWidth=2;ctx.setLineDash([10,10]);ctx.strokeRect(p.x+18,p.y+18,p.w-36,h-36);ctx.setLineDash([]);
+    const cx=p.x+p.w/2, cy=p.y+h/2;
+    ctx.strokeStyle=theme.accent;ctx.beginPath();ctx.moveTo(cx-45,cy+10);ctx.lineTo(cx-15,cy-25);ctx.lineTo(cx+8,cy);ctx.lineTo(cx+28,cy-15);ctx.lineTo(cx+50,cy+10);ctx.stroke();
+    text(ctx,'Importer une image',p.x+30,cy+42,p.w-60,26,theme.ink);
+    return;
+  }
+  const img=asset.image, scale=e.fit==='cover'?Math.max(p.w/img.width,h/img.height):Math.min(p.w/img.width,h/img.height);
+  ctx.save();ctx.beginPath();ctx.roundRect(p.x,p.y,p.w,h,18);ctx.clip();ctx.drawImage(img,p.x+(p.w-img.width*scale)/2,p.y+(h-img.height*scale)/2,img.width*scale,img.height*scale);ctx.restore();
+}
 export function round(ctx, x, y, w, h, r, color) {
   ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
 }
@@ -25,9 +51,10 @@ export function text(ctx, value, x, y, width, size, color, weight = 400, font = 
 }
 export function blockBounds(ctx, s, key) {
   const p = s.positions[key];
+  if (blockType(s,key)==='image') return {...p,h:p.h||360};
   if (key === 'code') return { ...p, h: Math.max(260, s.code.split('\n').length * p.size * 1.6 + 115) };
   ctx.font = `${key === 'title' ? 700 : 400} ${p.size}px Arial`;
-  return { ...p, h: wrapLines(ctx, s[key], p.w).length * p.size * 1.35 };
+  return { ...p, h: wrapLines(ctx, blockText(s,key), p.w).length * p.size * 1.35 };
 }
 function background(ctx, theme) {
   if (!backgrounds.has(theme.id)) {
@@ -75,8 +102,9 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if (key === 'title') {
       if (s.label) text(ctx, s.label, p.x, Math.max(10, p.y - 58), p.w, 23, theme.accent, 700);
       text(ctx, s.title, p.x, p.y, p.w, p.size, theme.ink, 700);
-    } else if (key === 'body') text(ctx, s.body, p.x, p.y, p.w, p.size, `${theme.ink}c8`);
-    else drawCode(ctx, s, theme);
+    } else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
+    else if (key==='code') drawCode(ctx,s,theme);
+    else text(ctx,blockText(s,key),p.x,p.y,p.w,p.size,`${theme.ink}c8`);
     ctx.restore();
   }
   if (footer) {
