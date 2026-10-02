@@ -2,11 +2,26 @@ export const WIDTH = 1920;
 export const HEIGHT = 1080;
 export const blocks = ['title', 'body', 'code'];
 export const directions = { right: { x: 1, y: 0 }, left: { x: -1, y: 0 }, down: { x: 0, y: 1 }, up: { x: 0, y: -1 } };
+export const DEFAULT_RESOLUTION = { width: 2560, height: 1440 };
+export const resolutions = [
+  {width:1280,height:720,name:'HD'}, {width:1920,height:1080,name:'Full HD'},
+  {width:2560,height:1440,name:'QHD'}, {width:3840,height:2160,name:'4K'},
+];
+export function normalizeResolution(raw) {
+  if (!raw || !Number.isInteger(raw.width) || !Number.isInteger(raw.height) || raw.width < 640 || raw.width > 3840 || raw.width % 16 !== 0 || raw.height !== raw.width * 9 / 16) return {...DEFAULT_RESOLUTION};
+  return {width:raw.width,height:raw.height};
+}
 export const themes = [
-  { id: 'mint', name: 'Terminal', accent: '#a5f3cf', bg: '#101d22', panel: '#16292f', ink: '#f2f7f6' },
-  { id: 'violet', name: 'Midnight', accent: '#c4b5fd', bg: '#19172c', panel: '#25233d', ink: '#f6f3ff' },
-  { id: 'amber', name: 'Carbon', accent: '#f5c878', bg: '#201d18', panel: '#302b23', ink: '#fff8eb' },
-  { id: 'paper', name: 'Paper', accent: '#2563eb', bg: '#f3f5f9', panel: '#e4e9f1', ink: '#142034' },
+  {id:'mint',name:'Terminal',desc:'Vert néon, noir profond.',accent:'#35ff91',secondary:'#38baff',bg:'#080d14',panel:'#121e2b',ink:'#f5f9ff'},
+  {id:'violet',name:'Midnight',desc:'Violet électrique et rose lumineux.',accent:'#bb83ff',secondary:'#ff54cb',bg:'#100b21',panel:'#221735',ink:'#faf6ff'},
+  {id:'amber',name:'Carbon',desc:'Ambre intense, précision et chaleur.',accent:'#ffbc25',secondary:'#ff7146',bg:'#120e09',panel:'#2b2217',ink:'#fff9ee'},
+  {id:'paper',name:'Studio',desc:'Blanc doux, bleu franc, lignes nettes.',accent:'#2459ed',secondary:'#b33824',bg:'#f6f5f1',panel:'#ffffff',ink:'#171923',light:true},
+  {id:'cobalt',name:'Cobalt',desc:'Bleu nuit et cyan éclatant.',accent:'#50baff',secondary:'#53f2d2',bg:'#07142e',panel:'#142644',ink:'#f1f8ff'},
+  {id:'coral',name:'Corail',desc:'Orange corail, énergie sur fond sombre.',accent:'#ff784a',secondary:'#ffca67',bg:'#1a1015',panel:'#301d24',ink:'#fff6f2'},
+  {id:'electric',name:'Volt',desc:'Jaune acide et vert électrique.',accent:'#dfff35',secondary:'#44eec5',bg:'#0e130d',panel:'#20291b',ink:'#f9ffe9'},
+  {id:'magenta',name:'Pulse',desc:'Magenta vibrant, contraste assumé.',accent:'#ff61b7',secondary:'#bda0ff',bg:'#190d22',panel:'#311b3c',ink:'#fff4fc'},
+  {id:'glacier',name:'Glacier',desc:'Un fond clair, du bleu et du relief.',accent:'#0068cd',secondary:'#006f73',bg:'#edf7ff',panel:'#ffffff',ink:'#10223d',light:true},
+  {id:'sunset',name:'Sunset',desc:'Orange solaire et rose sur fond prune.',accent:'#ff9b53',secondary:'#ff68bb',bg:'#25122d',panel:'#3b2444',ink:'#fff6ef'},
 ];
 export const presets = [
   { id: 'split', name: 'Explication + code', desc: 'Le concept à gauche, l’exemple à droite.' },
@@ -38,42 +53,41 @@ export function visibleBlocks(s) {
   if (['title', 'metric', 'text'].includes(s.layout)) return ['title', 'body'];
   return blocks;
 }
-export function positionsFor(layout) {
-  const p = {
-    title: { x: 112, y: 210, w: 680, size: 76 },
-    body: { x: 112, y: 440, w: 650, size: 31 },
-    code: { x: 880, y: 260, w: 925, size: 29 },
-  };
-  if (layout === 'title') { p.title = { x: 150, y: 300, w: 1600, size: 100 }; p.body = { x: 150, y: 620, w: 1500, size: 36 }; }
-  if (layout === 'code') { p.title = { x: 112, y: 120, w: 1690, size: 66 }; p.code = { x: 112, y: 280, w: 1690, size: 29 }; }
-  if (layout === 'compare') { p.title = { x: 112, y: 160, w: 1600, size: 66 }; p.body = { x: 112, y: 370, w: 700, size: 34 }; p.code.y = 340; }
-  if (layout === 'metric') { p.title = { x: 210, y: 280, w: 1500, size: 210 }; p.body = { x: 220, y: 635, w: 1490, size: 46 }; }
-  if (layout === 'text') { p.title = { x: 150, y: 150, w: 1600, size: 80 }; p.body = { x: 150, y: 400, w: 1560, size: 42 }; }
-  return p;
-}
 const pos = (x,y,w,size=38,h=360) => ({x,y,w,size,h});
+// All templates share a 128 px margin and an 8 px spacing rhythm.
 export const layouts = {
-  three: { title:pos(120,120,1650,76), body:pos(120,430,480), text1:pos(720,430,480), text2:pos(1320,430,480) },
-  steps: { title:pos(120,110,1650,74), body:pos(200,330,1500), text1:pos(200,540,1500), text2:pos(200,750,1500) },
-  'image-right': { title:pos(120,170,700,74), body:pos(120,430,700), image1:pos(950,180,820,38,680) },
-  'image-left': { title:pos(1050,180,740,72), body:pos(1050,430,740), image1:pos(120,180,820,38,680) },
-  'image-wide': { title:pos(120,80,1660,64), image1:pos(120,230,1680,38,600), body:pos(120,900,1650,30) },
-  'image-focus': { title:pos(230,90,1450,64), image1:pos(330,250,1260,38,650) },
-  'two-images': { title:pos(120,90,1680,64), image1:pos(120,250,790,38,460), image2:pos(1010,250,790,38,460), body:pos(120,770,790,32), text1:pos(1010,770,790,32) },
-  'image-code': { title:pos(120,90,1680,64), image1:pos(120,280,740,38,570), code:pos(960,280,830,27) },
-  quote: { title:pos(200,280,1500,100), body:pos(200,700,1400,36) },
-  question: { title:pos(150,230,1600,92), body:pos(150,580,1450,44) },
-  'before-after': { title:pos(120,100,1650,74), body:pos(120,380,730,44), text1:pos(1050,380,730,44) },
-  timeline: { title:pos(120,120,1650,76), body:pos(120,500,480), text1:pos(720,500,480), text2:pos(1320,500,480) },
-  definition: { title:pos(150,180,1600,120), body:pos(150,470,1540,44), text1:pos(150,750,1540,32) },
-  summary: { title:pos(150,120,1600,84), body:pos(180,340,1500,42), text1:pos(180,550,1500,42), text2:pos(180,760,1500,42) },
+  split:{title:pos(128,208,688,86,248),body:pos(128,544,688,34,344),code:pos(928,208,864,29,680)},
+  title:{title:pos(128,312,1664,124,304),body:pos(128,720,1280,36,152)},
+  code:{title:pos(128,128,1664,76,120),code:pos(128,320,1664,32,624)},
+  compare:{title:pos(128,128,1664,80,152),body:pos(128,400,720,38,456),code:pos(1008,376,784,29,544)},
+  metric:{title:pos(128,240,1664,220,280),body:pos(128,672,1568,46,224)},
+  text:{title:pos(128,160,1664,90,176),body:pos(128,440,1472,44,440)},
+  three:{title:pos(128,128,1664,84,152),body:pos(160,480,440,44,320),text1:pos(752,480,440,44,320),text2:pos(1344,480,416,44,320)},
+  steps:{title:pos(128,96,1664,84,152),body:pos(256,336,1408,42,144),text1:pos(256,568,1408,42,144),text2:pos(256,800,1408,42,144)},
+  'image-right':{title:pos(128,208,688,86,232),body:pos(128,544,688,36,280),image1:pos(960,160,832,38,760)},
+  'image-left':{title:pos(1056,208,736,82,232),body:pos(1056,544,736,36,280),image1:pos(128,160,800,38,760)},
+  'image-wide':{title:pos(128,96,1664,72,112),image1:pos(128,280,1664,38,528),body:pos(128,880,1472,30,96)},
+  'image-focus':{title:pos(128,96,1664,72,112),image1:pos(128,296,1664,38,640)},
+  'two-images':{title:pos(128,96,1664,72,112),image1:pos(128,280,784,38,420),image2:pos(1008,280,784,38,420),body:pos(128,784,784,32,152),text1:pos(1008,784,784,32,152)},
+  'image-code':{title:pos(128,96,1664,72,112),image1:pos(128,320,744,38,592),code:pos(976,296,816,29,640)},
+  quote:{title:pos(224,320,1472,104,304),body:pos(224,768,1280,32,104)},
+  question:{title:pos(128,256,1472,104,256),body:pos(192,720,1472,42,144)},
+  'before-after':{title:pos(128,128,1664,84,152),body:pos(168,488,688,46,288),text1:pos(1064,488,688,46,288)},
+  timeline:{title:pos(128,128,1664,84,152),body:pos(160,536,432,42,264),text1:pos(752,536,432,42,264),text2:pos(1344,536,416,42,264)},
+  definition:{title:pos(128,224,1664,142,184),body:pos(128,560,1472,44,160),text1:pos(128,824,1472,30,104)},
+  summary:{title:pos(128,128,1664,84,152),body:pos(240,344,1440,40,120),text1:pos(240,576,1440,40,120),text2:pos(240,808,1440,40,120)},
 };
+export function positionsFor(layout) {
+  const base={title:pos(128,208,688,86,248),body:pos(128,544,688,34,344),code:pos(928,208,864,29,680)};
+  return {...base,...structuredClone(layouts[layout]||{})};
+}
 export function blockType(s,key) { return s.elements?.[key]?.type || (key === 'code' ? 'code' : 'text'); }
 export function blockText(s,key) { return s.elements?.[key]?.text ?? s[key] ?? ''; }
 export function setBlockText(s,key,value) { if (s.elements?.[key]) s.elements[key].text = value; else s[key] = value; }
 export function blockLabel(s,key) { return ({title:'Titre',body:'Texte 1',code:'Code Java'})[key] || s.elements?.[key]?.name || key; }
 export function applyLayout(s,layout) {
   s.layout = layout;
+  s.designVersion = 2;
   s.positions = {...s.positions, ...positionsFor(layout)};
   const spec = layouts[layout];
   s.blockKeys = spec ? [...new Set(['title',...Object.keys(spec)])] : layout === 'code' ? ['title','code'] : ['title','metric','text'].includes(layout) ? ['title','body'] : blocks.slice();
@@ -97,6 +111,9 @@ export function makeSlide(layout = 'split', grid = { x: 0, y: 0 }) {
   const s = { id: crypto.randomUUID(), exitDirection:'auto', elements:{}, title: layout === 'metric' ? '1 Go' : 'Une nouvelle idée.', body: layout === 'metric' ? '1 Go = 1 000 Mo\nUnités décimales · division par 1 000' : 'Double-clique pour écrire ton explication.', code: 'public class Example {\n    public static void main(String[] args) {\n        System.out.println("Hello, Java!");\n    }\n}', label: '', layout, grid: { ...grid }, positions: positionsFor(layout), fragments: Object.fromEntries(blocks.map(k => [k, { order: 0, animation: 'fade' }])) };
   applyLayout(s,layout);
   if (['three','steps','timeline','summary'].includes(layout)) { s.title = ({three:'Trois idées à comprendre.',steps:'Étape par étape.',timeline:'Du source à la JVM.',summary:'Ce qu’il faut retenir.'})[layout]; s.body='Première idée.'; ['body','text1','text2'].forEach((k,n)=>s.fragments[k]={order:n+1,animation:'up'}); }
+  if (['three','steps','timeline','summary'].includes(layout)) {s.body='Écrire.\nUn fichier source .java.';s.elements.text1.text='Compiler.\nLe bytecode prend forme.';s.elements.text2.text='Exécuter.\nLa JVM prend le relais.';}
+  if (layout==='before-after') {s.body='Du code source lisible.\nHello.java';s.elements.text1.text='Des instructions portables.\nHello.class';}
+  if (layout==='definition') {s.title='Bytecode.';s.body='Le langage intermédiaire que la JVM exécute.';s.elements.text1.text='Portable par conception. Optimisé à l’exécution.';}
   if (layout==='quote') s.title='« Comprendre avant d’automatiser. »';
   if (layout==='question') {s.title='Que se passe-t-il sous le capot ?';s.fragments.body.order=1;}
   return s;
@@ -105,6 +122,7 @@ const finite = (v, fallback, min, max) => Number.isFinite(v) ? Math.min(max, Mat
 export function normalizeSlide(raw, n = 0) {
   if (!raw || typeof raw !== 'object' || !blocks.every(k => typeof raw[k] === 'string') || !presets.some(p => p.id === raw.layout)) throw Error('Diapo invalide');
   const s = makeSlide(raw.layout, { x: n, y: 0 });
+  s.designVersion = raw.designVersion === 2 ? 2 : 1;
   s.id = typeof raw.id === 'string' ? raw.id : s.id;
   for (const k of [...blocks, 'label']) s[k] = typeof raw[k] === 'string' ? raw[k].slice(0, 100000) : '';
   s.exitDirection = ['auto',...Object.keys(directions)].includes(raw.exitDirection) ? raw.exitDirection : 'auto';
@@ -120,6 +138,7 @@ export function normalizeSlide(raw, n = 0) {
     s.positions[k] ||= pos(150,500,1200);
     const p = raw.positions?.[k];
     if (p) for (const key of ['x', 'y', 'w', 'size', 'h']) s.positions[k][key] = finite(p[key], s.positions[k][key] ?? 360, key === 'size' ? 10 : key === 'w' ? 80 : 0, key === 'size' ? 260 : key === 'y' || key === 'h' ? HEIGHT : WIDTH);
+    if (s.designVersion === 1 && p && !Number.isFinite(p.h) && blockType(s,k)!=='image') delete s.positions[k].h;
     const f = raw.fragments?.[k];
     s.fragments[k] = { order: Math.round(finite(f?.order, 0, 0, 20)), animation: ['fade', 'up', 'zoom', 'none'].includes(f?.animation) ? f.animation : 'fade' };
   }

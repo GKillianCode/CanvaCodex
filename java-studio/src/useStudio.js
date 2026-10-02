@@ -1,6 +1,8 @@
 import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick, toRaw } from 'vue';
-import { themes, presets, blocks, visibleBlocks, makeSlide, normalizeSlides, neighbor, nextFreeGrid, fragmentOrders, transitionDirection, memorySlides, positionsFor, applyLayout, blockType, blockText, setBlockText, reorderSlides, WIDTH, HEIGHT } from './model.js';
+import { themes, presets, blocks, visibleBlocks, makeSlide, normalizeSlides, neighbor, nextFreeGrid, fragmentOrders, transitionDirection, memorySlides, positionsFor, applyLayout, blockType, blockText, setBlockText, reorderSlides, WIDTH, HEIGHT, normalizeResolution } from './model.js';
 import { renderSlide, renderBanner, blockBounds, prepareImages } from './render.js';
+
+import { LaserTrail } from './laser.js';
 
 export function useStudio() {
   const sample = [
@@ -17,6 +19,9 @@ export function useStudio() {
   const index = ref(0), view = ref('slides'), tab = ref('layout'), selected = ref('title'), presenting = ref(false), canvas = ref(null), stage = ref(null), stageWidth = ref(900);
   const toast = ref(''), saved = ref(true), zoom = ref(100), recording = ref(false), elapsed = ref(0), laser = ref('#ff756d'), laserSize = ref(12), tool = ref('laser');
   const lastExport = ref(null), videoPreview = ref(false), videoMeta = ref(''), finalizing = ref(false), gallery = ref(false), editing = ref(null), formatting = ref(false);
+  const resolution = ref(normalizeResolution(initial?.resolution)), formatOpen = ref(false), formatWidth = ref(resolution.value.width);
+  const trail = new LaserTrail(), layoutBackup=ref(null);
+  const canUndoLayout=computed(()=>layoutBackup.value?.id===current.value?.id);
   const workspace = ref('canvas'), listDrag = ref(null), listTarget = ref(null);
   const thumbs = shallowRef({}), step = ref(0), transitionMs = ref(initial?.transitionMs ?? 650), moving = ref(false), gridDraft = ref({ x: 0, y: 0 });
   const current = computed(() => slides.value[index.value]), theme = computed(() => themes.find(t => t.id === themeId.value) || themes[0]);
@@ -26,6 +31,7 @@ export function useStudio() {
   const exitLabel = computed(()=>{ if(current.value.exitDirection!=='auto') return ({left:'← Vers la gauche',right:'→ Vers la droite',up:'↑ Vers le haut',down:'↓ Vers le bas'})[current.value.exitDirection]; const next=slides.value[index.value+1];if(!next)return 'Fin du diaporama'; const d=transitionDirection(current.value,next);return d.x>0?'← Vers la gauche':d.x<0?'→ Vers la droite':d.y>0?'↑ Vers le haut':'↓ Vers le bas'; });
   const orders = computed(() => fragmentOrders(current.value));
   const measurement = document.createElement('canvas').getContext('2d');
+  const editSize=computed(()=>blockBounds(measurement,current.value,selected.value).size);
   const editStyle = computed(() => {
     if (!editing.value) return {};
     const k = editing.value, b = blockBounds(measurement, current.value, k);
@@ -36,7 +42,7 @@ export function useStudio() {
   const modelController = new AbortController();
   const thumbnailKeys = new Map(), formatRequests = new Map();
   const metrics = { frames: 0, thumbnails: 0, dragCommits: 0 };
-  const snapshot = () => ({ version: 3, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
+  const snapshot = () => ({ version: 4, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
   const renderOptions = (s, n, order = Infinity) => ({ ...frame.value, project: project.value, n, total: slides.value.length, order });
   function notify(message) { toast.value = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 3500); }
   function queueSave() {
@@ -57,7 +63,7 @@ export function useStudio() {
     thumbs.value = result;
   }
   function queueThumbnails() { clearTimeout(thumbTimer); thumbTimer = setTimeout(updateThumbnails, 220); }
-  watch([slides, project, themeId, banner, frame, transitionMs], () => { queueSave(); queueThumbnails(); requestDraw(); }, { deep: true });
+  watch([slides, project, themeId, banner, frame, transitionMs, resolution], () => { queueSave(); queueThumbnails(); requestDraw(); }, { deep: true });
   watch([view, selected, presenting, zoom, editing, workspace], async () => { await nextTick(); observeStage(); requestDraw(); });
   watch(current, s => { gridDraft.value = { ...s.grid }; if(!visibleBlocks(s).includes(selected.value))selected.value='title'; });
   watch([laser, laserSize, tool], requestDraw);
@@ -65,23 +71,24 @@ export function useStudio() {
   function requestDraw() { if (!raf) raf = requestAnimationFrame(tick); }
   function tick(now) {
     raf = 0; draw(now);
-    if (recording.value || slideMotion || (revealMotion && now - revealMotion.started < 360)) requestDraw();
+    if (trail.prune(now) || recording.value || slideMotion || (revealMotion && now - revealMotion.started < 360)) requestDraw();
     else revealMotion = null;
   }
   function snapshotCanvas(s, n, order) {
-    const c = document.createElement('canvas'); c.width = WIDTH; c.height = HEIGHT;
-    renderSlide(c.getContext('2d'), s, theme.value, renderOptions(s, n, order)); return c;
+    const c = document.createElement('canvas'); c.width = resolution.value.width; c.height = resolution.value.height;
+    const g=c.getContext('2d');g.scale(c.width/WIDTH,c.height/HEIGHT);
+    renderSlide(g, s, theme.value, renderOptions(s, n, order)); return c;
   }
   function currentOrder() { return step.value > 0 ? orders.value[step.value - 1] : 0; }
   function draw(now = performance.now()) {
     if (!canvas.value || !current.value) return;
     metrics.frames++;
-    const ctx = canvas.value.getContext('2d'); ctx.clearRect(0, 0, WIDTH, HEIGHT);
+    const ctx = canvas.value.getContext('2d'); ctx.clearRect(0, 0, canvas.value.width, canvas.value.height); ctx.save();ctx.scale(canvas.value.width/WIDTH,canvas.value.height/HEIGHT);
     if (view.value === 'banners') renderBanner(ctx, banner.value, theme.value);
     else if (slideMotion && presenting.value) {
       const p = Math.min(1, (now - slideMotion.started) / slideMotion.duration), ease = p * p * (3 - 2 * p), { from, to, direction } = slideMotion;
-      ctx.drawImage(from, -direction.x * WIDTH * ease, -direction.y * HEIGHT * ease);
-      ctx.drawImage(to, direction.x * WIDTH * (1 - ease), direction.y * HEIGHT * (1 - ease));
+      ctx.drawImage(from, -direction.x * WIDTH * ease, -direction.y * HEIGHT * ease, WIDTH, HEIGHT);
+      ctx.drawImage(to, direction.x * WIDTH * (1 - ease), direction.y * HEIGHT * (1 - ease), WIDTH, HEIGHT);
       if (p === 1) { slideMotion = null; moving.value = false; }
     } else {
       let s = current.value;
@@ -91,34 +98,34 @@ export function useStudio() {
         const b = blockBounds(ctx, s, selected.value); ctx.strokeStyle = `${theme.value.accent}90`; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.strokeRect(b.x - 12, b.y - 12, b.w + 24, b.h + 24); ctx.setLineDash([]);
       }
     }
-    if (presenting.value) drawPointer(ctx);
+    if (presenting.value) { trail.draw(ctx,now); drawPointer(ctx); } ctx.restore();
   }
   function drawPointer(ctx) {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (const stroke of strokes) { ctx.strokeStyle = stroke.color; ctx.lineWidth = stroke.size; ctx.beginPath(); stroke.points.forEach((p, n) => n ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke(); }
     if (pointer && tool.value === 'laser') { ctx.fillStyle = laser.value; ctx.shadowColor = laser.value; ctx.shadowBlur = 22; ctx.beginPath(); ctx.arc(pointer.x, pointer.y, laserSize.value, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
   }
-  function clearAnnotations() { strokes = []; requestDraw(); }
+  function clearAnnotations() { strokes = []; trail.clear(); requestDraw(); }
   function coords(e) { const r = canvas.value.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * WIDTH, y: (e.clientY - r.top) / r.height * HEIGHT }; }
   function hitBlock(p) {
     const ctx = canvas.value.getContext('2d');
     return [...visibleBlocks(current.value)].reverse().find(k => { const b = blockBounds(ctx, current.value, k); return p.x >= b.x - 12 && p.x <= b.x + b.w + 12 && p.y >= b.y - (k === 'title' && current.value.label ? 58 : 12) && p.y <= b.y + b.h + 12; });
   }
   function down(e) {
-    if (editing.value || view.value === 'banners' || videoPreview.value) return;
+    if (e.button !== 0 || editing.value || view.value === 'banners' || videoPreview.value) return;
     const p = coords(e); canvas.value.setPointerCapture(e.pointerId);
-    if (presenting.value) { pointer = p; pointerDown = { ...p, moved: false }; if (tool.value === 'pen') { activeStroke = { color: laser.value, size: laserSize.value / 2, points: [p] }; strokes.push(activeStroke); } }
+    if (presenting.value) { pointer = p; pointerDown = { ...p, moved: false }; if(tool.value==='laser')trail.begin(p,performance.now(),laser.value,laserSize.value); if (tool.value === 'pen') { activeStroke = { color: laser.value, size: laserSize.value / 2, points: [p] }; strokes.push(activeStroke); } }
     else { const hit = hitBlock(p); if (!hit) return; selected.value = hit; drag = { key: hit, slideId: current.value.id, origin: { ...current.value.positions[hit] }, start: p, position: { ...current.value.positions[hit] }, moved: false }; }
     requestDraw();
   }
   function move(e) {
     const p = coords(e);
-    if (presenting.value) { pointer = p; if (pointerDown && Math.hypot(p.x - pointerDown.x, p.y - pointerDown.y) > 12) pointerDown.moved = true; if (activeStroke) activeStroke.points.push(p); requestDraw(); }
+    if (presenting.value) { pointer = p; if (pointerDown && Math.hypot(p.x - pointerDown.x, p.y - pointerDown.y) > 12) pointerDown.moved = true; if (pointerDown && (e.buttons & 1) && tool.value==='laser') trail.append(p,performance.now()); else if (!(e.buttons & 1)) trail.end(); if (activeStroke && (e.buttons & 1)) activeStroke.points.push(p); requestDraw(); }
     else if (drag) { const dx = p.x - drag.start.x, dy = p.y - drag.start.y; if (Math.hypot(dx, dy) > 2) drag.moved = true; drag.position = { ...drag.origin, x: Math.round(Math.max(0, Math.min(WIDTH - 40, drag.origin.x + dx))), y: Math.round(Math.max(0, Math.min(HEIGHT - 40, drag.origin.y + dy))) }; requestDraw(); }
   }
   function up(e) {
     if (drag) { if (drag.moved && drag.slideId === current.value.id) { current.value.positions[drag.key] = { ...drag.position }; metrics.dragCommits++; } drag = null; }
-    if (presenting.value && pointerDown && !pointerDown.moved && tool.value === 'laser' && e?.type !== 'pointercancel') advance();
+    trail.end();
     pointerDown = null; activeStroke = null; requestDraw();
   }
   function leave() { pointer = null; requestDraw(); }
@@ -127,7 +134,7 @@ export function useStudio() {
   function editSelected() { if (!visibleBlocks(current.value).includes(selected.value)) selected.value = 'title'; if(selectedType.value!=='image') editing.value = selected.value; }
   function chooseSlide(n) {
     if (n < 0 || n >= slides.value.length || n === index.value || moving.value) return;
-    closeEdit(); drag = null; pointer = null; strokes = [];
+    closeEdit(); drag = null; pointer = null; strokes = []; trail.clear();
     if (presenting.value) {
       const old = current.value, oldIndex = index.value, oldOrder = currentOrder(), next = slides.value[n];
       const from = snapshotCanvas(old, oldIndex, oldOrder), to = snapshotCanvas(next, n, 0);
@@ -149,7 +156,9 @@ export function useStudio() {
     while (slides.value.some(s => s.grid.x === x)) x++;
     const first = slides.value.length; slides.value.push(...memorySlides({ x, y: 0 })); gallery.value = false; chooseSlide(first); notify('Parcours mémoire ajouté : descends avec ↓, révèle avec Espace.');
   }
-  function applyPreset(id) { closeEdit(); applyLayout(current.value,id); if (!visibleBlocks(current.value).includes(selected.value)) selected.value = 'title'; }
+  function applyFormat() { const width=Number(formatWidth.value); const next=normalizeResolution({width,height:width*9/16}); if(next.width!==width){notify('Largeur entre 640 et 3840, multiple de 16.');return;}resolution.value=next;formatOpen.value=false;nextTick(requestDraw); }
+  function undoLayout(){if(!canUndoLayout.value)return;closeEdit();const old=layoutBackup.value;for(const key of ['layout','positions','blockKeys','designVersion'])current.value[key]=JSON.parse(JSON.stringify(old[key]));layoutBackup.value=null;if(!visibleBlocks(current.value).includes(selected.value))selected.value='title';requestDraw();}
+  function applyPreset(id) { layoutBackup.value=JSON.parse(JSON.stringify(current.value));closeEdit(); applyLayout(current.value,id); if (!visibleBlocks(current.value).includes(selected.value)) selected.value = 'title'; }
   function changeText(value) { setBlockText(current.value,editing.value,value); }
   function addBlock(type) {
     if(Object.keys(current.value.elements).length>=40){notify('Cette diapo contient déjà 40 éléments ajoutés.');return;}
@@ -198,7 +207,7 @@ export function useStudio() {
     if (!Number.isInteger(x) || !Number.isInteger(y) || Math.abs(x) > 10000 || Math.abs(y) > 10000 || slides.value.some(s => s.id !== current.value.id && s.grid.x === x && s.grid.y === y)) { gridDraft.value = { ...current.value.grid }; notify('Cette case est occupée ou sa position est invalide.'); return; }
     current.value.grid = { x, y };
   }
-  function setPosition(key, event) { const value = Number(event.target.value); const min = key === 'w' || key === 'h' ? 80 : key === 'size' ? 10 : 0, max = key === 'y' || key === 'h' ? HEIGHT : key === 'size' ? 260 : WIDTH; position.value[key] = Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : position.value[key]; event.target.value = position.value[key]; }
+  function setPosition(key, event) { const value = Number(event.target.value)*WIDTH/resolution.value.width; const min = key === 'w' || key === 'h' ? 80 : key === 'size' ? 10 : 0, max = key === 'y' || key === 'h' ? HEIGHT : key === 'size' ? 260 : WIDTH; position.value[key] = Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : position.value[key]; event.target.value = Math.round(position.value[key]*resolution.value.width/WIDTH); }
   function updateFragment(event) { current.value.fragments[selected.value].order = Math.max(0, Math.min(20, Math.round(Number(event.target.value) || 0))); }
   function formatCode(source = current.value.code) {
     const slideId = current.value.id;
@@ -221,21 +230,22 @@ export function useStudio() {
       const data = JSON.parse(await event.target.files[0].text()), normalized = normalizeSlides(data.slides);
       closeEdit(); slides.value = normalized; project.value = String(data.project || 'Projet importé'); themeId.value = themes.some(t => t.id === data.themeId) ? data.themeId : 'mint';
       if (data.banner && typeof data.banner.title === 'string' && typeof data.banner.subtitle === 'string' && ['lower', 'chapter', 'tip'].includes(data.banner.type)) banner.value = data.banner;
+      resolution.value=normalizeResolution(data.resolution);
       frame.value = { header: data.frame?.header === true, footer: data.frame?.footer === true }; transitionMs.value = Number.isFinite(data.transitionMs) ? Math.min(2000, Math.max(0, data.transitionMs)) : 650;
       index.value = 0; step.value = 0; gridDraft.value = { ...current.value.grid }; updateThumbnails(); requestDraw(); notify('Projet importé.');
     } catch { notify('Ce fichier n’est pas un projet Frame valide.'); }
     event.target.value = '';
   }
-  async function png() { await prepareImages([current.value]); const c = document.createElement('canvas'); c.width = WIDTH; c.height = HEIGHT; const ctx = c.getContext('2d'); if (view.value === 'banners') renderBanner(ctx, banner.value, theme.value); else renderSlide(ctx, current.value, theme.value, renderOptions(current.value, index.value)); c.toBlob(blob => { if (blob) download(blob, view.value === 'banners' ? 'frame-bandeau.png' : `frame-diapo-${index.value + 1}.png`); }, 'image/png'); }
-  async function startPresentation(fromStart=true) { await prepareImages(slides.value); closeEdit(); if(fromStart)index.value=0; view.value = 'slides'; presenting.value = true; step.value = 0; revealMotion = null; strokes = []; await nextTick(); observeStage(); requestDraw(); }
-  function exit() { if (recording.value) stopRecord(); slideMotion = null; moving.value = false; presenting.value = false; strokes = []; requestDraw(); }
+  async function png() { await prepareImages([current.value]); const c = document.createElement('canvas'); c.width = resolution.value.width; c.height = resolution.value.height; const ctx = c.getContext('2d');ctx.scale(c.width/WIDTH,c.height/HEIGHT); if (view.value === 'banners') renderBanner(ctx, banner.value, theme.value); else renderSlide(ctx, current.value, theme.value, renderOptions(current.value, index.value)); c.toBlob(blob => { if (blob) download(blob, view.value === 'banners' ? 'frame-bandeau.png' : `frame-diapo-${index.value + 1}.png`); }, 'image/png'); }
+  async function startPresentation(fromStart=true) { await prepareImages(slides.value); closeEdit(); if(fromStart)index.value=0; view.value = 'slides'; presenting.value = true; step.value = 0; revealMotion = null; strokes = []; trail.clear(); await nextTick(); observeStage(); requestDraw(); }
+  function exit() { if (recording.value) stopRecord(); slideMotion = null; moving.value = false; presenting.value = false; strokes = []; trail.clear(); requestDraw(); }
   function startRecord() {
     if (finalizing.value) return;
     if (!canvas.value?.captureStream || !window.MediaRecorder) { notify('Enregistrement indisponible dans ce navigateur.'); return; }
     try {
       const chunks = []; stream = canvas.value.captureStream(30); const recordingStream = stream;
       const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)); if (!mime) throw Error();
-      recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 10000000 });
+      recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: Math.round(10000000*resolution.value.width/1920) });
       recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
       recorder.onerror = () => { recording.value = false; finalizing.value = false; clearInterval(timer); recordingStream.getTracks().forEach(t => t.stop()); notify('L’enregistrement a rencontré une erreur.'); };
       recorder.onstop = () => { download(new Blob(chunks, { type: mime }), 'frame-presentation.webm'); recordingStream.getTracks().forEach(t => t.stop()); finalizing.value = false; };
@@ -245,7 +255,7 @@ export function useStudio() {
   function stopRecord() { if (!recording.value) return; recording.value = false; finalizing.value = true; clearInterval(timer); recorder.stop(); }
   function keys(e) {
     if (['INPUT', 'TEXTAREA', 'SELECT', 'VIDEO'].includes(e.target.tagName)) return;
-    if (e.key === 'Escape') { if (videoPreview.value) videoPreview.value = false; else if (gallery.value) gallery.value = false; else if (presenting.value) exit(); else closeEdit(); return; }
+    if (e.key === 'Escape') { if (videoPreview.value) videoPreview.value = false; else if(formatOpen.value)formatOpen.value=false;else if (gallery.value) gallery.value = false; else if (presenting.value) exit(); else closeEdit(); return; }
     if (!presenting.value || videoPreview.value) return;
     const direction = { ArrowRight: 'right', ArrowLeft: 'left', ArrowDown: 'down', ArrowUp: 'up' }[e.key];
     if (direction) { e.preventDefault(); goDirection(direction); }
@@ -255,8 +265,8 @@ export function useStudio() {
   function beforeUnload(e) { if (recording.value || finalizing.value) { e.preventDefault(); e.returnValue = ''; } }
   onMounted(() => {
     gridDraft.value = { ...current.value.grid }; updateThumbnails(); observeStage(); requestDraw(); window.addEventListener('frame-images-ready',imagesReady); window.addEventListener('keydown', keys); window.addEventListener('beforeunload', beforeUnload);
-    if (document.modelContext?.registerTool) try { Promise.resolve(document.modelContext.registerTool({ name: 'read_frame_project', description: 'Read the current slide project and presentation state', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: input => { if (!input || typeof input !== 'object' || Object.keys(input).length) throw Error('Expected an empty object'); return { ...JSON.parse(JSON.stringify(snapshot())), index: index.value, step: step.value, diagnostics: { ...metrics } }; } }, { signal: modelController.signal })).catch(() => {}); } catch { /* Browser support is optional. */ }
+    if (document.modelContext?.registerTool) try { Promise.resolve(document.modelContext.registerTool({ name: 'read_frame_project', description: 'Read the current slide project and presentation state', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: input => { if (!input || typeof input !== 'object' || Object.keys(input).length) throw Error('Expected an empty object'); return { ...JSON.parse(JSON.stringify(snapshot())), index: index.value, step: step.value, diagnostics: { ...metrics, trailPoints:trail.points.length, trailActive:trail.active } }; } }, { signal: modelController.signal })).catch(() => {}); } catch { /* Browser support is optional. */ }
   });
   onUnmounted(() => { modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('frame-images-ready',imagesReady); window.removeEventListener('keydown', keys); window.removeEventListener('beforeunload', beforeUnload); });
-  return { workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
+  return { resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
 }

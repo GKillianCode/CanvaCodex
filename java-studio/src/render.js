@@ -18,10 +18,10 @@ function drawImageBlock(ctx,s,key,theme) {
   round(ctx,p.x,p.y,p.w,h,18,theme.panel);
   const asset=e.src?imageAsset(e.src):null;
   if (!asset?.ready) {
-    ctx.strokeStyle=theme.accent+'50';ctx.lineWidth=2;ctx.setLineDash([10,10]);ctx.strokeRect(p.x+18,p.y+18,p.w-36,h-36);ctx.setLineDash([]);
+    const glow=ctx.createRadialGradient(p.x+p.w/2,p.y+h/2,0,p.x+p.w/2,p.y+h/2,p.w/2);glow.addColorStop(0,theme.accent+'28');glow.addColorStop(1,theme.panel);ctx.fillStyle=glow;ctx.fillRect(p.x+16,p.y+16,p.w-32,h-32);
     const cx=p.x+p.w/2, cy=p.y+h/2;
     ctx.strokeStyle=theme.accent;ctx.beginPath();ctx.moveTo(cx-45,cy+10);ctx.lineTo(cx-15,cy-25);ctx.lineTo(cx+8,cy);ctx.lineTo(cx+28,cy-15);ctx.lineTo(cx+50,cy+10);ctx.stroke();
-    text(ctx,'Importer une image',p.x+30,cy+42,p.w-60,26,theme.ink);
+    ctx.save();ctx.fillStyle=theme.ink;ctx.font='400 26px Arial';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('Importer une image',cx,cy+42);ctx.restore();
     return;
   }
   const img=asset.image, scale=e.fit==='cover'?Math.max(p.w/img.width,h/img.height):Math.min(p.w/img.width,h/img.height);
@@ -43,43 +43,57 @@ export function wrapLines(ctx, value, width) {
   }
   return lines;
 }
-export function text(ctx, value, x, y, width, size, color, weight = 400, font = 'Arial') {
+export function text(ctx, value, x, y, width, size, color, weight = 400, font = 'Arial', leading=1.35) {
   ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${font}`; ctx.textBaseline = 'top';
   const lines = wrapLines(ctx, value, width);
-  lines.forEach((line, n) => ctx.fillText(line, x, y + n * size * 1.35));
-  return lines.length * size * 1.35;
+  lines.forEach((line, n) => ctx.fillText(line, x, y + n * size * leading));
+  return lines.length * size * leading;
 }
 export function blockBounds(ctx, s, key) {
   const p = s.positions[key];
   if (blockType(s,key)==='image') return {...p,h:p.h||360};
-  if (key === 'code') return { ...p, h: Math.max(260, s.code.split('\n').length * p.size * 1.6 + 115) };
-  ctx.font = `${key === 'title' ? 700 : 400} ${p.size}px Arial`;
-  return { ...p, h: wrapLines(ctx, blockText(s,key), p.w).length * p.size * 1.35 };
+  if(key==='code'){const h=p.h||Math.max(260,s.code.split('\n').length*p.size*1.6+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,s.code.split('\n').length)*1.6),(p.w-110)/(Math.max(1,...s.code.split('\n').map(l=>l.length))*0.61)));return {...p,h,size};}
+  const leading=key==='title'?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'?700:400,leading);ctx.font=`${key==='title'?700:400} ${size}px Arial`;return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};
 }
 function background(ctx, theme) {
   if (!backgrounds.has(theme.id)) {
     const c = document.createElement('canvas'); c.width = WIDTH; c.height = HEIGHT;
     const g = c.getContext('2d'); g.fillStyle = theme.bg; g.fillRect(0, 0, WIDTH, HEIGHT);
-    g.fillStyle = `${theme.accent}09`;
-    for (let x = 0; x < WIDTH; x += 40) for (let y = 0; y < HEIGHT; y += 40) g.fillRect(x, y, 1.5, 1.5);
+    const glow=g.createRadialGradient(1650,180,0,1650,180,1050);glow.addColorStop(0,theme.accent+'16');glow.addColorStop(1,theme.accent+'00');g.fillStyle=glow;g.fillRect(0,0,WIDTH,HEIGHT);
+    const second=g.createRadialGradient(120,1000,0,120,1000,800);second.addColorStop(0,theme.secondary+'10');second.addColorStop(1,theme.secondary+'00');g.fillStyle=second;g.fillRect(0,0,WIDTH,HEIGHT);
     backgrounds.set(theme.id, c);
   }
   ctx.drawImage(backgrounds.get(theme.id), 0, 0);
 }
 function drawCode(ctx, s, theme) {
   const p = s.positions.code, b = blockBounds(ctx, s, 'code');
-  round(ctx, p.x, p.y, p.w, b.h, 18, theme.panel);
+  const lines=javaLines(s.code);const size=Math.max(12,Math.min(p.size,(b.h-128)/(Math.max(1,lines.length)*1.6),(p.w-110)/(Math.max(1,...s.code.split('\n').map(l=>l.length))*0.61)));ctx.save();ctx.shadowColor=theme.bg+'80';ctx.shadowBlur=36;ctx.shadowOffsetY=16;
+  round(ctx, p.x, p.y, p.w, b.h, 24, theme.panel);ctx.restore();
   text(ctx, 'Java', p.x + 30, p.y + 24, p.w - 60, 21, `${theme.ink}80`, 400, 'monospace');
   ctx.strokeStyle = `${theme.ink}15`; ctx.beginPath(); ctx.moveTo(p.x + 24, p.y + 72); ctx.lineTo(p.x + p.w - 24, p.y + 72); ctx.stroke();
   ctx.save(); ctx.beginPath(); ctx.rect(p.x + 12, p.y + 90, p.w - 24, b.h - 100); ctx.clip();
   javaLines(s.code).forEach((segments, n) => {
-    const y = p.y + 103 + n * p.size * 1.6;
-    text(ctx, String(n + 1).padStart(2, ' '), p.x + 28, y + 4, 50, p.size * .75, `${theme.ink}45`, 400, 'monospace');
+    const y = p.y + 103 + n * size * 1.6;
+    text(ctx, String(n + 1).padStart(2, ' '), p.x + 28, y + 4, 50, size * .75, `${theme.ink}45`, 400, 'monospace');
     let x = p.x + 80;
-    ctx.font = `400 ${p.size}px monospace`; ctx.textBaseline = 'top';
+    ctx.font = `400 ${size}px monospace`; ctx.textBaseline = 'top';
     for (const token of segments) { ctx.fillStyle = codeColor(token.type, theme); ctx.fillText(token.text, x, y); x += ctx.measureText(token.text).width; }
   });
   ctx.restore();
+}
+export function fitText(ctx,value,p,weight,leading) {
+  let size=p.size;if(!p.h)return size;
+  while(size>16){ctx.font=`${weight} ${size}px Arial`;if(wrapLines(ctx,value,p.w).length*size*leading<=p.h)break;size-=1;}return size;
+}
+function decoration(ctx,s,key,t) {
+  const p=s.positions[key],n=['body','text1','text2'].indexOf(key);if(n<0)return;
+  if(['three','before-after','question'].includes(s.layout)) {
+    round(ctx,p.x-32,p.y-104,p.w+64,(p.h||240)+144,24,t.panel);
+    text(ctx,s.layout==='before-after'?(n===0?'AVANT':'APRÈS'):s.layout==='question'?'EXPLICATION':String(n+1).padStart(2,'0'),p.x,p.y-65,p.w,24,n===1?t.secondary:t.accent,700);
+  }
+  if(['steps','summary'].includes(s.layout)) {round(ctx,p.x-112,p.y,64,64,20,t.accent);text(ctx,String(n+1),p.x-92,p.y+13,40,28,t.bg,700);ctx.fillStyle=t.ink+'15';ctx.fillRect(p.x,p.y+(p.h||120)+24,p.w,2);}
+  if(s.layout==='timeline') {ctx.fillStyle=t.accent;ctx.beginPath();ctx.arc(p.x+12,p.y-96,12,0,Math.PI*2);ctx.fill();ctx.fillStyle=t.accent+'40';ctx.fillRect(p.x+28,p.y-98,p.w-8,4);text(ctx,String(n+1).padStart(2,'0'),p.x,p.y-65,p.w,24,t.accent,700);}
+  if(s.layout==='definition'&&key==='body'){ctx.fillStyle=t.accent;ctx.fillRect(p.x,p.y-56,120,6);}
 }
 export function renderSlide(ctx, s, theme, options = {}) {
   background(ctx, theme);
@@ -99,12 +113,13 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if (f.animation !== 'none') ctx.globalAlpha *= ease;
     if (f.animation === 'up') ctx.translate(0, 35 * (1 - ease));
     if (f.animation === 'zoom') { const scale = .9 + ease * .1; ctx.translate(p.x + p.w / 2, p.y + b.h / 2); ctx.scale(scale, scale); ctx.translate(-p.x - p.w / 2, -p.y - b.h / 2); }
+    if(s.designVersion===2 && key!=='title' && blockType(s,key)==='text') decoration(ctx,s,key,theme);
     if (key === 'title') {
       if (s.label) text(ctx, s.label, p.x, Math.max(10, p.y - 58), p.w, 23, theme.accent, 700);
-      text(ctx, s.title, p.x, p.y, p.w, p.size, theme.ink, 700);
+      const font=fitText(ctx,s.title,p,700,1.12);const color=['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+p.h);g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,s.title,p.x,p.y,p.w,font,color,700,'Arial',1.12);
     } else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
     else if (key==='code') drawCode(ctx,s,theme);
-    else text(ctx,blockText(s,key),p.x,p.y,p.w,p.size,`${theme.ink}c8`);
+    else text(ctx,blockText(s,key),p.x,p.y,p.w,fitText(ctx,blockText(s,key),p,400,1.4),`${theme.ink}df`,400,'Arial',1.4);
     ctx.restore();
   }
   if (footer) {

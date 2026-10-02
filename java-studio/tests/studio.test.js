@@ -79,7 +79,7 @@ test('twenty templates offer distinct compositions with independent text and ima
 
 test('custom text, image, placement, and departure survive export migration', () => {
  const s=makeSlide('image-right');s.elements.image1.src='data:image/png;base64,aGVsbG8=';s.elements.textCustom={type:'text',name:'Détail',text:'Mémoire'};s.positions.textCustom={x:200,y:700,w:1200,size:35};s.fragments.textCustom={order:3,animation:'zoom'};s.exitDirection='down';s.grid={x:-1200,y:340};
- const copy=normalizeSlides([JSON.parse(JSON.stringify(s))])[0];assert.equal(copy.elements.image1.src,s.elements.image1.src);assert.equal(blockText(copy,'textCustom'),'Mémoire');assert.deepEqual(copy.grid,s.grid);assert.deepEqual(copy.fragments.textCustom,s.fragments.textCustom);assert.equal(copy.exitDirection,'down');assert.equal(copy.positions.image1.h,680);
+ const copy=normalizeSlides([JSON.parse(JSON.stringify(s))])[0];assert.equal(copy.elements.image1.src,s.elements.image1.src);assert.equal(blockText(copy,'textCustom'),'Mémoire');assert.deepEqual(copy.grid,s.grid);assert.deepEqual(copy.fragments.textCustom,s.fragments.textCustom);assert.equal(copy.exitDirection,'down');assert.equal(copy.positions.image1.h,s.positions.image1.h);
  copy.elements.image1.src='https://example.com/image.png';assert.equal(normalizeSlides([copy])[0].elements.image1.src,'');
  delete s.elements.textCustom;delete s.elements.image1;s.blockKeys=s.blockKeys.filter(k=>k!=='image1');const deleted=normalizeSlides([s])[0];assert.equal(deleted.elements.image1,undefined);assert.ok(!visibleBlocks(deleted).includes('image1'));
 });
@@ -98,4 +98,15 @@ test('changing a composition preserves image sources without leaving old templat
  const s=makeSlide('image-right');s.elements.image1.src='data:image/png;base64,aGVsbG8=';s.elements.textOwn={type:'text',custom:true,text:'À conserver',name:'Détail'};s.positions.textOwn={x:100,y:800,w:1200,size:30};s.fragments.textOwn={order:4,animation:'fade'};
  applyLayout(s,'three');assert.ok(!visibleBlocks(s).includes('image1'));assert.ok(visibleBlocks(s).includes('textOwn'));assert.ok(s.elements.image1.src);
  applyLayout(s,'image-right');assert.ok(visibleBlocks(s).includes('image1'));assert.equal(s.elements.image1.src,'data:image/png;base64,aGVsbG8=');
+});
+
+
+test('QHD defaults and custom 16:9 formats reject malformed dimensions', async()=>{
+ const {normalizeResolution}=await import('../src/model.js');assert.deepEqual(normalizeResolution(),{width:2560,height:1440});assert.deepEqual(normalizeResolution({width:3840,height:2160}),{width:3840,height:2160});for(const raw of [{width:1920,height:1200},{width:4000,height:2250},{width:641,height:360.5625},{width:'1920',height:1080}])assert.deepEqual(normalizeResolution(raw),{width:2560,height:1440});
+});
+test('laser release stops new points while the old trail fades, without joining strokes',async()=>{
+ const {LaserTrail}=await import('../src/laser.js');const t=new LaserTrail(900);t.append({x:1,y:1},0);assert.equal(t.points.length,0);t.begin({x:0,y:0},0,'red',12);t.append({x:10,y:10},100);t.end();t.append({x:30,y:30},200);assert.equal(t.points.length,2);assert.equal(t.active,false);t.begin({x:40,y:40},300,'blue',8);assert.notEqual(t.points[1].stroke,t.points[2].stroke);t.end();assert.equal(t.prune(950),true);assert.equal(t.points.length,2);assert.equal(t.prune(1200),false);t.begin({x:0,y:0},1300,'red',10);for(let i=0;i<1000;i++)t.append({x:i,y:i},1300+i);assert.equal(t.points.length,600);t.clear();assert.equal(t.points.length,0);
+});
+test('all twenty art-directed layouts keep their reserved regions within the design canvas',async()=>{
+ const {themes}=await import('../src/model.js');assert.equal(themes.length,10);assert.equal(new Set(themes.map(t=>t.id)).size,10);for(const p of presets){const s=makeSlide(p.id);assert.equal(s.designVersion,2);for(const k of visibleBlocks(s)){const b=s.positions[k];assert.ok(b.x>=0&&b.y>=0&&b.x+b.w<=1920&&b.y+(b.h||0)<=1080,`${p.id}/${k}`);}}
 });
