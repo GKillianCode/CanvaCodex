@@ -30,7 +30,7 @@ L’application est un outil personnel de production vidéo. Elle doit permettre
 - Vue 3, Vite 6, composants Single File Components, JavaScript, icônes Lucide Vue.
 - Pas de backend ni de Symfony à ce stade. Pas de synchronisation entre appareils.
 - Données sauvegardées sur l’appareil dans `localStorage` (clé `frame-project`). Export/import de projet JSON pour les sauvegardes portables.
-- Rendu partagé sur Canvas 2D, format 1920 × 1080, pour présentation et exports.
+- Rendu partagé sur Canvas 2D, coordonnées de conception 1920 × 1080 mises à l’échelle vers la résolution choisie (QHD par défaut), pour présentation et exports.
 - Enregistrement via `Canvas.captureStream(30)` et `MediaRecorder`, vidéo WebM sans audio. L’éditeur, ses panneaux et commandes ne sont pas enregistrés.
 - PNG pour les diapos ; PNG transparent pour les bandeaux.
 - Interface sombre avec accent menthe ; thèmes Terminal, Midnight, Carbon et Paper. Les thèmes concernent les créations ; l’atelier conserve son interface sombre.
@@ -159,3 +159,20 @@ Images : import PNG/JPEG/WebP local, fichier de 20 Mo maximum, conversion en Web
 Validation dans une origine de test séparée : galerie avec 20 choix et aucune direction à la création ; sélection et sortie configurée vers le bas ; trois clics vérifiés aux étapes 1/3, 2/3 et 3/3 puis passage à la suivante ; déplacement de la deuxième diapo en première par poignée, puis réordonnancement depuis la miniature entière ; départ de la présentation à 1/9 avec le nouveau contenu ; déplacement spatial d’une diapo en (1,1), déplacement de la vue et zoom ; image PNG importée et visible ; nouveau texte édité directement ; export PNG de 81 Ko ; enregistrement avec image et sortie vers le bas, WebM de 355 Ko reconnu en 1920 × 1080. Après rechargement, ordre, positions, texte ajouté et source de l’image conservés. Mobile à 390 px sans débordement. Onze tests du modèle/Java passent ; build vérifié. Pas de test de longue session ni de mesure FPS.
 
 Publication confirmée : [PR #6](https://github.com/GKillianCode/CanvaCodex/pull/6) ouverte de `feat/deck-canvas` vers `feat/spatial-slides`, avec l’issue #5 mise à jour. Le commit applicatif distant est `828c7da`. Aucun changement fusionné automatiquement. Les commits locaux d’origine sont conservés dans `archive/local-deck-canvas-20261002` lors de l’alignement sur les sources identiques publiées via le connecteur.
+
+
+### 2 octobre 2026 — QHD, traînée laser et direction artistique
+
+Demande : résolution réglable avec 2560 × 1440 par défaut, traînée laser uniquement pendant le clic gauche, refonte professionnelle des vingt dispositions et dix thèmes plus vifs. Suivi : [issue #7](https://github.com/GKillianCode/CanvaCodex/issues/7), branche `feat/qhd-art-direction`, basée sur `feat/deck-canvas` (PR #6 encore ouverte).
+
+Modèle version 4 : résolution persistée/exportée/importée, ratio 16:9, HD/Full HD/QHD/4K et largeur personnalisée de 640 à 3840 px multiple de 16. Le rendu partagé conserve les coordonnées logiques 1920 × 1080 pour ne pas déplacer les anciens contenus ; canvas physique, PNG, bandeaux et capture vidéo utilisent la résolution de sortie. Les propriétés de position et de typographie sont affichées en pixels de sortie. Les miniatures restent 384 × 216 ; elles ne sont pas recalculées en haute résolution.
+
+Laser : début de trait au bouton gauche, nouveaux points seulement si le bouton reste enfoncé, arrêt au relâchement/annulation, disparition progressive en 900 ms, strokes séparés, limite de 600 points. Les frames continuent pendant l’effacement même sans enregistrement. Le clic sur la diapo ne fait plus avancer : utiliser Espace/Entrée ou Révéler/Suivant. Le crayon conserve son comportement permanent. La traînée est incluse dans la capture Canvas.
+
+Direction artistique : marges cohérentes de 128 px, titres forts, accents en dégradé et halos discrets, suppression de la grille de points, cadres de code arrondis, adaptation du texte à la hauteur réservée, code ajusté à son cadre, cartes numérotées, chronologie et comparaisons. Les anciens placements sont conservés (designVersion 1) ; Réappliquer la disposition active la nouvelle composition (version 2) et offre une annulation de la dernière recomposition sans annuler les éditions de texte. Palette partagée de dix thèmes : Terminal, Midnight, Carbon, Studio, Cobalt, Corail, Volt, Pulse, Glacier, Sunset. Studio et Glacier utilisent les couleurs syntaxiques claires. Aucun asset généré par IA ni ajout de dépendance.
+
+Références visuelles consultées : [Apple Events](https://www.apple.com/apple-events/) et [générateur public de slides Benjamin Code](https://school.benjamincode.tv/galerie/slides-generator), pour la hiérarchie typographique, l’espace et les accents. Interprétation originale, sans copie d’asset. Atlas de contrôle en développement : `java-studio/tests/visual.html`.
+
+Validation : 14 tests passent ; compilation réussie. Atlas des vingt dispositions et dix palettes inspecté dans le navigateur ; réglage Full HD puis QHD et recomposition/annulation vérifiés. PNG produit de 1 425 Ko ; récupération du fichier via l’automatisation indisponible (timeout du téléchargement), donc dimensions du PNG non mesurées sur disque. Présentation : traînée visible au drag, effacée ensuite avec diagnostics zéro point et inactive, sans avancer la diapo. WebM court produit de 7 646 Ko, lecteur reconnaissant 2560 × 1440. Aucune erreur console. Pas de mesure FPS ni de test d’enregistrement long/4K.
+
+Publication confirmée : [PR #8](https://github.com/GKillianCode/CanvaCodex/pull/8) ouverte de `feat/qhd-art-direction` vers `feat/deck-canvas`, commit applicatif distant `569f8ac`. L’issue #7 est mise à jour et reste ouverte jusqu’à la fusion. Aucune fusion automatique. Les commits locaux d’origine sont conservés dans `archive/local-qhd-art-direction-20261002` lors de l’alignement sur les sources identiques du connecteur.

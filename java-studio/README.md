@@ -26,16 +26,17 @@ Le dossier `dist` peut être servi par un serveur statique ou intégré à une a
 - Dans « Éditer », glisser une miniature ou sa poignée pour changer l’ordre de lecture. Les flèches ↑/↓ sur une poignée permettent aussi de réordonner au clavier. Les positions sur le canvas ne changent pas.
 - « Présenter » commence par la première diapo ; « Tester cette diapo » commence par la sélection.
 - Les propriétés affichent la **sortie de la diapo** : automatique selon la position de la suivante, ou forcée vers la gauche, la droite, le haut ou le bas. Cette direction concerne la diapo qui quitte l’écran.
-- Ajouter des textes ou des images indépendants dans les propriétés. Chaque élément a sa position et son ordre/animation d’apparition. Les templates « Trois idées », « Étapes verticales », « Chronologie » et « À retenir » préparent les trois clics 1, 2, 3, puis la diapo suivante.
+- Ajouter des textes ou des images indépendants dans les propriétés. Chaque élément a sa position et son ordre/animation d’apparition. Les templates « Trois idées », « Étapes verticales », « Chronologie » et « À retenir » préparent les trois révélations 1, 2, 3, puis la diapo suivante.
 - Importer des images locales PNG/JPEG/WebP, choisir l’image entière ou le recadrage, régler largeur/hauteur. Elles sont redimensionnées à 1 600 px maximum et intégrées au projet JSON, aux PNG et au WebM. Les images des templates sont des emplacements à remplir.
 - Choisir une composition et ajuster X, Y, largeur et taille du texte.
 - Déplacer les blocs directement sur la diapo.
-- Choisir un thème global pour les diapos et les incrustations.
-- Exporter une diapo en PNG Full HD ou un bandeau en PNG transparent.
+- Choisir parmi **10 thèmes** globaux : Terminal, Midnight, Carbon, Studio, Cobalt, Corail, Volt, Pulse, Glacier et Sunset. Les aperçus utilisent le rendu réel.
+- Cliquer sur la résolution sous le nom du projet : **2560 × 1440 (QHD) par défaut**, formats HD/Full HD/4K ou largeur personnalisée entre 640 et 3840 px, multiple de 16. Le ratio reste 16:9. Diapos PNG, bandeaux transparents et vidéos utilisent ce format ; les positions sont affichées en pixels de sortie.
+- Les 20 dispositions ont été recomposées. Sur les anciennes diapos, « Réappliquer la disposition » remet les nouvelles marges et tailles sans changer les textes/images ; « Annuler la recomposition » restaure la dernière composition.
 - L’en-tête et le pied de page sont désactivés par défaut ; les activer dans Composition si souhaité.
 - Animation : définir l’ordre d’apparition de chaque élément (0 = visible au départ), son animation, la colonne/ligne de chaque diapo et la durée des transitions.
-- Présenter : flèches pour le parcours spatial, Espace/Entrée ou clic avec le laser pour révéler puis avancer, Page précédente pour revenir, Échap pour quitter ; laser ou crayon pour annoter.
-- Enregistrer : vidéo WebM 1920 × 1080, 30 images/seconde, sans audio. La vidéo contient uniquement le rendu des diapos, le laser et les annotations.
+- Présenter : flèches pour le parcours spatial, Espace/Entrée ou le bouton Révéler/Suivant pour révéler puis avancer, Page précédente pour revenir, Échap pour quitter ; Maintenir le **clic gauche** avec le laser pour tracer ; relâcher arrête les nouveaux points et la traînée s’efface en 900 ms. Le crayon conserve ses traits jusqu’à l’effacement.
+- Enregistrer : vidéo WebM à la résolution du projet, 30 images/seconde, sans audio. La vidéo contient uniquement le rendu des diapos, le laser et les annotations.
 - Sauvegarde automatique dans le navigateur sur l’appareil utilisé. Exporter le projet JSON pour une sauvegarde portable et l’importer pour reprendre ailleurs.
 
 L’enregistrement utilise Canvas.captureStream et MediaRecorder ; un navigateur récent compatible WebM est nécessaire. Le téléchargement se déclenche au clic sur Stop. L’enregistrement reste en mémoire jusqu’à son export : privilégier des séquences courtes. Le format est WebM, pas MP4.
@@ -50,3 +51,5 @@ npm run build
 ```
 
 Aucun service d’IA, paiement, microphone ou caméra. Les projets ne sont pas synchronisés entre appareils. Les polices d’interface sont chargées via Google Fonts avec une police système de secours ; le rendu des diapos utilise des polices système pour que les exports restent autonomes.
+
+Un atlas de contrôle visuel des 20 dispositions et 10 thèmes est accessible en développement à `/tests/visual.html`.
