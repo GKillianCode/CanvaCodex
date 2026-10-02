@@ -19,7 +19,7 @@ Disposer d’un atelier personnel pour produire des diaporamas Java techniques e
 - [x] Enregistrement avec navigation entre diapos puis Stop : vidéo générée et reconnue en 1920 × 1080.
 - [x] Export PNG de bandeau généré avec lien de téléchargement.
 - [x] Contexte, décisions, limites et roadmap documentés dans `Agent.md`.
-- [ ] Commits publiés sur le dépôt GitHub et PR liée à cette issue.
+- [x] Commits publiés sur le dépôt GitHub et PR liée : https://github.com/GKillianCode/CanvaCodex/pull/2.
 - [ ] Revue et validation de la première version par Killian avant fusion.
 
 ## Limites de validation

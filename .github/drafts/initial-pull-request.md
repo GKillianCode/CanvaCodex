@@ -13,4 +13,4 @@ Cette première version permet de composer des diapos techniques, appliquer un t
 
 Pas de backend Symfony ni de synchronisation entre appareils. Export vidéo WebM sans audio, conservé en mémoire jusqu’à l’export. Pas d’hébergement distant opérationnel.
 
-Lier l’issue de livraison initiale après sa création. Ce fichier est un brouillon local : aucune PR n’a encore été ouverte.
+PR publiée : https://github.com/GKillianCode/CanvaCodex/pull/2 ; liée à l’issue #1. Ce fichier conserve le texte de préparation ; l’état actuel est suivi dans la PR GitHub.

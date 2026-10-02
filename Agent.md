@@ -56,7 +56,7 @@ L’application est un outil personnel de production vidéo. Elle doit permettre
 - [x] Dépôt Git local initialisé, remote `origin` associé à CanvaCodex, branche `feat/frame-studio-initial` créée.
 - [x] Commits locaux du socle et de l’application ; mémoire et brouillons de suivi préparés.
 - [x] Sources de l’application publiées sur GitHub ; [issue #1](https://github.com/GKillianCode/CanvaCodex/issues/1) créée.
-- [ ] Pull request de livraison initiale à ouvrir après publication de la mémoire.
+- [x] Mémoire et conventions publiées ; [PR #2](https://github.com/GKillianCode/CanvaCodex/pull/2) ouverte pour revue, non fusionnée.
 
 ## Validation et limites connues
 
@@ -115,11 +115,12 @@ Ces éléments sont des pistes, pas des fonctionnalités commandées ou livrées
 - **2 octobre 2026 — mémoire et GitHub** : demande de ce fichier `Agent.md` à la racine, et de traçabilité GitHub pour les travaux suivants. Le dépôt distant est accessible en lecture et ne contient aucun ref au moment de la vérification. Aucun outil GitHub authentifié n’est disponible initialement ; connexion GitHub proposée. Publication à reprendre après confirmation de connexion.
 - **Préparation locale** : commit `27a1eed` sur `main` pour le socle du dépôt ; commit `d074f06` sur `feat/frame-studio-initial` pour l’application. Le build a été revérifié et passe. Brouillons d’issue et de PR conservés dans `.github/drafts/`. Un envoi non interactif de `main` a échoué faute d’identifiants HTTPS ; rien n’a été publié. Aucun numéro d’issue ou de PR n’est encore attribué. Le plugin GitHub avait été proposé ; sa connexion a ensuite été confirmée et la publication a repris.
 
-### Reprise de la publication
+- **Connexion et publication GitHub** : accès au dépôt confirmé avec les droits d’écriture. Le dépôt était toujours vide. Le connecteur GitHub a créé le socle distant sur `main` (commit `42c8388`) et publié les sources sur `feat/frame-studio-initial` (commit `197c3da`), avec l’issue [#1](https://github.com/GKillianCode/CanvaCodex/issues/1). Les commits distants ont des identifiants différents des premiers commits locaux : les sources ont été publiées via le connecteur, sans identifiants Git HTTPS locaux. La mémoire a été publiée dans le commit `6f38e1f` et la [PR #2](https://github.com/GKillianCode/CanvaCodex/pull/2) est ouverte vers `main`. L’issue #1 reste ouverte jusqu’à la revue et la fusion. Aucun changement n’a été fusionné automatiquement.
 
-1. Vérifier la connexion et les droits sur `GKillianCode/CanvaCodex`, puis relire les refs distants : le dépôt peut avoir changé entre-temps.
-2. Si le dépôt est toujours vide, publier le commit de base `main`, puis la branche `feat/frame-studio-initial`. Sinon, adapter la branche au socle distant sans écraser l’historique.
-3. Créer l’issue à partir de `.github/drafts/initial-issue.md`, puis ouvrir la PR à partir du brouillon correspondant, en liant le véritable numéro d’issue.
-4. Reporter les liens confirmés ici et actualiser les critères de suivi. Conserver la PR ouverte pour revue ; ne pas la fusionner sans demande.
+### Suivi GitHub actuel
 
-- **Connexion et publication GitHub** : accès au dépôt confirmé avec les droits d’écriture. Le dépôt était toujours vide. Le connecteur GitHub a créé le socle distant sur `main` (commit `42c8388`) et publié les sources sur `feat/frame-studio-initial` (commit `197c3da`), avec l’issue [#1](https://github.com/GKillianCode/CanvaCodex/issues/1). Les commits distants ont des identifiants différents des premiers commits locaux : les sources ont été publiées via le connecteur, sans identifiants Git HTTPS locaux. La publication de la mémoire et l’ouverture de la PR sont en cours.
+- Issue de livraison : [#1](https://github.com/GKillianCode/CanvaCodex/issues/1).
+- Pull request : [#2](https://github.com/GKillianCode/CanvaCodex/pull/2), branche `feat/frame-studio-initial` vers `main`, ouverte pour revue.
+- Les sources applicatives n’ont pas changé pendant la publication ; le build réussi précédemment reste pertinent.
+- Les premiers commits locaux sont conservés dans les branches d’archive `archive/local-frame-initial-20261002` et `archive/local-bootstrap-20261002`. Les branches de travail locales `main` et `feat/frame-studio-initial` doivent suivre leurs homologues distantes après récupération, sans réécriture de l’historique distant.
+- Pour la suite : créer ou réutiliser une issue avant chaque nouveau lot, documenter les décisions ici et ouvrir une PR avec les validations réellement effectuées. La roadmap reste proposée ; aucun ticket de développement supplémentaire n’est lancé sans choix de priorité.
