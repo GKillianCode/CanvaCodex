@@ -77,7 +77,7 @@ const { workspace, listDrag, listTarget, selectedType, editedText, exitLabel, ch
         <div class="position-grid"><label>Colonne<input type="number" min="-10000" max="10000" v-model.number="gridDraft.x"></label><label>Ligne<input type="number" min="-10000" max="10000" v-model.number="gridDraft.y"></label></div><button class="btn full" @click="applyGrid">Appliquer la position</button>
         <p class="field-help">La colonne augmente vers la droite ; la ligne augmente vers le bas.</p>
         <label>Durée de transition<select v-model.number="transitionMs"><option :value="0">Immédiate</option><option :value="350">Rapide · 350 ms</option><option :value="650">Fluide · 650 ms</option><option :value="1000">Lente · 1 seconde</option></select></label>
-        
+
         <p class="field-help">En présentation : flèches pour le parcours, Espace pour les apparitions et la suite.</p>
       </template>
       <p class="field-help format-state" v-if="formatting">Formatage Java en cours…</p>
