@@ -43,13 +43,18 @@ L’application est un outil personnel de production vidéo. Elle doit permettre
 - [x] Quatre diapos d’exemple autour du bytecode et de la JVM.
 - [x] Ajout, duplication et suppression de diapos (au moins une conservée).
 - [x] Modification des surtitres, titres, explications et exemples de code.
-- [x] Quatre compositions : explication + code, ouverture, code en grand, deux colonnes.
+- [x] Six compositions : explication + code, ouverture, code en grand, deux colonnes, chiffre/unité et texte en grand ; galerie lors de l’ajout.
 - [x] Déplacement des blocs à la souris et réglages X, Y, largeur, taille du texte.
 - [x] Quatre thèmes globaux partagés entre diapos et incrustations.
 - [x] Trois formats de bandeaux : titre inférieur, titre de chapitre, À retenir.
 - [x] Export PNG, sauvegarde locale et export/import JSON avec validation structurelle.
 - [x] Présentation avec navigation, laser réglable en couleur/taille, crayon, effacement.
 - [x] Enregistrement WebM, aperçu vidéo après Stop et lien de téléchargement.
+- [x] Édition directe par double-clic ; coloration Java Prism et formatage Prettier automatique au collage dans un worker.
+- [x] En-tête/pied de page optionnels, désactivés par défaut.
+- [x] Parcours spatial sur quatre axes, transitions continues enregistrées dans le Canvas.
+- [x] Apparitions ordonnées des blocs au clic (fondu, montée, zoom ou immédiate).
+- [x] Exemple mémoire vertical Go → Mo → Ko → octet, unités décimales distinguées des binaires.
 - [x] Interface adaptée aux petits écrans.
 - [ ] Backend Symfony, base de données et gestion de plusieurs projets.
 - [ ] Hébergement opérationnel distant.
@@ -124,3 +129,13 @@ Ces éléments sont des pistes, pas des fonctionnalités commandées ou livrées
 - Les sources applicatives n’ont pas changé pendant la publication ; le build réussi précédemment reste pertinent.
 - Les premiers commits locaux sont conservés dans les branches d’archive `archive/local-frame-initial-20261002` et `archive/local-bootstrap-20261002`. Les branches de travail locales `main` et `feat/frame-studio-initial` doivent suivre leurs homologues distantes après récupération, sans réécriture de l’historique distant.
 - Pour la suite : créer ou réutiliser une issue avant chaque nouveau lot, documenter les décisions ici et ouvrir une PR avec les validations réellement effectuées. La roadmap reste proposée ; aucun ticket de développement supplémentaire n’est lancé sans choix de priorité.
+
+### 2 octobre 2026 — édition fluide et diaporamas spatiaux
+
+Demandes de Killian : corriger le lag au déplacement, rendre les habillages optionnels, naviguer dans les quatre directions avec transitions continues, révéler les éléments par ordre, éditer par double-clic, choisir une disposition dans une galerie et colorer/indenter réellement le Java. Suivi : [issue #3](https://github.com/GKillianCode/CanvaCodex/issues/3), branche `feat/spatial-slides`, basée sur `feat/frame-studio-initial` tant que la PR #2 reste ouverte.
+
+Architecture : `useStudio.js` gère les interactions ; `model.js` normalise les anciens projets et les coordonnées ; `render.js` partage le rendu ; composants dédiés à la galerie et à l’édition ; Prism pour les tokens, Prettier Java 2.7.7 dans un worker pour le formatage. Les miniatures font 384 × 216 et sont mises en cache. Pendant un glisser, la position est transitoire, le rendu est limité à une fois par frame ; sauvegarde et miniature se mettent à jour à la fin. Les thèmes/fonds et tokens sont également mis en cache. Les anciens textes et positions sont préservés, les slides reçoivent une grille et des blocs statiques par défaut.
+
+Validation : six tests passent (migration, quatre directions, groupes d’apparition, séquence mémoire, tokens Java, formatage et conservation d’un extrait incomplet), build réussi. Dans un navigateur de test séparé : double-clic et collage formaté confirmés ; glisser observé avec un seul commit de position et une seule miniature recalculée après le geste ; galerie, ajout du parcours, apparition et transitions verticales aller/retour vérifiés ; WebM de 641 Ko reconnu en 1920 × 1080 après une transition et une apparition. La barre de commandes de présentation a été corrigée pour rester sous le Canvas. Aucun benchmark de FPS ni test d’enregistrement long n’a été effectué.
+
+Les blocs actuels restent titre, explication et code : pas encore de système arbitraire d’objets ou de schémas. L’ordre concerne ces blocs entiers. Les coordonnées spatiales sont distinctes des positions X/Y des éléments. La navigation par flèches suit le voisin sur le même axe ; Espace suit les apparitions puis l’ordre de la liste. Pas de bibliothèque Reveal.js intégrée : transitions Canvas pour garantir le même résultat dans l’export vidéo.
