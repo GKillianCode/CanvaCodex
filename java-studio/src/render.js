@@ -16,6 +16,11 @@ function imageAsset(src) {
   return images.get(src);
 }
 export async function prepareImages(slides) { await Promise.all(slides.flatMap(s=>Object.values(s.elements||{}).filter(e=>e.type==='image'&&e.src).map(e=>imageAsset(e.src).promise))); }
+export function imageDrawingRect(p,img,fit='contain') {
+  const h=p.h||360, scale=fit==='cover'?Math.max(p.w/img.width,h/img.height):Math.min(p.w/img.width,h/img.height);
+  const w=img.width*scale, height=img.height*scale;
+  return {x:p.x+(p.w-w)/2,y:p.y+(h-height)/2,w,h:height};
+}
 export function drawImageBlock(ctx,s,key,theme) {
   const p=s.positions[key], e=s.elements[key], h=p.h||360;
   if(!e.src||e.background)round(ctx,p.x,p.y,p.w,h,18,theme.panel);
@@ -27,8 +32,10 @@ export function drawImageBlock(ctx,s,key,theme) {
     ctx.save();ctx.fillStyle=theme.ink;ctx.font='400 26px Arial';ctx.textAlign='center';ctx.textBaseline='top';ctx.fillText('Importer une image',cx,cy+42);ctx.restore();
     return;
   }
-  const img=asset.image, scale=e.fit==='cover'?Math.max(p.w/img.width,h/img.height):Math.min(p.w/img.width,h/img.height);
-  ctx.save();ctx.beginPath();ctx.roundRect(p.x,p.y,p.w,h,18);ctx.clip();ctx.drawImage(img,p.x+(p.w-img.width*scale)/2,p.y+(h-img.height*scale)/2,img.width*scale,img.height*scale);ctx.restore();
+  const img=asset.image, r=imageDrawingRect(p,img,e.fit);
+  const clip=e.fit==='cover'?{x:p.x,y:p.y,w:p.w,h}:r;
+  const radius=e.roundedCorners?Math.min(clip.w,clip.h)*Math.max(0,Math.min(50,e.cornerRadius??10))/100:0;
+  ctx.save();ctx.beginPath();ctx.roundRect(clip.x,clip.y,clip.w,clip.h,radius);ctx.clip();ctx.drawImage(img,r.x,r.y,r.w,r.h);ctx.restore();
 }
 export function round(ctx, x, y, w, h, r, color) {
   ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
