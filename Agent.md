@@ -34,7 +34,7 @@ L’application est un outil personnel de production vidéo. Elle doit permettre
 - Enregistrement via `Canvas.captureStream(30)` et `MediaRecorder`, vidéo WebM sans audio. L’éditeur, ses panneaux et commandes ne sont pas enregistrés.
 - PNG pour les diapos ; PNG transparent pour les bandeaux.
 - Interface sombre avec accent menthe ; thèmes Terminal, Midnight, Carbon et Paper. Les thèmes concernent les créations ; l’atelier conserve son interface sombre.
-- Polices d’interface Google Fonts avec polices de secours. Les diapos utilisent des polices système pour garder des exports autonomes.
+- Polices d’interface et des diapos embarquées localement via Fontsource, avec repli système.
 - Une inscription Sites privée a été créée au premier tour, mais aucune mise en ligne n’a abouti : les scripts du module étaient devenus indisponibles. Ne pas confondre cette inscription avec un site publié. La configuration locale `.openai/` n’est pas nécessaire au fonctionnement ni à la publication sur GitHub.
 
 ## État livré
@@ -47,7 +47,7 @@ L’application est un outil personnel de production vidéo. Elle doit permettre
 - [x] Déplacement des blocs à la souris et réglages X, Y, largeur, hauteur, taille du texte ; huit poignées de redimensionnement.
 - [x] Galerie de 20 formes vectorielles, déformables avec remplissage, contour, opacité et superposition réglables.
 - [x] Quatre thèmes globaux partagés entre diapos et incrustations.
-- [x] Trois formats de bandeaux : titre inférieur, titre de chapitre, À retenir.
+- [x] Quatre formats de bandeaux : titre inférieur, titre de chapitre, À retenir, Voir une autre vidéo.
 - [x] Export PNG, sauvegarde locale et export/import JSON avec validation structurelle.
 - [x] Présentation avec navigation, laser réglable en couleur/taille, crayon, effacement.
 - [x] Enregistrement WebM, aperçu vidéo après Stop et lien de téléchargement.
@@ -272,3 +272,22 @@ Canvas partage famille, graisse et italique entre mesure, adaptation à la haute
 Validation : 39 cas passent, build et diff --check réussis. Tests des variantes et valeurs invalides, migration, duplication indépendante, ordre de dessin des décorations, mesures, chargement/cache des faces et conservation lors de recomposition. Navigateur isolé : titre Inter 900 italique souligné avec surlignage cyan, code JetBrains Mono 600 italique barré surligné ; styles visibles pendant la saisie, conservés après rechargement et visibles en présentation. WebM court produit (9 193 Ko), reconnu en 2560 × 1440 ; aucune erreur console. PNG non téléchargé à nouveau, même renderer. Pas de nouveau contrôle mobile ni de capture longue.
 
 Publication confirmée : [PR #22](https://github.com/GKillianCode/CanvaCodex/pull/22) ouverte de `codex/text-styles` vers `codex/font-picker`, commit applicatif distant `f74d892`. Issue #21 mise à jour et ouverte jusqu’à la fusion. Aucune fusion automatique. Les commits locaux sont conservés dans `archive/local-text-styles-20261003` lors de l’alignement sur les sources identiques du connecteur.
+
+
+### 3 octobre 2026 — mesures, groupes, SVG et fichiers liés
+
+Demande : Alt vers un autre objet et vision globale d’une sélection, groupes, propriétés en tiroirs, SVG/transparence, textes au cadre ajusté, incrustation recommandant une vidéo, Ctrl S vers un fichier lié et reprise de session. « Découper » a été précisé par Killian : dissocier un groupe. Suivi : [issue #23](https://github.com/GKillianCode/CanvaCodex/issues/23), branche `codex/editor-workspace-files` basée sur `codex/text-styles` (PR #22 ouverte).
+
+Modèle version 11 : groupes disjoints par diapo, identifiant de projet, positions autoSize/wrapWidth des textes et fond facultatif des images. Ctrl/⌘ + clic sélectionne plusieurs éléments, Ctrl A tous les objets ; Grouper/Ctrl G et Dissocier/Ctrl Maj G dans les propriétés. Clic sur un membre sélectionne le groupe, glisser ou flèches déplacent ensemble sans changer leurs distances ; duplication copie les groupes et objets, double-clic édite individuellement un membre. Groupes à un niveau, sans groupe imbriqué ni rotation/redimensionnement collectif. Les animations restent individuelles. Suppression/recomposition retire les références masquées ; migration valide les membres.
+
+Alt : cadre global de la sélection, X/Y depuis les bords ; survol d’un objet hors sélection donne ΔX/ΔY entre les bords des cadres englobants, rotation prise en compte. Chevauchement sur un axe = 0 px ; les mesures sont exprimées en pixels de sortie et restent hors exports. Propriétés en tiroirs Style du texte, Position et dimensions, Image et transparence, Style de la forme, Contenu du code et Apparition.
+
+Nouveaux textes : cadre automatique mesuré dans la police/graisse choisie, qui grandit/rétrécit pendant la saisie, avec largeur maximale de ligne réglable. La taille de police reste stable. Activation possible sur les textes existants ; les presets gardent leurs cadres fixes pour préserver leurs compositions. Poignées ou largeur/hauteur manuelles passent en cadre fixe. SVG autonomes intégrés en data URI vectoriel ; refus des scripts, événements, ressources externes et foreignObject. PNG/WebP transparents conservés, conversion des images matricielles en PNG, pas de fond de thème derrière une image chargée sauf option explicite. Le dessin partagé exporte le SVG via Canvas à la résolution demandée. Pas de suppression automatique de fond d’une image opaque.
+
+Nouvelle incrustation « Voir une autre vidéo » : pictogramme lecture, surtitre, titre et indication complémentaire ; PNG transparent partagé avec le thème. C’est un visuel de montage, pas un lien interactif dans le PNG.
+
+Sauvegarde : Ctrl/⌘ S, Enregistrer, Enregistrer sous/Ctrl Maj S, Ouvrir un fichier lié et copie JSON. File System Access pour les navigateurs compatibles (Chrome/Edge, contexte sécurisé ou localhost), handle et version de référence conservés dans IndexedDB `frame-files`, associés au projectId. Une permission peut être redemandée après fermeture sans refaire Enregistrer sous. Écriture uniquement sur commande explicite ; protection contre les modifications externes par comparaison au contenu de référence, conflit signalé et proposition Enregistrer sous. Repli JSON téléchargé quand le navigateur ne supporte pas l’écriture directe. Référence : [MDN showSaveFilePicker](https://developer.mozilla.org/en-US/docs/Web/API/Window/showSaveFilePicker), [permissions](https://developer.mozilla.org/en-US/docs/Web/API/FileSystemHandle/requestPermission). Copie locale `frame-project` après 450 ms et sur pagehide/fermeture/visibilité cachée ; `frame-session` restaure diapo active, espace et vue. Les préférences des panneaux restent dans frame-workspace. Aucun fichier utilisateur ni handle ne va sur GitHub ; aucun backend/service externe ajouté.
+
+Validation : 47 cas passent (39 existants + 8 nouveaux, exécutés directement avec Node), build et diff --check réussis. Tests des distances/rotation/chevauchement, groupes/migration/dissociation, déplacement commun borné, SVG admissibles/refusés, auto-dimensions, fond transparent, fichier réutilisé/reprise/permission/conflit/annulation. Les opérations de fichiers sont testées avec des doubles de FileSystemFileHandle ; le sélecteur natif et l’écriture sur le vrai disque n’ont pas été automatisés. Navigateur isolé : nouveau texte réduit à Java avec cadre 122 × 41 px de sortie, ΔX 849 px / ΔY 0 au survol du code ; Ctrl A, regroupement de quatre objets, déplacement commun, groupe retrouvé après rechargement, dissociation puis sélection d’un seul titre ; même diapo et vue Éditer restaurées. SVG transparent chargé visuellement, tiroirs et nouveau bandeau vérifiés ; PNG de bandeau produit 104 Ko, lien disponible mais téléchargement non récupéré par l’outil. Aucune erreur console au contrôle ; workspace diapos/incrustations 390 px sans débordement. Pas de nouvelle capture WebM ni de mesure alpha sur le fichier PNG.
+
+Travail validé localement ; publication en cours, aucune fusion automatique.
