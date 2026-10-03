@@ -72,3 +72,6 @@ Un atlas de contrôle visuel des 20 dispositions et 10 thèmes est accessible en
 - Propriétés en tiroirs thématiques repliables. Les nouveaux textes ajustent leur cadre au contenu pendant la saisie. Activer **Cadre ajusté au texte** sur un texte existant ; régler sa largeur maximale de ligne. Le redimensionnement manuel rétablit un cadre fixe.
 - SVG autonomes acceptés, sans script ni ressource externe. Le fond du thème derrière les images est facultatif. Une image opaque reste opaque.
 - Incrustation **Voir une autre vidéo** : surtitre, titre et indication complémentaire, export PNG transparent pour le montage.
+
+- **Style → Fond du diaporama → Dégradé de fond** : décocher pour un fond uni, commun à toutes les diapos et exports. Les anciens projets conservent leur dégradé.
+- **Style de la forme → Extrémités arrondies** : décocher pour des bouts plats sur traits/courbes, y compris les pointillés.
