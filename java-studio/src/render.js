@@ -1,3 +1,4 @@
+import { getTextStyle, normalizeTextStyle, styleFont } from './textStyles.js';
 import { fontCss } from './fonts.js';
 import { drawShape } from './shapes.js';
 import { WIDTH, HEIGHT, visibleBlocks, blockType, blockText } from './model.js';
@@ -45,18 +46,22 @@ export function wrapLines(ctx, value, width) {
   }
   return lines;
 }
-export function text(ctx, value, x, y, width, size, color, weight = 400, font = 'Arial', leading=1.35) {
-  ctx.fillStyle = color; ctx.font = `${weight} ${size}px ${font}`; ctx.textBaseline = 'top';
-  const lines = wrapLines(ctx, value, width);
-  lines.forEach((line, n) => ctx.fillText(line, x, y + n * size * leading));
-  return lines.length * size * leading;
+export function paintTextMark(ctx,line,x,y,size,color,style,background=false){
+ if(!line)return;const metrics=ctx.measureText(line),width=metrics.width,top=y-(Number.isFinite(metrics.actualBoundingBoxAscent)?metrics.actualBoundingBoxAscent:0),bottom=y+(Number.isFinite(metrics.actualBoundingBoxDescent)?metrics.actualBoundingBoxDescent:size),thickness=Math.max(1,size*.045);ctx.save();
+ if(background&&style.highlight){ctx.globalAlpha*=style.highlightOpacity/100;ctx.fillStyle=style.highlightColor;ctx.fillRect(x-size*.04,top-size*.04,width+size*.08,Math.max(size*.5,bottom-top)+size*.08);}
+ if(!background){ctx.fillStyle=color;if(style.underline)ctx.fillRect(x,bottom+size*.06,width,thickness);if(style.strike)ctx.fillRect(x,top+(bottom-top)*.55,width,thickness);}
+ ctx.restore();
 }
-function codeWidthSize(ctx,value,p){ctx.font=`400 ${p.size}px ${fontCss(p.font,'code')}`;return (p.w-110)*p.size/Math.max(1,...value.split('\n').map(line=>ctx.measureText(line).width));}
+export function text(ctx, value, x, y, width, size, color, weight = 400, font = 'Arial', leading=1.35,style=null) {
+ ctx.fillStyle=color;ctx.font=styleFont(size,font,style||{weight,italic:false});ctx.textBaseline='top';const lines=wrapLines(ctx,value,width);
+ lines.forEach((line,n)=>{const row=y+n*size*leading;if(style)paintTextMark(ctx,line,x,row,size,color,style,true);ctx.fillText(line,x,row);if(style)paintTextMark(ctx,line,x,row,size,color,style);});return lines.length*size*leading;
+}
+function codeWidthSize(ctx,value,p){ctx.font=styleFont(p.size,fontCss(p.font,'code'),normalizeTextStyle(p.textStyle,p.font,'code'));return (p.w-110)*p.size/Math.max(1,...value.split('\n').map(line=>ctx.measureText(line.replaceAll('\t','    ')).width));}
 export function blockBounds(ctx, s, key) {
   const p = s.positions[key];
   if (['image','shape'].includes(blockType(s,key))) return {...p,h:p.h||360};
   if(blockType(s,key)==='code'){const value=blockText(s,key);const h=p.h||Math.max(260,value.split('\n').length*p.size*1.6+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,blockText(s,key).split('\n').length)*1.6),codeWidthSize(ctx,blockText(s,key),p)));return {...p,h,size};}
-  const leading=key==='title'||s.elements[key]?.weight===700?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=`${key==='title'||s.elements[key]?.weight===700?700:400} ${size}px ${fontCss(p.font)}`;return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};
+  const style=getTextStyle(s,key),leading=key==='title'||s.elements[key]?.weight===700?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=styleFont(size,fontCss(p.font),style);return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};
 }
 function background(ctx, theme) {
   const key=JSON.stringify([theme.bg,theme.accent,theme.secondary]);
@@ -70,24 +75,27 @@ function background(ctx, theme) {
   ctx.drawImage(backgrounds.get(key), 0, 0);
 }
 function drawCode(ctx, s, theme, key) {
-  const p = s.positions[key], b = blockBounds(ctx, s, key), family=fontCss(p.font,'code');
+  const p = s.positions[key], b = blockBounds(ctx, s, key), family=fontCss(p.font,'code'),style=getTextStyle(s,key);
   const lines=javaLines(blockText(s,key));const size=Math.max(12,Math.min(p.size,(b.h-128)/(Math.max(1,lines.length)*1.6),codeWidthSize(ctx,blockText(s,key),p)));ctx.save();ctx.shadowColor=theme.bg+'80';ctx.shadowBlur=36;ctx.shadowOffsetY=16;
   round(ctx, p.x, p.y, p.w, b.h, 24, theme.panel);ctx.restore();
-  let caption=key==='code'?(s.codeTitle||''):(s.elements[key]?.caption||'');ctx.font=`400 21px ${family}`;if(ctx.measureText(caption).width>p.w-60){while(caption.length&&ctx.measureText(caption+'…').width>p.w-60)caption=caption.slice(0,-1);caption+='…';}text(ctx,caption.replaceAll('\n',' '),p.x+30,p.y+24,p.w-60,21,`${theme.ink}80`,400,family);
+  let caption=key==='code'?(s.codeTitle||''):(s.elements[key]?.caption||'');ctx.font=styleFont(21,family,style);if(ctx.measureText(caption).width>p.w-60){while(caption.length&&ctx.measureText(caption+'…').width>p.w-60)caption=caption.slice(0,-1);caption+='…';}text(ctx,caption.replaceAll('\n',' '),p.x+30,p.y+24,p.w-60,21,`${theme.ink}80`,style.weight,family,1.35,style);
   ctx.strokeStyle = `${theme.ink}15`; ctx.beginPath(); ctx.moveTo(p.x + 24, p.y + 72); ctx.lineTo(p.x + p.w - 24, p.y + 72); ctx.stroke();
   ctx.save(); ctx.beginPath(); ctx.rect(p.x + 12, p.y + 90, p.w - 24, b.h - 100); ctx.clip();
   javaLines(blockText(s,key)).forEach((segments, n) => {
     const y = p.y + 103 + n * size * 1.6;
     text(ctx, String(n + 1).padStart(2, ' '), p.x + 28, y + 4, 50, size * .75, `${theme.ink}45`, 400, family);
+    const line=segments.map(token=>token.text).join('');
+    ctx.font=styleFont(size,family,style);ctx.textBaseline='top';paintTextMark(ctx,line,p.x+80,y,size,theme.ink,style,true);
     let x = p.x + 80;
-    ctx.font = `400 ${size}px ${family}`; ctx.textBaseline = 'top';
+    ctx.font = styleFont(size,family,style); ctx.textBaseline = 'top';
     for (const token of segments) { ctx.fillStyle = codeColor(token.type, theme); ctx.fillText(token.text, x, y); x += ctx.measureText(token.text).width; }
+    paintTextMark(ctx,line,p.x+80,y,size,theme.ink,style);
   });
   ctx.restore();
 }
 export function fitText(ctx,value,p,weight,leading) {
   let size=p.size;if(!p.h)return size;
-  while(size>16){ctx.font=`${weight} ${size}px ${fontCss(p.font)}`;if(wrapLines(ctx,value,p.w).length*size*leading<=p.h)break;size-=1;}return size;
+  while(size>16){ctx.font=styleFont(size,fontCss(p.font),normalizeTextStyle(p.textStyle,p.font,'text',weight===700));if(wrapLines(ctx,value,p.w).length*size*leading<=p.h)break;size-=1;}return size;
 }
 function decoration(ctx,s,key,t) {
   const p=s.positions[key],n=['body','text1','text2'].indexOf(key);if(n<0)return;
@@ -110,7 +118,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if (omit === key) continue;
     const f = s.fragments[key];
     if (f.order > order) continue;
-    const p = s.positions[key], b = blockBounds(ctx, s, key);
+    const p = s.positions[key], b = blockBounds(ctx, s, key),style=getTextStyle(s,key);
     const progress = motion && f.order > 0 && f.order === motion.order ? Math.min(1, Math.max(0, (now - motion.started) / 360)) : 1;
     const ease = 1 - (1 - progress) ** 3;
     ctx.save();
@@ -120,12 +128,12 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if (f.animation === 'zoom') { const scale = .9 + ease * .1; ctx.translate(p.x + p.w / 2, p.y + b.h / 2); ctx.scale(scale, scale); ctx.translate(-p.x - p.w / 2, -p.y - b.h / 2); }
     if(s.designVersion===2 && key!=='title' && blockType(s,key)==='text') decoration(ctx,s,key,theme);
     if (key === 'title'||s.elements[key]?.weight===700) {
-      const label=key==='title'?s.label:s.elements[key]?.label;if (label) text(ctx, label, p.x, Math.max(10, p.y - 58), p.w, 23, theme.accent, 700);
-      const font=fitText(ctx,blockText(s,key),p,700,1.12);const color=['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y,p.w,font,color,700,fontCss(p.font),1.12);
+      const label=key==='title'?s.label:s.elements[key]?.label;if (label) text(ctx, label, p.x, Math.max(10, p.y - 58), p.w, 23, theme.accent, style.weight,fontCss(p.font),1.35,style);
+      const font=fitText(ctx,blockText(s,key),p,700,1.12);const color=['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y,p.w,font,color,style.weight,fontCss(p.font),1.12,style);
     } else if (blockType(s,key)==='shape') drawShape(ctx,s.elements[key],p);
     else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
     else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key);
-    else text(ctx,blockText(s,key),p.x,p.y,p.w,fitText(ctx,blockText(s,key),p,400,1.4),`${theme.ink}df`,400,fontCss(p.font),1.4);
+    else text(ctx,blockText(s,key),p.x,p.y,p.w,fitText(ctx,blockText(s,key),p,400,1.4),`${theme.ink}df`,style.weight,fontCss(p.font),1.4,style);
     ctx.restore();
   }
   if (footer) {
