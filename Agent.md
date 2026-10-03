@@ -312,4 +312,4 @@ Les chemins des étoiles, polygones, courbes et cœurs occupent maintenant leur 
 
 Validation : 50 cas (39 + 11), build et diff --check réussis. Test des extrema des étoiles/polygones/courbes/cœurs et cadres de traits. Navigateur isolé : étoile touchant les quatre limites du cadre, trait fin avec poignées au ras du tracé, hauteur affichée égale à l’épaisseur, aucune erreur console. Pas de nouvelle capture PNG/WebM.
 
-Travail validé localement ; publication en cours, aucune fusion automatique.
+Publication confirmée : [PR #28](https://github.com/GKillianCode/CanvaCodex/pull/28) ouverte de `codex/tight-shape-bounds` vers `codex/optional-gradients-caps`, commit applicatif distant `dac4c86`. Issue #27 ouverte jusqu’à fusion. Aucune fusion automatique. Commits locaux conservés dans `archive/local-tight-shape-bounds-20261003` lors de l’alignement sur les fichiers identiques publiés.
