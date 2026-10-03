@@ -112,6 +112,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
     const progress = motion && f.order > 0 && f.order === motion.order ? Math.min(1, Math.max(0, (now - motion.started) / 360)) : 1;
     const ease = 1 - (1 - progress) ** 3;
     ctx.save();
+    if(p.rotation){ctx.translate(p.x+p.w/2,p.y+(p.h||b.h)/2);ctx.rotate(p.rotation*Math.PI/180);ctx.translate(-p.x-p.w/2,-p.y-(p.h||b.h)/2);}
     if (f.animation !== 'none') ctx.globalAlpha *= ease;
     if (f.animation === 'up') ctx.translate(0, 35 * (1 - ease));
     if (f.animation === 'zoom') { const scale = .9 + ease * .1; ctx.translate(p.x + p.w / 2, p.y + b.h / 2); ctx.scale(scale, scale); ctx.translate(-p.x - p.w / 2, -p.y - b.h / 2); }

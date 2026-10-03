@@ -18,3 +18,8 @@ export function duplicateElement(s,key) {
  s.elements[copyKey].custom=true;s.elements[copyKey].name=(source?.name||({title:'Titre',body:'Texte',code:'Code Java'})[key]||'Élément')+' · copie';
  const p=s.positions[key];s.positions[copyKey]={...p,x:Math.min(WIDTH-p.w,p.x+24),y:Math.min(HEIGHT-(p.h||40),p.y+24)};s.fragments[copyKey]={...s.fragments[key]};return copyKey;
 }
+
+export function normalizeAngle(value){return Number.isFinite(Number(value))?((Number(value)%360)+360)%360:0;}
+export function rotatePoint(point,b,degrees=b.rotation||0){const a=degrees*Math.PI/180,c=Math.cos(a),s=Math.sin(a),cx=b.x+b.w/2,cy=b.y+b.h/2,dx=point.x-cx,dy=point.y-cy;return {x:cx+dx*c-dy*s,y:cy+dx*s+dy*c};}
+export function rotationFromPointer(b,start,point,snap=false){const cx=b.x+b.w/2,cy=b.y+b.h/2;let angle=(b.rotation||0)+(Math.atan2(point.y-cy,point.x-cx)-Math.atan2(start.y-cy,start.x-cx))*180/Math.PI;if(snap)angle=Math.round(angle/45)*45;return normalizeAngle(angle);}
+export function resizeRotated(origin,handle,dx,dy,type){const a=(origin.rotation||0)*Math.PI/180,c=Math.cos(a),s=Math.sin(a),b=resizePosition(origin,handle,dx*c+dy*s,-dx*s+dy*c,type),ox=origin.x+origin.w/2,oy=origin.y+origin.h/2,cx=b.x+b.w/2,cy=b.y+b.h/2;return {...b,x:b.x+(cx-ox)*c-(cy-oy)*s-(cx-ox),y:b.y+(cx-ox)*s+(cy-oy)*c-(cy-oy)};}

@@ -2,7 +2,7 @@ import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick, toR
 import { themes, presets, blocks, visibleBlocks, makeSlide, normalizeSlides, neighbor, nextFreeGrid, fragmentOrders, transitionDirection, memorySlides, positionsFor, applyLayout, blockType, blockText, setBlockText, reorderSlides, WIDTH, HEIGHT, normalizeResolution } from './model.js';
 import { renderSlide, renderBanner, blockBounds, prepareImages } from './render.js';
 
-import { duplicateElement, nudgePosition, resizePosition } from './editor.js';
+import { duplicateElement, nudgePosition, resizeRotated, rotatePoint, rotationFromPointer, normalizeAngle } from './editor.js';
 import { shapes, normalizeShape } from './shapes.js';
 import { spatialRoute, tracedRoute, connectRoute } from './route.js';
 import { normalizeThemes, themeDraft } from './themes.js';
@@ -34,7 +34,8 @@ export function useStudio() {
   const altHeld=ref(false), contextMenu=ref(null), transformPreview=shallowRef(null);
   const codeCaption=computed({get:()=>selected.value==='code'?current.value.codeTitle||'':current.value.elements[selected.value]?.caption||'',set:value=>{if(selected.value==='code')current.value.codeTitle=value;else if(current.value.elements[selected.value])current.value.elements[selected.value].caption=value;}});
   const selectedBounds=computed(()=>{let s=current.value;const draft=transformPreview.value;if(draft?.id===s.id&&draft.key===selected.value)s={...s,positions:{...s.positions,[draft.key]:draft.position}};const p=s.positions[selected.value];if(!p||!visibleBlocks(s).includes(selected.value))return null;const b=blockBounds(measurement,s,selected.value);return {...b,h:p.h||b.h};});
-  const handles=computed(()=>{const b=selectedBounds.value;if(!b)return [];return [['nw',b.x,b.y],['n',b.x+b.w/2,b.y],['ne',b.x+b.w,b.y],['w',b.x,b.y+b.h/2],['e',b.x+b.w,b.y+b.h/2],['sw',b.x,b.y+b.h],['s',b.x+b.w/2,b.y+b.h],['se',b.x+b.w,b.y+b.h]].map(([corner,x,y])=>({corner,style:{left:x/WIDTH*100+'%',top:y/HEIGHT*100+'%'}}));});
+  const handles=computed(()=>{const b=selectedBounds.value;if(!b)return [];return [['nw',b.x,b.y],['n',b.x+b.w/2,b.y],['ne',b.x+b.w,b.y],['w',b.x,b.y+b.h/2],['e',b.x+b.w,b.y+b.h/2],['sw',b.x,b.y+b.h],['s',b.x+b.w/2,b.y+b.h],['se',b.x+b.w,b.y+b.h]].map(([corner,x,y])=>{const p=rotatePoint({x,y},b);return {corner,style:{left:p.x/WIDTH*100+'%',top:p.y/HEIGHT*100+'%'}}});});
+  const rotationHandle=computed(()=>{const b=selectedBounds.value;if(!b)return {};const d=28*WIDTH/Math.max(1,stageWidth.value),p=rotatePoint({x:b.x+b.w+d,y:b.y-d},b);return {left:p.x/WIDTH*100+'%',top:p.y/HEIGHT*100+'%'};});
   const routeMode=ref(['spatial','manual'].includes(initial?.routeMode)?initial.routeMode:'spatial'),routeStart=ref(slides.value.some(s=>s.id===initial?.routeStart)?initial.routeStart:''),routeBackup=ref(null);
   const workspace = ref('canvas'), listDrag = ref(null), listTarget = ref(null);
   const thumbs = shallowRef({}), step = ref(0), transitionMs = ref(initial?.transitionMs ?? 650), moving = ref(false), gridDraft = ref({ x: 0, y: 0 });
@@ -48,15 +49,15 @@ export function useStudio() {
   const editSize=computed(()=>selected.value?blockBounds(measurement,current.value,selected.value).size:42);
   const editStyle = computed(() => {
     if (!editing.value) return {};
-    const k = editing.value, b = blockBounds(measurement, current.value, k);
-    return { left: `${(b.x + (blockType(current.value,k)==='code' ? 80 : 0)) / WIDTH * 100}%`, top: `${(b.y + (blockType(current.value,k)==='code' ? 103 : 0)) / HEIGHT * 100}%`, width: `${(b.w - (blockType(current.value,k)==='code' ? 110 : 0)) / WIDTH * 100}%`, height: `${Math.max(blockType(current.value,k)==='code' ? b.h - 120 : b.h + 25, 85) / HEIGHT * 100}%` };
+    const k = editing.value, measured = blockBounds(measurement, current.value, k), b={...measured,h:current.value.positions[k].h||measured.h};
+    return { transform:`rotate(${b.rotation||0}deg)`,transformOrigin:`${(b.w/2-(blockType(current.value,k)==='code'?80:0))*stageWidth.value/WIDTH}px ${(b.h/2-(blockType(current.value,k)==='code'?103:0))*stageWidth.value/WIDTH}px`, left: `${(b.x + (blockType(current.value,k)==='code' ? 80 : 0)) / WIDTH * 100}%`, top: `${(b.y + (blockType(current.value,k)==='code' ? 103 : 0)) / HEIGHT * 100}%`, width: `${(b.w - (blockType(current.value,k)==='code' ? 110 : 0)) / WIDTH * 100}%`, height: `${Math.max(blockType(current.value,k)==='code' ? b.h - 120 : b.h + 25, 85) / HEIGHT * 100}%` };
   });
   let toastTimer, saveTimer, thumbTimer, raf = 0, drag = null, pointer = null, pointerDown = null, strokes = [], activeStroke = null, slideMotion = null, revealMotion = null;
   let recorder, stream, timer, started = 0, observer, worker, workerCounter = 0;
   const modelController = new AbortController();
   const thumbnailKeys = new Map(), formatRequests = new Map();
   const metrics = { frames: 0, thumbnails: 0, dragCommits: 0 };
-  const snapshot = () => ({ version: 7, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
+  const snapshot = () => ({ version: 8, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
   const renderOptions = (s, n, order = Infinity) => ({ ...frame.value, project: project.value, n, total: slides.value.length, order });
   function notify(message) { toast.value = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 3500); }
   function queueSave() {
@@ -112,7 +113,7 @@ export function useStudio() {
       renderSlide(ctx, s, theme.value, { ...renderOptions(s, index.value, presenting.value ? currentOrder() : Infinity), motion: presenting.value ? revealMotion : null, now, omit: editing.value });
       if (!presenting.value && !editing.value && (selectedKeys.value.length||visibleBlocks(s).includes(selected.value))) {
         for(const key of selectedKeys.value.length?selectedKeys.value:[selected.value]){
-        const measured=blockBounds(ctx,s,key), b={...measured,h:s.positions[key].h||measured.h}; ctx.strokeStyle = `${theme.value.accent}90`; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.strokeRect(b.x, b.y, b.w, b.h); ctx.setLineDash([]);if(altHeld.value)drawDistances(ctx,b);}
+        const measured=blockBounds(ctx,s,key), b={...measured,h:s.positions[key].h||measured.h}; ctx.save();if(b.rotation){ctx.translate(b.x+b.w/2,b.y+b.h/2);ctx.rotate(b.rotation*Math.PI/180);ctx.translate(-b.x-b.w/2,-b.y-b.h/2);}ctx.strokeStyle = `${theme.value.accent}90`; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.strokeRect(b.x, b.y, b.w, b.h); ctx.setLineDash([]);ctx.restore();if(altHeld.value)drawDistances(ctx,b);}
       }
     }
     if (presenting.value) { trail.draw(ctx,now); drawPointer(ctx); } ctx.restore();
@@ -128,6 +129,8 @@ export function useStudio() {
     label(b.x,Math.max(0,b.x/2-25*scale),b.y-24*scale);label(b.y,b.x+8*scale,Math.max(0,b.y/2-10*scale));ctx.restore();
   }
   function resizeDown(e,corner){if(e.button!==0)return;e.preventDefault();closeEdit();contextMenu.value=null;const b=selectedBounds.value;if(!b)return;drag={key:selected.value,slideId:current.value.id,origin:{...position.value,h:b.h},position:{...position.value,h:b.h},start:coords(e),corner,type:selectedType.value,moved:false};e.currentTarget.setPointerCapture(e.pointerId);requestDraw();}
+  function rotateDown(e){if(e.button!==0)return;e.preventDefault();closeEdit();contextMenu.value=null;const b=selectedBounds.value;if(!b)return;drag={key:selected.value,slideId:current.value.id,origin:{...position.value,h:b.h},position:{...position.value,h:b.h},start:coords(e),rotating:true,moved:false};e.currentTarget.setPointerCapture(e.pointerId);requestDraw();}
+  function setRotation(e){position.value.rotation=normalizeAngle(e.target.value);e.target.value=Math.round(position.value.rotation*100)/100;}
   function duplicateSelected(){closeEdit();const key=duplicateElement(current.value,selected.value);contextMenu.value=null;if(key){selected.value=key;selectedKeys.value=[key];}else notify('Limite de 40 éléments ajoutés atteinte.');}
   function openContext(e){e.preventDefault();if(presenting.value||view.value!=='slides')return;closeEdit();const hit=hitBlock(coords(e));if(hit){selected.value=hit;selectedKeys.value=[hit];selectionScope.value='elements';}else deselect();contextMenu.value={x:Math.max(8,Math.min(window.innerWidth-224,e.clientX)),y:Math.max(8,Math.min(window.innerHeight-280,e.clientY)),element:!!hit};}
   function contextOutside(e){if(!e.target.closest?.('.element-context'))dismissContext();}
@@ -138,7 +141,7 @@ export function useStudio() {
   function coords(e) { const r = canvas.value.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * WIDTH, y: (e.clientY - r.top) / r.height * HEIGHT }; }
   function hitBlock(p) {
     const ctx = canvas.value.getContext('2d');
-    return [...visibleBlocks(current.value)].reverse().find(k => { const measured=blockBounds(ctx,current.value,k),b={...measured,h:current.value.positions[k].h||measured.h}; return p.x >= b.x - 12 && p.x <= b.x + b.w + 12 && p.y >= b.y - (k === 'title' && current.value.label ? 58 : 12) && p.y <= b.y + b.h + 12; });
+    return [...visibleBlocks(current.value)].reverse().find(k => { const measured=blockBounds(ctx,current.value,k),b={...measured,h:current.value.positions[k].h||measured.h}; const local=rotatePoint(p,b,-(b.rotation||0));return local.x >= b.x - 12 && local.x <= b.x + b.w + 12 && local.y >= b.y - (k === 'title' && current.value.label ? 58 : 12) && local.y <= b.y + b.h + 12; });
   }
   function down(e) {
     if (e.button !== 0 || view.value === 'banners' || videoPreview.value) return;
@@ -150,7 +153,8 @@ export function useStudio() {
   function move(e) {
     const p = coords(e);
     if (presenting.value) { pointer = p; if (pointerDown && Math.hypot(p.x - pointerDown.x, p.y - pointerDown.y) > 12) pointerDown.moved = true; if (pointerDown && (e.buttons & 1) && tool.value==='laser') {const now=performance.now(),samples=e.getCoalescedEvents?.()||[];for(const sample of samples.length?samples:[e])trail.append(coords(sample),now-Math.max(0,Math.min(50,e.timeStamp-sample.timeStamp)));} else if (!(e.buttons & 1)) trail.end(); if (activeStroke && (e.buttons & 1)) activeStroke.points.push(p); requestDraw(); }
-    else if (drag?.corner) {const dx=p.x-drag.start.x,dy=p.y-drag.start.y;drag.moved=true;drag.position=resizePosition(drag.origin,drag.corner,dx,dy,drag.type);transformPreview.value={id:drag.slideId,key:drag.key,position:drag.position};requestDraw();}
+    else if(drag?.rotating){drag.moved=true;drag.position={...drag.origin,rotation:rotationFromPointer(drag.origin,drag.start,p,e.shiftKey)};transformPreview.value={id:drag.slideId,key:drag.key,position:drag.position};requestDraw();}
+    else if (drag?.corner) {const dx=p.x-drag.start.x,dy=p.y-drag.start.y;drag.moved=true;drag.position=resizeRotated(drag.origin,drag.corner,dx,dy,drag.type);transformPreview.value={id:drag.slideId,key:drag.key,position:drag.position};requestDraw();}
     else if (drag) { const dx = p.x - drag.start.x, dy = p.y - drag.start.y; if (Math.hypot(dx, dy) > 2) drag.moved = true; drag.position = { ...drag.origin, x: Math.round(Math.max(0, Math.min(WIDTH - 40, drag.origin.x + dx))), y: Math.round(Math.max(0, Math.min(HEIGHT - 40, drag.origin.y + dy))) };transformPreview.value={id:drag.slideId,key:drag.key,position:drag.position}; requestDraw(); }
   }
   function up(e) {
@@ -327,5 +331,5 @@ export function useStudio() {
     if (document.modelContext?.registerTool) try { Promise.resolve(document.modelContext.registerTool({ name: 'read_frame_project', description: 'Read the current slide project and presentation state', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: input => { if (!input || typeof input !== 'object' || Object.keys(input).length) throw Error('Expected an empty object'); return { ...JSON.parse(JSON.stringify(snapshot())), index: index.value, step: step.value, selected:selected.value, selectedKeys:selectedKeys.value,selectedSlides:selectedSlides.value,countdown:countdown.value,recording:recording.value, altHeld:altHeld.value, diagnostics: { ...metrics, trailPoints:trail.points.length, trailActive:trail.active } }; } }, { signal: modelController.signal })).catch(() => {}); } catch { /* Browser support is optional. */ }
   });
   onUnmounted(() => { modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer);cancelCountdown(); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('frame-images-ready',imagesReady); window.removeEventListener('keydown', keys);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',resetKeys);window.removeEventListener('pointerdown',contextOutside); window.removeEventListener('beforeunload', beforeUnload); });
-  return { shapeGallery,openShapes,addShape,moveLayer, routeMode,routeStart,routeBackup,setRouteMode,setRouteStart,traceRoute,connectSlides,undoRoute, palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
+  return { rotationHandle,rotateDown,setRotation, shapeGallery,openShapes,addShape,moveLayer, routeMode,routeStart,routeBackup,setRouteMode,setRouteStart,traceRoute,connectSlides,undoRoute, palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
 }

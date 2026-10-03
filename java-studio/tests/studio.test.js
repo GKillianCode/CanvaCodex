@@ -180,3 +180,21 @@ test('vector shape rendering keeps stroke thickness independent of deformation',
  try{drawShape(ctx,normalizeShape({shape:'rect',outlined:true,strokeWidth:6,dashed:true}),{x:100,y:200,w:600,h:120});assert.deepEqual(matrix,[5.94,0,0,1.14,103,203]);assert.equal(strokeWidth,6);assert.deepEqual(ctx.dashes,[18,12]);}
  finally{globalThis.Path2D=previousPath;globalThis.DOMMatrix=previousMatrix;}
 });
+
+test('rotation follows pointer around center and Shift snaps to multiples of 45 degrees',async()=>{
+ const {rotationFromPointer,normalizeAngle}=await import('../src/editor.js');const b={x:100,y:200,w:400,h:200,rotation:0},start={x:500,y:300};
+ assert.equal(rotationFromPointer(b,start,{x:300,y:500}),90);assert.equal(rotationFromPointer(b,start,{x:300,y:100}),270);
+ const point={x:300+200*Math.cos(23*Math.PI/180),y:300+200*Math.sin(23*Math.PI/180)};assert.ok(Math.abs(rotationFromPointer(b,start,point)-23)<1e-9);assert.equal(rotationFromPointer(b,start,point,true),45);
+ assert.equal(rotationFromPointer({...b,rotation:45},start,{x:300,y:500},true),135);assert.equal(normalizeAngle(-45),315);assert.equal(normalizeAngle(NaN),0);
+});
+
+test('rotated resize keeps opposite corner fixed and preserves rotation',async()=>{
+ const {resizeRotated,rotatePoint}=await import('../src/editor.js');const b={x:600,y:400,w:300,h:200,size:40,rotation:45};
+ for(const handle of ['nw','ne','sw','se']){const opposite={x:handle.includes('w')?b.x+b.w:b.x,y:handle.includes('n')?b.y+b.h:b.y},anchor=rotatePoint(opposite,b),r=resizeRotated(b,handle,20,30,'shape'),after=rotatePoint({x:handle.includes('w')?r.x+r.w:r.x,y:handle.includes('n')?r.y+r.h:r.y},r);assert.ok(Math.abs(anchor.x-after.x)<1e-8);assert.ok(Math.abs(anchor.y-after.y)<1e-8);assert.equal(r.rotation,45);}
+ const r=resizeRotated(b,'e',20,20,'shape');assert.equal(r.h,b.h);assert.equal(r.size,b.size);
+ const p={x:750,y:420},inverse=rotatePoint(rotatePoint(p,b),b,-45);assert.ok(Math.hypot(inverse.x-p.x,inverse.y-p.y)<1e-8);
+});
+
+test('rotation is normalized during import and retained in independent copies',async()=>{
+ const {duplicateElement}=await import('../src/editor.js');const s=makeSlide();s.positions.title.rotation=-45;s.positions.body.rotation='invalid';const restored=normalizeSlides([s])[0];assert.equal(restored.positions.title.rotation,315);assert.equal(restored.positions.body.rotation,0);const key=duplicateElement(restored,'title');assert.equal(restored.positions[key].rotation,315);restored.positions[key].rotation=90;assert.equal(restored.positions.title.rotation,315);assert.equal(normalizeSlides(JSON.parse(JSON.stringify([restored])))[0].positions[key].rotation,90);
+});
