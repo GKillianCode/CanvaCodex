@@ -5,7 +5,7 @@ const clamp=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.max(mi
 const color=(value,fallback)=>/^#[\da-f]{6}$/i.test(value)?value:fallback;
 export function normalizeShape(raw={}) {
  const spec=shapes.find(s=>s.id===raw.shape)||shapes.find(s=>s.id==='rect');
- return {type:'shape',custom:true,name:String(raw.name||spec.name).slice(0,100),shape:spec.id,fill:color(raw.fill,'#35ff91'),stroke:color(raw.stroke,'#35ff91'),filled:raw.filled!==false,outlined:raw.outlined===true||spec.open,strokeWidth:clamp(raw.strokeWidth,1,60,6),opacity:clamp(raw.opacity,0,100,100),radius:clamp(raw.radius,0,45,12),points:Math.round(clamp(raw.points,3,12,5)),innerRatio:clamp(raw.innerRatio,.15,.8,.45),direction:['horizontal','vertical','down','up'].includes(raw.direction)?raw.direction:'horizontal',dashed:raw.dashed===true};
+ return {type:'shape',custom:true,name:String(raw.name||spec.name).slice(0,100),shape:spec.id,fill:color(raw.fill,'#35ff91'),stroke:color(raw.stroke,'#35ff91'),filled:raw.filled!==false,outlined:raw.outlined===true||spec.open,strokeWidth:clamp(raw.strokeWidth,1,60,6),opacity:clamp(raw.opacity,0,100,100),radius:clamp(raw.radius,0,45,12),points:Math.round(clamp(raw.points,3,12,5)),innerRatio:clamp(raw.innerRatio,.15,.8,.45),direction:['horizontal','vertical','down','up'].includes(raw.direction)?raw.direction:'horizontal',dashed:raw.dashed===true,roundedEnds:raw.roundedEnds!==false};
 }
 const polygon=points=>'M '+points.map(p=>p.map(v=>Number(v.toFixed(3))).join(' ')).join(' L ')+' Z';
 function regular(n,inner=1){return polygon(Array.from({length:n},(_,i)=>{const a=-Math.PI/2+i*2*Math.PI/n,r=i%2?inner:1;return [50+50*r*Math.cos(a),50+50*r*Math.sin(a)];}));}
@@ -36,5 +36,5 @@ export function drawShape(ctx,e,p) {
  const spec=shapes.find(s=>s.id===e.shape),w=p.w,h=p.h||300;
  const stroke=e.outlined||spec?.open,weight=Math.min(e.strokeWidth,Math.min(w,h)/2),inset=stroke?weight/2:0;
  const path=new Path2D();path.addPath(new Path2D(shapePath(e)),new DOMMatrix([(w-2*inset)/100,0,0,(h-2*inset)/100,p.x+inset,p.y+inset]));
- ctx.save();ctx.globalAlpha*=e.opacity/100;ctx.lineJoin='round';ctx.lineCap='round';if(!spec?.open&&e.filled){ctx.fillStyle=e.fill;ctx.fill(path);}if(stroke){ctx.strokeStyle=e.stroke;ctx.lineWidth=weight;ctx.setLineDash(e.dashed?[weight*3,weight*2]:[]);ctx.stroke(path);}ctx.restore();
+ ctx.save();ctx.globalAlpha*=e.opacity/100;ctx.lineJoin='round';ctx.lineCap=e.roundedEnds===false?'butt':'round';if(!spec?.open&&e.filled){ctx.fillStyle=e.fill;ctx.fill(path);}if(stroke){ctx.strokeStyle=e.stroke;ctx.lineWidth=weight;ctx.setLineDash(e.dashed?[weight*3,weight*2]:[]);ctx.stroke(path);}ctx.restore();
 }

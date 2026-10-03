@@ -61,7 +61,8 @@ export function blockBounds(ctx, s, key) {
   if(p.autoSize)return {...p,...autoTextBounds(ctx,s,key)};
   const style=getTextStyle(s,key),leading=key==='title'||s.elements[key]?.weight===700?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=styleFont(size,fontCss(p.font),style);return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};
 }
-function background(ctx, theme) {
+export function background(ctx, theme, gradient=true) {
+  if(!gradient){ctx.fillStyle=theme.bg;ctx.fillRect(0,0,WIDTH,HEIGHT);return;}
   const key=JSON.stringify([theme.bg,theme.accent,theme.secondary]);
   if (!backgrounds.has(key)) {
     const c = document.createElement('canvas'); c.width = WIDTH; c.height = HEIGHT;
@@ -106,7 +107,7 @@ function decoration(ctx,s,key,t) {
   if(s.layout==='definition'&&key==='body'){ctx.fillStyle=t.accent;ctx.fillRect(p.x,p.y-56,120,6);}
 }
 export function renderSlide(ctx, s, theme, options = {}) {
-  background(ctx, theme);
+  background(ctx, theme, options.gradient!==false);
   const { header = false, footer = false, project = '', n = 0, total = 1, order = Infinity, motion = null, omit = null, now = performance.now() } = options;
   if (header) {
     text(ctx, 'JAVA / SOUS LE CAPOT', 112, 60, 1300, 22, theme.accent, 700);

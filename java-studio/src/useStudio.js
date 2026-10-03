@@ -5,7 +5,7 @@ import { getTextStyle, usedFontFaces } from './textStyles.js';
 import { fontCss } from './fonts.js';
 import { prepareFonts } from './fontAssets.js';
 import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick, toRaw } from 'vue';
-import { themes, presets, blocks, visibleBlocks, makeSlide, normalizeSlides, neighbor, nextFreeGrid, fragmentOrders, transitionDirection, memorySlides, positionsFor, applyLayout, blockType, blockText, setBlockText, reorderSlides, WIDTH, HEIGHT, normalizeResolution } from './model.js';
+import { themes, presets, blocks, visibleBlocks, makeSlide, normalizeSlides, neighbor, nextFreeGrid, fragmentOrders, transitionDirection, memorySlides, positionsFor, applyLayout, blockType, blockText, setBlockText, reorderSlides, WIDTH, HEIGHT, normalizeResolution, normalizeFrame } from './model.js';
 import { renderSlide, renderBanner, blockBounds, autoTextBounds, prepareImages } from './render.js';
 
 import { duplicateElement, resizeRotated, rotatePoint, rotationFromPointer, normalizeAngle } from './editor.js';
@@ -29,7 +29,7 @@ export function useStudio() {
   const panels=ref({rail:true,collapsed:false,properties:true,slides:true,toolbar:true,inspectorWidth:286,slidesWidth:185,...preferences}),displayMenu=ref(false),selectedKeys=ref([]),selectedSlides=ref([]),selectionScope=ref('elements'),countdown=ref(0),previewVisible=ref(true);
   watch(panels,()=>{try{localStorage.setItem('frame-workspace',JSON.stringify(panels.value));}catch{}},{deep:true});
   const slides = ref(initial?.slides || sample), project = ref(initial?.project || 'Java, sous le capot');
-  const themeId = ref(palette.value.some(t=>t.id===initial?.themeId)?initial.themeId:palette.value[0].id), frame = ref({ header: initial?.frame?.header === true, footer: initial?.frame?.footer === true });
+  const themeId = ref(palette.value.some(t=>t.id===initial?.themeId)?initial.themeId:palette.value[0].id), frame = ref(normalizeFrame(initial?.frame));
   const banner = ref(initial?.banner || { title: 'Le bytecode, expliqué.', subtitle: 'JAVA · SOUS LE CAPOT', type: 'lower' });
   let session;try{session=JSON.parse(localStorage.getItem('frame-session'));}catch{}
   const projectId=ref(initial?.projectId||crypto.randomUUID()),fileStore=new ProjectFile(),fileName=ref(''),fileDirty=ref(false),fileBusy=ref(false);
@@ -69,7 +69,7 @@ export function useStudio() {
   const modelController = new AbortController();
   const thumbnailKeys = new Map(), formatRequests = new Map();
   const metrics = { frames: 0, thumbnails: 0, dragCommits: 0 };
-  const snapshot = () => ({ version: 11, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
+  const snapshot = () => ({ version: 12, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
   const renderOptions = (s, n, order = Infinity) => ({ ...frame.value, project: project.value, n, total: slides.value.length, order });
   function notify(message) { toast.value = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 3500); }
   function flushLocal(){try{localStorage.setItem('frame-project',JSON.stringify(snapshot()));localStorage.setItem('frame-themes',JSON.stringify(palette.value));localStorage.setItem('frame-session',JSON.stringify({slideId:current.value.id,view:view.value,workspace:workspace.value}));saved.value=true;}catch{saved.value=false;notify('Sauvegarde locale impossible. Enregistre le fichier.');}}
@@ -311,7 +311,7 @@ export function useStudio() {
       closeEdit();layoutBackup.value=null;contextMenu.value=null; slides.value = normalized; project.value = String(data.project || 'Projet importé'); if(data.themes)palette.value=normalizeThemes(data.themes);themeId.value=palette.value.some(t=>t.id===data.themeId)?data.themeId:palette.value[0].id;deselect();selectedSlides.value=[];
       if (data.banner && typeof data.banner.title === 'string' && typeof data.banner.subtitle === 'string' && ['lower', 'chapter', 'tip','video'].includes(data.banner.type)) banner.value = data.banner;
       routeMode.value=['spatial','manual'].includes(data.routeMode)?data.routeMode:'spatial';routeStart.value=normalized.some(s=>s.id===data.routeStart)?data.routeStart:'';routeBackup.value=null;resolution.value=normalizeResolution(data.resolution);
-      frame.value = { header: data.frame?.header === true, footer: data.frame?.footer === true }; transitionMs.value = Number.isFinite(data.transitionMs) ? Math.min(2000, Math.max(0, data.transitionMs)) : 650;
+      frame.value = normalizeFrame(data.frame); transitionMs.value = Number.isFinite(data.transitionMs) ? Math.min(2000, Math.max(0, data.transitionMs)) : 650;
       index.value = 0; step.value = 0; gridDraft.value = { ...current.value.grid }; updateThumbnails(); requestDraw(); projectId.value=crypto.randomUUID();flushLocal();
   }
   async function importProject(event){try{applyProject(JSON.parse(await event.target.files[0].text()));await fileStore.detach();fileName.value='';fileDirty.value=true;notify('Projet importé. Utilise Enregistrer sous pour le lier à un fichier.');}catch{notify('Ce fichier n’est pas un projet Frame valide.');}event.target.value='';}

@@ -40,6 +40,7 @@ const pixels=v=>Math.round(v*s.resolution.width/1920);
   </template>
   <template v-else>
    <div class="section-label">THÈME DU PROJET</div><div class="theme-options"><button v-for="t in s.palette" :key="t.id" :class="{chosen:s.themeId===t.id}" @click="s.themeId=t.id"><i :style="{background:t.accent}"></i>{{t.name}}</button></div><p class="field-help">Commun à toutes les diapos et aux incrustations.</p>
+   <details class="property-details" open><summary>Fond du diaporama</summary><label class="checkbox-label"><input type="checkbox" v-model="s.frame.gradient">Dégradé de fond</label><p class="field-help">Désactivé : couleur de fond unie du thème, sur toutes les diapos.</p></details>
    <details class="property-details"><summary>Habillage facultatif</summary><label class="checkbox-label"><input type="checkbox" v-model="s.frame.header">En-tête de diapo</label><label class="checkbox-label"><input type="checkbox" v-model="s.frame.footer">Pied de diapo</label></details>
   </template>
  </div>
