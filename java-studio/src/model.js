@@ -1,3 +1,5 @@
+import { normalizeGroups } from './selection.js';
+import { validSvgSource } from './svg.js';
 import { normalizeTextStyle } from './textStyles.js';
 import { normalizeFont } from './fonts.js';
 import { normalizeShape } from './shapes.js';
@@ -137,15 +139,17 @@ export function normalizeSlide(raw, n = 0) {
     for (const [key,e] of Object.entries(raw.elements).slice(0,40)) {
       if (!/^(text|image|code|shape)[a-zA-Z0-9_-]+$/.test(key) || !e || !['text','image','code','shape'].includes(e.type)) continue;
       if(e.type==='shape'){s.elements[key]=normalizeShape(e);continue;}
-      s.elements[key] = e.type !== 'image' ? {type:e.type,weight:e.weight===700?700:400,label:String(e.label||'').slice(0,100),caption:String(e.caption||'').slice(0,200),custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),src:validImageSource(e.src)?e.src:'',fit:e.fit==='cover'?'cover':'contain'};
+      s.elements[key] = e.type !== 'image' ? {type:e.type,weight:e.weight===700?700:400,label:String(e.label||'').slice(0,100),caption:String(e.caption||'').slice(0,200),custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),src:validImageSource(e.src)?e.src:'',fit:e.fit==='cover'?'cover':'contain',background:e.background===true};
     }
   }
   if (Array.isArray(raw.blockKeys)) s.blockKeys = [...new Set(raw.blockKeys.filter(k=>blocks.includes(k)||s.elements[k]))];
   for (const k of [...new Set([...blocks,...visibleBlocks(s)])]) {
     s.positions[k] ||= pos(150,500,1200);
     const p = raw.positions?.[k];
-    if (p) for (const key of ['x', 'y', 'w', 'size', 'h']) s.positions[k][key] = finite(p[key], s.positions[k][key] ?? 360, key === 'size' ? 10 : key === 'w' ? (blockType(s,k)==='shape'?8:80) : key==='h'&&blockType(s,k)==='shape'?8:0, key === 'size' ? 260 : key === 'y' || key === 'h' ? HEIGHT : WIDTH);
+    if (p) for (const key of ['x', 'y', 'w', 'size', 'h']) s.positions[k][key] = finite(p[key], s.positions[k][key] ?? 360, key === 'size' ? 10 : key === 'w' ? (blockType(s,k)==='shape'||p.autoSize===true?8:80) : key==='h'&&blockType(s,k)==='shape'?8:0, key === 'size' ? 260 : key === 'y' || key === 'h' ? HEIGHT : WIDTH);
     if (s.designVersion === 1 && p && !Number.isFinite(p.h) && !['image','shape'].includes(blockType(s,k))) delete s.positions[k].h;
+    s.positions[k].autoSize=p?.autoSize===true&&blockType(s,k)==='text';
+    if(s.positions[k].autoSize)s.positions[k].wrapWidth=finite(p?.wrapWidth,1200,80,WIDTH);
     s.positions[k].font=normalizeFont(p?.font,blockType(s,k));
     if(p?.textStyle&&typeof p.textStyle==='object'&&!['shape','image'].includes(blockType(s,k)))s.positions[k].textStyle=normalizeTextStyle(p.textStyle,s.positions[k].font,blockType(s,k),k==='title'||s.elements[k]?.weight===700);
     s.positions[k].rotation=Number.isFinite(Number(p?.rotation))?((Number(p.rotation)%360)+360)%360:0;
@@ -153,9 +157,10 @@ export function normalizeSlide(raw, n = 0) {
     s.fragments[k] = { order: Math.round(finite(f?.order, 0, 0, 20)), animation: ['fade', 'up', 'zoom', 'none'].includes(f?.animation) ? f.animation : 'fade' };
   }
   if (raw.grid && Number.isInteger(raw.grid.x) && Number.isInteger(raw.grid.y)) s.grid = { x: finite(raw.grid.x, n, -10000, 10000), y: finite(raw.grid.y, 0, -10000, 10000) };
+  s.groups=normalizeGroups(raw.groups,visibleBlocks(s));
   return s;
 }
-export function validImageSource(src) { return typeof src === 'string' && /^data:image\/(png|jpeg|webp);base64,[a-zA-Z0-9+/=]+$/.test(src) && src.length < 3000000; }
+export function validImageSource(src) { return typeof src === 'string' && src.length < 3000000 && (/^data:image\/(png|jpeg|webp);base64,[a-zA-Z0-9+/=]+$/.test(src)||validSvgSource(src)); }
 export function normalizeSlides(raw) {
   if (!Array.isArray(raw) || !raw.length || raw.length > 100) throw Error('Projet invalide');
   const used = new Set(), ids = new Set();

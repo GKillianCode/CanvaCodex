@@ -16,9 +16,9 @@ function imageAsset(src) {
   return images.get(src);
 }
 export async function prepareImages(slides) { await Promise.all(slides.flatMap(s=>Object.values(s.elements||{}).filter(e=>e.type==='image'&&e.src).map(e=>imageAsset(e.src).promise))); }
-function drawImageBlock(ctx,s,key,theme) {
+export function drawImageBlock(ctx,s,key,theme) {
   const p=s.positions[key], e=s.elements[key], h=p.h||360;
-  round(ctx,p.x,p.y,p.w,h,18,theme.panel);
+  if(!e.src||e.background)round(ctx,p.x,p.y,p.w,h,18,theme.panel);
   const asset=e.src?imageAsset(e.src):null;
   if (!asset?.ready) {
     const glow=ctx.createRadialGradient(p.x+p.w/2,p.y+h/2,0,p.x+p.w/2,p.y+h/2,p.w/2);glow.addColorStop(0,theme.accent+'28');glow.addColorStop(1,theme.panel);ctx.fillStyle=glow;ctx.fillRect(p.x+16,p.y+16,p.w-32,h-32);
@@ -33,18 +33,15 @@ function drawImageBlock(ctx,s,key,theme) {
 export function round(ctx, x, y, w, h, r, color) {
   ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();
 }
-export function wrapLines(ctx, value, width) {
-  const lines = [];
-  for (const line of String(value).split('\n')) {
-    let pending = '';
-    for (const word of line.split(' ')) {
-      const candidate = pending ? `${pending} ${word}` : word;
-      if (ctx.measureText(candidate).width > width && pending) { lines.push(pending); pending = word; }
-      else pending = candidate;
-    }
-    lines.push(pending);
-  }
-  return lines;
+export function wrapLines(ctx,value,width){
+ const lines=[];for(const row of String(value).split('\n')){let line='';for(const part of row.match(/\S+\s*|\s+/g)||['']){if(line&&ctx.measureText(line+part).width>width){lines.push(line.trimEnd());line='';}for(const char of part){if(line&&ctx.measureText(line+char).width>width){lines.push(line.trimEnd());line='';}line+=char;}}lines.push(line.trimEnd());}return lines;
+}
+export function autoTextBounds(ctx,s,key){
+ const p=s.positions[key],heading=key==='title'||s.elements[key]?.weight===700,leading=heading?1.12:1.4,style=getTextStyle(s,key);ctx.font=styleFont(p.size,fontCss(p.font),style);ctx.textBaseline='top';
+ const lines=wrapLines(ctx,blockText(s,key),p.wrapWidth||1200),metrics=lines.map(line=>ctx.measureText(line||'M'));
+ const top=Math.min(...metrics.map(m=>Number.isFinite(m.actualBoundingBoxAscent)?-m.actualBoundingBoxAscent:0));
+ const bottom=Math.max(...metrics.map((m,i)=>i*p.size*leading+(Number.isFinite(m.actualBoundingBoxDescent)?m.actualBoundingBoxDescent:p.size)));
+ return {w:Math.max(8,...lines.map((line,i)=>Math.max(ctx.measureText(line).width,(metrics[i].actualBoundingBoxRight||0)+(metrics[i].actualBoundingBoxLeft||0))))+2,h:Math.max(12,bottom-top+2),size:p.size,inkOffset:top,lines};
 }
 export function paintTextMark(ctx,line,x,y,size,color,style,background=false){
  if(!line)return;const metrics=ctx.measureText(line),width=metrics.width,top=y-(Number.isFinite(metrics.actualBoundingBoxAscent)?metrics.actualBoundingBoxAscent:0),bottom=y+(Number.isFinite(metrics.actualBoundingBoxDescent)?metrics.actualBoundingBoxDescent:size),thickness=Math.max(1,size*.045);ctx.save();
@@ -61,6 +58,7 @@ export function blockBounds(ctx, s, key) {
   const p = s.positions[key];
   if (['image','shape'].includes(blockType(s,key))) return {...p,h:p.h||360};
   if(blockType(s,key)==='code'){const value=blockText(s,key);const h=p.h||Math.max(260,value.split('\n').length*p.size*1.6+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,blockText(s,key).split('\n').length)*1.6),codeWidthSize(ctx,blockText(s,key),p)));return {...p,h,size};}
+  if(p.autoSize)return {...p,...autoTextBounds(ctx,s,key)};
   const style=getTextStyle(s,key),leading=key==='title'||s.elements[key]?.weight===700?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=styleFont(size,fontCss(p.font),style);return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};
 }
 function background(ctx, theme) {
@@ -129,11 +127,11 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if(s.designVersion===2 && key!=='title' && blockType(s,key)==='text') decoration(ctx,s,key,theme);
     if (key === 'title'||s.elements[key]?.weight===700) {
       const label=key==='title'?s.label:s.elements[key]?.label;if (label) text(ctx, label, p.x, Math.max(10, p.y - 58), p.w, 23, theme.accent, style.weight,fontCss(p.font),1.35,style);
-      const font=fitText(ctx,blockText(s,key),p,700,1.12);const color=['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y,p.w,font,color,style.weight,fontCss(p.font),1.12,style);
+      const font=p.autoSize?p.size:fitText(ctx,blockText(s,key),p,700,1.12);const color=['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,font,color,style.weight,fontCss(p.font),1.12,style);
     } else if (blockType(s,key)==='shape') drawShape(ctx,s.elements[key],p);
     else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
     else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key);
-    else text(ctx,blockText(s,key),p.x,p.y,p.w,fitText(ctx,blockText(s,key),p,400,1.4),`${theme.ink}df`,style.weight,fontCss(p.font),1.4,style);
+    else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,1.4),`${theme.ink}df`,style.weight,fontCss(p.font),1.4,style);
     ctx.restore();
   }
   if (footer) {
@@ -149,6 +147,8 @@ export function renderBanner(ctx, b, t) {
   } else if (b.type === 'chapter') {
     round(ctx, 200, 385, 1520, 300, 20, t.bg);
     text(ctx, b.subtitle, 265, 435, 1370, 27, t.accent, 700); text(ctx, b.title, 265, 495, 1370, 64, t.ink, 700);
+  } else if(b.type==='video'){
+    round(ctx,1040,730,770,260,24,t.bg);round(ctx,1080,770,120,120,20,t.accent);ctx.fillStyle=t.bg;ctx.beginPath();ctx.moveTo(1126,800);ctx.lineTo(1126,860);ctx.lineTo(1170,830);ctx.closePath();ctx.fill();text(ctx,b.subtitle||'POUR ALLER PLUS LOIN',1232,766,530,22,t.accent,700);text(ctx,b.title,1232,813,530,fitText(ctx,b.title,{w:530,h:88,size:36},700,1.35),t.ink,700);text(ctx,b.note||'Une autre vidéo sur la chaîne',1080,923,690,24,t.ink+'a0');
   } else {
     round(ctx, 1080, 80, 730, 240, 16, t.bg);
     text(ctx, 'À RETENIR', 1120, 112, 640, 24, t.accent, 700); text(ctx, b.title, 1120, 163, 640, 42, t.ink, 700);
