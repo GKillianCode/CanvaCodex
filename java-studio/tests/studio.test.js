@@ -198,3 +198,23 @@ test('rotated resize keeps opposite corner fixed and preserves rotation',async()
 test('rotation is normalized during import and retained in independent copies',async()=>{
  const {duplicateElement}=await import('../src/editor.js');const s=makeSlide();s.positions.title.rotation=-45;s.positions.body.rotation='invalid';const restored=normalizeSlides([s])[0];assert.equal(restored.positions.title.rotation,315);assert.equal(restored.positions.body.rotation,0);const key=duplicateElement(restored,'title');assert.equal(restored.positions[key].rotation,315);restored.positions[key].rotation=90;assert.equal(restored.positions.title.rotation,315);assert.equal(normalizeSlides(JSON.parse(JSON.stringify([restored])))[0].positions[key].rotation,90);
 });
+
+test('font catalog sanitizes selections and limits Java to monospace families',async()=>{
+ const {fonts,normalizeFont,fontCss}=await import('../src/fonts.js');assert.equal(fonts.filter(f=>!f.local).length,8);assert.equal(new Set(fonts.map(f=>f.id)).size,fonts.length);assert.equal(normalizeFont('untrusted font'), 'arial');assert.equal(normalizeFont('lora','code'),'monospace');assert.equal(normalizeFont('jetbrains-mono','code'),'jetbrains-mono');assert.equal(fontCss('lora'),'"Lora", serif');
+});
+
+test('font selections survive migration, JSON roundtrip and independent duplication',async()=>{
+ const {duplicateElement}=await import('../src/editor.js');const {usedFonts}=await import('../src/fonts.js');const s=makeSlide();s.positions.title.font='lora';s.positions.code.font='jetbrains-mono';s.positions.body.font='invalid';const normalized=normalizeSlides([s])[0];assert.equal(normalized.positions.title.font,'lora');assert.equal(normalized.positions.body.font,'arial');const key=duplicateElement(normalized,'title');assert.equal(normalized.positions[key].font,'lora');normalized.positions[key].font='inter';const restored=normalizeSlides(JSON.parse(JSON.stringify([normalized])))[0];assert.equal(restored.positions[key].font,'inter');assert.equal(restored.positions.title.font,'lora');assert.equal(restored.positions.code.font,'jetbrains-mono');assert.ok(usedFonts([restored]).includes('jetbrains-mono'));assert.ok(usedFonts([restored]).includes('inter'));
+});
+
+test('text fitting and code bounds measure the selected font',async()=>{
+ const {fitText,blockBounds}=await import('../src/render.js');let family;const ctx={font:'',measureText(value){family=this.font;return {width:value.length*(this.font.includes('JetBrains Mono')?22:10)};}};
+ fitText(ctx,'Java é à',{w:300,h:50,size:32,font:'lora'},700,1.12);assert.match(ctx.font,/Lora/);
+ const s=makeSlide();s.code='a'.repeat(40);s.positions.code={x:100,y:100,w:600,h:500,size:32,font:'jetbrains-mono'};const b=blockBounds(ctx,s,'code');assert.match(family,/JetBrains Mono/);assert.ok(b.size<32);assert.equal(Math.round(b.size*100)/100,17.82);
+});
+
+test('font loader awaits both weights, shares loads and retries failures',async()=>{
+ const {createFontLoader}=await import('../src/fontLoader.js');let calls=0,resolveLoads;const gate=new Promise(resolve=>{resolveLoads=resolve;});const load=createFontLoader(()=>({load:async()=>{calls++;await gate;return [{}];}}));const s=makeSlide();s.positions.title.font='inter';let ready=false;const first=load([s]).then(()=>{ready=true;});const second=load([s]);await Promise.resolve();assert.equal(calls,2);assert.equal(ready,false);resolveLoads();await Promise.all([first,second]);assert.equal(ready,true);await load([s]);assert.equal(calls,2);
+ let fail=true;const retry=createFontLoader(()=>({load:async()=>fail?[]:[{}]}));await assert.rejects(retry([s]),/Police indisponible/);fail=false;await retry([s]);
+ const system=createFontLoader(()=>({load(){throw Error('System fonts must not trigger downloads');}}));await system([makeSlide()]);
+});

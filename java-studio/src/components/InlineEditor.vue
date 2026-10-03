@@ -2,7 +2,7 @@
 import { ref, watch, nextTick } from 'vue';
 import { Check, Code2 } from 'lucide-vue-next';
 import { highlightedHtml } from '../code.js';
-const props = defineProps({ value: String, code: Boolean, label: String, scale: Number, size: Number });
+const props = defineProps({ value: String, code: Boolean, label: String, scale: Number, size: Number, font: String });
 const emit = defineEmits(['update', 'label', 'close', 'format']);
 const input = ref(null), root = ref(null), draft = ref(props.value), scroll = ref({ x: 0, y: 0 });
 watch(() => props.value, v => { draft.value = v; });
@@ -21,7 +21,7 @@ function blur(event) { if (event.relatedTarget && root.value?.contains(event.rel
 nextTick(() => { input.value?.focus(); });
 </script>
 <template>
-  <div ref="root" class="inline-editor" :class="{ 'inline-code': code }" :style="{ fontSize: `${size * scale}px`, fontWeight: label !== undefined ? 700 : 400, lineHeight: code ? 1.6 : label !== undefined ? 1.12 : 1.4 }" @focusout="blur" @pointerdown.stop @dblclick.stop>
+  <div ref="root" class="inline-editor" :class="{ 'inline-code': code }" :style="{ fontFamily: font, fontSize: `${size * scale}px`, fontWeight: label !== undefined ? 700 : 400, lineHeight: code ? 1.6 : label !== undefined ? 1.12 : 1.4 }" @focusout="blur" @pointerdown.stop @dblclick.stop>
     <div class="inline-tools">
       <input v-if="!code && label !== undefined" :value="label" @input="emit('label', $event.target.value)" aria-label="Surtitre du bloc" placeholder="Surtitre facultatif">
       <button v-if="code" @click="emit('format', draft)" title="Formater le code Java"><Code2 :size="15"/>Formater</button>
