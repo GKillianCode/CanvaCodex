@@ -132,3 +132,13 @@ test('editable themes validate unique identities, colors and portable custom pal
 test('deleting all visible elements persists an empty slide without reviving template blocks',()=>{
  const s=makeSlide('image-right');s.blockKeys=[];s.elements={};s.positions={};s.fragments={};assert.deepEqual(visibleBlocks(normalizeSlides([s])[0]),[]);
 });
+
+test('spatial route follows 4 → 3 → 1 → 2 and keeps identity and content',async()=>{
+ const {spatialRoute}=await import('../src/route.js');const slides=[makeSlide('title',{x:1,y:1}),makeSlide('title',{x:1,y:2}),makeSlide('title',{x:1,y:0}),makeSlide('title',{x:0,y:0})];slides.forEach((s,n)=>s.title='Diapo '+(n+1));const route=spatialRoute(slides);assert.deepEqual(route.map(s=>s.title),['Diapo 4','Diapo 3','Diapo 1','Diapo 2']);assert.deepEqual(route.slice(0,-1).map((s,n)=>transitionDirection(s,route[n+1])),[{x:1,y:0},{x:0,y:1},{x:0,y:1}]);assert.equal(slides[0].title,'Diapo 1');assert.equal(route[0],slides[3]);
+});
+test('custom starts and traced routes support reverse directions, duplicates and missing ids',async()=>{
+ const {spatialRoute,tracedRoute,connectRoute}=await import('../src/route.js');const slides=[makeSlide('title',{x:1,y:1}),makeSlide('title',{x:0,y:1}),makeSlide('title',{x:2,y:1}),makeSlide('title',{x:2,y:2})];const ids=slides.map(s=>s.id);assert.deepEqual(spatialRoute(slides,ids[3]).map(s=>s.id),[ids[3],ids[2],ids[0],ids[1]]);const traced=tracedRoute(slides,[ids[3],ids[2],ids[3],'missing',ids[0],ids[1]]);assert.deepEqual(traced.map(s=>s.id),[ids[3],ids[2],ids[0],ids[1]]);assert.deepEqual(transitionDirection(traced[0],traced[1]),{x:0,y:-1});assert.deepEqual(transitionDirection(traced[1],traced[2]),{x:-1,y:0});const linked=connectRoute(slides,ids[3],ids[0]);assert.equal(linked.at(-1).id,ids[0]);assert.equal(new Set(linked.map(s=>s.id)).size,4);assert.deepEqual(connectRoute(slides,ids[0],ids[0]),slides);assert.equal(tracedRoute(slides,[ids[2]]).length,4);assert.deepEqual(normalizeSlides(JSON.parse(JSON.stringify(traced))).map(s=>s.id),traced.map(s=>s.id));
+});
+test('connector geometry uses facing edges and follows transition direction',async()=>{
+ const {routePath}=await import('../src/route.js');assert.match(routePath({x:0,y:0},{x:300,y:0}),/^M 240 85 C/);assert.match(routePath({x:300,y:215},{x:300,y:0}),/^M 420 215 C/);assert.match(routePath({x:0,y:0},{x:900,y:860},{x:0,y:1}),/^M 120 192 C/);
+});
