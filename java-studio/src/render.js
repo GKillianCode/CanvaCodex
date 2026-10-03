@@ -1,6 +1,6 @@
 import { getTextStyle, normalizeTextStyle, styleFont } from './textStyles.js';
 import { fontCss } from './fonts.js';
-import { drawShape } from './shapes.js';
+import { drawShape,shapeBounds } from './shapes.js';
 import { WIDTH, HEIGHT, visibleBlocks, blockType, blockText } from './model.js';
 import { javaLines, codeColor } from './code.js';
 const backgrounds = new Map();
@@ -56,7 +56,8 @@ export function text(ctx, value, x, y, width, size, color, weight = 400, font = 
 function codeWidthSize(ctx,value,p){ctx.font=styleFont(p.size,fontCss(p.font,'code'),normalizeTextStyle(p.textStyle,p.font,'code'));return (p.w-110)*p.size/Math.max(1,...value.split('\n').map(line=>ctx.measureText(line.replaceAll('\t','    ')).width));}
 export function blockBounds(ctx, s, key) {
   const p = s.positions[key];
-  if (['image','shape'].includes(blockType(s,key))) return {...p,h:p.h||360};
+  if(blockType(s,key)==='shape')return shapeBounds(s.elements[key],p);
+  if(blockType(s,key)==='image')return {...p,h:p.h||360};
   if(blockType(s,key)==='code'){const value=blockText(s,key);const h=p.h||Math.max(260,value.split('\n').length*p.size*1.6+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,blockText(s,key).split('\n').length)*1.6),codeWidthSize(ctx,blockText(s,key),p)));return {...p,h,size};}
   if(p.autoSize)return {...p,...autoTextBounds(ctx,s,key)};
   const style=getTextStyle(s,key),leading=key==='title'||s.elements[key]?.weight===700?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=styleFont(size,fontCss(p.font),style);return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};

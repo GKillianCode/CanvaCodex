@@ -302,3 +302,14 @@ Modèle version 12 : `roundedEnds` sur les formes (défaut vrai), checkbox Extr�
 Validation : 49 cas passent (39 + 10), build et diff --check. Nouveaux tests : fond uni sans appel de gradient, migration du réglage, extrémités plates/rondes pour trait/courbe, import et duplication. Navigateur isolé : dégradé désactivé et fond uni visible, ajout d’un trait et option d’arrondi désactivée, rechargement sans erreur console. Pas de nouvelle capture PNG/WebM ni de nouveau contrôle mobile pour ces deux options.
 
 Publication confirmée : [PR #26](https://github.com/GKillianCode/CanvaCodex/pull/26) ouverte de `codex/optional-gradients-caps` vers `codex/editor-workspace-files`, commit applicatif distant `971efc3`. Issue #25 mise à jour, ouverte jusqu’à fusion. Aucune fusion automatique. Commits locaux conservés dans `archive/local-optional-gradients-caps-20261003` lors de l’alignement sur les fichiers identiques publiés par le connecteur.
+
+
+### 3 octobre 2026 — cadres des formes sans marge inutile
+
+Demande : retirer le padding autour des éléments, en priorité les formes. Suivi : [issue #27](https://github.com/GKillianCode/CanvaCodex/issues/27), branche `codex/tight-shape-bounds`, basée sur `codex/optional-gradients-caps` (PR #26 ouverte).
+
+Les chemins des étoiles, polygones, courbes et cœurs occupent maintenant leur cadre complet, calculé à partir de leurs extrema réels. Le demi-contour nécessaire pour éviter de couper le trait reste pris en compte. Traits horizontaux/verticaux : cadre visible et propriétés ajustés à l’épaisseur réelle, centre conservé pour les anciens projets ; redimensionnement transversal règle aussi l’épaisseur. Suppression de la tolérance de clic extérieure de 12 unités autour des formes ; sélection toujours rectangulaire. Rendu partagé éditeur/miniatures/présentation/exports. Aucun changement du modèle version 12 ni des marges du texte/code.
+
+Validation : 50 cas (39 + 11), build et diff --check réussis. Test des extrema des étoiles/polygones/courbes/cœurs et cadres de traits. Navigateur isolé : étoile touchant les quatre limites du cadre, trait fin avec poignées au ras du tracé, hauteur affichée égale à l’épaisseur, aucune erreur console. Pas de nouvelle capture PNG/WebM.
+
+Travail validé localement ; publication en cours, aucune fusion automatique.
