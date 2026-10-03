@@ -301,4 +301,4 @@ Modèle version 12 : `roundedEnds` sur les formes (défaut vrai), checkbox Extr�
 
 Validation : 49 cas passent (39 + 10), build et diff --check. Nouveaux tests : fond uni sans appel de gradient, migration du réglage, extrémités plates/rondes pour trait/courbe, import et duplication. Navigateur isolé : dégradé désactivé et fond uni visible, ajout d’un trait et option d’arrondi désactivée, rechargement sans erreur console. Pas de nouvelle capture PNG/WebM ni de nouveau contrôle mobile pour ces deux options.
 
-Travail validé localement ; publication en cours, aucune fusion automatique.
+Publication confirmée : [PR #26](https://github.com/GKillianCode/CanvaCodex/pull/26) ouverte de `codex/optional-gradients-caps` vers `codex/editor-workspace-files`, commit applicatif distant `971efc3`. Issue #25 mise à jour, ouverte jusqu’à fusion. Aucune fusion automatique. Commits locaux conservés dans `archive/local-optional-gradients-caps-20261003` lors de l’alignement sur les fichiers identiques publiés par le connecteur.
