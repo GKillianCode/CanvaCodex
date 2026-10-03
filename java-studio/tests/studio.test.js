@@ -213,8 +213,29 @@ test('text fitting and code bounds measure the selected font',async()=>{
  const s=makeSlide();s.code='a'.repeat(40);s.positions.code={x:100,y:100,w:600,h:500,size:32,font:'jetbrains-mono'};const b=blockBounds(ctx,s,'code');assert.match(family,/JetBrains Mono/);assert.ok(b.size<32);assert.equal(Math.round(b.size*100)/100,17.82);
 });
 
-test('font loader awaits both weights, shares loads and retries failures',async()=>{
- const {createFontLoader}=await import('../src/fontLoader.js');let calls=0,resolveLoads;const gate=new Promise(resolve=>{resolveLoads=resolve;});const load=createFontLoader(()=>({load:async()=>{calls++;await gate;return [{}];}}));const s=makeSlide();s.positions.title.font='inter';let ready=false;const first=load([s]).then(()=>{ready=true;});const second=load([s]);await Promise.resolve();assert.equal(calls,2);assert.equal(ready,false);resolveLoads();await Promise.all([first,second]);assert.equal(ready,true);await load([s]);assert.equal(calls,2);
+test('font loader awaits requested faces, shares loads and retries failures',async()=>{
+ const {createFontLoader}=await import('../src/fontLoader.js');let calls=0,resolveLoads;const gate=new Promise(resolve=>{resolveLoads=resolve;});const load=createFontLoader(()=>({load:async()=>{calls++;await gate;return [{}];}}));const s=makeSlide();s.positions.title.font='inter';s.positions.body.font='inter';let ready=false;const first=load([s]).then(()=>{ready=true;});const second=load([s]);await Promise.resolve();assert.equal(calls,2);assert.equal(ready,false);resolveLoads();await Promise.all([first,second]);assert.equal(ready,true);await load([s]);assert.equal(calls,2);
  let fail=true;const retry=createFontLoader(()=>({load:async()=>fail?[]:[{}]}));await assert.rejects(retry([s]),/Police indisponible/);fail=false;await retry([s]);
  const system=createFontLoader(()=>({load(){throw Error('System fonts must not trigger downloads');}}));await system([makeSlide()]);
+});
+
+test('text styles sanitize values and select a real font weight',async()=>{
+ const {normalizeTextStyle,fontWeights}=await import('../src/textStyles.js');assert.deepEqual(fontWeights('lora'),[400,500,600,700]);const style=normalizeTextStyle({weight:900,italic:true,underline:'yes',highlight:true,highlightColor:'bad',highlightOpacity:150},'lora');assert.equal(style.weight,700);assert.equal(style.italic,true);assert.equal(style.underline,false);assert.equal(style.highlightColor,'#ffe066');assert.equal(style.highlightOpacity,100);assert.equal(normalizeTextStyle({},'inter','text',true).weight,700);assert.equal(normalizeTextStyle({},'inter').weight,400);
+});
+
+test('typography survives import, rotation and independent duplication without changing heading roles',async()=>{
+ const {duplicateElement}=await import('../src/editor.js');const {getTextStyle}=await import('../src/textStyles.js');const s=makeSlide();s.positions.title.font='inter';s.positions.title.rotation=45;s.positions.title.textStyle={weight:300,italic:true,underline:true,strike:true,highlight:true,highlightColor:'#ffaa22',highlightOpacity:55};const copy=duplicateElement(s,'title');s.positions[copy].textStyle.weight=900;const restored=normalizeSlides(JSON.parse(JSON.stringify([s])))[0];assert.equal(getTextStyle(restored,'title').weight,300);assert.equal(getTextStyle(restored,copy).weight,900);assert.equal(restored.positions.title.rotation,45);assert.equal(restored.elements[copy].weight,700);assert.equal(restored.positions.title.textStyle.highlightColor,'#ffaa22');assert.equal(restored.positions.title.textStyle.underline,true);assert.equal(restored.positions[copy].textStyle.strike,true);
+});
+
+test('Canvas text draws per-line highlights behind glyphs and decorations in front',async()=>{
+ const {text}=await import('../src/render.js');const {normalizeTextStyle}=await import('../src/textStyles.js');const calls=[];const ctx={globalAlpha:1,save(){this.saved=[this.globalAlpha,this.fillStyle];},restore(){[this.globalAlpha,this.fillStyle]=this.saved;},measureText(t){return {width:t.length*10,actualBoundingBoxAscent:-2,actualBoundingBoxDescent:18};},fillRect(x,y,w,h){calls.push({kind:'rect',x,y,w,h,color:this.fillStyle,alpha:this.globalAlpha});},fillText(t,x,y){calls.push({kind:'text',t,x,y});}};
+ const style=normalizeTextStyle({weight:600,italic:true,underline:true,strike:true,highlight:true,highlightOpacity:40},'inter');text(ctx,'Java\nMémoire',100,200,300,20,'#ffffff',600,'Inter',1.4,style);assert.equal(ctx.font,'italic 600 20px Inter');assert.deepEqual(calls.map(c=>c.kind),['rect','text','rect','rect','rect','text','rect','rect']);assert.equal(calls[0].alpha,.4);assert.equal(calls[4].y-calls[0].y,28);assert.ok(calls[4].w>calls[0].w);assert.equal(ctx.globalAlpha,1);
+});
+
+test('font face cache differentiates weight and true italic while synthetic italic loads normal',async()=>{
+ const {createFontLoader}=await import('../src/fontLoader.js');const requests=[];const load=createFontLoader(()=>({load:async spec=>{requests.push(spec);return [{}];}}));const s=makeSlide();s.positions.title.font='inter';s.positions.title.textStyle={weight:900,italic:true};await load([s]);assert.deepEqual(requests,['italic 900 24px "Inter"']);s.positions.title.textStyle.weight=300;await load([s]);assert.equal(requests.at(-1),'italic 300 24px "Inter"');s.positions.title.font='space-grotesk';await load([s]);assert.equal(requests.at(-1),'300 24px "Space Grotesk"');
+});
+
+test('reapplying a composition preserves selected fonts and text styles',()=>{
+ const s=makeSlide();s.positions.title.font='inter';s.positions.title.textStyle={weight:300,italic:true};s.positions.body.textStyle={highlight:true,highlightColor:'#ffaaff'};applyLayout(s,'title');assert.equal(s.positions.title.font,'inter');assert.equal(s.positions.title.textStyle.weight,300);assert.equal(s.positions.body.textStyle.highlightColor,'#ffaaff');
 });

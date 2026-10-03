@@ -1,3 +1,4 @@
+import { normalizeTextStyle } from './textStyles.js';
 import { normalizeFont } from './fonts.js';
 import { normalizeShape } from './shapes.js';
 export const WIDTH = 1920;
@@ -88,6 +89,7 @@ export function blockText(s,key) { return s.elements?.[key]?.text ?? s[key] ?? '
 export function setBlockText(s,key,value) { if (s.elements?.[key]) s.elements[key].text = value; else s[key] = value; }
 export function blockLabel(s,key) { return ({title:'Titre',body:'Texte 1',code:'Code Java'})[key] || s.elements?.[key]?.name || key; }
 export function applyLayout(s,layout) {
+  const typography=Object.fromEntries(Object.entries(s.positions||{}).map(([key,p])=>[key,{...(p.font?{font:p.font}:{}),...(p.textStyle?{textStyle:JSON.parse(JSON.stringify(p.textStyle))}:{})}]));
   s.layout = layout;
   s.designVersion = 2;
   s.positions = {...s.positions, ...positionsFor(layout)};
@@ -103,6 +105,7 @@ export function applyLayout(s,layout) {
     s.positions[key] ||= pos(150,500,1200);
     s.fragments[key] ||= {order:0,animation:'fade'};
   }
+  for(const [key,style] of Object.entries(typography))if(s.positions[key])Object.assign(s.positions[key],style);
   return s;
 }
 export function reorderSlides(slides,from,to) {
@@ -144,6 +147,7 @@ export function normalizeSlide(raw, n = 0) {
     if (p) for (const key of ['x', 'y', 'w', 'size', 'h']) s.positions[k][key] = finite(p[key], s.positions[k][key] ?? 360, key === 'size' ? 10 : key === 'w' ? (blockType(s,k)==='shape'?8:80) : key==='h'&&blockType(s,k)==='shape'?8:0, key === 'size' ? 260 : key === 'y' || key === 'h' ? HEIGHT : WIDTH);
     if (s.designVersion === 1 && p && !Number.isFinite(p.h) && !['image','shape'].includes(blockType(s,k))) delete s.positions[k].h;
     s.positions[k].font=normalizeFont(p?.font,blockType(s,k));
+    if(p?.textStyle&&typeof p.textStyle==='object'&&!['shape','image'].includes(blockType(s,k)))s.positions[k].textStyle=normalizeTextStyle(p.textStyle,s.positions[k].font,blockType(s,k),k==='title'||s.elements[k]?.weight===700);
     s.positions[k].rotation=Number.isFinite(Number(p?.rotation))?((Number(p.rotation)%360)+360)%360:0;
     const f = raw.fragments?.[k];
     s.fragments[k] = { order: Math.round(finite(f?.order, 0, 0, 20)), animation: ['fade', 'up', 'zoom', 'none'].includes(f?.animation) ? f.animation : 'fade' };

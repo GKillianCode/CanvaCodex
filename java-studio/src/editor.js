@@ -16,7 +16,7 @@ export function duplicateElement(s,key) {
  const type=blockType(s,key),copyKey=type+crypto.randomUUID().replaceAll('-','').slice(0,8),source=s.elements[key];
  s.elements[copyKey]=source?JSON.parse(JSON.stringify(source)):{type,text:blockText(s,key),weight:key==='title'?700:400,label:key==='title'?s.label:'',caption:key==='code'?s.codeTitle:''};
  s.elements[copyKey].custom=true;s.elements[copyKey].name=(source?.name||({title:'Titre',body:'Texte',code:'Code Java'})[key]||'Élément')+' · copie';
- const p=s.positions[key];s.positions[copyKey]={...p,x:Math.min(WIDTH-p.w,p.x+24),y:Math.min(HEIGHT-(p.h||40),p.y+24)};s.fragments[copyKey]={...s.fragments[key]};return copyKey;
+ const p=s.positions[key];s.positions[copyKey]={...JSON.parse(JSON.stringify(p)),x:Math.min(WIDTH-p.w,p.x+24),y:Math.min(HEIGHT-(p.h||40),p.y+24)};s.fragments[copyKey]={...s.fragments[key]};return copyKey;
 }
 
 export function normalizeAngle(value){return Number.isFinite(Number(value))?((Number(value)%360)+360)%360:0;}
