@@ -75,3 +75,5 @@ Un atlas de contrôle visuel des 20 dispositions et 10 thèmes est accessible en
 
 - **Style → Fond du diaporama → Dégradé de fond** : décocher pour un fond uni, commun à toutes les diapos et exports. Les anciens projets conservent leur dégradé.
 - **Style de la forme → Extrémités arrondies** : décocher pour des bouts plats sur traits/courbes, y compris les pointillés.
+
+Les formes occupent leur cadre sans marge vide : étoiles, polygones, courbes et cœurs sont ajustés à leurs dimensions. Les traits horizontaux/verticaux ont un cadre correspondant à leur épaisseur ; étirer leur hauteur/largeur transversale règle cette épaisseur. Le contour est inclus dans les dimensions et la zone de clic ne déborde plus du cadre des formes.
