@@ -324,3 +324,14 @@ Cause : deux images juxtaposées sur des coordonnées fractionnaires dans le can
 Validation : 51 cas (39 + 12), build et diff --check. Test de jointure et coordonnées entières dans les quatre directions, résolutions 640/1920/2560/3840 et six instants dont départ/arrivée. Navigateur isolé : mouvements horizontal et vertical observés pendant la transition à 2560 × 1440, aucune couture visible ni erreur console. Réglages de contrôle rétablis après vérification. Pas de nouvel export WebM ni analyse pixel du fichier vidéo.
 
 Publication confirmée : [PR #30](https://github.com/GKillianCode/CanvaCodex/pull/30) ouverte de `codex/seamless-transitions` vers `codex/tight-shape-bounds`, commit applicatif distant `3dc9524`. Issue #29 ouverte jusqu’à fusion. Aucune fusion automatique. Commits locaux conservés dans `archive/local-seamless-transitions-20261003` lors de l’alignement sur les sources identiques publiées.
+
+
+### 3 octobre 2026 — positions stables après reprise
+
+Demande : les objets se déplacent après sauvegarde puis actualisation. Le signalement de fond noir sur les PNG a été retiré par Killian (erreur de sa part) ; les changements exploratoires de transparence ont été retirés, aucune modification d’import/rendu d’image conservée. Suivi : [issue #31](https://github.com/GKillianCode/CanvaCodex/issues/31), branche `codex/stable-object-positions`, basée sur `codex/seamless-transitions` (PR #30 ouverte).
+
+La normalisation de reprise appliquait des contraintes d’édition : coordonnées négatives ramenées à zéro et cadres fins/narrow élargis, déplaçant notamment les objets tournés et les traits. Elle conserve maintenant les coordonnées/dimensions finies enregistrées (bornes défensives ±10000 pour les ancres, 1..10000 pour les dimensions), sans arrondi ; taille de police inchangée. Hauteur absente conservée comme absente pour le calcul automatique. Les contraintes d’édition restent au moment des gestes, aucun changement de modèle version 12.
+
+Validation : 52 cas (39 + 13), build et diff --check. Nouveau test de trois reprises JSON successives : image tournée à coordonnées négatives, trait de 2 unités, texte étroit et hauteur automatique absente. Navigateur isolé : comparaison des x/y/w/h/taille/rotation de tous les objets avant/après actualisation identique, aucune erreur console au contrôle. Pas de nouveau sélecteur natif de fichier ni d’écriture sur disque testés.
+
+Travail validé localement ; publication en cours, aucune fusion automatique.
