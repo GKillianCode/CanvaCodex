@@ -3,6 +3,7 @@ import { themes, presets, blocks, visibleBlocks, makeSlide, normalizeSlides, nei
 import { renderSlide, renderBanner, blockBounds, prepareImages } from './render.js';
 
 import { duplicateElement, nudgePosition, resizePosition } from './editor.js';
+import { spatialRoute, tracedRoute, connectRoute } from './route.js';
 import { normalizeThemes, themeDraft } from './themes.js';
 import { LaserTrail } from './laser.js';
 
@@ -33,6 +34,7 @@ export function useStudio() {
   const codeCaption=computed({get:()=>selected.value==='code'?current.value.codeTitle||'':current.value.elements[selected.value]?.caption||'',set:value=>{if(selected.value==='code')current.value.codeTitle=value;else if(current.value.elements[selected.value])current.value.elements[selected.value].caption=value;}});
   const selectedBounds=computed(()=>{let s=current.value;const draft=transformPreview.value;if(draft?.id===s.id&&draft.key===selected.value)s={...s,positions:{...s.positions,[draft.key]:draft.position}};const p=s.positions[selected.value];if(!p||!visibleBlocks(s).includes(selected.value))return null;const b=blockBounds(measurement,s,selected.value);return {...b,h:p.h||b.h};});
   const handles=computed(()=>{const b=selectedBounds.value;if(!b)return [];return [['nw',b.x,b.y],['ne',b.x+b.w,b.y],['sw',b.x,b.y+b.h],['se',b.x+b.w,b.y+b.h]].map(([corner,x,y])=>({corner,style:{left:x/WIDTH*100+'%',top:y/HEIGHT*100+'%'}}));});
+  const routeMode=ref(['spatial','manual'].includes(initial?.routeMode)?initial.routeMode:'spatial'),routeStart=ref(slides.value.some(s=>s.id===initial?.routeStart)?initial.routeStart:''),routeBackup=ref(null);
   const workspace = ref('canvas'), listDrag = ref(null), listTarget = ref(null);
   const thumbs = shallowRef({}), step = ref(0), transitionMs = ref(initial?.transitionMs ?? 650), moving = ref(false), gridDraft = ref({ x: 0, y: 0 });
   const current = computed(() => slides.value[index.value]), theme = computed(() => palette.value.find(t => t.id === themeId.value) || palette.value[0]);
@@ -53,7 +55,7 @@ export function useStudio() {
   const modelController = new AbortController();
   const thumbnailKeys = new Map(), formatRequests = new Map();
   const metrics = { frames: 0, thumbnails: 0, dragCommits: 0 };
-  const snapshot = () => ({ version: 5, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
+  const snapshot = () => ({ version: 6, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
   const renderOptions = (s, n, order = Infinity) => ({ ...frame.value, project: project.value, n, total: slides.value.length, order });
   function notify(message) { toast.value = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 3500); }
   function queueSave() {
@@ -74,7 +76,7 @@ export function useStudio() {
     thumbs.value = result;
   }
   function queueThumbnails() { clearTimeout(thumbTimer); thumbTimer = setTimeout(updateThumbnails, 220); }
-  watch([palette, slides, project, themeId, banner, frame, transitionMs, resolution], () => { queueSave(); queueThumbnails(); requestDraw(); }, { deep: true });
+  watch([routeMode,routeStart,palette, slides, project, themeId, banner, frame, transitionMs, resolution], () => { queueSave(); queueThumbnails(); requestDraw(); }, { deep: true });
   watch([view, selected, presenting, zoom, editing, workspace], async () => { await nextTick(); observeStage(); requestDraw(); });
   watch(current, s => { gridDraft.value = { ...s.grid }; selected.value=null;selectedKeys.value=[]; });
   watch(selected,key=>{if(key)selectedKeys.value=[key];});
@@ -176,12 +178,12 @@ export function useStudio() {
   function goDirection(direction) { if (moving.value) return; const target = neighbor(slides.value, index.value, direction); if (target >= 0) chooseSlide(target); }
   function canGo(direction) { return neighbor(slides.value, index.value, direction) >= 0 && !moving.value; }
   function add() { closeEdit(); gallery.value = true; }
-  function chooseLayout(layout) { if(slides.value.length>=100){notify('Le projet contient déjà 100 diapos.');return;} const s = makeSlide(layout, nextFreeGrid(slides.value, current.value.grid, 'right')); slides.value.push(s); gallery.value = false; chooseSlide(slides.value.length - 1); selected.value = 'title'; }
+  function chooseLayout(layout) { if(slides.value.length>=100){notify('Le projet contient déjà 100 diapos.');return;} const s = makeSlide(layout, nextFreeGrid(slides.value, current.value.grid, 'right')); slides.value.push(s); gallery.value = false; chooseSlide(slides.value.length - 1); selected.value = 'title';if(routeMode.value==='spatial')rebuildRoute(); }
   function addMemory() {
     if(slides.value.length>96){notify('Il faut quatre places libres dans ce projet de 100 diapos maximum.');return;}
     let x = current.value.grid.x + 1;
     while (slides.value.some(s => s.grid.x === x)) x++;
-    const first = slides.value.length; slides.value.push(...memorySlides({ x, y: 0 })); gallery.value = false; chooseSlide(first); notify('Parcours mémoire ajouté : descends avec ↓, révèle avec Espace.');
+    const first = slides.value.length; slides.value.push(...memorySlides({ x, y: 0 })); gallery.value = false; chooseSlide(first);if(routeMode.value==='spatial')rebuildRoute(); notify('Parcours mémoire ajouté : descends avec ↓, révèle avec Espace.');
   }
   function applyFormat() { const width=Number(formatWidth.value); const next=normalizeResolution({width,height:width*9/16}); if(next.width!==width){notify('Largeur entre 640 et 3840, multiple de 16.');return;}resolution.value=next;formatOpen.value=false;nextTick(requestDraw); }
   function undoLayout(){if(!canUndoLayout.value)return;closeEdit();const old=layoutBackup.value,added=Object.fromEntries(Object.entries(current.value.positions).filter(([k])=>!old.positions[k]));for(const key of ['layout','positions','blockKeys','designVersion'])current.value[key]=JSON.parse(JSON.stringify(old[key]));Object.assign(current.value.positions,added);current.value.blockKeys=current.value.blockKeys.filter(k=>blocks.includes(k)||current.value.elements[k]);layoutBackup.value=null;if(!visibleBlocks(current.value).includes(selected.value))selected.value=visibleBlocks(current.value)[0]||'title';requestDraw();}
@@ -211,7 +213,7 @@ export function useStudio() {
       await prepareImages([s]);notify('Image ajoutée et intégrée au projet.');
     }catch{notify('Cette image n’a pas pu être chargée.');}
   }
-  function reorder(from,to) { const id=current.value.id;slides.value=reorderSlides(slides.value,from,to);index.value=slides.value.findIndex(s=>s.id===id);requestDraw(); }
+  function reorder(from,to) { routeMode.value='manual'; const id=current.value.id;slides.value=reorderSlides(slides.value,from,to);routeStart.value=slides.value[0].id;index.value=slides.value.findIndex(s=>s.id===id);requestDraw(); }
   function listDown(event,n) {
     if(event.button!==0)return;
     event.preventDefault();let moved=false;
@@ -226,14 +228,21 @@ export function useStudio() {
     const end=()=>{if(moved&&listTarget.value!==null)reorder(n,listTarget.value);listDrag.value=null;listTarget.value=null;window.removeEventListener('pointermove',move);window.removeEventListener('pointerup',end);window.removeEventListener('pointercancel',cancel);};
     const cancel=()=>{moved=false;end();};window.addEventListener('pointermove',move);window.addEventListener('pointerup',end);window.addEventListener('pointercancel',cancel);
   }
-  function moveGrid(id,x,y) { if(!Number.isInteger(x)||!Number.isInteger(y)||Math.abs(x)>10000||Math.abs(y)>10000)return; const s=slides.value.find(s=>s.id===id);if(!s)return;if(slides.value.some(other=>other.id!==id&&other.grid.x===x&&other.grid.y===y)){notify('Cette case est occupée. Dépose la diapo sur une case libre.');return;}s.grid={x,y}; }
+  function applyRoute(route,mode='manual'){if(presenting.value)return;const id=current.value.id;routeBackup.value={ids:slides.value.map(s=>s.id),mode:routeMode.value,start:routeStart.value,exits:Object.fromEntries(slides.value.map(s=>[s.id,s.exitDirection]))};slides.value=route;routeMode.value=mode;if(mode==='manual')routeStart.value=route[0]?.id||'';for(const s of route)s.exitDirection='auto';index.value=Math.max(0,route.findIndex(s=>s.id===id));step.value=0;requestDraw();}
+  function rebuildRoute(){if(!slides.value.some(s=>s.id===routeStart.value))routeStart.value='';applyRoute(spatialRoute(slides.value,routeStart.value),'spatial');}
+  function setRouteMode(mode){if(mode==='spatial')rebuildRoute();else{routeMode.value='manual';routeStart.value=slides.value[0].id;}}
+  function setRouteStart(id){const previous=routeStart.value;routeStart.value=slides.value.some(s=>s.id===id)?id:'';if(routeMode.value==='spatial')rebuildRoute();else if(routeStart.value)applyRoute(tracedRoute(slides.value,[routeStart.value]));if(routeBackup.value)routeBackup.value.start=previous;}
+  function traceRoute(ids){applyRoute(tracedRoute(slides.value,ids));routeStart.value=slides.value[0].id;notify('Parcours défini. Espace suivra ce fil.');}
+  function connectSlides(from,to){if(from===to||!slides.value.some(s=>s.id===from)||!slides.value.some(s=>s.id===to))return;applyRoute(connectRoute(slides.value,from,to));notify('Lien ajouté au parcours.');}
+  function undoRoute(){const backup=routeBackup.value;if(!backup)return;const id=current.value.id;slides.value=tracedRoute(slides.value,backup.ids);routeMode.value=backup.mode;routeStart.value=backup.start;for(const s of slides.value)if(backup.exits[s.id])s.exitDirection=backup.exits[s.id];index.value=Math.max(0,slides.value.findIndex(s=>s.id===id));routeBackup.value=null;requestDraw();}
+  function moveGrid(id,x,y) { if(!Number.isInteger(x)||!Number.isInteger(y)||Math.abs(x)>10000||Math.abs(y)>10000)return; const s=slides.value.find(s=>s.id===id);if(!s)return;const occupant=slides.value.find(other=>other.id!==id&&other.grid.x===x&&other.grid.y===y);if(occupant){occupant.grid={...s.grid};notify('Positions des deux diapos interverties.');}s.grid={x,y};if(routeMode.value==='spatial')rebuildRoute(); }
   function imagesReady() {thumbnailKeys.clear();queueThumbnails();requestDraw();}
-  function duplicate() { if(slides.value.length>=100){notify('Le projet contient déjà 100 diapos.');return;} const s = JSON.parse(JSON.stringify(current.value)); s.id = crypto.randomUUID(); s.grid = nextFreeGrid(slides.value, current.value.grid, 'right'); slides.value.splice(index.value + 1, 0, s); chooseSlide(index.value + 1); }
-  function remove() { if (slides.value.length <= 1) return; closeEdit(); slides.value.splice(index.value, 1); index.value = Math.min(index.value, slides.value.length - 1); gridDraft.value = { ...current.value.grid }; requestDraw(); }
+  function duplicate() { if(slides.value.length>=100){notify('Le projet contient déjà 100 diapos.');return;} const s = JSON.parse(JSON.stringify(current.value)); s.id = crypto.randomUUID(); s.grid = nextFreeGrid(slides.value, current.value.grid, 'right'); slides.value.splice(index.value + 1, 0, s); chooseSlide(index.value + 1);if(routeMode.value==='spatial')rebuildRoute(); }
+  function remove() { if (slides.value.length <= 1) return; closeEdit(); slides.value.splice(index.value, 1); index.value = Math.min(index.value, slides.value.length - 1); gridDraft.value = { ...current.value.grid };if(routeMode.value==='spatial')rebuildRoute(); requestDraw(); }
   function applyGrid() {
     const { x, y } = gridDraft.value;
     if (!Number.isInteger(x) || !Number.isInteger(y) || Math.abs(x) > 10000 || Math.abs(y) > 10000 || slides.value.some(s => s.id !== current.value.id && s.grid.x === x && s.grid.y === y)) { gridDraft.value = { ...current.value.grid }; notify('Cette case est occupée ou sa position est invalide.'); return; }
-    current.value.grid = { x, y };
+    current.value.grid = { x, y };if(routeMode.value==='spatial')rebuildRoute();
   }
   function setPosition(key, event) { const value = Number(event.target.value)*WIDTH/resolution.value.width; const min = key==='w'?(selectedType.value==='code'?240:80):key==='h'?(selectedType.value==='code'?180:40):key==='size'?10:0, max = key === 'y' || key === 'h' ? HEIGHT : key === 'size' ? 260 : WIDTH; position.value[key] = Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : position.value[key]; event.target.value = Math.round(position.value[key]*resolution.value.width/WIDTH); }
   function updateFragment(event) { current.value.fragments[selected.value].order = Math.max(0, Math.min(20, Math.round(Number(event.target.value) || 0))); }
@@ -258,7 +267,7 @@ export function useStudio() {
       const data = JSON.parse(await event.target.files[0].text()), normalized = normalizeSlides(data.slides);
       closeEdit();layoutBackup.value=null;contextMenu.value=null; slides.value = normalized; project.value = String(data.project || 'Projet importé'); if(data.themes)palette.value=normalizeThemes(data.themes);themeId.value=palette.value.some(t=>t.id===data.themeId)?data.themeId:palette.value[0].id;deselect();selectedSlides.value=[];
       if (data.banner && typeof data.banner.title === 'string' && typeof data.banner.subtitle === 'string' && ['lower', 'chapter', 'tip'].includes(data.banner.type)) banner.value = data.banner;
-      resolution.value=normalizeResolution(data.resolution);
+      routeMode.value=['spatial','manual'].includes(data.routeMode)?data.routeMode:'spatial';routeStart.value=normalized.some(s=>s.id===data.routeStart)?data.routeStart:'';routeBackup.value=null;resolution.value=normalizeResolution(data.resolution);
       frame.value = { header: data.frame?.header === true, footer: data.frame?.footer === true }; transitionMs.value = Number.isFinite(data.transitionMs) ? Math.min(2000, Math.max(0, data.transitionMs)) : 650;
       index.value = 0; step.value = 0; gridDraft.value = { ...current.value.grid }; updateThumbnails(); requestDraw(); notify('Projet importé.');
     } catch { notify('Ce fichier n’est pas un projet Frame valide.'); }
@@ -286,7 +295,7 @@ export function useStudio() {
   function stopRecord() { if (!recording.value) return; recording.value = false; finalizing.value = true; clearInterval(timer); recorder.stop(); }
   function deselect(){selected.value=null;selectedKeys.value=[];selectedSlides.value=[];closeEdit();}
   function selectSlide(n,event){chooseSlide(n);selectionScope.value='slides';selected.value=null;selectedKeys.value=[];const id=slides.value[n]?.id;if(!id)return;selectedSlides.value=event&&(event.ctrlKey||event.metaKey)?(selectedSlides.value.includes(id)?selectedSlides.value.filter(k=>k!==id):[...selectedSlides.value,id]):[id];}
-  function deleteSlides(){const ids=new Set(selectedSlides.value);if(!ids.size)return;const remaining=slides.value.filter(s=>!ids.has(s.id));if(!remaining.length){notify('Conserve au moins une diapo dans le projet.');return;}closeEdit();slides.value=remaining;index.value=Math.min(index.value,remaining.length-1);deselect();requestDraw();}
+  function deleteSlides(){const ids=new Set(selectedSlides.value);if(!ids.size)return;const remaining=slides.value.filter(s=>!ids.has(s.id));if(!remaining.length){notify('Conserve au moins une diapo dans le projet.');return;}closeEdit();slides.value=remaining;index.value=Math.min(index.value,remaining.length-1);deselect();if(routeMode.value==='spatial')rebuildRoute();requestDraw();}
   function openTheme(source,copy=false){themeEditor.value=source&&!copy?structuredClone(toRaw(source)):themeDraft(source);}
   function saveTheme(){const draft=themeEditor.value;if(!draft?.name.trim())return;const normalized=normalizeThemes([draft])[0];if(normalized.id!==draft.id)return;const n=palette.value.findIndex(t=>t.id===draft.id);if(n<0){if(palette.value.length>=100){notify('Limite de 100 thèmes atteinte.');return;}palette.value.push(normalized);}else palette.value[n]=normalized;themeId.value=draft.id;themeEditor.value=null;notify('Thème sauvegardé.');}
   function deleteTheme(id){if(palette.value.length===1){notify('Conserve au moins un thème.');return;}const n=palette.value.findIndex(t=>t.id===id);if(n<0)return;themeUndo.value={theme:structuredClone(toRaw(palette.value[n])),index:n,id:themeId.value};palette.value=palette.value.filter(t=>t.id!==id);if(themeId.value===id)themeId.value=palette.value[0].id;notify('Thème supprimé. Tu peux annuler.');}
@@ -314,5 +323,5 @@ export function useStudio() {
     if (document.modelContext?.registerTool) try { Promise.resolve(document.modelContext.registerTool({ name: 'read_frame_project', description: 'Read the current slide project and presentation state', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: input => { if (!input || typeof input !== 'object' || Object.keys(input).length) throw Error('Expected an empty object'); return { ...JSON.parse(JSON.stringify(snapshot())), index: index.value, step: step.value, selected:selected.value, selectedKeys:selectedKeys.value,selectedSlides:selectedSlides.value,countdown:countdown.value,recording:recording.value, altHeld:altHeld.value, diagnostics: { ...metrics, trailPoints:trail.points.length, trailActive:trail.active } }; } }, { signal: modelController.signal })).catch(() => {}); } catch { /* Browser support is optional. */ }
   });
   onUnmounted(() => { modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer);cancelCountdown(); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('frame-images-ready',imagesReady); window.removeEventListener('keydown', keys);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',resetKeys);window.removeEventListener('pointerdown',contextOutside); window.removeEventListener('beforeunload', beforeUnload); });
-  return { palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
+  return { routeMode,routeStart,routeBackup,setRouteMode,setRouteStart,traceRoute,connectSlides,undoRoute, palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
 }
