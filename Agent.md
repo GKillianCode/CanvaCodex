@@ -313,3 +313,14 @@ Les chemins des étoiles, polygones, courbes et cœurs occupent maintenant leur 
 Validation : 50 cas (39 + 11), build et diff --check réussis. Test des extrema des étoiles/polygones/courbes/cœurs et cadres de traits. Navigateur isolé : étoile touchant les quatre limites du cadre, trait fin avec poignées au ras du tracé, hauteur affichée égale à l’épaisseur, aucune erreur console. Pas de nouvelle capture PNG/WebM.
 
 Publication confirmée : [PR #28](https://github.com/GKillianCode/CanvaCodex/pull/28) ouverte de `codex/tight-shape-bounds` vers `codex/optional-gradients-caps`, commit applicatif distant `dac4c86`. Issue #27 ouverte jusqu’à fusion. Aucune fusion automatique. Commits locaux conservés dans `archive/local-tight-shape-bounds-20261003` lors de l’alignement sur les fichiers identiques publiés.
+
+
+### 3 octobre 2026 — transitions sans couture
+
+Demande : supprimer la fine barre noire entre deux diapos pendant le coulissement. Suivi : [issue #29](https://github.com/GKillianCode/CanvaCodex/issues/29), branche `codex/seamless-transitions`, basée sur `codex/tight-shape-bounds` (PR #28 ouverte).
+
+Cause : deux images juxtaposées sur des coordonnées fractionnaires dans le canvas effacé pouvaient exposer une couture par interpolation. Le compositeur travaille maintenant directement en pixels de sortie : déplacement arrondi une seule fois, seconde page exactement à une largeur/hauteur de la première. La transformation logique est restaurée après composition pour les annotations. Même canvas pour la présentation et l’enregistrement ; durée, easing et navigation inverse conservés. Aucun changement de modèle.
+
+Validation : 51 cas (39 + 12), build et diff --check. Test de jointure et coordonnées entières dans les quatre directions, résolutions 640/1920/2560/3840 et six instants dont départ/arrivée. Navigateur isolé : mouvements horizontal et vertical observés pendant la transition à 2560 × 1440, aucune couture visible ni erreur console. Réglages de contrôle rétablis après vérification. Pas de nouvel export WebM ni analyse pixel du fichier vidéo.
+
+Publication confirmée : [PR #30](https://github.com/GKillianCode/CanvaCodex/pull/30) ouverte de `codex/seamless-transitions` vers `codex/tight-shape-bounds`, commit applicatif distant `3dc9524`. Issue #29 ouverte jusqu’à fusion. Aucune fusion automatique. Commits locaux conservés dans `archive/local-seamless-transitions-20261003` lors de l’alignement sur les sources identiques publiées.
