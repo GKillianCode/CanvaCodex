@@ -44,7 +44,8 @@ L’application est un outil personnel de production vidéo. Elle doit permettre
 - [x] Ajout, duplication et suppression de diapos (au moins une conservée).
 - [x] Modification des surtitres, titres, explications et exemples de code.
 - [x] Vingt compositions distinctes, dont six avec images ; galerie lors de l’ajout, sans choix de direction.
-- [x] Déplacement des blocs à la souris et réglages X, Y, largeur, taille du texte.
+- [x] Déplacement des blocs à la souris et réglages X, Y, largeur, hauteur, taille du texte ; huit poignées de redimensionnement.
+- [x] Galerie de 20 formes vectorielles, déformables avec remplissage, contour, opacité et superposition réglables.
 - [x] Quatre thèmes globaux partagés entre diapos et incrustations.
 - [x] Trois formats de bandeaux : titre inférieur, titre de chapitre, À retenir.
 - [x] Export PNG, sauvegarde locale et export/import JSON avec validation structurelle.
@@ -221,3 +222,16 @@ Canvas : sélection du mode et du départ, Tracer le parcours par clics ordonné
 Validation : 23 cas de test passent ; build et diff --check réussis. Tests du parcours 4 → 3 → 1 → 2, départ personnalisé, directions gauche/haut, identités/contenus préservés, liens vers une seule cible, déduplication/identifiants manquants, géométrie des fils et migration JSON. Navigateur isolé : déplacement de la quatrième diapo avant les autres donnant 4 → 3 → 1 → 2 ; tracé inverse par quatre clics ; liaison glissée produisant 2 → 4 → 1 → 3 ; annulation ; échange des positions ; ordre retrouvé après sauvegarde complète/rechargement. Présentation vérifiée jusqu’à la dernière diapo 2, avec révélation avant chaque transition. Mobile 390 px corrigé et vérifié sans débordement horizontal ; aucune erreur console lors du contrôle. Capture WebM non répétée pour ce lot : le rendu partagé des transitions est inchangé. Aucun test long ni benchmark FPS.
 
 Publication confirmée : [PR #14](https://github.com/GKillianCode/CanvaCodex/pull/14) ouverte de `codex/canvas-route` vers `codex/theme-workspace`, commit applicatif distant `50f574f`. Issue #13 mise à jour et ouverte jusqu’à la fusion. Aucune fusion automatique. Les commits locaux d’origine sont conservés dans `archive/local-canvas-route-20261003` lors de l’alignement sur les sources identiques du connecteur.
+
+
+### 3 octobre 2026 — formes et poignées latérales
+
+Demande : ajouter traits, rectangles, carrés, triangles, étoiles et autres formes, avec dimensions/couleurs dans les propriétés ; ajouter des poignées au milieu des côtés. Suivi : [issue #15](https://github.com/GKillianCode/CanvaCodex/issues/15), branche `codex/shapes-handles`, basée sur `codex/canvas-route` (PR #14 encore ouverte).
+
+Modèle version 7 : éléments personnalisés `shape`, géométrie largeur/hauteur indépendante (minimum 8 px logiques), styles conservés dans sauvegarde/JSON et duplication. Galerie de 20 formes depuis + Formes, Ajouter un élément et clic droit : trait, courbe, rectangle, carré, rectangle arrondi, cercle, ellipse, triangle, triangle rectangle, losange, pentagone, hexagone, étoile, flèche, double flèche, trapèze, parallélogramme, chevron, croix, cœur. Remplissage et contour activables séparément, couleurs/hexadécimal, épaisseur en pixels de sortie, pointillés et opacité. Orientation du trait, arrondi et branches/profondeur d’étoile réglables. Premier plan/Arrière-plan règle l’ordre de dessin et la sélection. Pas d’édition de texte sur les formes.
+
+Huit poignées pour tous les éléments : coins et milieux haut/bas/gauche/droite. Les milieux modifient un axe sans changer la typographie ; les coins conservent le bord opposé et adaptent les textes comme auparavant. Transformations transitoires pendant le geste, sauvegarde à la fin. Dessin Canvas avec chemins vectoriels partagés par éditeur, miniatures, présentation, PNG et WebM ; épaisseur du contour indépendante de l’étirement. Aucun ajout de dépendance.
+
+Validation : 27 cas passent, build et diff --check réussis. Tests de catalogue/styles invalides, persistance/duplication indépendante, huit poignées sur texte/code/image/forme et limites, épaisseur du contour après déformation. Navigateur isolé : étoile avec remplissage rose et contour cyan, dimensions saisies au clavier, étirement horizontal et vertical, duplication et rechargement, trait diagonal et pointillé ; galerie mobile 390 px sans débordement. Présentation et WebM court produit (7 378 Ko), reconnu en 2560 × 1440. Aucune erreur console. PNG non téléchargé de nouveau ; même renderer que la capture. Pas de benchmark FPS ni d’enregistrement long.
+
+Publication confirmée : [PR #16](https://github.com/GKillianCode/CanvaCodex/pull/16) ouverte de `codex/shapes-handles` vers `codex/canvas-route`, commit applicatif distant `69a001d`. Issue #15 mise à jour et ouverte jusqu’à la fusion. Aucune fusion automatique. Les commits locaux d’origine sont conservés dans `archive/local-shapes-handles-20261003` lors de l’alignement sur les sources identiques du connecteur.

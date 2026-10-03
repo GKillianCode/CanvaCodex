@@ -142,3 +142,41 @@ test('custom starts and traced routes support reverse directions, duplicates and
 test('connector geometry uses facing edges and follows transition direction',async()=>{
  const {routePath}=await import('../src/route.js');assert.match(routePath({x:0,y:0},{x:300,y:0}),/^M 240 85 C/);assert.match(routePath({x:300,y:215},{x:300,y:0}),/^M 420 215 C/);assert.match(routePath({x:0,y:0},{x:900,y:860},{x:0,y:1}),/^M 120 192 C/);
 });
+
+test('shape catalog and style sanitization support twenty deformable shapes', async () => {
+ const {shapes,normalizeShape,shapePath}=await import('../src/shapes.js');
+ assert.equal(shapes.length,20);assert.equal(new Set(shapes.map(s=>s.id)).size,20);
+ for(const spec of shapes){assert.ok(spec.w>0&&spec.h>0);assert.match(shapePath({shape:spec.id}),/^M/);}
+ const s=normalizeShape({shape:'bad',fill:'invalid',strokeWidth:999,opacity:-10,points:99,innerRatio:2});
+ assert.equal(s.shape,'rect');assert.equal(s.fill,'#35ff91');assert.equal(s.strokeWidth,60);assert.equal(s.opacity,0);assert.equal(s.points,12);assert.equal(s.innerRatio,.8);
+ assert.notEqual(shapePath({shape:'line',direction:'vertical'}),shapePath({shape:'line',direction:'horizontal'}));
+});
+
+test('custom shape geometry and styles survive save/import and independent duplication', async () => {
+ const {normalizeShape}=await import('../src/shapes.js');const {duplicateElement}=await import('../src/editor.js');
+ const s=makeSlide();s.elements.shape123=normalizeShape({shape:'star',fill:'#ff0066',stroke:'#ffffff',outlined:true,opacity:65,points:7,innerRatio:.3});s.positions.shape123={x:100,y:120,w:8,h:8,size:38};s.fragments.shape123={order:2,animation:'zoom'};
+ const copy=duplicateElement(s,'shape123');s.elements[copy].fill='#00ffcc';
+ const restored=normalizeSlides(JSON.parse(JSON.stringify([s])))[0];
+ assert.equal(restored.elements.shape123.fill,'#ff0066');assert.equal(restored.elements[copy].fill,'#00ffcc');assert.equal(restored.elements.shape123.points,7);assert.equal(restored.positions.shape123.h,8);assert.equal(restored.positions.shape123.w,8);assert.deepEqual(restored.fragments[copy],{order:2,animation:'zoom'});assert.ok(visibleBlocks(restored).includes(copy));
+});
+
+test('all eight resize handles anchor opposite edges and side handles alter one axis',async()=>{
+ const {resizePosition}=await import('../src/editor.js');const p={x:100,y:200,w:500,h:300,size:40};
+ for(const type of ['text','code','image','shape'])for(const handle of ['nw','n','ne','w','e','sw','s','se']){
+ const b=resizePosition(p,handle,20,30,type);
+ if(handle.includes('w'))assert.equal(b.x+b.w,p.x+p.w);else assert.equal(b.x,p.x);
+ if(handle.includes('n'))assert.equal(b.y+b.h,p.y+p.h);else assert.equal(b.y,p.y);
+ if(['n','s'].includes(handle)){assert.equal(b.w,p.w);assert.equal(b.size,p.size);}
+ if(['e','w'].includes(handle)){assert.equal(b.h,p.h);assert.equal(b.size,p.size);}
+ }
+ const tiny=resizePosition(p,'se',-10000,-10000,'shape');assert.equal(tiny.w,8);assert.equal(tiny.h,8);
+ const big=resizePosition(p,'nw',-10000,-10000,'shape');assert.equal(big.x,0);assert.equal(big.y,0);assert.equal(big.x+big.w,600);assert.equal(big.y+big.h,500);
+});
+
+test('vector shape rendering keeps stroke thickness independent of deformation',async()=>{
+ const {drawShape,normalizeShape}=await import('../src/shapes.js');const previousPath=globalThis.Path2D,previousMatrix=globalThis.DOMMatrix;let matrix,strokeWidth;
+ globalThis.Path2D=class{addPath(path,transform){matrix=transform.values;}};globalThis.DOMMatrix=class{constructor(values){this.values=values;}};
+ const ctx={globalAlpha:1,save(){},restore(){},fill(){},stroke(){strokeWidth=this.lineWidth;},setLineDash(d){this.dashes=d;}};
+ try{drawShape(ctx,normalizeShape({shape:'rect',outlined:true,strokeWidth:6,dashed:true}),{x:100,y:200,w:600,h:120});assert.deepEqual(matrix,[5.94,0,0,1.14,103,203]);assert.equal(strokeWidth,6);assert.deepEqual(ctx.dashes,[18,12]);}
+ finally{globalThis.Path2D=previousPath;globalThis.DOMMatrix=previousMatrix;}
+});

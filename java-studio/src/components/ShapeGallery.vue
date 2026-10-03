@@ -1,0 +1,6 @@
+<script setup>
+import { shapes, shapePath } from '../shapes.js';
+import { X } from 'lucide-vue-next';
+defineProps({theme:Object});const emit=defineEmits(['choose','close']);
+</script>
+<template><div class="gallery-backdrop" @click.self="emit('close')"><section class="shape-gallery" role="dialog" aria-modal="true" aria-label="Ajouter une forme"><div class="gallery-heading"><div><span class="eyebrow">ÉLÉMENTS GRAPHIQUES</span><h2>Une forme pour ton idée.</h2></div><button class="icon-btn" @click="emit('close')" aria-label="Fermer les formes"><X :size="20"/></button></div><p class="field-help">20 formes à étirer librement. Couleurs, contour et opacité dans les propriétés.</p><div class="shape-grid"><button v-for="s in shapes" :key="s.id" @click="emit('choose',s.id)" :aria-label="'Ajouter '+s.name"><span class="shape-icon"><svg preserveAspectRatio="none" :style="s.open?{}:{width:64*Math.min(1,s.w/s.h)+'px',height:64*Math.min(1,s.h/s.w)+'px'}" viewBox="-5 -5 110 110" aria-hidden="true"><path :d="shapePath({shape:s.id})" :fill="s.open?'none':theme.accent+'35'" :stroke="theme.accent" stroke-width="2" vector-effect="non-scaling-stroke" stroke-linecap="round" stroke-linejoin="round"/></svg></span><span>{{s.name}}</span></button></div></section></div></template>
