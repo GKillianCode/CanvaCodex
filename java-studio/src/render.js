@@ -1,3 +1,4 @@
+import { drawShape } from './shapes.js';
 import { WIDTH, HEIGHT, visibleBlocks, blockType, blockText } from './model.js';
 import { javaLines, codeColor } from './code.js';
 const backgrounds = new Map();
@@ -51,7 +52,7 @@ export function text(ctx, value, x, y, width, size, color, weight = 400, font = 
 }
 export function blockBounds(ctx, s, key) {
   const p = s.positions[key];
-  if (blockType(s,key)==='image') return {...p,h:p.h||360};
+  if (['image','shape'].includes(blockType(s,key))) return {...p,h:p.h||360};
   if(blockType(s,key)==='code'){const value=blockText(s,key);const h=p.h||Math.max(260,value.split('\n').length*p.size*1.6+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,blockText(s,key).split('\n').length)*1.6),(p.w-110)/(Math.max(1,...blockText(s,key).split('\n').map(l=>l.length))*0.61)));return {...p,h,size};}
   const leading=key==='title'||s.elements[key]?.weight===700?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=`${key==='title'||s.elements[key]?.weight===700?700:400} ${size}px Arial`;return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};
 }
@@ -118,7 +119,8 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if (key === 'title'||s.elements[key]?.weight===700) {
       const label=key==='title'?s.label:s.elements[key]?.label;if (label) text(ctx, label, p.x, Math.max(10, p.y - 58), p.w, 23, theme.accent, 700);
       const font=fitText(ctx,blockText(s,key),p,700,1.12);const color=['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y,p.w,font,color,700,'Arial',1.12);
-    } else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
+    } else if (blockType(s,key)==='shape') drawShape(ctx,s.elements[key],p);
+    else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
     else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key);
     else text(ctx,blockText(s,key),p.x,p.y,p.w,fitText(ctx,blockText(s,key),p,400,1.4),`${theme.ink}df`,400,'Arial',1.4);
     ctx.restore();

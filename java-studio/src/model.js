@@ -1,3 +1,4 @@
+import { normalizeShape } from './shapes.js';
 export const WIDTH = 1920;
 export const HEIGHT = 1080;
 export const blocks = ['title', 'body', 'code'];
@@ -130,7 +131,8 @@ export function normalizeSlide(raw, n = 0) {
   if (raw.elements && typeof raw.elements === 'object') {
     s.elements = {};
     for (const [key,e] of Object.entries(raw.elements).slice(0,40)) {
-      if (!/^(text|image|code)[a-zA-Z0-9_-]+$/.test(key) || !e || !['text','image','code'].includes(e.type)) continue;
+      if (!/^(text|image|code|shape)[a-zA-Z0-9_-]+$/.test(key) || !e || !['text','image','code','shape'].includes(e.type)) continue;
+      if(e.type==='shape'){s.elements[key]=normalizeShape(e);continue;}
       s.elements[key] = e.type !== 'image' ? {type:e.type,weight:e.weight===700?700:400,label:String(e.label||'').slice(0,100),caption:String(e.caption||'').slice(0,200),custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),src:validImageSource(e.src)?e.src:'',fit:e.fit==='cover'?'cover':'contain'};
     }
   }
@@ -138,8 +140,8 @@ export function normalizeSlide(raw, n = 0) {
   for (const k of [...new Set([...blocks,...visibleBlocks(s)])]) {
     s.positions[k] ||= pos(150,500,1200);
     const p = raw.positions?.[k];
-    if (p) for (const key of ['x', 'y', 'w', 'size', 'h']) s.positions[k][key] = finite(p[key], s.positions[k][key] ?? 360, key === 'size' ? 10 : key === 'w' ? 80 : 0, key === 'size' ? 260 : key === 'y' || key === 'h' ? HEIGHT : WIDTH);
-    if (s.designVersion === 1 && p && !Number.isFinite(p.h) && blockType(s,k)!=='image') delete s.positions[k].h;
+    if (p) for (const key of ['x', 'y', 'w', 'size', 'h']) s.positions[k][key] = finite(p[key], s.positions[k][key] ?? 360, key === 'size' ? 10 : key === 'w' ? (blockType(s,k)==='shape'?8:80) : key==='h'&&blockType(s,k)==='shape'?8:0, key === 'size' ? 260 : key === 'y' || key === 'h' ? HEIGHT : WIDTH);
+    if (s.designVersion === 1 && p && !Number.isFinite(p.h) && !['image','shape'].includes(blockType(s,k))) delete s.positions[k].h;
     const f = raw.fragments?.[k];
     s.fragments[k] = { order: Math.round(finite(f?.order, 0, 0, 20)), animation: ['fade', 'up', 'zoom', 'none'].includes(f?.animation) ? f.animation : 'fade' };
   }
