@@ -27,3 +27,19 @@ test('shape paths fill their allocated bounds and straight lines have no empty c
  assert.deepEqual(shapePathBounds({shape:'curve'}),{x:0,y:50,w:100,h:50});const heart=shapePathBounds({shape:'heart'});assert.ok(heart.y>0&&heart.y<10);assert.equal(heart.y+heart.h,100);
  const p={x:100,y:200,w:520,h:24,rotation:45};assert.deepEqual(shapeBounds({shape:'line',direction:'horizontal',strokeWidth:6},p),{...p,y:209,h:6});assert.deepEqual(shapeBounds({shape:'line',direction:'vertical',strokeWidth:6},p),{...p,x:357,w:6});
 });
+
+
+test('transition tiles meet on backing pixels in every direction and output size',async()=>{
+ const {drawSlideTransition}=await import('../src/slideTransition.js');
+ for(const [width,height] of [[2560,1440],[1920,1080],[640,360],[3840,2160]])for(const direction of [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}])for(const progress of [0,.0001,.1234567,.5,.9999,1]){
+  const calls=[],events=[],ctx={canvas:{width,height},save(){events.push('save');},setTransform(...m){events.push(m);},drawImage(...a){calls.push(a);},restore(){events.push('restore');}};
+  drawSlideTransition(ctx,'from','to',direction,progress);
+  const [a,b]=calls;assert.deepEqual(a.slice(3),[width,height]);assert.deepEqual(b.slice(3),[width,height]);
+  assert.ok([...a.slice(1),...b.slice(1)].every(Number.isInteger));
+  assert.equal(b[1]-a[1],direction.x*width);assert.equal(b[2]-a[2],direction.y*height);
+  if(direction.x)assert.equal(direction.x>0?a[1]+width:b[1]+width,direction.x>0?b[1]:a[1]);
+  else assert.equal(direction.y>0?a[2]+height:b[2]+height,direction.y>0?b[2]:a[2]);
+  assert.deepEqual(events,['save',[1,0,0,1,0,0],'restore']);
+  const visible=progress===0?a:progress===1?b:null;if(visible){assert.equal(Math.abs(visible[1]),0);assert.equal(Math.abs(visible[2]),0);}
+ }
+});

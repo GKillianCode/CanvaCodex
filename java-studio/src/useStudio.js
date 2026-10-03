@@ -1,3 +1,4 @@
+import { drawSlideTransition } from './slideTransition.js';
 import { ProjectFile, canonical } from './projectFile.js';
 import { svgSource } from './svg.js';
 import { enclosingBounds, axisDistance, normalizeGroups, selectionFor, groupSelection, ungroupSelection, translateSelection } from './selection.js';
@@ -122,8 +123,7 @@ export function useStudio() {
     if (view.value === 'banners') renderBanner(ctx, banner.value, theme.value);
     else if (slideMotion && presenting.value) {
       const p = Math.min(1, (now - slideMotion.started) / slideMotion.duration), ease = p * p * (3 - 2 * p), { from, to, direction } = slideMotion;
-      ctx.drawImage(from, -direction.x * WIDTH * ease, -direction.y * HEIGHT * ease, WIDTH, HEIGHT);
-      ctx.drawImage(to, direction.x * WIDTH * (1 - ease), direction.y * HEIGHT * (1 - ease), WIDTH, HEIGHT);
+      drawSlideTransition(ctx, from, to, direction, ease);
       if (p === 1) { slideMotion = null; moving.value = false; }
     } else {
       let s = current.value;
