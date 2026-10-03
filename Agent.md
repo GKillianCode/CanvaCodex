@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 2 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 3 octobre 2026 (Europe/Paris).
 
 Ce fichier conserve le contexte, les décisions, les conventions, l’état réel du projet et sa roadmap. Le lire au début d’une session et le mettre à jour lorsque les décisions ou l’état changent. Résumer les échanges utiles, sans copier intégralement les conversations, sans secrets et sans présenter une idée comme une fonctionnalité livrée.
 
@@ -191,3 +191,20 @@ Laser remplacé par un ruban par trait : échantillonnage tous les 3 px logiques
 Vérifications : 18 tests passent et build réussi. Navigateur séparé : déplacement 171 → 172 px, Ctrl D sur le titre, Alt + flèche puis relâchement, guides 173/277 px, redimensionnement du coin inférieur droit (largeur/hauteur et typographie), clic droit et duplication du code, édition/formatage du code copié sans changer l’original, nom de fichier et géométrie retrouvés après rechargement, ajout d’un nouveau bloc de code depuis le menu. Nouveau laser observé fin et continu ; WebM de 31 secondes produit (13 721 Ko), reconnu en 2560 × 1440. Mobile à 390 px sans débordement horizontal ; aucune erreur console. Tests des quatre coins et des limites, images/code/titres dupliqués, migrations et tracés fermés. Pas de benchmark FPS ni de test d’enregistrement long.
 
 Publication confirmée : [PR #10](https://github.com/GKillianCode/CanvaCodex/pull/10) ouverte de `feat/element-editor` vers `feat/qhd-art-direction`, commit applicatif distant `72c6ec3`. L’issue #9 est mise à jour et reste ouverte jusqu’à la fusion. Aucune fusion automatique. Les commits locaux d’origine sont conservés dans `archive/local-element-editor-20261002` lors de l’alignement sur les sources identiques du connecteur.
+
+
+### 3 octobre 2026 — thèmes personnels et espace de travail
+
+Demande : créer/dupliquer/éditer/supprimer les thèmes, sélection explicite et multiple, raccourcis Supp/Ctrl A, panneaux masquables et ajustables, navigation compacte et en-tête réduit ; améliorer encore le laser, commande unique, aperçu suivant et délai avant capture. Suivi : [issue #11](https://github.com/GKillianCode/CanvaCodex/issues/11), branche `codex/theme-workspace` basée sur `feat/element-editor` (PR #10 encore ouverte).
+
+Modèle version 5 : palette modifiable de 1 à 100 thèmes, y compris les thèmes prédéfinis ; nom, description, cinq couleurs hexadécimales et coloration syntaxique claire/sombre. Création vierge avec valeurs de départ ou copie indépendante ; brouillon avec aperçu avant sauvegarde ; suppression récupérable via Annuler la suppression, sans perdre les modifications des autres thèmes. Palette conservée dans `frame-themes` et dans le JSON du projet ; import ancien compatible. Cache des fonds et miniatures basé sur les couleurs réelles pour éviter les aperçus obsolètes après édition d’un thème.
+
+Sélection : aucun élément sélectionné initialement ; clic dans le vide pour désélectionner, Ctrl/⌘ + clic pour une sélection multiple. Ctrl/⌘ A sélectionne les éléments dans l’éditeur ou les diapos sur le canvas/dans la liste ; Supp supprime la sélection correspondante. Les champs texte conservent leurs raccourcis de saisie. Une diapo peut devenir vide ; le projet doit garder au moins une diapo. Les propriétés ne présentent la géométrie que pour une sélection unique.
+
+Espace de travail : menu Affichage pour navigation, propriétés, liste/formats et barre d’outils ; navigation réductible aux icônes via hamburger, projet/résolution dans une barre compacte. Bord gauche des propriétés et bord droit de la liste redimensionnables (220–520 px et 140–360 px). Préférences conservées sur cet appareil via `frame-workspace`, indépendantes du projet ; panneaux empilés sur mobile.
+
+Présentation : Espace est la commande unique Révéler/Suivant (Entrée également conservée). Aperçu repliable de la prochaine diapo, compteur d’apparitions restantes, fin du diaporama. Décompte de cinq secondes avant capture, annulation explicite et au départ de la présentation. Seul le Canvas est enregistré : aperçu, décompte et commandes restent hors du WebM. Laser : ruban lissé, tangentes locales plus stables et rendu à double définition limité à la zone occupée, puis réduction avec anticrénelage ; légère douceur du contour, sans points circulaires. Conservation du clic gauche maintenu et de l’effacement en 900 ms. Pas d’ajout de dépendance.
+
+Validation : 20 cas du modèle/Java passent, build réussi. Navigateur sur origine isolée 127.0.0.1 : création/copie/suppression/annulation de thème, modification d’un prédéfini et couleur hexadécimale avec aperçu, persistance après rechargement ; Ctrl A des éléments/diapos, clic vide, suppression de tous les éléments d’une nouvelle diapo puis Supp de cette diapo ; navigation compacte, liste masquée et panneau réduit à 220 px ; Espace révèle puis propose Suivant ; compte à rebours, annulation immédiate et WebM exporté reconnu en 2560 × 1440 (5 967 Ko). Tracé laser continu inspecté, sans erreur console ; mobile à 390 px sans débordement horizontal. Pas de benchmark FPS ni d’enregistrement long/4K.
+
+Publication confirmée : [PR #12](https://github.com/GKillianCode/CanvaCodex/pull/12) ouverte de `codex/theme-workspace` vers `feat/element-editor`, commit applicatif distant `401f8cb`. Issue #11 mise à jour, ouverte jusqu’à la fusion. Aucune fusion automatique. Les commits locaux d’origine sont conservés dans `archive/local-theme-workspace-20261003` lors de l’alignement sur les sources identiques publiées via le connecteur.

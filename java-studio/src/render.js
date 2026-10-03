@@ -56,14 +56,15 @@ export function blockBounds(ctx, s, key) {
   const leading=key==='title'||s.elements[key]?.weight===700?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=`${key==='title'||s.elements[key]?.weight===700?700:400} ${size}px Arial`;return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};
 }
 function background(ctx, theme) {
-  if (!backgrounds.has(theme.id)) {
+  const key=JSON.stringify([theme.bg,theme.accent,theme.secondary]);
+  if (!backgrounds.has(key)) {
     const c = document.createElement('canvas'); c.width = WIDTH; c.height = HEIGHT;
     const g = c.getContext('2d'); g.fillStyle = theme.bg; g.fillRect(0, 0, WIDTH, HEIGHT);
     const glow=g.createRadialGradient(1650,180,0,1650,180,1050);glow.addColorStop(0,theme.accent+'16');glow.addColorStop(1,theme.accent+'00');g.fillStyle=glow;g.fillRect(0,0,WIDTH,HEIGHT);
     const second=g.createRadialGradient(120,1000,0,120,1000,800);second.addColorStop(0,theme.secondary+'10');second.addColorStop(1,theme.secondary+'00');g.fillStyle=second;g.fillRect(0,0,WIDTH,HEIGHT);
-    backgrounds.set(theme.id, c);
+    if(backgrounds.size>=30)backgrounds.clear();backgrounds.set(key, c);
   }
-  ctx.drawImage(backgrounds.get(theme.id), 0, 0);
+  ctx.drawImage(backgrounds.get(key), 0, 0);
 }
 function drawCode(ctx, s, theme, key) {
   const p = s.positions[key], b = blockBounds(ctx, s, key);
