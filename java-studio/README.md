@@ -77,3 +77,7 @@ Un atlas de contrôle visuel des 20 dispositions et 10 thèmes est accessible en
 - **Style de la forme → Extrémités arrondies** : décocher pour des bouts plats sur traits/courbes, y compris les pointillés.
 
 Les formes occupent leur cadre sans marge vide : étoiles, polygones, courbes et cœurs sont ajustés à leurs dimensions. Les traits horizontaux/verticaux ont un cadre correspondant à leur épaisseur ; étirer leur hauteur/largeur transversale règle cette épaisseur. Le contour est inclus dans les dimensions et la zone de clic ne déborde plus du cadre des formes.
+
+Images : coche « Bords arrondis » puis règle le curseur dans Image et transparence. L’arrondi suit l’image affichée, même en mode Image entière dans un cadre plus grand. Dépose aussi des fichiers PNG, JPEG, WebP ou SVG directement sur la diapo en vue Éditer.
+
+Ctrl Z annule et Ctrl Maj Z rétablit les modifications du projet (historique de la session, boutons ↶ ↷). Clique sur un objet puis utilise les flèches pour le déplacer de 1 pixel de sortie, ou Maj + flèche pour 10 pixels. L’annulation du texte reste native pendant la saisie.
