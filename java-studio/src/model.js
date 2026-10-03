@@ -142,6 +142,7 @@ export function normalizeSlide(raw, n = 0) {
     const p = raw.positions?.[k];
     if (p) for (const key of ['x', 'y', 'w', 'size', 'h']) s.positions[k][key] = finite(p[key], s.positions[k][key] ?? 360, key === 'size' ? 10 : key === 'w' ? (blockType(s,k)==='shape'?8:80) : key==='h'&&blockType(s,k)==='shape'?8:0, key === 'size' ? 260 : key === 'y' || key === 'h' ? HEIGHT : WIDTH);
     if (s.designVersion === 1 && p && !Number.isFinite(p.h) && !['image','shape'].includes(blockType(s,k))) delete s.positions[k].h;
+    s.positions[k].rotation=Number.isFinite(Number(p?.rotation))?((Number(p.rotation)%360)+360)%360:0;
     const f = raw.fragments?.[k];
     s.fragments[k] = { order: Math.round(finite(f?.order, 0, 0, 20)), animation: ['fade', 'up', 'zoom', 'none'].includes(f?.animation) ? f.animation : 'fade' };
   }
