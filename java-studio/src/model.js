@@ -108,7 +108,7 @@ export function reorderSlides(slides,from,to) {
   const result=slides.slice(), [item]=result.splice(from,1); result.splice(to,0,item); return result;
 }
 export function makeSlide(layout = 'split', grid = { x: 0, y: 0 }) {
-  const s = { id: crypto.randomUUID(), exitDirection:'auto', elements:{}, title: layout === 'metric' ? '1 Go' : 'Une nouvelle idée.', body: layout === 'metric' ? '1 Go = 1 000 Mo\nUnités décimales · division par 1 000' : 'Double-clique pour écrire ton explication.', code: 'public class Example {\n    public static void main(String[] args) {\n        System.out.println("Hello, Java!");\n    }\n}', label: '', layout, grid: { ...grid }, positions: positionsFor(layout), fragments: Object.fromEntries(blocks.map(k => [k, { order: 0, animation: 'fade' }])) };
+  const s = { id: crypto.randomUUID(), exitDirection:'auto', elements:{}, title: layout === 'metric' ? '1 Go' : 'Une nouvelle idée.', body: layout === 'metric' ? '1 Go = 1 000 Mo\nUnités décimales · division par 1 000' : 'Double-clique pour écrire ton explication.', code: 'public class Example {\n    public static void main(String[] args) {\n        System.out.println("Hello, Java!");\n    }\n}', label: '', codeTitle:'', layout, grid: { ...grid }, positions: positionsFor(layout), fragments: Object.fromEntries(blocks.map(k => [k, { order: 0, animation: 'fade' }])) };
   applyLayout(s,layout);
   if (['three','steps','timeline','summary'].includes(layout)) { s.title = ({three:'Trois idées à comprendre.',steps:'Étape par étape.',timeline:'Du source à la JVM.',summary:'Ce qu’il faut retenir.'})[layout]; s.body='Première idée.'; ['body','text1','text2'].forEach((k,n)=>s.fragments[k]={order:n+1,animation:'up'}); }
   if (['three','steps','timeline','summary'].includes(layout)) {s.body='Écrire.\nUn fichier source .java.';s.elements.text1.text='Compiler.\nLe bytecode prend forme.';s.elements.text2.text='Exécuter.\nLa JVM prend le relais.';}
@@ -124,13 +124,14 @@ export function normalizeSlide(raw, n = 0) {
   const s = makeSlide(raw.layout, { x: n, y: 0 });
   s.designVersion = raw.designVersion === 2 ? 2 : 1;
   s.id = typeof raw.id === 'string' ? raw.id : s.id;
-  for (const k of [...blocks, 'label']) s[k] = typeof raw[k] === 'string' ? raw[k].slice(0, 100000) : '';
+  for (const k of [...blocks, 'label', 'codeTitle']) s[k] = typeof raw[k] === 'string' ? raw[k].slice(0, 100000) : '';
+  s.codeTitle=s.codeTitle.slice(0,200);
   s.exitDirection = ['auto',...Object.keys(directions)].includes(raw.exitDirection) ? raw.exitDirection : 'auto';
   if (raw.elements && typeof raw.elements === 'object') {
     s.elements = {};
     for (const [key,e] of Object.entries(raw.elements).slice(0,40)) {
-      if (!/^(text|image)[a-zA-Z0-9_-]+$/.test(key) || !e || !['text','image'].includes(e.type)) continue;
-      s.elements[key] = e.type === 'text' ? {type:'text',custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),src:validImageSource(e.src)?e.src:'',fit:e.fit==='cover'?'cover':'contain'};
+      if (!/^(text|image|code)[a-zA-Z0-9_-]+$/.test(key) || !e || !['text','image','code'].includes(e.type)) continue;
+      s.elements[key] = e.type !== 'image' ? {type:e.type,weight:e.weight===700?700:400,label:String(e.label||'').slice(0,100),caption:String(e.caption||'').slice(0,200),custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),src:validImageSource(e.src)?e.src:'',fit:e.fit==='cover'?'cover':'contain'};
     }
   }
   if (Array.isArray(raw.blockKeys)) s.blockKeys = [...new Set(raw.blockKeys.filter(k=>blocks.includes(k)||s.elements[k]))];

@@ -52,8 +52,8 @@ export function text(ctx, value, x, y, width, size, color, weight = 400, font = 
 export function blockBounds(ctx, s, key) {
   const p = s.positions[key];
   if (blockType(s,key)==='image') return {...p,h:p.h||360};
-  if(key==='code'){const h=p.h||Math.max(260,s.code.split('\n').length*p.size*1.6+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,s.code.split('\n').length)*1.6),(p.w-110)/(Math.max(1,...s.code.split('\n').map(l=>l.length))*0.61)));return {...p,h,size};}
-  const leading=key==='title'?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'?700:400,leading);ctx.font=`${key==='title'?700:400} ${size}px Arial`;return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};
+  if(blockType(s,key)==='code'){const value=blockText(s,key);const h=p.h||Math.max(260,value.split('\n').length*p.size*1.6+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,blockText(s,key).split('\n').length)*1.6),(p.w-110)/(Math.max(1,...blockText(s,key).split('\n').map(l=>l.length))*0.61)));return {...p,h,size};}
+  const leading=key==='title'||s.elements[key]?.weight===700?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=`${key==='title'||s.elements[key]?.weight===700?700:400} ${size}px Arial`;return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};
 }
 function background(ctx, theme) {
   if (!backgrounds.has(theme.id)) {
@@ -65,14 +65,14 @@ function background(ctx, theme) {
   }
   ctx.drawImage(backgrounds.get(theme.id), 0, 0);
 }
-function drawCode(ctx, s, theme) {
-  const p = s.positions.code, b = blockBounds(ctx, s, 'code');
-  const lines=javaLines(s.code);const size=Math.max(12,Math.min(p.size,(b.h-128)/(Math.max(1,lines.length)*1.6),(p.w-110)/(Math.max(1,...s.code.split('\n').map(l=>l.length))*0.61)));ctx.save();ctx.shadowColor=theme.bg+'80';ctx.shadowBlur=36;ctx.shadowOffsetY=16;
+function drawCode(ctx, s, theme, key) {
+  const p = s.positions[key], b = blockBounds(ctx, s, key);
+  const lines=javaLines(blockText(s,key));const size=Math.max(12,Math.min(p.size,(b.h-128)/(Math.max(1,lines.length)*1.6),(p.w-110)/(Math.max(1,...blockText(s,key).split('\n').map(l=>l.length))*0.61)));ctx.save();ctx.shadowColor=theme.bg+'80';ctx.shadowBlur=36;ctx.shadowOffsetY=16;
   round(ctx, p.x, p.y, p.w, b.h, 24, theme.panel);ctx.restore();
-  text(ctx, 'Java', p.x + 30, p.y + 24, p.w - 60, 21, `${theme.ink}80`, 400, 'monospace');
+  let caption=key==='code'?(s.codeTitle||''):(s.elements[key]?.caption||'');ctx.font='400 21px monospace';if(ctx.measureText(caption).width>p.w-60){while(caption.length&&ctx.measureText(caption+'…').width>p.w-60)caption=caption.slice(0,-1);caption+='…';}text(ctx,caption.replaceAll('\n',' '),p.x+30,p.y+24,p.w-60,21,`${theme.ink}80`,400,'monospace');
   ctx.strokeStyle = `${theme.ink}15`; ctx.beginPath(); ctx.moveTo(p.x + 24, p.y + 72); ctx.lineTo(p.x + p.w - 24, p.y + 72); ctx.stroke();
   ctx.save(); ctx.beginPath(); ctx.rect(p.x + 12, p.y + 90, p.w - 24, b.h - 100); ctx.clip();
-  javaLines(s.code).forEach((segments, n) => {
+  javaLines(blockText(s,key)).forEach((segments, n) => {
     const y = p.y + 103 + n * size * 1.6;
     text(ctx, String(n + 1).padStart(2, ' '), p.x + 28, y + 4, 50, size * .75, `${theme.ink}45`, 400, 'monospace');
     let x = p.x + 80;
@@ -114,11 +114,11 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if (f.animation === 'up') ctx.translate(0, 35 * (1 - ease));
     if (f.animation === 'zoom') { const scale = .9 + ease * .1; ctx.translate(p.x + p.w / 2, p.y + b.h / 2); ctx.scale(scale, scale); ctx.translate(-p.x - p.w / 2, -p.y - b.h / 2); }
     if(s.designVersion===2 && key!=='title' && blockType(s,key)==='text') decoration(ctx,s,key,theme);
-    if (key === 'title') {
-      if (s.label) text(ctx, s.label, p.x, Math.max(10, p.y - 58), p.w, 23, theme.accent, 700);
-      const font=fitText(ctx,s.title,p,700,1.12);const color=['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+p.h);g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,s.title,p.x,p.y,p.w,font,color,700,'Arial',1.12);
+    if (key === 'title'||s.elements[key]?.weight===700) {
+      const label=key==='title'?s.label:s.elements[key]?.label;if (label) text(ctx, label, p.x, Math.max(10, p.y - 58), p.w, 23, theme.accent, 700);
+      const font=fitText(ctx,blockText(s,key),p,700,1.12);const color=['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y,p.w,font,color,700,'Arial',1.12);
     } else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
-    else if (key==='code') drawCode(ctx,s,theme);
+    else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key);
     else text(ctx,blockText(s,key),p.x,p.y,p.w,fitText(ctx,blockText(s,key),p,400,1.4),`${theme.ink}df`,400,'Arial',1.4);
     ctx.restore();
   }

@@ -2,6 +2,7 @@ import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick, toR
 import { themes, presets, blocks, visibleBlocks, makeSlide, normalizeSlides, neighbor, nextFreeGrid, fragmentOrders, transitionDirection, memorySlides, positionsFor, applyLayout, blockType, blockText, setBlockText, reorderSlides, WIDTH, HEIGHT, normalizeResolution } from './model.js';
 import { renderSlide, renderBanner, blockBounds, prepareImages } from './render.js';
 
+import { duplicateElement, nudgePosition, resizePosition } from './editor.js';
 import { LaserTrail } from './laser.js';
 
 export function useStudio() {
@@ -16,12 +17,16 @@ export function useStudio() {
   const slides = ref(initial?.slides || sample), project = ref(initial?.project || 'Java, sous le capot');
   const themeId = ref(initial?.themeId || 'mint'), frame = ref({ header: initial?.frame?.header === true, footer: initial?.frame?.footer === true });
   const banner = ref(initial?.banner || { title: 'Le bytecode, expliqué.', subtitle: 'JAVA · SOUS LE CAPOT', type: 'lower' });
-  const index = ref(0), view = ref('slides'), tab = ref('layout'), selected = ref('title'), presenting = ref(false), canvas = ref(null), stage = ref(null), stageWidth = ref(900);
+  const index = ref(0), view = ref('slides'), tab = ref('layout'), selected = ref(visibleBlocks(slides.value[0])[0]||'title'), presenting = ref(false), canvas = ref(null), stage = ref(null), stageWidth = ref(900);
   const toast = ref(''), saved = ref(true), zoom = ref(100), recording = ref(false), elapsed = ref(0), laser = ref('#ff756d'), laserSize = ref(12), tool = ref('laser');
   const lastExport = ref(null), videoPreview = ref(false), videoMeta = ref(''), finalizing = ref(false), gallery = ref(false), editing = ref(null), formatting = ref(false);
   const resolution = ref(normalizeResolution(initial?.resolution)), formatOpen = ref(false), formatWidth = ref(resolution.value.width);
   const trail = new LaserTrail(), layoutBackup=ref(null);
   const canUndoLayout=computed(()=>layoutBackup.value?.id===current.value?.id);
+  const altHeld=ref(false), contextMenu=ref(null), transformPreview=shallowRef(null);
+  const codeCaption=computed({get:()=>selected.value==='code'?current.value.codeTitle||'':current.value.elements[selected.value]?.caption||'',set:value=>{if(selected.value==='code')current.value.codeTitle=value;else if(current.value.elements[selected.value])current.value.elements[selected.value].caption=value;}});
+  const selectedBounds=computed(()=>{let s=current.value;const draft=transformPreview.value;if(draft?.id===s.id&&draft.key===selected.value)s={...s,positions:{...s.positions,[draft.key]:draft.position}};const p=s.positions[selected.value];if(!p||!visibleBlocks(s).includes(selected.value))return null;const b=blockBounds(measurement,s,selected.value);return {...b,h:p.h||b.h};});
+  const handles=computed(()=>{const b=selectedBounds.value;if(!b)return [];return [['nw',b.x,b.y],['ne',b.x+b.w,b.y],['sw',b.x,b.y+b.h],['se',b.x+b.w,b.y+b.h]].map(([corner,x,y])=>({corner,style:{left:x/WIDTH*100+'%',top:y/HEIGHT*100+'%'}}));});
   const workspace = ref('canvas'), listDrag = ref(null), listTarget = ref(null);
   const thumbs = shallowRef({}), step = ref(0), transitionMs = ref(initial?.transitionMs ?? 650), moving = ref(false), gridDraft = ref({ x: 0, y: 0 });
   const current = computed(() => slides.value[index.value]), theme = computed(() => themes.find(t => t.id === themeId.value) || themes[0]);
@@ -35,7 +40,7 @@ export function useStudio() {
   const editStyle = computed(() => {
     if (!editing.value) return {};
     const k = editing.value, b = blockBounds(measurement, current.value, k);
-    return { left: `${(b.x + (k === 'code' ? 80 : 0)) / WIDTH * 100}%`, top: `${(b.y + (k === 'code' ? 103 : 0)) / HEIGHT * 100}%`, width: `${(b.w - (k === 'code' ? 110 : 0)) / WIDTH * 100}%`, height: `${Math.max(k === 'code' ? b.h - 120 : b.h + 25, 85) / HEIGHT * 100}%` };
+    return { left: `${(b.x + (blockType(current.value,k)==='code' ? 80 : 0)) / WIDTH * 100}%`, top: `${(b.y + (blockType(current.value,k)==='code' ? 103 : 0)) / HEIGHT * 100}%`, width: `${(b.w - (blockType(current.value,k)==='code' ? 110 : 0)) / WIDTH * 100}%`, height: `${Math.max(blockType(current.value,k)==='code' ? b.h - 120 : b.h + 25, 85) / HEIGHT * 100}%` };
   });
   let toastTimer, saveTimer, thumbTimer, raf = 0, drag = null, pointer = null, pointerDown = null, strokes = [], activeStroke = null, slideMotion = null, revealMotion = null;
   let recorder, stream, timer, started = 0, observer, worker, workerCounter = 0;
@@ -65,8 +70,8 @@ export function useStudio() {
   function queueThumbnails() { clearTimeout(thumbTimer); thumbTimer = setTimeout(updateThumbnails, 220); }
   watch([slides, project, themeId, banner, frame, transitionMs, resolution], () => { queueSave(); queueThumbnails(); requestDraw(); }, { deep: true });
   watch([view, selected, presenting, zoom, editing, workspace], async () => { await nextTick(); observeStage(); requestDraw(); });
-  watch(current, s => { gridDraft.value = { ...s.grid }; if(!visibleBlocks(s).includes(selected.value))selected.value='title'; });
-  watch([laser, laserSize, tool], requestDraw);
+  watch(current, s => { gridDraft.value = { ...s.grid }; if(!visibleBlocks(s).includes(selected.value))selected.value=visibleBlocks(s)[0]||'title'; });
+  watch([laser, laserSize, tool, altHeld], requestDraw);
   function observeStage() { if (!stage.value) return; observer?.disconnect(); observer = new ResizeObserver(entries => { stageWidth.value = entries[0].contentRect.width; }); observer.observe(stage.value); }
   function requestDraw() { if (!raf) raf = requestAnimationFrame(tick); }
   function tick(now) {
@@ -95,7 +100,7 @@ export function useStudio() {
       if (drag) s = { ...toRaw(s), positions: { ...s.positions, [drag.key]: drag.position } };
       renderSlide(ctx, s, theme.value, { ...renderOptions(s, index.value, presenting.value ? currentOrder() : Infinity), motion: presenting.value ? revealMotion : null, now, omit: editing.value });
       if (!presenting.value && !editing.value && visibleBlocks(s).includes(selected.value)) {
-        const b = blockBounds(ctx, s, selected.value); ctx.strokeStyle = `${theme.value.accent}90`; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.strokeRect(b.x - 12, b.y - 12, b.w + 24, b.h + 24); ctx.setLineDash([]);
+        const measured=blockBounds(ctx,s,selected.value), b={...measured,h:s.positions[selected.value].h||measured.h}; ctx.strokeStyle = `${theme.value.accent}90`; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.strokeRect(b.x, b.y, b.w, b.h); ctx.setLineDash([]);if(altHeld.value)drawDistances(ctx,b);
       }
     }
     if (presenting.value) { trail.draw(ctx,now); drawPointer(ctx); } ctx.restore();
@@ -103,38 +108,51 @@ export function useStudio() {
   function drawPointer(ctx) {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
     for (const stroke of strokes) { ctx.strokeStyle = stroke.color; ctx.lineWidth = stroke.size; ctx.beginPath(); stroke.points.forEach((p, n) => n ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke(); }
-    if (pointer && tool.value === 'laser') { ctx.fillStyle = laser.value; ctx.shadowColor = laser.value; ctx.shadowBlur = 22; ctx.beginPath(); ctx.arc(pointer.x, pointer.y, laserSize.value, 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0; }
+    if (pointer && tool.value === 'laser') { ctx.fillStyle = laser.value; ctx.shadowColor = laser.value; ctx.shadowBlur = 22; ctx.beginPath(); ctx.globalAlpha=.75;ctx.arc(pointer.x, pointer.y, Math.max(2,laserSize.value*.3), 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;ctx.globalAlpha=1; }
   }
+  function drawDistances(ctx,b) {
+    const scale=WIDTH/Math.max(1,stageWidth.value),f=resolution.value.width/WIDTH;ctx.save();ctx.strokeStyle='#76dfff';ctx.fillStyle='#76dfff';ctx.lineWidth=scale;ctx.setLineDash([4*scale,4*scale]);ctx.beginPath();ctx.moveTo(0,b.y);ctx.lineTo(b.x,b.y);ctx.moveTo(b.x,0);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([]);ctx.font=`600 ${12*scale}px Arial`;ctx.textBaseline='top';
+    const label=(value,x,y)=>{const text=`${Math.round(value*f)} px`,w=ctx.measureText(text).width;ctx.fillStyle='#071c29';ctx.fillRect(Math.min(WIDTH-w-8*scale,Math.max(0,x)),Math.max(0,y),w+8*scale,20*scale);ctx.fillStyle='#76dfff';ctx.fillText(text,Math.min(WIDTH-w-4*scale,Math.max(0,x))+4*scale,Math.max(0,y)+3*scale);};
+    label(b.x,Math.max(0,b.x/2-25*scale),b.y-24*scale);label(b.y,b.x+8*scale,Math.max(0,b.y/2-10*scale));ctx.restore();
+  }
+  function resizeDown(e,corner){if(e.button!==0)return;e.preventDefault();closeEdit();contextMenu.value=null;const b=selectedBounds.value;if(!b)return;drag={key:selected.value,slideId:current.value.id,origin:{...position.value,h:b.h},position:{...position.value,h:b.h},start:coords(e),corner,type:selectedType.value,moved:false};e.currentTarget.setPointerCapture(e.pointerId);requestDraw();}
+  function duplicateSelected(){closeEdit();const key=duplicateElement(current.value,selected.value);contextMenu.value=null;if(key)selected.value=key;else notify('Limite de 40 éléments ajoutés atteinte.');}
+  function openContext(e){e.preventDefault();if(presenting.value||view.value!=='slides')return;closeEdit();const hit=hitBlock(coords(e));if(hit)selected.value=hit;contextMenu.value={x:Math.max(8,Math.min(window.innerWidth-224,e.clientX)),y:Math.max(8,Math.min(window.innerHeight-280,e.clientY)),element:!!hit};}
+  function contextOutside(e){if(!e.target.closest?.('.element-context'))dismissContext();}
+  function dismissContext(){contextMenu.value=null;}
+  function keyup(e){if(e.key==='Alt')altHeld.value=false;}
+  function resetKeys(){altHeld.value=false;contextMenu.value=null;}
   function clearAnnotations() { strokes = []; trail.clear(); requestDraw(); }
   function coords(e) { const r = canvas.value.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * WIDTH, y: (e.clientY - r.top) / r.height * HEIGHT }; }
   function hitBlock(p) {
     const ctx = canvas.value.getContext('2d');
-    return [...visibleBlocks(current.value)].reverse().find(k => { const b = blockBounds(ctx, current.value, k); return p.x >= b.x - 12 && p.x <= b.x + b.w + 12 && p.y >= b.y - (k === 'title' && current.value.label ? 58 : 12) && p.y <= b.y + b.h + 12; });
+    return [...visibleBlocks(current.value)].reverse().find(k => { const measured=blockBounds(ctx,current.value,k),b={...measured,h:current.value.positions[k].h||measured.h}; return p.x >= b.x - 12 && p.x <= b.x + b.w + 12 && p.y >= b.y - (k === 'title' && current.value.label ? 58 : 12) && p.y <= b.y + b.h + 12; });
   }
   function down(e) {
     if (e.button !== 0 || editing.value || view.value === 'banners' || videoPreview.value) return;
-    const p = coords(e); canvas.value.setPointerCapture(e.pointerId);
+    contextMenu.value=null;const p = coords(e); canvas.value.setPointerCapture(e.pointerId);
     if (presenting.value) { pointer = p; pointerDown = { ...p, moved: false }; if(tool.value==='laser')trail.begin(p,performance.now(),laser.value,laserSize.value); if (tool.value === 'pen') { activeStroke = { color: laser.value, size: laserSize.value / 2, points: [p] }; strokes.push(activeStroke); } }
     else { const hit = hitBlock(p); if (!hit) return; selected.value = hit; drag = { key: hit, slideId: current.value.id, origin: { ...current.value.positions[hit] }, start: p, position: { ...current.value.positions[hit] }, moved: false }; }
     requestDraw();
   }
   function move(e) {
     const p = coords(e);
-    if (presenting.value) { pointer = p; if (pointerDown && Math.hypot(p.x - pointerDown.x, p.y - pointerDown.y) > 12) pointerDown.moved = true; if (pointerDown && (e.buttons & 1) && tool.value==='laser') trail.append(p,performance.now()); else if (!(e.buttons & 1)) trail.end(); if (activeStroke && (e.buttons & 1)) activeStroke.points.push(p); requestDraw(); }
-    else if (drag) { const dx = p.x - drag.start.x, dy = p.y - drag.start.y; if (Math.hypot(dx, dy) > 2) drag.moved = true; drag.position = { ...drag.origin, x: Math.round(Math.max(0, Math.min(WIDTH - 40, drag.origin.x + dx))), y: Math.round(Math.max(0, Math.min(HEIGHT - 40, drag.origin.y + dy))) }; requestDraw(); }
+    if (presenting.value) { pointer = p; if (pointerDown && Math.hypot(p.x - pointerDown.x, p.y - pointerDown.y) > 12) pointerDown.moved = true; if (pointerDown && (e.buttons & 1) && tool.value==='laser') {const now=performance.now(),samples=e.getCoalescedEvents?.()||[];for(const sample of samples.length?samples:[e])trail.append(coords(sample),now-Math.max(0,Math.min(50,e.timeStamp-sample.timeStamp)));} else if (!(e.buttons & 1)) trail.end(); if (activeStroke && (e.buttons & 1)) activeStroke.points.push(p); requestDraw(); }
+    else if (drag?.corner) {const dx=p.x-drag.start.x,dy=p.y-drag.start.y;drag.moved=true;drag.position=resizePosition(drag.origin,drag.corner,dx,dy,drag.type);transformPreview.value={id:drag.slideId,key:drag.key,position:drag.position};requestDraw();}
+    else if (drag) { const dx = p.x - drag.start.x, dy = p.y - drag.start.y; if (Math.hypot(dx, dy) > 2) drag.moved = true; drag.position = { ...drag.origin, x: Math.round(Math.max(0, Math.min(WIDTH - 40, drag.origin.x + dx))), y: Math.round(Math.max(0, Math.min(HEIGHT - 40, drag.origin.y + dy))) };transformPreview.value={id:drag.slideId,key:drag.key,position:drag.position}; requestDraw(); }
   }
   function up(e) {
-    if (drag) { if (drag.moved && drag.slideId === current.value.id) { current.value.positions[drag.key] = { ...drag.position }; metrics.dragCommits++; } drag = null; }
-    trail.end();
+    if (drag) { if (e?.type!=='pointercancel' && drag.moved && drag.slideId === current.value.id) { current.value.positions[drag.key] = { ...drag.position }; metrics.dragCommits++; } drag = null; }
+    transformPreview.value=null;trail.end();
     pointerDown = null; activeStroke = null; requestDraw();
   }
   function leave() { pointer = null; requestDraw(); }
   function doubleClick(e) { if (presenting.value || view.value !== 'slides') return; const hit = hitBlock(coords(e)); if (!hit) return; drag = null; selected.value = hit; if(blockType(current.value,hit)!=='image') editing.value = hit; requestDraw(); }
   function closeEdit() { editing.value = null; requestDraw(); }
-  function editSelected() { if (!visibleBlocks(current.value).includes(selected.value)) selected.value = 'title'; if(selectedType.value!=='image') editing.value = selected.value; }
+  function editSelected() { if (!visibleBlocks(current.value).includes(selected.value)) selected.value = visibleBlocks(current.value)[0]||'title'; if(selectedType.value!=='image') editing.value = selected.value; }
   function chooseSlide(n) {
     if (n < 0 || n >= slides.value.length || n === index.value || moving.value) return;
-    closeEdit(); drag = null; pointer = null; strokes = []; trail.clear();
+    closeEdit(); drag = null; transformPreview.value=null;pointer = null; strokes = []; trail.clear();
     if (presenting.value) {
       const old = current.value, oldIndex = index.value, oldOrder = currentOrder(), next = slides.value[n];
       const from = snapshotCanvas(old, oldIndex, oldOrder), to = snapshotCanvas(next, n, 0);
@@ -157,20 +175,21 @@ export function useStudio() {
     const first = slides.value.length; slides.value.push(...memorySlides({ x, y: 0 })); gallery.value = false; chooseSlide(first); notify('Parcours mémoire ajouté : descends avec ↓, révèle avec Espace.');
   }
   function applyFormat() { const width=Number(formatWidth.value); const next=normalizeResolution({width,height:width*9/16}); if(next.width!==width){notify('Largeur entre 640 et 3840, multiple de 16.');return;}resolution.value=next;formatOpen.value=false;nextTick(requestDraw); }
-  function undoLayout(){if(!canUndoLayout.value)return;closeEdit();const old=layoutBackup.value;for(const key of ['layout','positions','blockKeys','designVersion'])current.value[key]=JSON.parse(JSON.stringify(old[key]));layoutBackup.value=null;if(!visibleBlocks(current.value).includes(selected.value))selected.value='title';requestDraw();}
+  function undoLayout(){if(!canUndoLayout.value)return;closeEdit();const old=layoutBackup.value,added=Object.fromEntries(Object.entries(current.value.positions).filter(([k])=>!old.positions[k]));for(const key of ['layout','positions','blockKeys','designVersion'])current.value[key]=JSON.parse(JSON.stringify(old[key]));Object.assign(current.value.positions,added);current.value.blockKeys=current.value.blockKeys.filter(k=>blocks.includes(k)||current.value.elements[k]);layoutBackup.value=null;if(!visibleBlocks(current.value).includes(selected.value))selected.value=visibleBlocks(current.value)[0]||'title';requestDraw();}
   function applyPreset(id) { layoutBackup.value=JSON.parse(JSON.stringify(current.value));closeEdit(); applyLayout(current.value,id); if (!visibleBlocks(current.value).includes(selected.value)) selected.value = 'title'; }
   function changeText(value) { setBlockText(current.value,editing.value,value); }
   function addBlock(type) {
     if(Object.keys(current.value.elements).length>=40){notify('Cette diapo contient déjà 40 éléments ajoutés.');return;}
     closeEdit(); const key=type+crypto.randomUUID().replaceAll('-','').slice(0,8), s=current.value;
     const count=type==='text'?visibleBlocks(s).filter(k=>k!=='title'&&blockType(s,k)==='text').length+1:Object.values(s.elements).filter(e=>e.type===type).length+1;
-    s.elements[key]=type==='text'?{type,custom:true,name:'Texte '+count,text:'Ton nouveau texte.'}:{type,custom:true,name:'Image '+count,src:'',fit:'contain'};
+    s.elements[key]=type==='code'?{type,custom:true,name:'Code '+count,text:'// Ton extrait Java',caption:''}:type==='text'?{type,custom:true,name:'Texte '+count,text:'Ton nouveau texte.'}:{type,custom:true,name:'Image '+count,src:'',fit:'contain'};
     const bottom=Math.max(250,...visibleBlocks(s).filter(k=>k!==key&&blockType(s,k)==='text').map(k=>{const b=blockBounds(measurement,s,k);return b.y+b.h;}));
-    s.positions[key]={x:200,y:type==='text'?Math.min(900,Math.round(bottom+55)):Math.min(820,300+count*120),w:type==='text'?(visibleBlocks(s).includes('code')?650:1200):700,h:400,size:42};
+    const y=type==='text'?Math.min(900,Math.round(bottom+55)):Math.min(640,300+count*120);
+    s.positions[key]={x:200,y,w:type==='text'?(visibleBlocks(s).includes('code')?650:1200):700,h:Math.min(400,HEIGHT-y-40),size:type==='code'?28:42};
     s.fragments[key]={order:Math.min(20,Math.max(0,...Object.values(s.fragments).map(f=>f.order))+1),animation:'up'};
     selected.value=key;if(type==='text')editing.value=key;
   }
-  function removeBlock() { const k=selected.value;if(!current.value.elements[k])return;closeEdit();delete current.value.elements[k];delete current.value.positions[k];delete current.value.fragments[k];current.value.blockKeys=current.value.blockKeys.filter(key=>key!==k);selected.value='title'; }
+  function removeBlock() { const k=selected.value;if(visibleBlocks(current.value).length<=1)return;contextMenu.value=null;closeEdit();delete current.value.elements[k];delete current.value.positions[k];delete current.value.fragments[k];current.value.blockKeys=current.value.blockKeys.filter(key=>key!==k);selected.value=visibleBlocks(current.value)[0]||'title'; }
   async function uploadImage(event) {
     const file=event.target.files?.[0], s=current.value, key=selected.value; event.target.value='';
     if(!file)return;
@@ -207,16 +226,16 @@ export function useStudio() {
     if (!Number.isInteger(x) || !Number.isInteger(y) || Math.abs(x) > 10000 || Math.abs(y) > 10000 || slides.value.some(s => s.id !== current.value.id && s.grid.x === x && s.grid.y === y)) { gridDraft.value = { ...current.value.grid }; notify('Cette case est occupée ou sa position est invalide.'); return; }
     current.value.grid = { x, y };
   }
-  function setPosition(key, event) { const value = Number(event.target.value)*WIDTH/resolution.value.width; const min = key === 'w' || key === 'h' ? 80 : key === 'size' ? 10 : 0, max = key === 'y' || key === 'h' ? HEIGHT : key === 'size' ? 260 : WIDTH; position.value[key] = Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : position.value[key]; event.target.value = Math.round(position.value[key]*resolution.value.width/WIDTH); }
+  function setPosition(key, event) { const value = Number(event.target.value)*WIDTH/resolution.value.width; const min = key==='w'?(selectedType.value==='code'?240:80):key==='h'?(selectedType.value==='code'?180:40):key==='size'?10:0, max = key === 'y' || key === 'h' ? HEIGHT : key === 'size' ? 260 : WIDTH; position.value[key] = Number.isFinite(value) ? Math.max(min, Math.min(max, value)) : position.value[key]; event.target.value = Math.round(position.value[key]*resolution.value.width/WIDTH); }
   function updateFragment(event) { current.value.fragments[selected.value].order = Math.max(0, Math.min(20, Math.round(Number(event.target.value) || 0))); }
-  function formatCode(source = current.value.code) {
-    const slideId = current.value.id;
+  function formatCode(source = blockText(current.value,selected.value)) {
+    const slideId = current.value.id, key=selected.value;
     if (!worker) {
       worker = new Worker(new URL('./formatter.worker.js', import.meta.url), { type: 'module' });
-      worker.onmessage = ({ data }) => { const job = formatRequests.get(data.id); formatRequests.delete(data.id); formatting.value = formatRequests.size > 0; if (!job) return; const s = slides.value.find(s => s.id === job.slideId); if (!s || s.code !== job.source) return; if (data.ok) { s.code = data.code; notify('Code Java formaté.'); } else notify('Extrait incomplet ou non Java : texte conservé sans modification.'); };
+      worker.onmessage = ({ data }) => { const job = formatRequests.get(data.id); formatRequests.delete(data.id); formatting.value = formatRequests.size > 0; if (!job) return; const s = slides.value.find(s => s.id === job.slideId); if (!s || blockText(s,job.key) !== job.source) return; if (data.ok) { setBlockText(s,job.key,data.code); notify('Code Java formaté.'); } else notify('Extrait incomplet ou non Java : texte conservé sans modification.'); };
       worker.onerror = () => { formatRequests.clear(); formatting.value = false; worker?.terminate(); worker = null; notify('Formatage indisponible : ton code est conservé.'); };
     }
-    const id = ++workerCounter; formatRequests.set(id, { slideId, source }); formatting.value = true; worker.postMessage({ id, code: source });
+    const id = ++workerCounter; formatRequests.set(id, { slideId, key, source }); formatting.value = true; worker.postMessage({ id, code: source });
   }
   function download(blob, name) {
     if (lastExport.value) URL.revokeObjectURL(lastExport.value.url);
@@ -228,7 +247,7 @@ export function useStudio() {
   async function importProject(event) {
     try {
       const data = JSON.parse(await event.target.files[0].text()), normalized = normalizeSlides(data.slides);
-      closeEdit(); slides.value = normalized; project.value = String(data.project || 'Projet importé'); themeId.value = themes.some(t => t.id === data.themeId) ? data.themeId : 'mint';
+      closeEdit();layoutBackup.value=null;contextMenu.value=null; slides.value = normalized; project.value = String(data.project || 'Projet importé'); themeId.value = themes.some(t => t.id === data.themeId) ? data.themeId : 'mint';
       if (data.banner && typeof data.banner.title === 'string' && typeof data.banner.subtitle === 'string' && ['lower', 'chapter', 'tip'].includes(data.banner.type)) banner.value = data.banner;
       resolution.value=normalizeResolution(data.resolution);
       frame.value = { header: data.frame?.header === true, footer: data.frame?.footer === true }; transitionMs.value = Number.isFinite(data.transitionMs) ? Math.min(2000, Math.max(0, data.transitionMs)) : 650;
@@ -254,8 +273,13 @@ export function useStudio() {
   }
   function stopRecord() { if (!recording.value) return; recording.value = false; finalizing.value = true; clearInterval(timer); recorder.stop(); }
   function keys(e) {
+    if(e.key==='Alt'&&!presenting.value&&!editing.value&&view.value==='slides'&&workspace.value==='editor'){altHeld.value=true;e.preventDefault();}
     if (['INPUT', 'TEXTAREA', 'SELECT', 'VIDEO'].includes(e.target.tagName)) return;
-    if (e.key === 'Escape') { if (videoPreview.value) videoPreview.value = false; else if(formatOpen.value)formatOpen.value=false;else if (gallery.value) gallery.value = false; else if (presenting.value) exit(); else closeEdit(); return; }
+    if (e.key === 'Escape') {contextMenu.value=null; if (videoPreview.value) videoPreview.value = false; else if(formatOpen.value)formatOpen.value=false;else if (gallery.value) gallery.value = false; else if (presenting.value) exit(); else closeEdit(); return; }
+    if (!presenting.value && view.value==='slides' && workspace.value==='editor' && !editing.value && !gallery.value && !formatOpen.value && visibleBlocks(current.value).includes(selected.value)) {
+      if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();if(!e.repeat)duplicateSelected();return;}
+      const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(d){e.preventDefault();const amount=e.shiftKey?10:1;current.value.positions[selected.value]=nudgePosition(position.value,d[0]*amount,d[1]*amount,resolution.value.width);return;}
+    }
     if (!presenting.value || videoPreview.value) return;
     const direction = { ArrowRight: 'right', ArrowLeft: 'left', ArrowDown: 'down', ArrowUp: 'up' }[e.key];
     if (direction) { e.preventDefault(); goDirection(direction); }
@@ -264,9 +288,9 @@ export function useStudio() {
   }
   function beforeUnload(e) { if (recording.value || finalizing.value) { e.preventDefault(); e.returnValue = ''; } }
   onMounted(() => {
-    gridDraft.value = { ...current.value.grid }; updateThumbnails(); observeStage(); requestDraw(); window.addEventListener('frame-images-ready',imagesReady); window.addEventListener('keydown', keys); window.addEventListener('beforeunload', beforeUnload);
-    if (document.modelContext?.registerTool) try { Promise.resolve(document.modelContext.registerTool({ name: 'read_frame_project', description: 'Read the current slide project and presentation state', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: input => { if (!input || typeof input !== 'object' || Object.keys(input).length) throw Error('Expected an empty object'); return { ...JSON.parse(JSON.stringify(snapshot())), index: index.value, step: step.value, diagnostics: { ...metrics, trailPoints:trail.points.length, trailActive:trail.active } }; } }, { signal: modelController.signal })).catch(() => {}); } catch { /* Browser support is optional. */ }
+    gridDraft.value = { ...current.value.grid }; updateThumbnails(); observeStage(); requestDraw(); window.addEventListener('frame-images-ready',imagesReady); window.addEventListener('keydown', keys);window.addEventListener('keyup',keyup);window.addEventListener('blur',resetKeys);window.addEventListener('pointerdown',contextOutside); window.addEventListener('beforeunload', beforeUnload);
+    if (document.modelContext?.registerTool) try { Promise.resolve(document.modelContext.registerTool({ name: 'read_frame_project', description: 'Read the current slide project and presentation state', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: input => { if (!input || typeof input !== 'object' || Object.keys(input).length) throw Error('Expected an empty object'); return { ...JSON.parse(JSON.stringify(snapshot())), index: index.value, step: step.value, selected:selected.value, altHeld:altHeld.value, diagnostics: { ...metrics, trailPoints:trail.points.length, trailActive:trail.active } }; } }, { signal: modelController.signal })).catch(() => {}); } catch { /* Browser support is optional. */ }
   });
-  onUnmounted(() => { modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('frame-images-ready',imagesReady); window.removeEventListener('keydown', keys); window.removeEventListener('beforeunload', beforeUnload); });
-  return { resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
+  onUnmounted(() => { modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('frame-images-ready',imagesReady); window.removeEventListener('keydown', keys);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',resetKeys);window.removeEventListener('pointerdown',contextOutside); window.removeEventListener('beforeunload', beforeUnload); });
+  return { selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
 }
