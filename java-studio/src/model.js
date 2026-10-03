@@ -146,7 +146,14 @@ export function normalizeSlide(raw, n = 0) {
   for (const k of [...new Set([...blocks,...visibleBlocks(s)])]) {
     s.positions[k] ||= pos(150,500,1200);
     const p = raw.positions?.[k];
-    if (p) for (const key of ['x', 'y', 'w', 'size', 'h']) s.positions[k][key] = finite(p[key], s.positions[k][key] ?? 360, key === 'size' ? 10 : key === 'w' ? (blockType(s,k)==='shape'||p.autoSize===true?8:80) : key==='h'&&blockType(s,k)==='shape'?8:0, key === 'size' ? 260 : key === 'y' || key === 'h' ? HEIGHT : WIDTH);
+    // Restoring is not an edit: keep valid geometry, including rotated/off-stage anchors
+    // and thin line frames. UI minimums must not move saved objects on reload.
+    if (p) for (const key of ['x', 'y', 'w', 'size', 'h']) {
+      if (key === 'h' && !Number.isFinite(p.h)) { delete s.positions[k].h; continue; }
+      s.positions[k][key] = finite(p[key], s.positions[k][key] ?? 360,
+        key === 'size' ? 10 : key === 'x' || key === 'y' ? -10000 : 1,
+        key === 'size' ? 260 : 10000);
+    }
     if (s.designVersion === 1 && p && !Number.isFinite(p.h) && !['image','shape'].includes(blockType(s,k))) delete s.positions[k].h;
     s.positions[k].autoSize=p?.autoSize===true&&blockType(s,k)==='text';
     if(s.positions[k].autoSize)s.positions[k].wrapWidth=finite(p?.wrapWidth,1200,80,WIDTH);

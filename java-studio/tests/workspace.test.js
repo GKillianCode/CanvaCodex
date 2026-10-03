@@ -43,3 +43,11 @@ test('transition tiles meet on backing pixels in every direction and output size
   const visible=progress===0?a:progress===1?b:null;if(visible){assert.equal(Math.abs(visible[1]),0);assert.equal(Math.abs(visible[2]),0);}
  }
 });
+
+test('saved geometry survives reload for rotated images, thin lines and narrow text',()=>{
+ const s=makeSlide('image-focus');s.elements.image1.src='data:image/png;base64,dGVzdA==';s.positions.image1={x:-37.25,y:-12.75,w:720.125,h:480.75,size:38,rotation:315};
+ s.elements.shapeThin={type:'shape',shape:'line',direction:'horizontal',strokeWidth:2};s.positions.shapeThin={x:88.5,y:1044.75,w:550.5,h:2,size:38,rotation:45};
+ s.elements.textNarrow={type:'text',text:'i',custom:true};s.positions.textNarrow={x:102.125,y:190.875,w:12.25,h:20.5,size:18,rotation:0};s.blockKeys.push('shapeThin','textNarrow');
+ let loaded=JSON.parse(JSON.stringify(s));for(let i=0;i<3;i++){loaded=normalizeSlide(JSON.parse(JSON.stringify(loaded)));for(const key of ['image1','shapeThin','textNarrow'])for(const prop of ['x','y','w','h','size','rotation'])assert.equal(loaded.positions[key][prop],s.positions[key][prop],key+'.'+prop);assert.equal(loaded.elements.image1.src,s.elements.image1.src);assert.equal(loaded.elements.image1.background,false);}
+ delete s.positions.title.h;assert.equal(normalizeSlide(s).positions.title.h,undefined);
+});
