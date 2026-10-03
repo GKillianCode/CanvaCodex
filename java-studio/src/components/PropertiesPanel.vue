@@ -1,18 +1,19 @@
 <script setup>
-import { reactive, ref } from 'vue';
-import { themes, presets, visibleBlocks, blockLabel } from '../model.js';
+import { reactive, ref, watch } from 'vue';
+import { presets, visibleBlocks, blockLabel } from '../model.js';
 import { Pencil, Copy, Trash2, Plus, Play } from 'lucide-vue-next';
 const props=defineProps({studio:Object});const s=reactive(props.studio), section=ref('element');
+watch(()=>s.selectionScope,value=>{section.value=value==='slides'?'slide':'element';});watch(()=>s.selected,value=>{if(value)section.value='element';});
 const pixels=v=>Math.round(v*s.resolution.width/1920);
 </script>
 <template>
-<aside class="inspector properties-panel">
+<aside class="inspector properties-panel"><button class="panel-resizer" @pointerdown="s.resizePanel($event,'inspectorWidth')" aria-label="Redimensionner les propriétés"></button>
  <div class="properties-heading"><strong>Propriétés</strong><span>Diapo {{s.index+1}}</span></div>
  <div class="inspector-tabs"><button v-for="[id,label] in [['element','Élément'],['slide','Diapo'],['style','Style']]" :key="id" :class="{active:section===id}" @click="section=id">{{label}}</button></div>
  <div class="inspector-body">
   <template v-if="section==='element'">
-   <label>Élément sélectionné<select v-model="s.selected" aria-label="Élément sélectionné"><option v-for="key in visibleBlocks(s.current)" :key="key" :value="key">{{blockLabel(s.current,key)}}</option></select></label>
-   <div class="element-actions"><button class="btn" v-if="s.selectedType!=='image'" @click="s.workspace='editor';s.editSelected()"><Pencil :size="14"/>Éditer</button><button class="icon-btn" @click="s.duplicateSelected" title="Dupliquer l’élément (Ctrl D)" aria-label="Dupliquer l’élément"><Copy :size="16"/></button><button class="icon-btn" @click="s.removeBlock" :disabled="visibleBlocks(s.current).length<=1" title="Supprimer l’élément" aria-label="Supprimer l’élément"><Trash2 :size="16"/></button></div>
+   <p v-if="!s.selected" class="field-help">{{s.selectedKeys.length?s.selectedKeys.length+' éléments sélectionnés. Supp pour supprimer.':'Clique sur un élément pour afficher ses propriétés.'}}</p><button v-if="s.selectedKeys.length>1" class="btn" @click="s.removeBlock">Supprimer la sélection</button><template v-if="s.selected"><label>Élément sélectionné<select v-model="s.selected" aria-label="Élément sélectionné"><option v-for="key in visibleBlocks(s.current)" :key="key" :value="key">{{blockLabel(s.current,key)}}</option></select></label>
+   <div class="element-actions"><button class="btn" v-if="s.selectedType!=='image'" @click="s.workspace='editor';s.editSelected()"><Pencil :size="14"/>Éditer</button><button class="icon-btn" @click="s.duplicateSelected" title="Dupliquer l’élément (Ctrl D)" aria-label="Dupliquer l’élément"><Copy :size="16"/></button><button class="icon-btn" @click="s.removeBlock"  title="Supprimer l’élément" aria-label="Supprimer l’élément"><Trash2 :size="16"/></button></div>
    <label v-if="s.selectedType==='code'">Titre / nom de fichier<input v-model="s.codeCaption" maxlength="200" placeholder="Ex. HelloWorld.java · facultatif" aria-label="Titre de l’extrait de code"></label>
    <template v-if="s.selectedType==='image'"><label class="image-upload">{{s.current.elements[s.selected].src?'Remplacer l’image':'Importer une image'}}<input type="file" accept="image/png,image/jpeg,image/webp" @change="s.uploadImage"></label><label>Cadrage<select v-model="s.current.elements[s.selected].fit"><option value="contain">Image entière</option><option value="cover">Remplir le cadre</option></select></label></template>
    <div class="section-label spaced">GÉOMÉTRIE · PIXELS</div>
@@ -20,7 +21,7 @@ const pixels=v=>Math.round(v*s.resolution.width/1920);
    <label v-if="s.selectedType!=='image'">Taille du texte<input type="number" :value="pixels(s.position.size)" min="10" :max="pixels(260)" @change="s.setPosition('size',$event)"></label>
    <details class="property-details"><summary>Apparition de l’élément</summary><label>Étape<input type="number" min="0" max="20" :value="s.current.fragments[s.selected].order" @change="s.updateFragment"></label><label>Animation<select v-model="s.current.fragments[s.selected].animation"><option value="fade">Fondu</option><option value="up">Montée douce</option><option value="zoom">Zoom léger</option><option value="none">Immédiate</option></select></label><p class="field-help">Étape 0 : visible au départ. Une pression sur Espace révèle chaque étape suivante.</p></details>
    <div class="editor-shortcuts"><span><kbd>Alt</kbd> distances aux bords</span><span><kbd>← ↑ ↓ →</kbd> déplacer de 1 px</span><span><kbd>Maj</kbd> + flèches : 10 px</span><span><kbd>Ctrl D</kbd> dupliquer</span></div>
-   <details class="property-details"><summary>Ajouter un élément</summary><div class="block-add"><button class="btn" @click="s.workspace='editor';s.addBlock('text')">Texte</button><button class="btn" @click="s.workspace='editor';s.addBlock('image')">Image</button><button class="btn" @click="s.workspace='editor';s.addBlock('code')">Code</button></div></details>
+   </template><details class="property-details"><summary>Ajouter un élément</summary><div class="block-add"><button class="btn" @click="s.workspace='editor';s.addBlock('text')">Texte</button><button class="btn" @click="s.workspace='editor';s.addBlock('image')">Image</button><button class="btn" @click="s.workspace='editor';s.addBlock('code')">Code</button></div></details>
   </template>
   <template v-else-if="section==='slide'">
    <button class="btn full" @click="s.startPresentation(false)"><Play :size="14"/>Tester cette diapo</button>
@@ -30,7 +31,7 @@ const pixels=v=>Math.round(v*s.resolution.width/1920);
    <details class="property-details"><summary>Position sur le canvas</summary><div class="position-grid"><label>Colonne<input type="number" min="-10000" max="10000" v-model.number="s.gridDraft.x"></label><label>Ligne<input type="number" min="-10000" max="10000" v-model.number="s.gridDraft.y"></label></div><button class="btn full" @click="s.applyGrid">Appliquer</button></details>
   </template>
   <template v-else>
-   <div class="section-label">THÈME DU PROJET</div><div class="theme-options"><button v-for="t in themes" :key="t.id" :class="{chosen:s.themeId===t.id}" @click="s.themeId=t.id"><i :style="{background:t.accent}"></i>{{t.name}}</button></div><p class="field-help">Commun à toutes les diapos et aux incrustations.</p>
+   <div class="section-label">THÈME DU PROJET</div><div class="theme-options"><button v-for="t in s.palette" :key="t.id" :class="{chosen:s.themeId===t.id}" @click="s.themeId=t.id"><i :style="{background:t.accent}"></i>{{t.name}}</button></div><p class="field-help">Commun à toutes les diapos et aux incrustations.</p>
    <details class="property-details"><summary>Habillage facultatif</summary><label class="checkbox-label"><input type="checkbox" v-model="s.frame.header">En-tête de diapo</label><label class="checkbox-label"><input type="checkbox" v-model="s.frame.footer">Pied de diapo</label></details>
   </template>
  </div>

@@ -125,3 +125,10 @@ test('optional code captions and duplicated code survive legacy and current proj
 test('laser draws one smooth ribbon per stroke without circular sample markers, including closed loops',async()=>{
  const {LaserTrail}=await import('../src/laser.js');const t=new LaserTrail();t.begin({x:0,y:0},0,'#ff0000',12);t.append({x:60,y:30},100);t.append({x:0,y:0},200);t.end();t.begin({x:100,y:100},300,'#ff0000',12);t.append({x:120,y:120},400);t.end();let fills=0;const ctx={save(){},restore(){},beginPath(){},moveTo(){},quadraticCurveTo(){},closePath(){},fill(){fills++},createLinearGradient(x,y,a,b){assert.ok(x!==a||y!==b);return {addColorStop(n,color){assert.match(color,/^#[0-9a-f]{8}$/i)}}}};t.draw(ctx,450);assert.equal(fills,2);
 });
+
+test('editable themes validate unique identities, colors and portable custom palettes',async()=>{
+ const {normalizeThemes,themeDraft}=await import('../src/themes.js');const {themes}=await import('../src/model.js');const draft=themeDraft(themes[0]);draft.name='Java Émeraude';draft.accent='#00ffcc';const palette=normalizeThemes([...themes,draft]);assert.equal(palette.length,11);assert.equal(palette.at(-1).accent,'#00ffcc');assert.deepEqual(normalizeThemes(JSON.parse(JSON.stringify(palette))),palette);assert.equal(normalizeThemes([draft,draft]).length,1);assert.equal(normalizeThemes([{...draft,accent:'red'}]).length,10);assert.notEqual(draft.id,themes[0].id);draft.name='Changed';assert.equal(themes[0].name,'Terminal');
+});
+test('deleting all visible elements persists an empty slide without reviving template blocks',()=>{
+ const s=makeSlide('image-right');s.blockKeys=[];s.elements={};s.positions={};s.fragments={};assert.deepEqual(visibleBlocks(normalizeSlides([s])[0]),[]);
+});
