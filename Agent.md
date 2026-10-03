@@ -334,4 +334,4 @@ La normalisation de reprise appliquait des contraintes d’édition : coordonné
 
 Validation : 52 cas (39 + 13), build et diff --check. Nouveau test de trois reprises JSON successives : image tournée à coordonnées négatives, trait de 2 unités, texte étroit et hauteur automatique absente. Navigateur isolé : comparaison des x/y/w/h/taille/rotation de tous les objets avant/après actualisation identique, aucune erreur console au contrôle. Pas de nouveau sélecteur natif de fichier ni d’écriture sur disque testés.
 
-Travail validé localement ; publication en cours, aucune fusion automatique.
+Publication confirmée : [PR #32](https://github.com/GKillianCode/CanvaCodex/pull/32) ouverte de `codex/stable-object-positions` vers `codex/seamless-transitions`, commit applicatif distant `f03f376`. Issue #31 ouverte jusqu’à fusion. Aucune fusion automatique. Commits locaux conservés dans `archive/local-stable-object-positions-20261003` lors de l’alignement sur les sources identiques publiées.
