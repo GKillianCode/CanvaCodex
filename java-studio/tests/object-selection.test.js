@@ -1,0 +1,22 @@
+import assert from 'node:assert/strict';
+import { makeSlide,normalizeSlides,visibleBlocks } from '../src/model.js';
+import { normalizeShape,drawShape } from '../src/shapes.js';
+import { groupSelection } from '../src/selection.js';
+import { copyObjects,pasteObjects,selectionType,commonValue } from '../src/objectSelection.js';
+const a=makeSlide('title');
+for(const [key,x] of [['shapeA',10],['shapeB',400]]) {a.elements[key]=normalizeShape({shape:'rounded',radius:15});a.positions[key]={x,y:100,w:300,h:200,size:38,rotation:20};a.fragments[key]={order:2,animation:'fade'};}
+groupSelection(a,['shapeA','shapeB']);
+assert.equal(selectionType(a,['shapeA','shapeB']),'shape:rounded');assert.equal(selectionType(a,['title','shapeA']),null);
+assert.equal(commonValue([15,15]),15);assert.equal(commonValue([15,20]),undefined);
+const copied=copyObjects(a,['shapeA']);assert.equal(copied.component.items.length,2);
+a.elements.shapeA.fill='#ffffff';assert.notEqual(copied.component.items[0].element.fill,'#ffffff');
+const b=makeSlide('title');const keys=pasteObjects(b,copied,0);assert.equal(keys.length,2);assert.equal(b.positions[keys[0]].x,10);assert.equal(b.positions[keys[1]].x,400);assert.equal(b.positions[keys[0]].rotation,20);assert.equal(b.groups[0].keys.length,2);
+const second=pasteObjects(b,copied,24);assert.equal(b.positions[second[0]].x,34);assert.notEqual(b.groups[0].id,b.groups[1].id);assert.equal(b.fragments[second[0]].order,2);
+const restored=normalizeSlides(JSON.parse(JSON.stringify([b])))[0];assert.ok(visibleBlocks(restored).includes(keys[0]));assert.equal(restored.groups.length,2);
+for(let i=0;i<36;i++)b.elements['extra'+i]={type:'text',custom:true,text:'x'};
+const before=JSON.stringify(b);assert.deepEqual(pasteObjects(b,copied),[]);assert.equal(JSON.stringify(b),before);
+const native=copyObjects(a,['title']);assert.equal(native.component.items[0].element.text,a.title);
+const calls=[];globalThis.Path2D=class {roundRect(...args){calls.push(args);}addPath(){throw Error('Rounded rectangles must not be stretched');}};
+const ctx={globalAlpha:1,save(){},restore(){},fill(){},stroke(){},setLineDash(){}};
+drawShape(ctx,normalizeShape({shape:'rounded',radius:20}),{x:0,y:0,w:800,h:200});assert.deepEqual(calls[0],[0,0,800,200,40]);
+drawShape(ctx,normalizeShape({shape:'rounded',radius:20,outlined:true,strokeWidth:10}),{x:0,y:0,w:200,h:800});assert.deepEqual(calls[1],[5,5,190,790,38]);
