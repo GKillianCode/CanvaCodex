@@ -13,7 +13,7 @@ a.elements.shapeA.fill='#ffffff';assert.notEqual(copied.component.items[0].eleme
 const b=makeSlide('title');const keys=pasteObjects(b,copied,0);assert.equal(keys.length,2);assert.equal(b.positions[keys[0]].x,10);assert.equal(b.positions[keys[1]].x,400);assert.equal(b.positions[keys[0]].rotation,20);assert.equal(b.groups[0].keys.length,2);
 const second=pasteObjects(b,copied,24);assert.equal(b.positions[second[0]].x,34);assert.notEqual(b.groups[0].id,b.groups[1].id);assert.equal(b.fragments[second[0]].order,2);
 const restored=normalizeSlides(JSON.parse(JSON.stringify([b])))[0];assert.ok(visibleBlocks(restored).includes(keys[0]));assert.equal(restored.groups.length,2);
-for(let i=0;i<36;i++)b.elements['extra'+i]={type:'text',custom:true,text:'x'};
+for(let i=0;i<96;i++)b.elements['extra'+i]={type:'text',custom:true,text:'x'};
 const before=JSON.stringify(b);assert.deepEqual(pasteObjects(b,copied),[]);assert.equal(JSON.stringify(b),before);
 const native=copyObjects(a,['title']);assert.equal(native.component.items[0].element.text,a.title);
 const calls=[];globalThis.Path2D=class {roundRect(...args){calls.push(args);}addPath(){throw Error('Rounded rectangles must not be stretched');}};
