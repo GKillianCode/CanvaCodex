@@ -97,3 +97,11 @@ Une sélection multiple propose le centrage du groupe dans la diapo, l’alignem
 **Propriétés → Composants** présente une bibliothèque avec aperçus, recherche, création guidée depuis la sélection, renommage et suppression. Cliquer sur l’aperçu insère une copie personnalisable. La bibliothèque ne pousse plus les propriétés sous un long formulaire fixe.
 
 Les textes simples s’éditent dans un champ natif visible, sans miroir de texte ; le Java conserve son miroir syntaxique avec les couleurs du thème. Le fond d’édition est uni et une ligne supplémentaire garde la dernière ligne visible pendant la frappe.
+
+### Texte, composants et zoom
+
+Double-cliquer un texte (ou **Éditer**) ouvre maintenant un dialogue avec un brouillon lisible. **Appliquer** valide le texte et le surtitre ; **Annuler** ou Échap conserve le contenu précédent. Ctrl/⌘ + Entrée valide. La police et le style de la diapo restent appliqués par le rendu habituel. Le code Java conserve son éditeur sur la diapo.
+
+Pour plusieurs composants : Ctrl/⌘ + clic puis **Aligner sur une ligne horizontale** ou **Aligner en colonne verticale**. Chaque groupe est une seule unité ; ses membres gardent leurs distances internes. La mise en ligne/colonne utilise l’espacement choisi pour séparer les composants, même si les copies ont été insérées au même endroit. Les commandes d’espacement traitent aussi les groupes entiers. Pour intervenir sur leurs membres séparément, dissocier explicitement le groupe.
+
+Dans la vue Éditer, **Ctrl/⌘ + molette** zoome autour du pointeur, de **25 % à 300 %**. Les boutons −/+ proposent la même plage ; cliquer sur le pourcentage revient à 100 %. Les barres de défilement permettent d’atteindre les parties hors du viewport. Le zoom ne change pas la résolution de sortie. Le fichier de contrôle `tests/zoom.html` simule un événement de molette dans l’éditeur pour vérifier le gestionnaire et la non-capture de la molette sans Ctrl.

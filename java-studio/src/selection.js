@@ -15,3 +15,19 @@ export function arrangeSelection(positions,bounds,axis,mode,gap=0){
  const size=axis==='x'?'w':'h',all=enclosingBounds(Object.values(bounds)),entries=Object.entries(bounds).sort((a,b)=>a[1][axis]-b[1][axis]);if(!all)return positions;
  let cursor=all[axis];return Object.fromEntries(entries.map(([key,b])=>{let delta;if(mode==='spacing'){delta=cursor-b[axis];cursor+=b[size]+gap;}else delta=all[axis]+all[size]/2-b[axis]-b[size]/2;return [key,{...positions[key],[axis]:positions[key][axis]+delta}];}));
 }
+// A selected group is one rigid unit, even if a member was selected via the layers panel.
+export function selectionUnits(groups,keys,bounds){
+ const wanted=new Set(keys),used=new Set(),units=[];
+ for(const g of groups||[]){if(!g.keys.some(k=>wanted.has(k)))continue;const members=g.keys.filter(k=>bounds[k]);if(!members.length)continue;members.forEach(k=>used.add(k));units.push({keys:members,bounds:enclosingBounds(members.map(k=>bounds[k]))});}
+ for(const k of keys)if(!used.has(k)&&bounds[k])units.push({keys:[k],bounds:enclosingBounds([bounds[k]])});return units;
+}
+export function arrangeUnits(positions,units,axis,mode,gap=0){
+ if(units.length<2)return {};const all=enclosingBounds(units.map(u=>u.bounds)),size=axis==='x'?'w':'h',changes={};
+ const ordered=units.slice().sort((a,b)=>a.bounds[axis]-b.bounds[axis]);let cursor=all[axis];
+ for(const unit of ordered){const b=unit.bounds,delta=mode==='spacing'?cursor-b[axis]:all[axis]+all[size]/2-b[axis]-b[size]/2;if(mode==='spacing')cursor+=b[size]+Math.max(0,gap);for(const key of unit.keys)changes[key]={...(changes[key]||positions[key]),[axis]:positions[key][axis]+delta};}
+ return changes;
+}
+export function layoutUnits(positions,units,axis,gap=0){
+ // Put whole components on one row/column; initial coincident copies are separated.
+ const cross=axis==='x'?'y':'x';const aligned={...positions,...arrangeUnits(positions,units,cross,'center')};return {...arrangeUnits(positions,units,cross,'center'),...arrangeUnits(aligned,units,axis,'spacing',gap)};
+}
