@@ -89,7 +89,9 @@ export function positionsFor(layout) {
 export function blockType(s,key) { return s.elements?.[key]?.type || (key === 'code' ? 'code' : 'text'); }
 export function blockText(s,key) { return s.elements?.[key]?.text ?? s[key] ?? ''; }
 export function setBlockText(s,key,value) { if (s.elements?.[key]) s.elements[key].text = value; else s[key] = value; }
-export function blockLabel(s,key) { return ({title:'Titre',body:'Texte 1',code:'Code Java'})[key] || s.elements?.[key]?.name || key; }
+export function blockLabel(s,key) { return (s.blockNames?.[key]||s.elements?.[key]?.name||'').trim()||({title:'Titre',body:'Texte 1',code:'Code Java'})[key]||key; }
+export function setBlockName(s,key,value){if(!visibleBlocks(s).includes(key))return;const name=String(value||'').slice(0,100);if(s.elements?.[key])s.elements[key].name=name;else {s.blockNames||={};if(name.trim())s.blockNames[key]=name;else delete s.blockNames[key];}}
+
 export function applyLayout(s,layout) {
   const typography=Object.fromEntries(Object.entries(s.positions||{}).map(([key,p])=>[key,{...(p.font?{font:p.font}:{}),...(p.textStyle?{textStyle:JSON.parse(JSON.stringify(p.textStyle))}:{})}]));
   s.layout = layout;
@@ -164,6 +166,7 @@ export function normalizeSlide(raw, n = 0) {
     s.fragments[k] = { order: Math.round(finite(f?.order, 0, 0, 20)), animation: ['fade', 'up', 'zoom', 'none'].includes(f?.animation) ? f.animation : 'fade' };
   }
   if (raw.grid && Number.isInteger(raw.grid.x) && Number.isInteger(raw.grid.y)) s.grid = { x: finite(raw.grid.x, n, -10000, 10000), y: finite(raw.grid.y, 0, -10000, 10000) };
+  s.blockNames=Object.fromEntries(blocks.filter(k=>typeof raw.blockNames?.[k]==='string'&&raw.blockNames[k].trim()).map(k=>[k,raw.blockNames[k].trim().slice(0,100)]));
   s.groups=normalizeGroups(raw.groups,visibleBlocks(s));
   return s;
 }

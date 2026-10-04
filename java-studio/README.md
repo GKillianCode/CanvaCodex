@@ -105,3 +105,9 @@ Double-cliquer un texte (ou **Éditer**) ouvre maintenant un dialogue avec un br
 Pour plusieurs composants : Ctrl/⌘ + clic puis **Aligner sur une ligne horizontale** ou **Aligner en colonne verticale**. Chaque groupe est une seule unité ; ses membres gardent leurs distances internes. La mise en ligne/colonne utilise l’espacement choisi pour séparer les composants, même si les copies ont été insérées au même endroit. Les commandes d’espacement traitent aussi les groupes entiers. Pour intervenir sur leurs membres séparément, dissocier explicitement le groupe.
 
 Dans la vue Éditer, **Ctrl/⌘ + molette** zoome autour du pointeur, de **25 % à 300 %**. Les boutons −/+ proposent la même plage ; cliquer sur le pourcentage revient à 100 %. Les barres de défilement permettent d’atteindre les parties hors du viewport. Le zoom ne change pas la résolution de sortie. Le fichier de contrôle `tests/zoom.html` simule un événement de molette dans l’éditeur pour vérifier le gestionnaire et la non-capture de la molette sans Ctrl.
+
+### F12 et noms d’éléments
+
+**F12** lance la présentation depuis la première diapo, comme le bouton Présenter. Échap quitte. La touche est interceptée dans l’application ; répétitions et présentation déjà active sont ignorées. Fermer ou valider un dialogue d’édition avant de lancer la présentation pour garder son brouillon.
+
+Sélectionner un élément puis **Élément → Nom de l’élément**, ou le sélectionner dans **Calques** et modifier son nom. Noms limités à 100 caractères, indépendants du texte affiché sur la diapo, conservés dans les projets, duplications et composants. Les noms apparaissent dans les calques, le sélecteur d’éléments et la liste des apparitions.
