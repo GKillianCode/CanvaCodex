@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 3 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 4 octobre 2026 (Europe/Paris).
 
 Ce fichier conserve le contexte, les décisions, les conventions, l’état réel du projet et sa roadmap. Le lire au début d’une session et le mettre à jour lorsque les décisions ou l’état changent. Résumer les échanges utiles, sans copier intégralement les conversations, sans secrets et sans présenter une idée comme une fonctionnalité livrée.
 
@@ -362,3 +362,15 @@ Modèle version 14 : bibliothèque de composants dans le projet, couleurs de tex
 Groupes/sélections : centrage horizontal/vertical dans la diapo, alignement des centres des membres et espacement en pixels de sortie, cadres tournés pris en compte. Espacement explicite peut dépasser la diapo. Bibliothèque dans les propriétés : création depuis une sélection, renommage/suppression, insertion d’une copie groupée personnalisable. Copies indépendantes, sans instances liées ni propagation automatique ; variantes créées par nouvelle capture. Limites 100 composants et 40 objets par diapo. Sauvegarde/JSON, reprise et historique incluent la bibliothèque.
 
 Validation : tests existants et trois nouveaux tests passent ; build et diff --check réussis. Navigateur sur origine localhost distincte des données existantes : centrage collectif, création Carte Java, insertion, espacement vertical 32 px, bibliothèque conservée après rechargement ; aucune erreur console au contrôle. Pas de nouvel export PNG/WebM ni contrôle mobile. Publication confirmée via le connecteur GitHub : [PR #36](https://github.com/GKillianCode/CanvaCodex/pull/36), commit applicatif distant `f52f79d`. Aucune fusion. Le push Git HTTPS local reste indisponible faute d’identifiants ; sources publiées identiques au commit local `ec886fa` (même arbre Git). Choix de couleur complémentaire également vérifié dans le navigateur.
+
+### 4 octobre 2026 — calques, saisie lisible et interface des composants
+
+Demande : gestion du z-index, texte illisible pendant l’écriture, UI des composants à revoir. Suivi : [issue #37](https://github.com/GKillianCode/CanvaCodex/issues/37), branche `codex/layers-inline-components`, basée sur `codex/components-colors-layout` (PR #36).
+
+Calques : ordre unique dans blockKeys, sans nouveau champ z-index ni changement de version. Liste de tous les objets du premier plan au fond, sélection individuelle d’un membre et sélection multiple, rang numérique (1 au fond), premier/arrière-plan et avancer/reculer. Sélections déplacées en conservant leur ordre relatif ; positions inchangées. Commandes de superposition disponibles pour tous les types. Rendu et hit-test utilisent déjà ce même ordre, repris dans JSON/historique. Capture de composant trie désormais la sélection selon les calques.
+
+Saisie : texte simple affiché une seule fois dans un textarea natif visible (miroir supprimé), fond uni du thème pour l’édition, sélection/caret visibles, ligne de marge supplémentaire pour éviter la dernière ligne coupée. Code conserve le miroir syntaxique, couleurs issues du même codeColor que Canvas, empilement interne explicite. Le fond uni ne concerne que le champ pendant la saisie.
+
+Composants : onglet dédié dans le panneau défilant, état vide, cartes avec aperçu Canvas partagé adapté aux dimensions des objets, recherche, création guidée avec nom et sélection, renommage à la demande, suppression et insertion par l’aperçu. Retour en haut du panneau au changement de section. Copies toujours indépendantes.
+
+Validation : tests existants et deux tests supplémentaires réussis (déplacements de groupes, bornes/rangs, conservation des calques après trois reprises JSON et dans les composants) ; build et diff --check réussis. Navigateur sur nouvelle origine localhost:5174 : frappe lisible sur texte et titre, absence de miroir pour le texte et hauteur sans débordement, arrière-plan/avancer/rang numérique, carte avec aperçu, recherche sans résultat, renommage/insertion et reprise de cinq calques après rechargement, aucune erreur console au contrôle. Pas de nouveau contrôle mobile ni d’export PNG/WebM. Publication confirmée : [PR #38](https://github.com/GKillianCode/CanvaCodex/pull/38) ouverte vers `codex/components-colors-layout`, commit distant `f6e075a`, même arbre Git que le commit local `4327eed`. Publication par le connecteur GitHub ; aucune fusion automatique.
