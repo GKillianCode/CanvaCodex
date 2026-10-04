@@ -10,3 +10,8 @@ export function selectionFor(s,key){return s.groups?.find(g=>g.keys.includes(key
 export function groupSelection(s,keys){if(keys.length<2)return; s.groups=(s.groups||[]).filter(g=>!g.keys.some(k=>keys.includes(k)));s.groups.push({id:crypto.randomUUID(),keys:[...keys]});}
 export function ungroupSelection(s,keys){s.groups=(s.groups||[]).filter(g=>!g.keys.some(k=>keys.includes(k)));}
 export function translateSelection(positions,b,dx,dy,width=1920,height=1080){dx=Math.max(-b.x,Math.min(width-b.x-b.w,dx));dy=Math.max(-b.y,Math.min(height-b.y-b.h,dy));return Object.fromEntries(Object.entries(positions).map(([k,p])=>[k,{...p,x:p.x+dx,y:p.y+dy}]));}
+// Align the visible (rotated) bounds, preserving each object's rotation and size.
+export function arrangeSelection(positions,bounds,axis,mode,gap=0){
+ const size=axis==='x'?'w':'h',all=enclosingBounds(Object.values(bounds)),entries=Object.entries(bounds).sort((a,b)=>a[1][axis]-b[1][axis]);if(!all)return positions;
+ let cursor=all[axis];return Object.fromEntries(entries.map(([key,b])=>{let delta;if(mode==='spacing'){delta=cursor-b[axis];cursor+=b[size]+gap;}else delta=all[axis]+all[size]/2-b[axis]-b[size]/2;return [key,{...positions[key],[axis]:positions[key][axis]+delta}];}));
+}

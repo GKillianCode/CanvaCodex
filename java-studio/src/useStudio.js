@@ -3,7 +3,8 @@ import { ProjectHistory } from './history.js';
 import { drawSlideTransition } from './slideTransition.js';
 import { ProjectFile, canonical } from './projectFile.js';
 import { svgSource } from './svg.js';
-import { enclosingBounds, axisDistance, normalizeGroups, selectionFor, groupSelection, ungroupSelection, translateSelection } from './selection.js';
+import { captureComponent, normalizeComponents, insertComponent } from './componentsLibrary.js';
+import { arrangeSelection, enclosingBounds, axisDistance, normalizeGroups, selectionFor, groupSelection, ungroupSelection, translateSelection } from './selection.js';
 import { getTextStyle, usedFontFaces } from './textStyles.js';
 import { fontCss } from './fonts.js';
 import { prepareFonts } from './fontAssets.js';
@@ -27,6 +28,7 @@ export function useStudio() {
   let initial;
   try { const data = JSON.parse(localStorage.getItem('frame-project') || 'null'); if (data) initial = { ...data, slides: normalizeSlides(data.slides) }; } catch { /* Preserve malformed storage until the next explicit edit or import. */ }
   let library;try{library=JSON.parse(localStorage.getItem('frame-themes'));}catch{}
+  const components=ref(normalizeComponents(initial?.components)),componentName=ref('Mon composant'),spacing=ref(24);
   const palette=ref(normalizeThemes(initial?.themes||library)),themeEditor=ref(null),themeUndo=ref(null);
   let preferences;try{preferences=JSON.parse(localStorage.getItem('frame-workspace'));}catch{}
   const panels=ref({rail:true,collapsed:false,properties:true,slides:true,toolbar:true,inspectorWidth:286,slidesWidth:185,...preferences}),displayMenu=ref(false),selectedKeys=ref([]),selectedSlides=ref([]),selectionScope=ref('elements'),countdown=ref(0),previewVisible=ref(true);
@@ -72,7 +74,7 @@ export function useStudio() {
   const modelController = new AbortController();
   const thumbnailKeys = new Map(), formatRequests = new Map();
   const metrics = { frames: 0, thumbnails: 0, dragCommits: 0 };
-  const snapshot = () => ({ version: 13, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
+  const snapshot = () => ({ version: 14, components:components.value, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
   let history = new ProjectHistory(snapshot()), historyGesture=null, gestureId=0;
   const historyVersion=ref(0), canUndo=computed(()=>{historyVersion.value;return history.index>0;}), canRedo=computed(()=>{historyVersion.value;return history.index<history.states.length-1;});
   function historyGroup(){return historyGesture||(editing.value?'text:'+current.value.id+':'+editing.value:null);}
@@ -80,7 +82,7 @@ export function useStudio() {
   watch(()=>JSON.stringify(snapshot()),recordHistory);
   function restoreHistory(data){
     if(!data)return;const id=current.value.id,keys=selectedKeys.value.slice();closeEdit();contextMenu.value=null;layoutBackup.value=null;routeBackup.value=null;
-    slides.value=data.slides;project.value=data.project;palette.value=data.themes;themeId.value=data.themeId;banner.value=data.banner;frame.value=data.frame;resolution.value=data.resolution;transitionMs.value=data.transitionMs;routeMode.value=data.routeMode;routeStart.value=data.routeStart;
+    components.value=normalizeComponents(data.components);slides.value=data.slides;project.value=data.project;palette.value=data.themes;themeId.value=data.themeId;banner.value=data.banner;frame.value=data.frame;resolution.value=data.resolution;transitionMs.value=data.transitionMs;routeMode.value=data.routeMode;routeStart.value=data.routeStart;
     index.value=Math.max(0,slides.value.findIndex(s=>s.id===id));selectedKeys.value=keys.filter(k=>visibleBlocks(current.value).includes(k));selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;selectedSlides.value=[];
     nextTick(()=>{selectedKeys.value=keys.filter(k=>visibleBlocks(current.value).includes(k));selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;});
     historyVersion.value++;flushLocal();queueThumbnails();requestDraw();
@@ -119,7 +121,7 @@ export function useStudio() {
     thumbs.value = result;
   }
   function queueThumbnails() { clearTimeout(thumbTimer); thumbTimer = setTimeout(updateThumbnails, 220); }
-  watch([routeMode,routeStart,palette, slides, project, themeId, banner, frame, transitionMs, resolution], () => { queueSave(); queueThumbnails(); requestDraw(); }, { deep: true });
+  watch([components,routeMode,routeStart,palette, slides, project, themeId, banner, frame, transitionMs, resolution], () => { queueSave(); queueThumbnails(); requestDraw(); }, { deep: true });
   watch([view, selected, presenting, zoom, editing, workspace], async () => { await nextTick(); observeStage(); requestDraw(); });
   watch(current, s => { gridDraft.value = { ...s.grid }; selected.value=null;selectedKeys.value=[]; });
   watch(selected,key=>{if(key)selectedKeys.value=[key];});
@@ -180,6 +182,11 @@ export function useStudio() {
   }
   const selectionBounds=computed(()=>enclosingBounds(selectedKeys.value.filter(k=>visibleBlocks(current.value).includes(k)).map(k=>elementBounds(measurement,current.value,k))));
   const canUngroup=computed(()=>(current.value.groups||[]).some(g=>g.keys.some(k=>selectedKeys.value.includes(k))));
+  function arrangeObjects(axis,mode){closeEdit();const keys=selectedKeys.value,bounds=Object.fromEntries(keys.map(k=>[k,enclosingBounds([elementBounds(measurement,current.value,k)])]));Object.assign(current.value.positions,arrangeSelection(current.value.positions,bounds,axis,mode,Math.max(0,Number(spacing.value)||0)*WIDTH/resolution.value.width));requestDraw();}
+  function centerObjects(axis){const b=selectionBounds.value;if(!b)return;const delta=(axis==='x'?WIDTH-b.w:HEIGHT-b.h)/2-b[axis];for(const k of selectedKeys.value)current.value.positions[k][axis]+=delta;requestDraw();}
+  function createComponent(){const keys=selectedKeys.value;if(!keys.length||!componentName.value.trim())return;if(components.value.length>=100){notify('Limite de 100 composants atteinte.');return;}components.value.push(JSON.parse(JSON.stringify(captureComponent(current.value,keys,selectionBounds.value,componentName.value))));notify('Composant créé dans la bibliothèque du projet.');}
+  function useComponent(c){closeEdit();const keys=insertComponent(current.value,c);if(!keys.length){notify('La diapo dépasserait 40 éléments.');return;}if(keys.length>1)groupSelection(current.value,keys);workspace.value='editor';selectionScope.value='elements';selected.value=keys.length===1?keys[0]:null;selectedKeys.value=keys;prepareImages([current.value]);requestDraw();notify('Copie insérée : textes, couleurs et dimensions personnalisables.');}
+  function deleteComponent(id){components.value=components.value.filter(c=>c.id!==id);}
   function groupObjects(){closeEdit();groupSelection(current.value,selectedKeys.value);requestDraw();}
   function ungroupObjects(){ungroupSelection(current.value,selectedKeys.value);requestDraw();}
   function selectObject(key,event){const members=selectionFor(current.value,key);if(event?.ctrlKey||event?.metaKey){selectedKeys.value=members.every(k=>selectedKeys.value.includes(k))?selectedKeys.value.filter(k=>!members.includes(k)):[...new Set([...selectedKeys.value,...members])];}else if(!selectedKeys.value.includes(key))selectedKeys.value=members;selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;}
@@ -333,7 +340,7 @@ export function useStudio() {
   }
   function exportProject() { download(new Blob([JSON.stringify(snapshot(), null, 2)], { type: 'application/json' }), 'frame-projet.json'); }
   function applyProject(data){
-      const normalized = normalizeSlides(data.slides);
+      const normalized = normalizeSlides(data.slides);components.value=normalizeComponents(data.components);
       closeEdit();layoutBackup.value=null;contextMenu.value=null; slides.value = normalized; project.value = String(data.project || 'Projet importé'); if(data.themes)palette.value=normalizeThemes(data.themes);themeId.value=palette.value.some(t=>t.id===data.themeId)?data.themeId:palette.value[0].id;deselect();selectedSlides.value=[];
       if (data.banner && typeof data.banner.title === 'string' && typeof data.banner.subtitle === 'string' && ['lower', 'chapter', 'tip','video'].includes(data.banner.type)) banner.value = data.banner;
       routeMode.value=['spatial','manual'].includes(data.routeMode)?data.routeMode:'spatial';routeStart.value=normalized.some(s=>s.id===data.routeStart)?data.routeStart:'';routeBackup.value=null;resolution.value=normalizeResolution(data.resolution);
@@ -397,5 +404,5 @@ export function useStudio() {
     if (document.modelContext?.registerTool) try { Promise.resolve(document.modelContext.registerTool({ name: 'read_frame_project', description: 'Read the current slide project and presentation state', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: input => { if (!input || typeof input !== 'object' || Object.keys(input).length) throw Error('Expected an empty object'); return { ...JSON.parse(JSON.stringify(snapshot())), index: index.value, step: step.value, selected:selected.value, selectedKeys:selectedKeys.value,selectedSlides:selectedSlides.value,countdown:countdown.value,recording:recording.value, altHeld:altHeld.value, diagnostics: { ...metrics, trailPoints:trail.points.length, trailActive:trail.active } }; } }, { signal: modelController.signal })).catch(() => {}); } catch { /* Browser support is optional. */ }
   });
   onUnmounted(() => { if(!presenting.value)flushLocal();window.removeEventListener('pagehide',flushLocal);document.removeEventListener('visibilitychange',visibilitySave);modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer);cancelCountdown(); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('frame-images-ready',imagesReady); window.removeEventListener('keydown', keys);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',resetKeys);window.removeEventListener('pointerdown',contextOutside);window.removeEventListener('pointerup',endHistoryGesture);window.removeEventListener('pointercancel',endHistoryGesture); window.removeEventListener('beforeunload', beforeUnload); });
-  return { undo,redo,canUndo,canRedo,dragImages,dropImages,fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,saveProject,selectionBounds,canUngroup,groupObjects,ungroupObjects,fitSelection, selectedTextStyle,updateTextStyle,refreshTextStyle, fontLoading,fontCss, rotationHandle,rotateDown,setRotation, shapeGallery,openShapes,addShape,moveLayer, routeMode,routeStart,routeBackup,setRouteMode,setRouteStart,traceRoute,connectSlides,undoRoute, palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
+  return { components,componentName,spacing,createComponent,useComponent,deleteComponent,arrangeObjects,centerObjects,undo,redo,canUndo,canRedo,dragImages,dropImages,fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,saveProject,selectionBounds,canUngroup,groupObjects,ungroupObjects,fitSelection, selectedTextStyle,updateTextStyle,refreshTextStyle, fontLoading,fontCss, rotationHandle,rotateDown,setRotation, shapeGallery,openShapes,addShape,moveLayer, routeMode,routeStart,routeBackup,setRouteMode,setRouteStart,traceRoute,connectSlides,undoRoute, palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
 }

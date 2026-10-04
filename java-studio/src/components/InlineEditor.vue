@@ -1,13 +1,13 @@
 <script setup>
 import { ref, computed, watch, nextTick } from 'vue';
-import { textMarkCss } from '../textStyles.js';
+import { textColor, textMarkCss } from '../textStyles.js';
 import { Check, Code2 } from 'lucide-vue-next';
 import { javaLines } from '../code.js';
-const props = defineProps({ value: String, code: Boolean, label: String, scale: Number, size: Number, font: String, textStyle: Object });
+const props = defineProps({ value: String, code: Boolean, label: String, scale: Number, size: Number, font: String, textStyle: Object, theme:Object });
 const emit = defineEmits(['update', 'label', 'close', 'format']);
-const mark=computed(()=>textMarkCss(props.textStyle));
+const mark=computed(()=>({...textMarkCss(props.textStyle),...(props.textStyle.color||props.textStyle.colorRole?{color:textColor(props.textStyle,props.theme)}:{})}));
 const escape=value=>value.replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;');
-const codeLines=computed(()=>javaLines(draft.value).map(segments=>segments.map(token=>`<span class="token ${token.type}">${escape(token.text)}</span>`).join('')));
+const codeLines=computed(()=>javaLines(draft.value).map(segments=>segments.map(token=>`<span class="token ${token.type}" style="${props.textStyle.color||props.textStyle.colorRole?'color:inherit':''}">${escape(token.text)}</span>`).join('')));
 const input = ref(null), root = ref(null), draft = ref(props.value), scroll = ref({ x: 0, y: 0 });
 watch(() => props.value, v => { draft.value = v; });
 function update() { emit('update', draft.value); }
