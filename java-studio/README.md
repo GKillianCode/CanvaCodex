@@ -111,3 +111,9 @@ Dans la vue Éditer, **Ctrl/⌘ + molette** zoome autour du pointeur, de **25 % 
 **F12** lance la présentation depuis la première diapo, comme le bouton Présenter. Échap quitte. La touche est interceptée dans l’application ; répétitions et présentation déjà active sont ignorées. Fermer ou valider un dialogue d’édition avant de lancer la présentation pour garder son brouillon.
 
 Sélectionner un élément puis **Élément → Nom de l’élément**, ou le sélectionner dans **Calques** et modifier son nom. Noms limités à 100 caractères, indépendants du texte affiché sur la diapo, conservés dans les projets, duplications et composants. Les noms apparaissent dans les calques, le sélecteur d’éléments et la liste des apparitions.
+
+Les rectangles arrondis gardent des coins réguliers même lorsqu’ils sont étirés : l’arrondi est calculé sur leur plus petit côté, après redimensionnement. Il est partagé entre aperçu, présentation et exports.
+
+Sélectionne plusieurs objets de même type (Ctrl/⌘ + clic), puis **Élément → Modifier les objets ensemble**. Pour les formes, le type exact doit être commun. Dimensions, rotation, apparitions et réglages de style proposés s’appliquent à tous ; un champ **Mixte** indique des valeurs différentes et seuls les réglages modifiés sont remplacés.
+
+**Ctrl/⌘ C**, puis **Ctrl/⌘ V** copie les objets sélectionnés dans la même diapo ou une autre diapo du projet. Les groupes sont copiés entiers, avec leurs positions relatives, noms, styles, images et apparitions. Premier collage sur une autre diapo : mêmes coordonnées ; collages suivants décalés de 24 unités. Une copie dans la même diapo est aussi décalée. Boutons Copier et Coller disponibles ; Ctrl Z annule le collage. Les raccourcis de texte restent natifs dans les champs. La copie d’objets est conservée en mémoire dans l’application jusqu’au rechargement ; limite de 40 éléments ajoutés par diapo.
