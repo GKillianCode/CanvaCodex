@@ -335,3 +335,20 @@ La normalisation de reprise appliquait des contraintes d’édition : coordonné
 Validation : 52 cas (39 + 13), build et diff --check. Nouveau test de trois reprises JSON successives : image tournée à coordonnées négatives, trait de 2 unités, texte étroit et hauteur automatique absente. Navigateur isolé : comparaison des x/y/w/h/taille/rotation de tous les objets avant/après actualisation identique, aucune erreur console au contrôle. Pas de nouveau sélecteur natif de fichier ni d’écriture sur disque testés.
 
 Publication confirmée : [PR #32](https://github.com/GKillianCode/CanvaCodex/pull/32) ouverte de `codex/stable-object-positions` vers `codex/seamless-transitions`, commit applicatif distant `f03f376`. Issue #31 ouverte jusqu’à fusion. Aucune fusion automatique. Commits locaux conservés dans `archive/local-stable-object-positions-20261003` lors de l’alignement sur les sources identiques publiées.
+
+
+### 3 octobre 2026 — images arrondies, dépôt et historique
+
+Demande : arrondis optionnels avec curseur sur les bords réels de l’image, drag and drop de fichiers images, Ctrl Z, flèches d’un pixel. Suivi : [issue #33](https://github.com/GKillianCode/CanvaCodex/issues/33), branche `codex/image-rounding-undo`, basée sur `codex/stable-object-positions` (PR #32 ouverte).
+
+Modèle version 13 : images `roundedCorners` (défaut faux) et `cornerRadius` 0..50 (défaut 10), en pourcentage du petit côté visible. Propriétés → Image et transparence → Bords arrondis puis curseur. En contain, clipping sur le rectangle dessiné de l’image ; en cover, sur le rectangle visible recadré. Les pixels transparents à l’intérieur d’un fichier restent partie de son rectangle, pas de détourage alpha. Rendu partagé miniatures/présentation/PNG/WebM.
+
+Dépôt de fichiers PNG/JPEG/WebP/SVG sur la diapo dans la vue Éditer : crée des images indépendantes autour du point de dépôt, décalées pour plusieurs fichiers, dans la limite des 40 objets. Même validation/conversion que le sélecteur (20 Mo, PNG embarqué de moins de 3 Mo, SVG autonome). Les fichiers invalides sont signalés, pas d’objet vide ajouté ; projet modifié pendant le chargement protégé. Le dépôt de liens URL depuis un site n’est pas pris en charge.
+
+Historique du projet en mémoire : Ctrl/⌘ Z annule, Ctrl/⌘ Maj Z rétablit ; boutons dans la barre de la diapo. Déplacements, dimensions, propriétés, imports d’images, suppressions, compositions et réglages du projet suivis. Gestes de curseur, frappe dans un bloc et répétition des flèches regroupés ; une nouvelle action supprime la branche de rétablissement. Historique limité à 60 états et budget mémoire 24 Mo (au minimum deux états), réinitialisé à l’ouverture/import d’un autre projet et à l’actualisation ; fichiers écrits sur disque seulement sur commande explicite. Annulation native conservée dans les champs textuels.
+
+Cliquer sur le canvas lui donne le focus, évitant les flèches capturées par un ancien champ de propriétés. Flèche = 1 pixel de sortie, Maj = 10, maintien répétitif et déplacement commun des groupes conservés.
+
+Validation : 56 cas (39 + 17), build et diff --check. Tests du rectangle contain/cover et rayon de clipping réel, migration, historique/groupement/redo divergent/bornes mémoire, dépôt multiple et fichier invalide/annulation de l’import, deltas à quatre résolutions. Navigateur isolé : flèche = 0,75 unité logique soit 1 px à 2560, Ctrl Z exact puis Ctrl Maj Z, Maj-flèche 10 px et annulation, SVG panoramique arrondi à 50 % dans un cadre plus haut, curseur annulé à 10 %, rechargement sans erreur console. Dépôt natif depuis l’explorateur non automatisé : pipeline d’insertion testé avec des fichiers simulés. Pas de nouvel export PNG/WebM.
+
+Publication confirmée : [PR #34](https://github.com/GKillianCode/CanvaCodex/pull/34) ouverte de `codex/image-rounding-undo` vers `codex/stable-object-positions`, commit applicatif distant `428263f`. Issue #33 ouverte jusqu’à fusion. Aucune fusion automatique. Commits locaux conservés dans `archive/local-image-rounding-undo-20261003` lors de l’alignement sur les sources identiques publiées.

@@ -1,3 +1,5 @@
+import { insertDroppedImages } from './imageDrop.js';
+import { ProjectHistory } from './history.js';
 import { drawSlideTransition } from './slideTransition.js';
 import { ProjectFile, canonical } from './projectFile.js';
 import { svgSource } from './svg.js';
@@ -70,7 +72,30 @@ export function useStudio() {
   const modelController = new AbortController();
   const thumbnailKeys = new Map(), formatRequests = new Map();
   const metrics = { frames: 0, thumbnails: 0, dragCommits: 0 };
-  const snapshot = () => ({ version: 12, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
+  const snapshot = () => ({ version: 13, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
+  let history = new ProjectHistory(snapshot()), historyGesture=null, gestureId=0;
+  const historyVersion=ref(0), canUndo=computed(()=>{historyVersion.value;return history.index>0;}), canRedo=computed(()=>{historyVersion.value;return history.index<history.states.length-1;});
+  function historyGroup(){return historyGesture||(editing.value?'text:'+current.value.id+':'+editing.value:null);}
+  function recordHistory(){history.record(snapshot(),historyGroup());historyVersion.value++;}
+  watch(()=>JSON.stringify(snapshot()),recordHistory);
+  function restoreHistory(data){
+    if(!data)return;const id=current.value.id,keys=selectedKeys.value.slice();closeEdit();contextMenu.value=null;layoutBackup.value=null;routeBackup.value=null;
+    slides.value=data.slides;project.value=data.project;palette.value=data.themes;themeId.value=data.themeId;banner.value=data.banner;frame.value=data.frame;resolution.value=data.resolution;transitionMs.value=data.transitionMs;routeMode.value=data.routeMode;routeStart.value=data.routeStart;
+    index.value=Math.max(0,slides.value.findIndex(s=>s.id===id));selectedKeys.value=keys.filter(k=>visibleBlocks(current.value).includes(k));selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;selectedSlides.value=[];
+    nextTick(()=>{selectedKeys.value=keys.filter(k=>visibleBlocks(current.value).includes(k));selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;});
+    historyVersion.value++;flushLocal();queueThumbnails();requestDraw();
+  }
+  function undo(){recordHistory();restoreHistory(history.undo());}
+  function redo(){restoreHistory(history.redo());}
+  function dragImages(e){if(presenting.value||view.value!=='slides')return;if([...e.dataTransfer.types].includes('Files')){e.preventDefault();e.dataTransfer.dropEffect='copy';}}
+  async function dropImages(e){
+    if(presenting.value||view.value!=='slides')return;e.preventDefault();const files=[...e.dataTransfer.files].filter(f=>['image/png','image/jpeg','image/webp','image/svg+xml'].includes(f.type));if(!files.length){notify('Dépose un PNG, JPEG, WebP ou SVG.');return;}
+    const slide=current.value,point=coords(e);historyGesture='drop:'+(++gestureId);
+    try{const result=await insertDroppedImages(slide,files,point,imageSource,()=>slides.value.includes(slide));
+      if(result.keys.length){workspace.value='editor';closeEdit();const key=result.keys.at(-1);selected.value=key;selectedKeys.value=[key];await prepareImages([slide]);notify(result.keys.length+' image(s) ajoutée(s).');}
+      if(result.failed)notify('Certaines images sont invalides ou trop volumineuses.');else if(result.keys.length<files.length)notify('Limite de 40 éléments ajoutés atteinte.');
+    }finally{await nextTick();recordHistory();historyGesture=null;canvas.value?.focus({preventScroll:true});}
+  }
   const renderOptions = (s, n, order = Infinity) => ({ ...frame.value, project: project.value, n, total: slides.value.length, order });
   function notify(message) { toast.value = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 3500); }
   function flushLocal(){try{localStorage.setItem('frame-project',JSON.stringify(snapshot()));localStorage.setItem('frame-themes',JSON.stringify(palette.value));localStorage.setItem('frame-session',JSON.stringify({slideId:current.value.id,view:view.value,workspace:workspace.value}));saved.value=true;}catch{saved.value=false;notify('Sauvegarde locale impossible. Enregistre le fichier.');}}
@@ -101,7 +126,7 @@ export function useStudio() {
   watch(workspace,value=>{selectionScope.value=value==='canvas'?'slides':'elements';deselect();});
   watch([laser, laserSize, tool, altHeld, hovered,selectedKeys], requestDraw,{deep:true});
   let fontGeneration=0;
-  watch(()=>JSON.stringify(usedFontFaces(slides.value)),async()=>{const generation=++fontGeneration;fontLoading.value=true;try{await prepareFonts(slides.value);if(generation===fontGeneration){for(const slide of slides.value)for(const key of visibleBlocks(slide))if(slide.positions[key]?.autoSize){const b=autoTextBounds(measurement,slide,key);Object.assign(slide.positions[key],{w:b.w,h:b.h});}thumbnailKeys.clear();queueThumbnails();requestDraw();}}catch{notify('Police non chargée. Réessaie avant d’exporter.');}finally{if(generation===fontGeneration)fontLoading.value=false;}},{immediate:true});
+  watch(()=>JSON.stringify(usedFontFaces(slides.value)),async()=>{const generation=++fontGeneration;fontLoading.value=true;try{await prepareFonts(slides.value);if(generation===fontGeneration){const pristine=history.states.length===1&&JSON.stringify(snapshot())===history.states[0];for(const slide of slides.value)for(const key of visibleBlocks(slide))if(slide.positions[key]?.autoSize){const b=autoTextBounds(measurement,slide,key);Object.assign(slide.positions[key],{w:b.w,h:b.h});}if(pristine){history=new ProjectHistory(snapshot());historyVersion.value++;}thumbnailKeys.clear();queueThumbnails();requestDraw();}}catch{notify('Police non chargée. Réessaie avant d’exporter.');}finally{if(generation===fontGeneration)fontLoading.value=false;}},{immediate:true});
   async function ensureFonts(){try{await prepareFonts(slides.value);return true;}catch{notify('Impossible de charger les polices. Réessaie avant de présenter ou d’exporter.');return false;}}
   function observeStage() { if (!stage.value) return; observer?.disconnect(); observer = new ResizeObserver(entries => { stageWidth.value = entries[0].contentRect.width; }); observer.observe(stage.value); }
   function requestDraw() { if (!raf) raf = requestAnimationFrame(tick); }
@@ -163,10 +188,11 @@ export function useStudio() {
   function setRotation(e){position.value.rotation=normalizeAngle(e.target.value);e.target.value=Math.round(position.value.rotation*100)/100;}
   function duplicateSelected(){closeEdit();const keys=selectedKeys.value.length?selectedKeys.value:[selected.value];if(Object.keys(current.value.elements).length+keys.length>40){notify('Limite de 40 éléments ajoutés atteinte.');return;}const map=new Map(keys.map(k=>[k,duplicateElement(current.value,k)]).filter(([,v])=>v));for(const g of [...current.value.groups||[]])if(g.keys.every(k=>map.has(k)))groupSelection(current.value,g.keys.map(k=>map.get(k)));selectedKeys.value=[...map.values()];selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;contextMenu.value=null;requestDraw();}
   function openContext(e){e.preventDefault();if(presenting.value||view.value!=='slides')return;closeEdit();const hit=hitBlock(coords(e));if(hit){selectObject(hit,e);selectionScope.value='elements';}else deselect();contextMenu.value={x:Math.max(8,Math.min(window.innerWidth-224,e.clientX)),y:Math.max(8,Math.min(window.innerHeight-280,e.clientY)),element:!!hit};}
-  function contextOutside(e){if(!e.target.closest?.('.element-context'))dismissContext();}
+  function endHistoryGesture(){if(historyGesture?.startsWith('range:')){recordHistory();historyGesture=null;}}
+  function contextOutside(e){if(e.target.matches?.('input[type=range]'))historyGesture='range:'+(++gestureId);if(!e.target.closest?.('.element-context'))dismissContext();}
   function dismissContext(){contextMenu.value=null;}
-  function keyup(e){if(e.key==='Alt')altHeld.value=false;}
-  function resetKeys(){altHeld.value=false;contextMenu.value=null;}
+  function keyup(e){if(e.key.startsWith('Arrow')){recordHistory();historyGesture=null;}if(e.key==='Alt')altHeld.value=false;}
+  function resetKeys(){historyGesture=null;altHeld.value=false;contextMenu.value=null;}
   function clearAnnotations() { strokes = []; trail.clear(); requestDraw(); }
   function coords(e) { const r = canvas.value.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * WIDTH, y: (e.clientY - r.top) / r.height * HEIGHT }; }
   function hitBlock(p) {
@@ -175,6 +201,7 @@ export function useStudio() {
   }
   function down(e) {
     if (e.button !== 0 || view.value === 'banners' || videoPreview.value) return;
+    if(!presenting.value)canvas.value.focus({preventScroll:true});
     closeEdit();contextMenu.value=null;if(!presenting.value)selectionScope.value='elements';const p = coords(e); canvas.value.setPointerCapture(e.pointerId);
     if (presenting.value) { pointer = p; pointerDown = { ...p, moved: false }; if(tool.value==='laser')trail.begin(p,performance.now(),laser.value,laserSize.value); if (tool.value === 'pen') { activeStroke = { color: laser.value, size: laserSize.value / 2, points: [p] }; strokes.push(activeStroke); } }
     else {const hit=hitBlock(p);if(!hit){deselect();requestDraw();return;}selectionScope.value='elements';selectObject(hit,e);if(e.ctrlKey||e.metaKey){requestDraw();return;}const origins=Object.fromEntries(selectedKeys.value.map(k=>[k,{...current.value.positions[k]}])),b=enclosingBounds(selectedKeys.value.map(k=>elementBounds(measurement,current.value,k)));drag={key:hit,slideId:current.value.id,origin:origins[hit],position:origins[hit],origins,positions:origins,bounds:b,start:p,moved:false};}
@@ -197,7 +224,7 @@ export function useStudio() {
   }
   function leave() { pointer = null;hovered.value=null; requestDraw(); }
   function doubleClick(e) { if (presenting.value || view.value !== 'slides') return; const hit = hitBlock(coords(e)); if (!hit) return; drag = null; selected.value = hit;selectedKeys.value=[hit];selectionScope.value='elements'; if(!['image','shape'].includes(blockType(current.value,hit))) editing.value = hit; requestDraw(); }
-  function closeEdit() { editing.value = null; requestDraw(); }
+  function closeEdit() { if(editing.value)history.group=null;editing.value = null; requestDraw(); }
   function editSelected() { if (!visibleBlocks(current.value).includes(selected.value))return; if(!['image','shape'].includes(selectedType.value)) editing.value = selected.value; }
   function chooseSlide(n) {
     if (n < 0 || n >= slides.value.length || n === index.value || moving.value) return;
@@ -245,18 +272,16 @@ export function useStudio() {
     selectedKeys.value=[key];selectionScope.value='elements';selected.value=key;if(type==='text')editing.value=key;
   }
   function removeBlock() { const keys=selectedKeys.value.length?selectedKeys.value:[selected.value];contextMenu.value=null;closeEdit();for(const k of keys){if(!k)continue;delete current.value.elements[k];delete current.value.positions[k];delete current.value.fragments[k];current.value.blockKeys=current.value.blockKeys.filter(key=>key!==k);}current.value.groups=normalizeGroups(current.value.groups,visibleBlocks(current.value));deselect();requestDraw(); }
+  async function imageSource(file){
+    if(!['image/png','image/jpeg','image/webp','image/svg+xml'].includes(file.type)||file.size>20*1024*1024)throw Error('Image invalide');
+    if(file.type==='image/svg+xml')return svgSource(await file.text());
+    const image=await createImageBitmap(file),ratio=Math.min(1,1600/Math.max(image.width,image.height));
+    const c=document.createElement('canvas');c.width=Math.max(1,Math.round(image.width*ratio));c.height=Math.max(1,Math.round(image.height*ratio));c.getContext('2d').drawImage(image,0,0,c.width,c.height);image.close();const src=c.toDataURL('image/png');if(src.length>=3000000)throw Error('Image trop volumineuse');return src;
+  }
   async function uploadImage(event) {
-    const file=event.target.files?.[0], s=current.value, key=selected.value; event.target.value='';
-    if(!file)return;
-    if(!['image/png','image/jpeg','image/webp','image/svg+xml'].includes(file.type)||file.size>20*1024*1024){notify('Choisis un PNG, JPEG, WebP ou SVG de moins de 20 Mo.');return;}
-    try {
-      if(file.type==='image/svg+xml'){const src=svgSource(await file.text());if(s.elements[key]?.type==='image')s.elements[key].src=src;await prepareImages([s]);notify('SVG intégré au projet, transparence conservée.');return;}
-      const image=await createImageBitmap(file), ratio=Math.min(1,1600/Math.max(image.width,image.height));
-      const c=document.createElement('canvas');c.width=Math.round(image.width*ratio);c.height=Math.round(image.height*ratio);c.getContext('2d').drawImage(image,0,0,c.width,c.height);image.close();
-      const src=c.toDataURL('image/png');if(src.length>=3000000)throw Error();
-      if(s.elements[key]?.type==='image')s.elements[key].src=src;
-      await prepareImages([s]);notify('Image ajoutée et intégrée au projet.');
-    }catch{notify('Image non chargée. Le SVG doit être autonome, sans script ni ressource externe.');}
+    const file=event.target.files?.[0],slide=current.value,key=selected.value;event.target.value='';if(!file)return;
+    try{const src=await imageSource(file);if(slide.elements[key]?.type==='image')slide.elements[key].src=src;await prepareImages([slide]);notify('Image intégrée, transparence conservée.');}
+    catch{notify('Choisis un PNG, JPEG, WebP ou SVG autonome de moins de 20 Mo.');}
   }
   function reorder(from,to) { routeMode.value='manual'; const id=current.value.id;slides.value=reorderSlides(slides.value,from,to);routeStart.value=slides.value[0].id;index.value=slides.value.findIndex(s=>s.id===id);requestDraw(); }
   function listDown(event,n) {
@@ -313,7 +338,7 @@ export function useStudio() {
       if (data.banner && typeof data.banner.title === 'string' && typeof data.banner.subtitle === 'string' && ['lower', 'chapter', 'tip','video'].includes(data.banner.type)) banner.value = data.banner;
       routeMode.value=['spatial','manual'].includes(data.routeMode)?data.routeMode:'spatial';routeStart.value=normalized.some(s=>s.id===data.routeStart)?data.routeStart:'';routeBackup.value=null;resolution.value=normalizeResolution(data.resolution);
       frame.value = normalizeFrame(data.frame); transitionMs.value = Number.isFinite(data.transitionMs) ? Math.min(2000, Math.max(0, data.transitionMs)) : 650;
-      index.value = 0; step.value = 0; gridDraft.value = { ...current.value.grid }; updateThumbnails(); requestDraw(); projectId.value=crypto.randomUUID();flushLocal();
+      index.value = 0; step.value = 0; gridDraft.value = { ...current.value.grid }; updateThumbnails(); requestDraw(); projectId.value=crypto.randomUUID();history=new ProjectHistory(snapshot());historyVersion.value++;flushLocal();
   }
   async function importProject(event){try{applyProject(JSON.parse(await event.target.files[0].text()));await fileStore.detach();fileName.value='';fileDirty.value=true;notify('Projet importé. Utilise Enregistrer sous pour le lier à un fichier.');}catch{notify('Ce fichier n’est pas un projet Frame valide.');}event.target.value='';}
   async function openProject(){if(fileBusy.value)return;fileBusy.value=true;try{const r=await fileStore.open();applyProject(JSON.parse(r.text));await fileStore.link(r.handle,projectId.value);fileName.value=r.handle.name;fileDirty.value=false;notify('Fichier ouvert et lié.');}catch(error){if(error.name!=='AbortError')notify('Impossible d’ouvrir ce projet.');}finally{fileBusy.value=false;}}
@@ -352,11 +377,12 @@ export function useStudio() {
     if(e.key==='Alt'&&!presenting.value&&!editing.value&&view.value==='slides'&&workspace.value==='editor'){altHeld.value=true;e.preventDefault();}
     if(e.target.isContentEditable)return;
     if (e.key === 'Escape') {if(shapeGallery.value){shapeGallery.value=false;return;}if(themeEditor.value){themeEditor.value=null;return;}displayMenu.value=false;contextMenu.value=null; if (videoPreview.value) videoPreview.value = false; else if(formatOpen.value)formatOpen.value=false;else if (gallery.value) gallery.value = false; else if (presenting.value) exit(); else closeEdit(); return; }
+    if(!presenting.value&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT'&&['text','search','email','url','password','number'].includes(e.target.type))){e.preventDefault();if(!e.repeat)e.shiftKey?redo():undo();return;}
     if (['INPUT', 'TEXTAREA', 'SELECT', 'VIDEO'].includes(e.target.tagName)) return;
     if(!presenting.value&&view.value==='slides'&&!editing.value&&!shapeGallery.value&&!gallery.value&&!formatOpen.value&&!themeEditor.value){if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='a'){e.preventDefault();if(workspace.value==='canvas'||selectionScope.value==='slides'){selectedSlides.value=slides.value.map(s=>s.id);selectionScope.value='slides';}else{selectedKeys.value=visibleBlocks(current.value);selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;}requestDraw();return;}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='g'&&workspace.value==='editor'){e.preventDefault();e.shiftKey?ungroupObjects():groupObjects();return;}if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'&&workspace.value==='editor'&&selectedKeys.value.length){e.preventDefault();if(!e.repeat)duplicateSelected();return;}if(e.key==='Delete'){e.preventDefault();selectionScope.value==='slides'?deleteSlides():removeBlock();return;}}
     if (!presenting.value && view.value==='slides' && workspace.value==='editor' && !themeEditor.value && !editing.value && !shapeGallery.value && !gallery.value && !formatOpen.value && selectedKeys.value.length) {
       if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='d'){e.preventDefault();if(!e.repeat)duplicateSelected();return;}
-      const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(d){e.preventDefault();const amount=e.shiftKey?10:1;const b=selectionBounds.value,origins=Object.fromEntries(selectedKeys.value.map(k=>[k,current.value.positions[k]]));Object.assign(current.value.positions,translateSelection(origins,b,d[0]*amount*WIDTH/resolution.value.width,d[1]*amount*WIDTH/resolution.value.width));return;}
+      const d={ArrowLeft:[-1,0],ArrowRight:[1,0],ArrowUp:[0,-1],ArrowDown:[0,1]}[e.key];if(d){e.preventDefault();if(!e.repeat)historyGesture='arrows:'+(++gestureId);const amount=e.shiftKey?10:1;const b=selectionBounds.value,origins=Object.fromEntries(selectedKeys.value.map(k=>[k,current.value.positions[k]]));Object.assign(current.value.positions,translateSelection(origins,b,d[0]*amount*WIDTH/resolution.value.width,d[1]*amount*WIDTH/resolution.value.width));return;}
     }
     if (!presenting.value || videoPreview.value) return;
     const direction = { ArrowRight: 'right', ArrowLeft: 'left', ArrowDown: 'down', ArrowUp: 'up' }[e.key];
@@ -367,9 +393,9 @@ export function useStudio() {
   function beforeUnload(e) { flushLocal();if (recording.value || finalizing.value) { e.preventDefault(); e.returnValue = ''; } }
   onMounted(() => {
     fileBusy.value=true;fileStore.restore(projectId.value).then(()=>{fileName.value=fileStore.handle?.name||'';if(fileName.value)try{const disk=JSON.parse(fileStore.baseline);fileDirty.value=canonical({...disk,slides:normalizeSlides(disk.slides)})!==canonical({...snapshot(),slides:normalizeSlides(slides.value)});}catch{fileDirty.value=true;}}).finally(()=>fileBusy.value=false);window.addEventListener('pagehide',flushLocal);document.addEventListener('visibilitychange',visibilitySave);
-    gridDraft.value = { ...current.value.grid }; updateThumbnails(); observeStage(); requestDraw(); window.addEventListener('frame-images-ready',imagesReady); window.addEventListener('keydown', keys);window.addEventListener('keyup',keyup);window.addEventListener('blur',resetKeys);window.addEventListener('pointerdown',contextOutside); window.addEventListener('beforeunload', beforeUnload);
+    gridDraft.value = { ...current.value.grid }; updateThumbnails(); observeStage(); requestDraw(); window.addEventListener('frame-images-ready',imagesReady); window.addEventListener('keydown', keys);window.addEventListener('keyup',keyup);window.addEventListener('blur',resetKeys);window.addEventListener('pointerdown',contextOutside);window.addEventListener('pointerup',endHistoryGesture);window.addEventListener('pointercancel',endHistoryGesture); window.addEventListener('beforeunload', beforeUnload);
     if (document.modelContext?.registerTool) try { Promise.resolve(document.modelContext.registerTool({ name: 'read_frame_project', description: 'Read the current slide project and presentation state', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: input => { if (!input || typeof input !== 'object' || Object.keys(input).length) throw Error('Expected an empty object'); return { ...JSON.parse(JSON.stringify(snapshot())), index: index.value, step: step.value, selected:selected.value, selectedKeys:selectedKeys.value,selectedSlides:selectedSlides.value,countdown:countdown.value,recording:recording.value, altHeld:altHeld.value, diagnostics: { ...metrics, trailPoints:trail.points.length, trailActive:trail.active } }; } }, { signal: modelController.signal })).catch(() => {}); } catch { /* Browser support is optional. */ }
   });
-  onUnmounted(() => { if(!presenting.value)flushLocal();window.removeEventListener('pagehide',flushLocal);document.removeEventListener('visibilitychange',visibilitySave);modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer);cancelCountdown(); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('frame-images-ready',imagesReady); window.removeEventListener('keydown', keys);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',resetKeys);window.removeEventListener('pointerdown',contextOutside); window.removeEventListener('beforeunload', beforeUnload); });
-  return { fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,saveProject,selectionBounds,canUngroup,groupObjects,ungroupObjects,fitSelection, selectedTextStyle,updateTextStyle,refreshTextStyle, fontLoading,fontCss, rotationHandle,rotateDown,setRotation, shapeGallery,openShapes,addShape,moveLayer, routeMode,routeStart,routeBackup,setRouteMode,setRouteStart,traceRoute,connectSlides,undoRoute, palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
+  onUnmounted(() => { if(!presenting.value)flushLocal();window.removeEventListener('pagehide',flushLocal);document.removeEventListener('visibilitychange',visibilitySave);modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer);cancelCountdown(); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('frame-images-ready',imagesReady); window.removeEventListener('keydown', keys);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',resetKeys);window.removeEventListener('pointerdown',contextOutside);window.removeEventListener('pointerup',endHistoryGesture);window.removeEventListener('pointercancel',endHistoryGesture); window.removeEventListener('beforeunload', beforeUnload); });
+  return { undo,redo,canUndo,canRedo,dragImages,dropImages,fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,saveProject,selectionBounds,canUngroup,groupObjects,ungroupObjects,fitSelection, selectedTextStyle,updateTextStyle,refreshTextStyle, fontLoading,fontCss, rotationHandle,rotateDown,setRotation, shapeGallery,openShapes,addShape,moveLayer, routeMode,routeStart,routeBackup,setRouteMode,setRouteStart,traceRoute,connectSlides,undoRoute, palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
 }
