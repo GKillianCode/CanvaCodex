@@ -1,0 +1,10 @@
+<script setup>
+import {ref,nextTick,onMounted,onUnmounted} from 'vue';
+import {X,Check} from 'lucide-vue-next';
+const props=defineProps({value:String,label:String});const emit=defineEmits(['confirm','close']);
+const draft=ref(props.value),labelDraft=ref(props.label||''),input=ref(null),dialog=ref(null);let previous;
+function confirm(){emit('confirm',{text:draft.value,label:labelDraft.value});}
+function key(e){if(e.key==='Escape'){e.preventDefault();emit('close');}else if(e.key==='Enter'&&(e.ctrlKey||e.metaKey)){e.preventDefault();confirm();}else if(e.key==='Tab'){const list=[...dialog.value.querySelectorAll('button,input,textarea')].filter(el=>!el.disabled),first=list[0],last=list.at(-1);if(e.shiftKey&&document.activeElement===first){e.preventDefault();last.focus();}else if(!e.shiftKey&&document.activeElement===last){e.preventDefault();first.focus();}}}
+onMounted(()=>{previous=document.activeElement;nextTick(()=>input.value?.focus());});onUnmounted(()=>previous?.focus?.());
+</script>
+<template><div class="modal-backdrop text-dialog-backdrop" @keydown.stop="key" @pointerdown.stop><form ref="dialog" class="text-dialog" role="dialog" aria-modal="true" aria-labelledby="text-dialog-title" @submit.prevent="confirm"><div class="text-dialog-heading"><div><h2 id="text-dialog-title">Modifier le texte</h2><p>Le texte sera appliqué à la diapo après validation.</p></div><button type="button" class="icon-btn" aria-label="Fermer sans appliquer" @click="emit('close')"><X :size="20"/></button></div><label v-if="label!==undefined">Surtitre<input v-model="labelDraft" maxlength="100" aria-label="Surtitre du bloc"></label><label>Texte<textarea ref="input" v-model="draft" aria-label="Texte à appliquer" rows="10" maxlength="100000" spellcheck="true"/></label><div class="text-dialog-actions"><small>Ctrl/⌘ + Entrée pour valider · Échap pour annuler</small><button class="btn" type="button" @click="emit('close')">Annuler</button><button class="btn primary" type="submit"><Check :size="16"/>Appliquer</button></div></form></div></template>
