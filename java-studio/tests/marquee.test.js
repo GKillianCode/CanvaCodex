@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import { marqueeRect,marqueeKeys } from '../src/marquee.js';
+assert.deepEqual(marqueeRect({x:300,y:400},{x:100,y:100}),{x:100,y:100,w:200,h:300});
+assert.deepEqual(marqueeRect({x:30,y:50},{x:3000,y:-10}),{x:30,y:0,w:1890,h:50});
+const bounds={a:{x:10,y:10,w:30,h:30},b:{x:60,y:10,w:30,h:30},c:{x:110,y:10,w:30,h:30}};
+assert.deepEqual(marqueeKeys(bounds,[],{x:10,y:10,w:30,h:30}),['a']);
+assert.deepEqual(marqueeKeys(bounds,[],{x:0,y:0,w:20,h:20}),[]);
+assert.deepEqual(marqueeKeys(bounds,[{keys:['a','b']}],{x:0,y:0,w:50,h:50}),[]);
+assert.deepEqual(marqueeKeys(bounds,[{keys:['a','b']}],{x:0,y:0,w:100,h:50}),['a','b']);
+assert.deepEqual(marqueeKeys(bounds,[],{x:0,y:0,w:50,h:50},['c']),['a','c']);
+const rotated={r:{x:100,y:100,w:100,h:100,rotation:45}};
+assert.deepEqual(marqueeKeys(rotated,[],{x:100,y:100,w:100,h:100}),[]);
+assert.deepEqual(marqueeKeys(rotated,[],{x:79,y:79,w:142,h:142}),['r']);
