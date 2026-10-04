@@ -1,3 +1,4 @@
+import { MAX_ELEMENTS } from './limits.js';
 import { WIDTH, HEIGHT, blockLabel, blockText, blockType, visibleBlocks } from './model.js';
 export function nudgePosition(p, dx, dy, outputWidth) { const unit=WIDTH/outputWidth;return {...p,x:Math.max(0,Math.min(WIDTH-p.w,p.x+dx*unit)),y:Math.max(0,Math.min(HEIGHT-(p.h||40),p.y+dy*unit))}; }
 export function resizePosition(origin,handle,dx,dy,type) {
@@ -12,7 +13,7 @@ export function resizePosition(origin,handle,dx,dy,type) {
  return {...origin,x,y,w,h,size:['image','shape'].includes(type)?origin.size:Math.max(10,Math.min(260,origin.size*ratio))};
 }
 export function duplicateElement(s,key) {
- if(!visibleBlocks(s).includes(key)||Object.keys(s.elements).length>=40)return null;
+ if(!visibleBlocks(s).includes(key)||Object.keys(s.elements).length>=MAX_ELEMENTS)return null;
  const type=blockType(s,key),copyKey=type+crypto.randomUUID().replaceAll('-','').slice(0,8),source=s.elements[key];
  s.elements[copyKey]=source?JSON.parse(JSON.stringify(source)):{type,text:blockText(s,key),weight:key==='title'?700:400,label:key==='title'?s.label:'',caption:key==='code'?s.codeTitle:''};
  s.elements[copyKey].custom=true;s.elements[copyKey].name=(blockLabel(s,key)+' · copie').slice(0,100);

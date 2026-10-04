@@ -1,3 +1,4 @@
+import { MAX_ELEMENTS } from './limits.js';
 import { normalizeGroups } from './selection.js';
 import { validSvgSource } from './svg.js';
 import { normalizeTextStyle } from './textStyles.js';
@@ -138,7 +139,7 @@ export function normalizeSlide(raw, n = 0) {
   s.exitDirection = ['auto',...Object.keys(directions)].includes(raw.exitDirection) ? raw.exitDirection : 'auto';
   if (raw.elements && typeof raw.elements === 'object') {
     s.elements = {};
-    for (const [key,e] of Object.entries(raw.elements).slice(0,40)) {
+    for (const [key,e] of Object.entries(raw.elements).slice(0,MAX_ELEMENTS)) {
       if (!/^(text|image|code|shape)[a-zA-Z0-9_-]+$/.test(key) || !e || !['text','image','code','shape'].includes(e.type)) continue;
       if(e.type==='shape'){s.elements[key]=normalizeShape(e);continue;}
       s.elements[key] = e.type !== 'image' ? {type:e.type,weight:e.weight===700?700:400,label:String(e.label||'').slice(0,100),caption:String(e.caption||'').slice(0,200),custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),src:validImageSource(e.src)?e.src:'',fit:e.fit==='cover'?'cover':'contain',background:e.background===true,roundedCorners:e.roundedCorners===true,cornerRadius:finite(e.cornerRadius,10,0,50)};
