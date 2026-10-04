@@ -2,7 +2,7 @@ import { insertDroppedImages } from './imageDrop.js';
 import { ProjectHistory } from './history.js';
 import { drawSlideTransition } from './slideTransition.js';
 import { ProjectFile, canonical } from './projectFile.js';
-import { svgSource } from './svg.js';
+import { imageSource, imageImportError, IMAGE_TYPES } from './imageImport.js';
 import { clampZoom,wheelZoom } from './zoom.js';
 import { reorderLayers } from './layers.js';
 import { captureComponent, normalizeComponents, insertComponent } from './componentsLibrary.js';
@@ -94,11 +94,11 @@ export function useStudio() {
   function redo(){restoreHistory(history.redo());}
   function dragImages(e){if(presenting.value||view.value!=='slides')return;if([...e.dataTransfer.types].includes('Files')){e.preventDefault();e.dataTransfer.dropEffect='copy';}}
   async function dropImages(e){
-    if(presenting.value||view.value!=='slides')return;e.preventDefault();const files=[...e.dataTransfer.files].filter(f=>['image/png','image/jpeg','image/webp','image/svg+xml'].includes(f.type));if(!files.length){notify('Dépose un PNG, JPEG, WebP ou SVG.');return;}
+    if(presenting.value||view.value!=='slides')return;e.preventDefault();const files=[...e.dataTransfer.files].filter(f=>IMAGE_TYPES.includes(f.type));if(!files.length){notify('Dépose un PNG, JPEG, WebP ou SVG.');return;}
     const slide=current.value,point=coords(e);historyGesture='drop:'+(++gestureId);
-    try{const result=await insertDroppedImages(slide,files,point,imageSource,()=>slides.value.includes(slide));
+    try{let importError;const result=await insertDroppedImages(slide,files,point,async file=>{try{return await imageSource(file);}catch(error){importError=error;throw error;}},()=>slides.value.includes(slide));
       if(result.keys.length){workspace.value='editor';closeEdit();const key=result.keys.at(-1);selected.value=key;selectedKeys.value=[key];await prepareImages([slide]);notify(result.keys.length+' image(s) ajoutée(s).');}
-      if(result.failed)notify('Certaines images sont invalides ou trop volumineuses.');else if(result.keys.length<files.length)notify('Limite de 40 éléments ajoutés atteinte.');
+      if(result.failed)notify(imageImportError(importError));else if(result.keys.length<files.length)notify('Limite de 40 éléments ajoutés atteinte.');
     }finally{await nextTick();recordHistory();historyGesture=null;canvas.value?.focus({preventScroll:true});}
   }
   const renderOptions = (s, n, order = Infinity) => ({ ...frame.value, project: project.value, n, total: slides.value.length, order });
@@ -288,16 +288,10 @@ export function useStudio() {
     selectedKeys.value=[key];selectionScope.value='elements';selected.value=key;if(type==='text')editing.value=key;
   }
   function removeBlock() { const keys=selectedKeys.value.length?selectedKeys.value:[selected.value];contextMenu.value=null;closeEdit();for(const k of keys){if(!k)continue;delete current.value.elements[k];delete current.value.positions[k];delete current.value.fragments[k];current.value.blockKeys=current.value.blockKeys.filter(key=>key!==k);}current.value.groups=normalizeGroups(current.value.groups,visibleBlocks(current.value));deselect();requestDraw(); }
-  async function imageSource(file){
-    if(!['image/png','image/jpeg','image/webp','image/svg+xml'].includes(file.type)||file.size>20*1024*1024)throw Error('Image invalide');
-    if(file.type==='image/svg+xml')return svgSource(await file.text());
-    const image=await createImageBitmap(file),ratio=Math.min(1,1600/Math.max(image.width,image.height));
-    const c=document.createElement('canvas');c.width=Math.max(1,Math.round(image.width*ratio));c.height=Math.max(1,Math.round(image.height*ratio));c.getContext('2d').drawImage(image,0,0,c.width,c.height);image.close();const src=c.toDataURL('image/png');if(src.length>=3000000)throw Error('Image trop volumineuse');return src;
-  }
   async function uploadImage(event) {
     const file=event.target.files?.[0],slide=current.value,key=selected.value;event.target.value='';if(!file)return;
     try{const src=await imageSource(file);if(slide.elements[key]?.type==='image')slide.elements[key].src=src;await prepareImages([slide]);notify('Image intégrée, transparence conservée.');}
-    catch{notify('Choisis un PNG, JPEG, WebP ou SVG autonome de moins de 20 Mo.');}
+    catch(error){notify(imageImportError(error));}
   }
   function reorder(from,to) { routeMode.value='manual'; const id=current.value.id;slides.value=reorderSlides(slides.value,from,to);routeStart.value=slides.value[0].id;index.value=slides.value.findIndex(s=>s.id===id);requestDraw(); }
   function listDown(event,n) {
