@@ -81,3 +81,11 @@ Les formes occupent leur cadre sans marge vide : étoiles, polygones, courbes et
 Images : coche « Bords arrondis » puis règle le curseur dans Image et transparence. L’arrondi suit l’image affichée, même en mode Image entière dans un cadre plus grand. Dépose aussi des fichiers PNG, JPEG, WebP ou SVG directement sur la diapo en vue Éditer.
 
 Ctrl Z annule et Ctrl Maj Z rétablit les modifications du projet (historique de la session, boutons ↶ ↷). Clique sur un objet puis utilise les flèches pour le déplacer de 1 pixel de sortie, ou Maj + flèche pour 10 pixels. L’annulation du texte reste native pendant la saisie.
+
+### Couleurs, groupes et composants
+
+Dans **Style du texte**, choisir une couleur du thème (11 couleurs) ou une couleur personnalisée. Les couleurs du thème suivent le changement de thème ; le mode Automatique conserve les titres en dégradé et la coloration Java. Les six couleurs complémentaires se modifient dans l’éditeur de thème.
+
+Une sélection multiple propose le centrage du groupe dans la diapo, l’alignement des centres des membres et un espacement horizontal/vertical en pixels de sortie. Les cadres tournés sont pris en compte. Un grand espacement peut placer des objets hors de la diapo.
+
+**Propriétés → Composants réutilisables** : nommer une sélection puis la créer dans la bibliothèque du projet. Insérer crée une copie groupée, modifiable avec les propriétés habituelles (double-clic pour éditer un membre). Bibliothèque conservée dans les sauvegardes et le JSON, avec annulation/rétablissement. Les copies restent indépendantes ; pas de propagation automatique des changements ni de variantes liées. Pour créer une variante, personnaliser une copie puis l’enregistrer sous un autre nom.

@@ -1,4 +1,4 @@
-import { getTextStyle, normalizeTextStyle, styleFont } from './textStyles.js';
+import { textColor, getTextStyle, normalizeTextStyle, styleFont } from './textStyles.js';
 import { fontCss } from './fonts.js';
 import { drawShape,shapeBounds } from './shapes.js';
 import { WIDTH, HEIGHT, visibleBlocks, blockType, blockText } from './model.js';
@@ -95,7 +95,7 @@ function drawCode(ctx, s, theme, key) {
     ctx.font=styleFont(size,family,style);ctx.textBaseline='top';paintTextMark(ctx,line,p.x+80,y,size,theme.ink,style,true);
     let x = p.x + 80;
     ctx.font = styleFont(size,family,style); ctx.textBaseline = 'top';
-    for (const token of segments) { ctx.fillStyle = codeColor(token.type, theme); ctx.fillText(token.text, x, y); x += ctx.measureText(token.text).width; }
+    for (const token of segments) { ctx.fillStyle = textColor(style,theme,codeColor(token.type, theme)); ctx.fillText(token.text, x, y); x += ctx.measureText(token.text).width; }
     paintTextMark(ctx,line,p.x+80,y,size,theme.ink,style);
   });
   ctx.restore();
@@ -110,7 +110,7 @@ function decoration(ctx,s,key,t) {
     round(ctx,p.x-32,p.y-104,p.w+64,(p.h||240)+144,24,t.panel);
     text(ctx,s.layout==='before-after'?(n===0?'AVANT':'APRÈS'):s.layout==='question'?'EXPLICATION':String(n+1).padStart(2,'0'),p.x,p.y-65,p.w,24,n===1?t.secondary:t.accent,700);
   }
-  if(['steps','summary'].includes(s.layout)) {round(ctx,p.x-112,p.y,64,64,20,t.accent);text(ctx,String(n+1),p.x-92,p.y+13,40,28,t.bg,700);ctx.fillStyle=t.ink+'15';ctx.fillRect(p.x,p.y+(p.h||120)+24,p.w,2);}
+  if(['steps','summary'].includes(s.layout)) {round(ctx,p.x-112,p.y,64,64,20,t.accent);ctx.save();ctx.font='700 28px Arial';ctx.textAlign='center';ctx.textBaseline='alphabetic';const digit=String(n+1),metrics=ctx.measureText(digit);ctx.fillStyle=t.bg;ctx.fillText(digit,p.x-80,p.y+32+((metrics.actualBoundingBoxAscent||20)-(metrics.actualBoundingBoxDescent||0))/2);ctx.restore();ctx.fillStyle=t.ink+'15';ctx.fillRect(p.x,p.y+(p.h||120)+24,p.w,2);}
   if(s.layout==='timeline') {ctx.fillStyle=t.accent;ctx.beginPath();ctx.arc(p.x+12,p.y-96,12,0,Math.PI*2);ctx.fill();ctx.fillStyle=t.accent+'40';ctx.fillRect(p.x+28,p.y-98,p.w-8,4);text(ctx,String(n+1).padStart(2,'0'),p.x,p.y-65,p.w,24,t.accent,700);}
   if(s.layout==='definition'&&key==='body'){ctx.fillStyle=t.accent;ctx.fillRect(p.x,p.y-56,120,6);}
 }
@@ -136,11 +136,11 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if(s.designVersion===2 && key!=='title' && blockType(s,key)==='text') decoration(ctx,s,key,theme);
     if (key === 'title'||s.elements[key]?.weight===700) {
       const label=key==='title'?s.label:s.elements[key]?.label;if (label) text(ctx, label, p.x, Math.max(10, p.y - 58), p.w, 23, theme.accent, style.weight,fontCss(p.font),1.35,style);
-      const font=p.autoSize?p.size:fitText(ctx,blockText(s,key),p,700,1.12);const color=['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,font,color,style.weight,fontCss(p.font),1.12,style);
+      const font=p.autoSize?p.size:fitText(ctx,blockText(s,key),p,700,1.12);const color=style.color||style.colorRole?textColor(style,theme):['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,font,color,style.weight,fontCss(p.font),1.12,style);
     } else if (blockType(s,key)==='shape') drawShape(ctx,s.elements[key],p);
     else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
     else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key);
-    else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,1.4),`${theme.ink}df`,style.weight,fontCss(p.font),1.4,style);
+    else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,1.4),textColor(style,theme,`${theme.ink}df`),style.weight,fontCss(p.font),1.4,style);
     ctx.restore();
   }
   if (footer) {
