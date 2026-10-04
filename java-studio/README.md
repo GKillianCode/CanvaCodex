@@ -89,3 +89,11 @@ Dans **Style du texte**, choisir une couleur du thème (11 couleurs) ou une coul
 Une sélection multiple propose le centrage du groupe dans la diapo, l’alignement des centres des membres et un espacement horizontal/vertical en pixels de sortie. Les cadres tournés sont pris en compte. Un grand espacement peut placer des objets hors de la diapo.
 
 **Propriétés → Composants réutilisables** : nommer une sélection puis la créer dans la bibliothèque du projet. Insérer crée une copie groupée, modifiable avec les propriétés habituelles (double-clic pour éditer un membre). Bibliothèque conservée dans les sauvegardes et le JSON, avec annulation/rétablissement. Les copies restent indépendantes ; pas de propagation automatique des changements ni de variantes liées. Pour créer une variante, personnaliser une copie puis l’enregistrer sous un autre nom.
+
+### Calques et bibliothèque
+
+**Propriétés → Calques** liste tous les objets, du premier plan en haut à l’arrière-plan en bas. Cliquer sélectionne un membre individuellement ; Ctrl/⌘ + clic étend la sélection. Premier plan/Arrière-plan et Avancer/Reculer agissent aussi sur une sélection multiple en conservant l’ordre interne. Le rang numérique (z-index, 1 au fond) réordonne la sélection. Les mêmes commandes sont disponibles dans **Élément → Superposition**, pour les textes, images, codes et formes. L’ordre se conserve dans les sauvegardes, composants, présentation et exports.
+
+**Propriétés → Composants** présente une bibliothèque avec aperçus, recherche, création guidée depuis la sélection, renommage et suppression. Cliquer sur l’aperçu insère une copie personnalisable. La bibliothèque ne pousse plus les propriétés sous un long formulaire fixe.
+
+Les textes simples s’éditent dans un champ natif visible, sans miroir de texte ; le Java conserve son miroir syntaxique avec les couleurs du thème. Le fond d’édition est uni et une ligne supplémentaire garde la dernière ligne visible pendant la frappe.
