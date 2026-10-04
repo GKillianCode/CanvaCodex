@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 3 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 4 octobre 2026 (Europe/Paris).
 
 Ce fichier conserve le contexte, les décisions, les conventions, l’état réel du projet et sa roadmap. Le lire au début d’une session et le mettre à jour lorsque les décisions ou l’état changent. Résumer les échanges utiles, sans copier intégralement les conversations, sans secrets et sans présenter une idée comme une fonctionnalité livrée.
 
@@ -373,4 +373,4 @@ Saisie : texte simple affiché une seule fois dans un textarea natif visible (mi
 
 Composants : onglet dédié dans le panneau défilant, état vide, cartes avec aperçu Canvas partagé adapté aux dimensions des objets, recherche, création guidée avec nom et sélection, renommage à la demande, suppression et insertion par l’aperçu. Retour en haut du panneau au changement de section. Copies toujours indépendantes.
 
-Validation : tests existants et deux tests supplémentaires réussis (déplacements de groupes, bornes/rangs, conservation des calques après trois reprises JSON et dans les composants) ; build et diff --check réussis. Navigateur sur nouvelle origine localhost:5174 : frappe lisible sur texte et titre, absence de miroir pour le texte et hauteur sans débordement, arrière-plan/avancer/rang numérique, carte avec aperçu, recherche sans résultat, renommage/insertion et reprise de cinq calques après rechargement, aucune erreur console au contrôle. Pas de nouveau contrôle mobile ni d’export PNG/WebM. Publication en cours ; aucune fusion automatique.
+Validation : tests existants et deux tests supplémentaires réussis (déplacements de groupes, bornes/rangs, conservation des calques après trois reprises JSON et dans les composants) ; build et diff --check réussis. Navigateur sur nouvelle origine localhost:5174 : frappe lisible sur texte et titre, absence de miroir pour le texte et hauteur sans débordement, arrière-plan/avancer/rang numérique, carte avec aperçu, recherche sans résultat, renommage/insertion et reprise de cinq calques après rechargement, aucune erreur console au contrôle. Pas de nouveau contrôle mobile ni d’export PNG/WebM. Publication confirmée : [PR #38](https://github.com/GKillianCode/CanvaCodex/pull/38) ouverte vers `codex/components-colors-layout`, commit distant `f6e075a`, même arbre Git que le commit local `4327eed`. Publication par le connecteur GitHub ; aucune fusion automatique.
