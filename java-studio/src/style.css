@@ -79,3 +79,5 @@
 .studio:not(.presenting) .canvas-space{display:block;overflow:auto;max-height:calc(100vh - 280px);min-height:300px;position:relative;overscroll-behavior:contain;padding:12px}.studio:not(.presenting) .stage-wrap{max-width:none;margin:0 auto;flex-shrink:0}.studio:not(.presenting) .canvas-space canvas{border-radius:0}.studio:not(.presenting) .canvas-space .stage-wrap{min-width:0}
 
 .slide-anchor-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:10px 0 14px}.slide-anchor-grid .btn{display:flex;flex-direction:column;justify-content:center;gap:5px;padding:10px 4px;min-width:0;white-space:normal;text-align:center;min-height:70px}.slide-anchor-grid .btn span{font-size:20px;line-height:1}.slide-anchor-grid .btn small{font-size:10px;line-height:1.25}
+
+.appearance-row{padding:12px 0;border-top:1px solid var(--border)}.appearance-row>strong{font-size:12px}.appearance-row .field-help{overflow-wrap:anywhere}.appearance-row .position-grid{margin-top:8px}

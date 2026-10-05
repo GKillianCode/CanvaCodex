@@ -1,5 +1,6 @@
 <script setup>
 import { fonts, fontCss } from '../fonts.js';
+import AppearanceOrder from './AppearanceOrder.vue';
 import ComponentsPanel from './ComponentsPanel.vue';
 import TextStyleProperties from './TextStyleProperties.vue';
 import MultiProperties from './MultiProperties.vue';
@@ -42,7 +43,7 @@ const pixels=v=>Math.round(v*s.resolution.width/1920);
    <button class="btn full" @click="s.startPresentation(false)"><Play :size="14"/>Tester cette diapo</button>
    <label class="spaced">Disposition<select v-model="s.current.layout" @change="s.applyPreset(s.current.layout)"><option v-for="p in presets" :key="p.id" :value="p.id">{{p.name}}</option></select></label><button class="btn full" @click="s.applyPreset(s.current.layout)">Réappliquer la disposition</button><button v-if="s.canUndoLayout" class="btn full" @click="s.undoLayout">Annuler la recomposition</button>
    <div class="section-label spaced">TRANSITION</div><div class="exit-compact">{{s.exitLabel}}</div><label>Sortie vers<select v-model="s.current.exitDirection" aria-label="Direction de sortie"><option value="auto">Automatique · canvas</option><option value="left">← Gauche</option><option value="right">→ Droite</option><option value="up">↑ Haut</option><option value="down">↓ Bas</option></select></label><label>Durée<select v-model.number="s.transitionMs"><option :value="0">Immédiate</option><option :value="350">350 ms</option><option :value="650">650 ms</option><option :value="1000">1 seconde</option></select></label>
-   <details class="property-details"><summary>Ordre des apparitions</summary><div class="fragment-list"><label v-for="key in visibleBlocks(s.current)" :key="key"><span>{{blockLabel(s.current,key)}}</span><input type="number" min="0" max="20" v-model.number="s.current.fragments[key].order" @change="s.current.fragments[key].order=Math.max(0,Math.min(20,Math.round(Number(s.current.fragments[key].order)||0)))"></label></div></details>
+   <details class="property-details"><summary>Ordre des apparitions</summary><AppearanceOrder :slide="s.current" @change="s.updateAppearance"/></details>
    <details class="property-details"><summary>Position sur le canvas</summary><div class="position-grid"><label>Colonne<input type="number" min="-10000" max="10000" v-model.number="s.gridDraft.x"></label><label>Ligne<input type="number" min="-10000" max="10000" v-model.number="s.gridDraft.y"></label></div><button class="btn full" @click="s.applyGrid">Appliquer</button></details>
   </template>
   <template v-else-if="section==='style'">

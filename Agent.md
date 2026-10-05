@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 4 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 5 octobre 2026 (Europe/Paris).
 
 Ce fichier conserve le contexte, les décisions, les conventions, l’état réel du projet et sa roadmap. Le lire au début d’une session et le mettre à jour lorsque les décisions ou l’état changent. Résumer les échanges utiles, sans copier intégralement les conversations, sans secrets et sans présenter une idée comme une fonctionnalité livrée.
 
@@ -440,3 +440,12 @@ Demande : boutons centre, haut/bas centrés, gauche/droite centrés et autres pl
 Élément → Placer sur la diapo : grille de neuf boutons accessibles avec noms et flèches, ouverte pour toute sélection. Centre, quatre côtés centrés et quatre coins. Marge des bords facultative, zéro par défaut, exprimée en pixels de sortie et convertie en coordonnées de conception. Marge bornée à l’espace disponible par axe ; centre inchangé par la marge. Cadre englobant des objets tournés et groupes complets (même depuis une sélection partielle des calques). Translation commune aux membres sans modifier dimensions, rotations, styles, groupes ni écarts. Les sélections plus grandes que la diapo peuvent dépasser ses bords comme pour le placement libre. Historique/sauvegarde habituels ; marge transitoire de l’atelier, aucun changement de modèle.
 
 Validation : suite de tests, build et diff --check réussis. Tests des neuf ancres, groupes depuis un seul membre, marge, rotation, dimensions et conversion pour HD/Full HD/QHD/4K. Navigateur isolé localhost:5180 : neuf positions vérifiées sur rectangle 440 × 260, marge de 24 px QHD donnant x/y 18 unités ; grille inspectée visuellement ; centrage de groupe de deux rectangles conserve delta x/y 24 et identifiant, annulation restaure les positions. Aucune erreur console au contrôle. Pas de contrôle mobile ou export nouveau. Publication confirmée : [PR #52](https://github.com/GKillianCode/CanvaCodex/pull/52) ouverte vers `codex/100-elements`, commit distant `511b1de`, arbre identique au commit local `e2978bb`. Aucune fusion automatique.
+
+
+### 5 octobre 2026 — apparitions par groupe
+
+Demande : régler une fois l’étape d’apparition des trois membres d’un groupe. Suivi : [issue #53](https://github.com/GKillianCode/CanvaCodex/issues/53), branche `codex/group-appearances`, basée sur `codex/slide-position-presets` (PR #52).
+
+Diapo → Ordre des apparitions affiche une ligne par groupe, avec noms des membres, étape et animation communes ; objets isolés conservés. Valeurs différentes affichées Mixte sans écrasement automatique au regroupement. Modifier une étape ou animation de groupe l’applique à tous ses membres visibles, types hétérogènes compris ; étape depuis les propriétés individuelles étendue aussi au groupe. Dissociation retrouve les lignes individuelles. Modèle/fragments existants inchangés, étapes 0..20, historique/sauvegardes habituels.
+
+Validation : suite et build réussis, diff --check. Tests groupes de trois types/blocs avec étapes différentes, synchronisation depuis un membre, animation commune, séquence unique de révélation, étape 0, bornes/valeurs invalides, reprise JSON et dissociation. Navigateur isolé localhost:5181 : groupe titre/texte/code sur une seule ligne, étape 1 appliquée aux trois, présentation à 0/1 puis un clic Révéler affiche les trois ensemble à 1/1. Aucune erreur console au contrôle. Pas de nouveau contrôle mobile/export. Publication à confirmer ; aucune fusion automatique.
