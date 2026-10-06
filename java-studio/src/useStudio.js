@@ -1,5 +1,6 @@
 import { separateLabels, restoreTemplateLayout } from './editableTemplates.js';
-import { interiorMargins } from './interiorMargins.js';
+import { frameMargins } from './interiorMargins.js';
+import { measurementTarget,measurementMargins } from './measurementGuides.js';
 import { normalizeTable } from './tables.js';
 import { setAppearance } from './appearances.js';
 import { placeOnSlide } from './slidePlacement.js';
@@ -55,6 +56,7 @@ export function useStudio() {
   const resolution = ref(normalizeResolution(initial?.resolution)), formatOpen = ref(false), formatWidth = ref(resolution.value.width);
   const trail = new LaserTrail(), layoutBackup=ref(null);
   const canUndoLayout=computed(()=>layoutBackup.value?.id===current.value?.id);
+  let guidePoint=null;
   const hovered=ref(null),altHeld=ref(false), contextMenu=ref(null), transformPreview=shallowRef(null);
   const selectedName=computed({get:()=>current.value.elements[selected.value]?.name||current.value.blockNames?.[selected.value]||'',set:value=>setBlockName(current.value,selected.value,value)});
   const codeCaption=computed({get:()=>selected.value==='code'?current.value.codeTitle||'':current.value.elements[selected.value]?.caption||'',set:value=>{if(selected.value==='code')current.value.codeTitle=value;else if(current.value.elements[selected.value])current.value.elements[selected.value].caption=value;}});
@@ -94,7 +96,7 @@ export function useStudio() {
   const modelController = new AbortController();
   const thumbnailKeys = new Map(), formatRequests = new Map();
   const metrics = { frames: 0, thumbnails: 0, dragCommits: 0 };
-  const snapshot = () => ({ version: 16, components:components.value, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
+  const snapshot = () => ({ version: 17, components:components.value, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
   let history = new ProjectHistory(snapshot()), historyGesture=null, gestureId=0;
   const historyVersion=ref(0), canUndo=computed(()=>{historyVersion.value;return history.index>0;}), canRedo=computed(()=>{historyVersion.value;return history.index<history.states.length-1;});
   function historyGroup(){return historyGesture||(editing.value?'text:'+current.value.id+':'+editing.value:null);}
@@ -146,6 +148,7 @@ export function useStudio() {
   watch(current, s => { gridDraft.value = { ...s.grid }; selected.value=null;selectedKeys.value=[]; });
   watch(selected,key=>{if(key)selectedKeys.value=[key];});
   watch(workspace,value=>{selectionScope.value=value==='canvas'?'slides':'elements';deselect();});
+  watch([altHeld,selectedKeys,index,workspace],()=>refreshMeasurementTarget(),{deep:true,flush:'sync'});
   watch([laser, laserSize, tool, altHeld, hovered,selectedKeys], requestDraw,{deep:true});
   let fontGeneration=0;
   watch(()=>JSON.stringify(usedFontFaces(slides.value)),async()=>{const generation=++fontGeneration;fontLoading.value=true;try{await prepareFonts(slides.value);if(generation===fontGeneration){const pristine=history.states.length===1&&JSON.stringify(snapshot())===history.states[0];for(const slide of slides.value)for(const key of visibleBlocks(slide))if(slide.positions[key]?.autoSize){const b=autoTextBounds(measurement,slide,key);Object.assign(slide.positions[key],{w:b.w,h:b.h});}if(pristine){history=new ProjectHistory(snapshot());historyVersion.value++;}thumbnailKeys.clear();queueThumbnails();requestDraw();}}catch{notify('Police non chargée. Réessaie avant d’exporter.');}finally{if(generation===fontGeneration)fontLoading.value=false;}},{immediate:true});
@@ -180,7 +183,8 @@ export function useStudio() {
       if (!presenting.value && !editing.value && (selectedKeys.value.length||visibleBlocks(s).includes(selected.value))) {
         for(const key of selectedKeys.value.length?selectedKeys.value:[selected.value]){
         const measured=blockBounds(ctx,s,key), b=blockType(s,key)==='shape'?measured:{...measured,h:s.positions[key].h||measured.h}; ctx.save();if(b.rotation){ctx.translate(b.x+b.w/2,b.y+b.h/2);ctx.rotate(b.rotation*Math.PI/180);ctx.translate(-b.x-b.w/2,-b.y-b.h/2);}ctx.strokeStyle = `${theme.value.accent}90`; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.strokeRect(b.x, b.y, b.w, b.h); ctx.setLineDash([]);ctx.restore();}
-        const keys=selectedKeys.value.length?selectedKeys.value:[selected.value],all=enclosingBounds(keys.map(k=>elementBounds(ctx,s,k)));if(keys.length>1){ctx.save();ctx.strokeStyle=theme.value.accent;ctx.lineWidth=2;ctx.strokeRect(all.x,all.y,all.w,all.h);ctx.restore();}if(altHeld.value){const target=hovered.value&&!keys.includes(hovered.value)?enclosingBounds([elementBounds(ctx,s,hovered.value)]):null;if(target){const k=hovered.value,outer=elementBounds(ctx,s,k),inner=keys.length===1&&blockType(s,keys[0])==='text'?elementBounds(ctx,s,keys[0]):null;const margins=inner&&blockType(s,k)==='shape'&&['rect','square','rounded'].includes(s.elements[k].shape)?interiorMargins(inner,outer):null;if(margins)drawInteriorMargins(ctx,outer,margins);else drawObjectDistances(ctx,all,target);}else drawDistances(ctx,all);}
+        const keys=selectedKeys.value.length?selectedKeys.value:[selected.value],all=enclosingBounds(keys.map(k=>elementBounds(ctx,s,k)));if(keys.length>1){ctx.save();ctx.strokeStyle=theme.value.accent;ctx.lineWidth=2;ctx.strokeRect(all.x,all.y,all.w,all.h);ctx.restore();}if(altHeld.value){const k=hovered.value,outer=k&&s.positions[k]?elementBounds(ctx,s,k):null,inner=keys.length===1?elementBounds(ctx,s,keys[0]):all;if(outer){const relation=measurementMargins(inner,outer);if(relation)drawInteriorMargins(ctx,relation.outer,relation.margins);else drawObjectDistances(ctx,all,enclosingBounds([outer]));}else drawDistances(ctx,all);}
+
       }
     }
     if(marquee?.rect&&!presenting.value&&view.value==='slides'){const b=marquee.rect;ctx.save();ctx.fillStyle='#76dfff22';ctx.strokeStyle='#76dfff';ctx.lineWidth=1.5*WIDTH/Math.max(1,stageWidth.value);ctx.fillRect(b.x,b.y,b.w,b.h);ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore();}
@@ -191,11 +195,8 @@ export function useStudio() {
     for (const stroke of strokes) { ctx.strokeStyle = stroke.color; ctx.lineWidth = stroke.size; ctx.beginPath(); stroke.points.forEach((p, n) => n ? ctx.lineTo(p.x, p.y) : ctx.moveTo(p.x, p.y)); ctx.stroke(); }
     if (pointer && tool.value === 'laser') { ctx.fillStyle = laser.value; ctx.shadowColor = laser.value; ctx.shadowBlur = 22; ctx.beginPath(); ctx.globalAlpha=.75;ctx.arc(pointer.x, pointer.y, Math.max(2,laserSize.value*.3), 0, Math.PI * 2); ctx.fill(); ctx.shadowBlur = 0;ctx.globalAlpha=1; }
   }
-  function drawDistances(ctx,b) {
-    const scale=WIDTH/Math.max(1,stageWidth.value),f=resolution.value.width/WIDTH;ctx.save();ctx.strokeStyle='#76dfff';ctx.fillStyle='#76dfff';ctx.lineWidth=scale;ctx.setLineDash([4*scale,4*scale]);ctx.beginPath();ctx.moveTo(0,b.y);ctx.lineTo(b.x,b.y);ctx.moveTo(b.x,0);ctx.lineTo(b.x,b.y);ctx.stroke();ctx.setLineDash([]);ctx.font=`600 ${12*scale}px Arial`;ctx.textBaseline='top';
-    const label=(value,x,y)=>{const text=`${Math.round(value*f)} px`,w=ctx.measureText(text).width;ctx.fillStyle='#071c29';ctx.fillRect(Math.min(WIDTH-w-8*scale,Math.max(0,x)),Math.max(0,y),w+8*scale,20*scale);ctx.fillStyle='#76dfff';ctx.fillText(text,Math.min(WIDTH-w-4*scale,Math.max(0,x))+4*scale,Math.max(0,y)+3*scale);};
-    label(b.x,Math.max(0,b.x/2-25*scale),b.y-24*scale);label(b.y,b.x+8*scale,Math.max(0,b.y/2-10*scale));ctx.restore();
-  }
+  function drawDistances(ctx,b){const outer={x:0,y:0,w:WIDTH,h:HEIGHT};drawInteriorMargins(ctx,outer,frameMargins(b,outer));}
+  function refreshMeasurementTarget(){if(!altHeld.value||!guidePoint||workspace.value!=='editor'){hovered.value=null;return;}const s=current.value,order=visibleBlocks(s),bounds=Object.fromEntries(order.map(k=>[k,elementBounds(measurement,s,k)]));hovered.value=measurementTarget(guidePoint,order,bounds,selectedKeys.value.length?selectedKeys.value:[selected.value]);}
   function elementBounds(ctx,s,key){const b=blockBounds(ctx,s,key);return blockType(s,key)==='shape'?b:{...b,h:s.positions[key].h||b.h};}
   function drawObjectDistances(ctx,a,b){
     const scale=WIDTH/Math.max(1,stageWidth.value),f=resolution.value.width/WIDTH,x=axisDistance(a,b,'x'),y=axisDistance(a,b,'y');ctx.save();ctx.strokeStyle='#ffb86b';ctx.lineWidth=scale;ctx.setLineDash([4*scale,4*scale]);ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.setLineDash([]);ctx.font=`600 ${12*scale}px Arial`;ctx.textBaseline='top';
@@ -226,8 +227,8 @@ export function useStudio() {
   function endHistoryGesture(){if(historyGesture?.startsWith('range:')){recordHistory();historyGesture=null;}}
   function contextOutside(e){if(e.target.matches?.('input[type=range]'))historyGesture='range:'+(++gestureId);if(!e.target.closest?.('.element-context'))dismissContext();}
   function dismissContext(){contextMenu.value=null;}
-  function keyup(e){if(e.key.startsWith('Arrow')){recordHistory();historyGesture=null;}if(e.key==='Alt')altHeld.value=false;}
-  function resetKeys(){cancelMarquee();historyGesture=null;altHeld.value=false;contextMenu.value=null;}
+  function keyup(e){if(e.key.startsWith('Arrow')){recordHistory();historyGesture=null;}if(['Alt','AltGraph'].includes(e.key))altHeld.value=false;}
+  function resetKeys(){guidePoint=null;hovered.value=null;cancelMarquee();historyGesture=null;altHeld.value=false;contextMenu.value=null;}
   function clearAnnotations() { strokes = []; trail.clear(); requestDraw(); }
   function coords(e) { const r = canvas.value.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * WIDTH, y: (e.clientY - r.top) / r.height * HEIGHT }; }
   function hitBlock(p) {
@@ -237,16 +238,16 @@ export function useStudio() {
   function down(e) {
     if (e.button !== 0 || view.value === 'banners' || videoPreview.value) return;
     if(!presenting.value)canvas.value.focus({preventScroll:true});
-    closeEdit();contextMenu.value=null;if(!presenting.value)selectionScope.value='elements';const p = coords(e); canvas.value.setPointerCapture(e.pointerId);
+    closeEdit();contextMenu.value=null;if(!presenting.value)selectionScope.value='elements';const p = coords(e);if(!presenting.value)guidePoint=p; canvas.value.setPointerCapture(e.pointerId);
     if (presenting.value) { pointer = p; pointerDown = { ...p, moved: false }; if(tool.value==='laser')trail.begin(p,performance.now(),laser.value,laserSize.value); if (tool.value === 'pen') { activeStroke = { color: laser.value, size: laserSize.value / 2, points: [p] }; strokes.push(activeStroke); } }
     else {const hit=hitBlock(p);if(!hit){const previous=selectedKeys.value.slice(),add=e.ctrlKey||e.metaKey||e.shiftKey;marquee={slideId:current.value.id,start:p,previous,base:add?previous:[],bounds:Object.fromEntries(visibleBlocks(current.value).map(k=>[k,elementBounds(measurement,current.value,k)])),pointerId:e.pointerId};selectedKeys.value=marquee.base.slice();selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;requestDraw();return;}selectionScope.value='elements';selectObject(hit,e);if(e.ctrlKey||e.metaKey){requestDraw();return;}const origins=Object.fromEntries(selectedKeys.value.map(k=>[k,{...current.value.positions[k]}])),b=enclosingBounds(selectedKeys.value.map(k=>elementBounds(measurement,current.value,k)));drag={key:hit,slideId:current.value.id,origin:origins[hit],position:origins[hit],origins,positions:origins,bounds:b,start:p,moved:false};}
 
     requestDraw();
   }
   function move(e) {
-    const p = coords(e);
+    const p = coords(e);if(!presenting.value)guidePoint=p;
     if(marquee){if(marquee.slideId!==current.value.id){cancelMarquee();return;}if(Math.hypot(p.x-marquee.start.x,p.y-marquee.start.y)*stageWidth.value/WIDTH>=4||marquee.rect){marquee.rect=marqueeRect(marquee.start,p);selectedKeys.value=marqueeKeys(marquee.bounds,current.value.groups,marquee.rect,marquee.base);selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;requestDraw();}return;}
-    if(!presenting.value&&!drag&&altHeld.value){const hit=hitBlock(p);if(hovered.value!==hit)hovered.value=hit||null;}
+    if(!presenting.value&&!drag){if(e.altKey)altHeld.value=true;if(altHeld.value)refreshMeasurementTarget();}
     if (presenting.value) { pointer = p; if (pointerDown && Math.hypot(p.x - pointerDown.x, p.y - pointerDown.y) > 12) pointerDown.moved = true; if (pointerDown && (e.buttons & 1) && tool.value==='laser') {const now=performance.now(),samples=e.getCoalescedEvents?.()||[];for(const sample of samples.length?samples:[e])trail.append(coords(sample),now-Math.max(0,Math.min(50,e.timeStamp-sample.timeStamp)));} else if (!(e.buttons & 1)) trail.end(); if (activeStroke && (e.buttons & 1)) activeStroke.points.push(p); requestDraw(); }
     else if(drag?.rotating){drag.moved=true;drag.position={...drag.origin,rotation:rotationFromPointer(drag.origin,drag.start,p,e.shiftKey)};transformPreview.value={id:drag.slideId,key:drag.key,position:drag.position};requestDraw();}
     else if (drag?.corner) {const dx=p.x-drag.start.x,dy=p.y-drag.start.y;drag.moved=true;drag.position=resizeRotated(drag.origin,drag.corner,dx,dy,drag.type);const e=current.value.elements[drag.key],strokeWidth=e?.shape==='line'&&['horizontal','vertical'].includes(e.direction)?Math.max(1,Math.min(60,drag.position[e.direction==='horizontal'?'h':'w'])):undefined;transformPreview.value={id:drag.slideId,key:drag.key,position:drag.position,strokeWidth};requestDraw();}
@@ -254,12 +255,13 @@ export function useStudio() {
 
   }
   function up(e) {
+    if(e?.type==='pointerup'&&!presenting.value)guidePoint=coords(e);
     if(marquee){if(e?.type==='pointercancel'||e?.type==='lostpointercapture')cancelMarquee();else {move(e);marquee=null;requestDraw();}return;}
     if (drag) { if (e?.type!=='pointercancel' && drag.moved && drag.slideId === current.value.id) { if(drag.corner&&current.value.elements[drag.key]?.shape==='line'){const e=current.value.elements[drag.key];if(['horizontal','vertical'].includes(e.direction))e.strokeWidth=Math.max(1,Math.min(60,drag.position[e.direction==='horizontal'?'h':'w']));}Object.assign(current.value.positions,drag.positions||{[drag.key]:{...drag.position,autoSize:drag.corner?false:drag.position.autoSize}}); metrics.dragCommits++; } drag = null; }
-    transformPreview.value=null;trail.end();
+    transformPreview.value=null;trail.end();if(altHeld.value)refreshMeasurementTarget();
     pointerDown = null; activeStroke = null; requestDraw();
   }
-  function leave() { pointer = null;hovered.value=null; requestDraw(); }
+  function leave() { pointer = null;guidePoint=null;hovered.value=null; requestDraw(); }
   function doubleClick(e) { if (presenting.value || view.value !== 'slides') return; const hit = hitBlock(coords(e)); if (!hit) return; drag = null; selected.value = hit;selectedKeys.value=[hit];selectionScope.value='elements'; if(!['image','shape','table'].includes(blockType(current.value,hit))) editing.value = hit; requestDraw(); }
   function closeEdit() { if(editing.value)history.group=null;editing.value = null; requestDraw(); }
   function editSelected() { if (!visibleBlocks(current.value).includes(selected.value))return; if(!['image','shape','table'].includes(selectedType.value)) editing.value = selected.value; }
@@ -414,7 +416,7 @@ export function useStudio() {
   function presentationShortcut(e){if(e.key!=='F12'||e.ctrlKey||e.metaKey||e.altKey||e.shiftKey)return;e.preventDefault();e.stopPropagation();if(e.repeat||presenting.value)return;if(editing.value||gallery.value||shapeGallery.value||themeEditor.value||formatOpen.value||videoPreview.value)return;startPresentation();}
   function keys(e) {
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'&&!presenting.value){e.preventDefault();if(!e.repeat)saveProject(e.shiftKey);return;}
-    if(e.key==='Alt'&&!presenting.value&&!editing.value&&view.value==='slides'&&workspace.value==='editor'){altHeld.value=true;e.preventDefault();}
+    if(['Alt','AltGraph'].includes(e.key)&&!presenting.value&&!editing.value&&view.value==='slides'&&workspace.value==='editor'){altHeld.value=true;refreshMeasurementTarget();e.preventDefault();}
     if(e.target.isContentEditable)return;
     if (e.key === 'Escape') {if(marquee){cancelMarquee();return;}if(shapeGallery.value){shapeGallery.value=false;return;}if(themeEditor.value){themeEditor.value=null;return;}displayMenu.value=false;contextMenu.value=null; if (videoPreview.value) videoPreview.value = false; else if(formatOpen.value)formatOpen.value=false;else if (gallery.value) gallery.value = false; else if (presenting.value) exit(); else closeEdit(); return; }
     if(!presenting.value&&(e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='z'&&!(e.target.tagName==='TEXTAREA'||e.target.tagName==='INPUT'&&['text','search','email','url','password','number'].includes(e.target.type))){e.preventDefault();if(!e.repeat)e.shiftKey?redo():undo();return;}
