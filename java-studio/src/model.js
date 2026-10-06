@@ -1,3 +1,5 @@
+import { extraPresets, materializeTemplate, clearTemplateDecorations, buildExtraTemplate, separateLabels } from './editableTemplates.js';
+import { normalizeTable } from './tables.js';
 import { MAX_ELEMENTS } from './limits.js';
 import { normalizeGroups } from './selection.js';
 import { validSvgSource } from './svg.js';
@@ -30,6 +32,7 @@ export const themes = [
   {id:'sunset',name:'Sunset',desc:'Orange solaire et rose sur fond prune.',accent:'#ff9b53',secondary:'#ff68bb',bg:'#25122d',panel:'#3b2444',ink:'#fff6ef'},
 ];
 export const presets = [
+  ...extraPresets,
   { id: 'split', name: 'Explication + code', desc: 'Le concept à gauche, l’exemple à droite.' },
   { id: 'title', name: 'Ouverture', desc: 'Un titre et une idée forte.' },
   { id: 'code', name: 'Code en grand', desc: 'Toute la place pour lire le Java.' },
@@ -96,7 +99,8 @@ export function setBlockName(s,key,value){if(!visibleBlocks(s).includes(key))ret
 export function applyLayout(s,layout) {
   const typography=Object.fromEntries(Object.entries(s.positions||{}).map(([key,p])=>[key,{...(p.font?{font:p.font}:{}),...(p.textStyle?{textStyle:JSON.parse(JSON.stringify(p.textStyle))}:{})}]));
   s.layout = layout;
-  s.designVersion = 2;
+  clearTemplateDecorations(s);
+  s.designVersion = 3;
   s.positions = {...s.positions, ...positionsFor(layout)};
   const spec = layouts[layout];
   s.blockKeys = spec ? [...new Set(['title',...Object.keys(spec)])] : layout === 'code' ? ['title','code'] : ['title','metric','text'].includes(layout) ? ['title','body'] : blocks.slice();
@@ -111,6 +115,7 @@ export function applyLayout(s,layout) {
     s.fragments[key] ||= {order:0,animation:'fade'};
   }
   for(const [key,style] of Object.entries(typography))if(s.positions[key])Object.assign(s.positions[key],style);
+  materializeTemplate(s);buildExtraTemplate(s);
   return s;
 }
 export function reorderSlides(slides,from,to) {
@@ -118,7 +123,7 @@ export function reorderSlides(slides,from,to) {
   const result=slides.slice(), [item]=result.splice(from,1); result.splice(to,0,item); return result;
 }
 export function makeSlide(layout = 'split', grid = { x: 0, y: 0 }) {
-  const s = { id: crypto.randomUUID(), exitDirection:'auto', elements:{}, title: layout === 'metric' ? '1 Go' : 'Une nouvelle idée.', body: layout === 'metric' ? '1 Go = 1 000 Mo\nUnités décimales · division par 1 000' : 'Double-clique pour écrire ton explication.', code: 'public class Example {\n    public static void main(String[] args) {\n        System.out.println("Hello, Java!");\n    }\n}', label: '', codeTitle:'', layout, grid: { ...grid }, positions: positionsFor(layout), fragments: Object.fromEntries(blocks.map(k => [k, { order: 0, animation: 'fade' }])) };
+  const s = { id: crypto.randomUUID(), exitDirection:'auto', elements:{}, title: layout === 'metric' ? '1 Go' : extraPresets.find(p=>p.id===layout)?.name || 'Une nouvelle idée.', body: layout === 'metric' ? '1 Go = 1 000 Mo\nUnités décimales · division par 1 000' : 'Double-clique pour écrire ton explication.', code: 'public class Example {\n    public static void main(String[] args) {\n        System.out.println("Hello, Java!");\n    }\n}', label: '', codeTitle:'', layout, grid: { ...grid }, positions: positionsFor(layout), fragments: Object.fromEntries(blocks.map(k => [k, { order: 0, animation: 'fade' }])) };
   applyLayout(s,layout);
   if (['three','steps','timeline','summary'].includes(layout)) { s.title = ({three:'Trois idées à comprendre.',steps:'Étape par étape.',timeline:'Du source à la JVM.',summary:'Ce qu’il faut retenir.'})[layout]; s.body='Première idée.'; ['body','text1','text2'].forEach((k,n)=>s.fragments[k]={order:n+1,animation:'up'}); }
   if (['three','steps','timeline','summary'].includes(layout)) {s.body='Écrire.\nUn fichier source .java.';s.elements.text1.text='Compiler.\nLe bytecode prend forme.';s.elements.text2.text='Exécuter.\nLa JVM prend le relais.';}
@@ -126,13 +131,15 @@ export function makeSlide(layout = 'split', grid = { x: 0, y: 0 }) {
   if (layout==='definition') {s.title='Bytecode.';s.body='Le langage intermédiaire que la JVM exécute.';s.elements.text1.text='Portable par conception. Optimisé à l’exécution.';}
   if (layout==='quote') s.title='« Comprendre avant d’automatiser. »';
   if (layout==='question') {s.title='Que se passe-t-il sous le capot ?';s.fragments.body.order=1;}
+  for(const [k,e] of Object.entries(s.elements))if(e.template){const owner=k.includes('Extra')?null:s.blockKeys.slice(s.blockKeys.indexOf(k)+1).find(key=>!s.elements[key]?.template);if(owner)s.fragments[k]={...s.fragments[owner]};}
   return s;
 }
 const finite = (v, fallback, min, max) => Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback;
 export function normalizeSlide(raw, n = 0) {
   if (!raw || typeof raw !== 'object' || !blocks.every(k => typeof raw[k] === 'string') || !presets.some(p => p.id === raw.layout)) throw Error('Diapo invalide');
   const s = makeSlide(raw.layout, { x: n, y: 0 });
-  s.designVersion = raw.designVersion === 2 ? 2 : 1;
+  clearTemplateDecorations(s);s.blockKeys=s.blockKeys.filter(k=>blocks.includes(k)||s.elements[k]);
+  s.designVersion = [2,3].includes(raw.designVersion) ? raw.designVersion : 1;
   s.id = typeof raw.id === 'string' ? raw.id : s.id;
   for (const k of [...blocks, 'label', 'codeTitle']) s[k] = typeof raw[k] === 'string' ? raw[k].slice(0, 100000) : '';
   s.codeTitle=s.codeTitle.slice(0,200);
@@ -140,9 +147,10 @@ export function normalizeSlide(raw, n = 0) {
   if (raw.elements && typeof raw.elements === 'object') {
     s.elements = {};
     for (const [key,e] of Object.entries(raw.elements).slice(0,MAX_ELEMENTS)) {
-      if (!/^(text|image|code|shape)[a-zA-Z0-9_-]+$/.test(key) || !e || !['text','image','code','shape'].includes(e.type)) continue;
+      if (!/^(text|image|code|shape|table)[a-zA-Z0-9_-]+$/.test(key) || !e || !['text','image','code','shape','table'].includes(e.type)) continue;
+      if(e.type==='table'){s.elements[key]=normalizeTable(e);continue;}
       if(e.type==='shape'){s.elements[key]=normalizeShape(e);continue;}
-      s.elements[key] = e.type !== 'image' ? {type:e.type,weight:e.weight===700?700:400,label:String(e.label||'').slice(0,100),caption:String(e.caption||'').slice(0,200),custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',custom:e.custom===true||!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),src:validImageSource(e.src)?e.src:'',fit:e.fit==='cover'?'cover':'contain',background:e.background===true,roundedCorners:e.roundedCorners===true,cornerRadius:finite(e.cornerRadius,10,0,50)};
+      s.elements[key] = e.type !== 'image' ? {type:e.type,weight:e.weight===700?700:400,label:String(e.label||'').slice(0,100),caption:String(e.caption||'').slice(0,200),template:e.template===true,custom:e.custom===true||e.custom!==false&&!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',template:e.template===true,custom:e.custom===true||e.custom!==false&&!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),src:validImageSource(e.src)?e.src:'',fit:e.fit==='cover'?'cover':'contain',background:e.background===true,roundedCorners:e.roundedCorners===true,cornerRadius:finite(e.cornerRadius,10,0,50)};
     }
   }
   if (Array.isArray(raw.blockKeys)) s.blockKeys = [...new Set(raw.blockKeys.filter(k=>blocks.includes(k)||s.elements[k]))];
@@ -168,6 +176,8 @@ export function normalizeSlide(raw, n = 0) {
   }
   if (raw.grid && Number.isInteger(raw.grid.x) && Number.isInteger(raw.grid.y)) s.grid = { x: finite(raw.grid.x, n, -10000, 10000), y: finite(raw.grid.y, 0, -10000, 10000) };
   s.blockNames=Object.fromEntries(blocks.filter(k=>typeof raw.blockNames?.[k]==='string'&&raw.blockNames[k].trim()).map(k=>[k,raw.blockNames[k].trim().slice(0,100)]));
+  if(s.designVersion===2)materializeTemplate(s);
+  separateLabels(s);
   s.groups=normalizeGroups(raw.groups,visibleBlocks(s));
   return s;
 }
@@ -204,6 +214,7 @@ export function memorySlides(grid) {
     s.body = n < 3 ? `1 ${unit} ÷ 1 000 = 1 ${['Mo', 'Ko', 'octet'][n]}\nMême quantité : 1 ${unit} = 1 000 ${['Mo', 'Ko', 'octets'][n]}` : '1 octet = 8 bits\nGo, Mo et Ko : unités décimales.\nGiB, MiB et KiB : puissances de 1 024.';
     s.fragments.body = { order: 1, animation: 'up' };
     s.positions.body.size = n === 3 ? 38 : 50;
+    materializeTemplate(s);
     return s;
   });
 }

@@ -14,4 +14,4 @@ export const fonts=[
 ];
 export function normalizeFont(id,type='text'){return fonts.some(f=>f.id===id&&(type!=='code'||f.mono))?id:type==='code'?'monospace':'arial';}
 export function fontCss(id,type='text'){return fonts.find(f=>f.id===normalizeFont(id,type)).css;}
-export function usedFonts(slides){return [...new Set(slides.flatMap(s=>Object.entries(s.positions).filter(([key])=>!['image','shape'].includes(s.elements?.[key]?.type)).map(([key,p])=>normalizeFont(p.font,key==='code'||s.elements?.[key]?.type==='code'?'code':'text'))))];}
+export function usedFonts(slides){return [...new Set(slides.flatMap(s=>Object.entries(s.positions).filter(([key])=>!['image','shape'].includes(s.elements?.[key]?.type)).map(([key,p])=>normalizeFont(s.elements?.[key]?.type==='table'?s.elements[key].font:p.font,key==='code'||s.elements?.[key]?.type==='code'?'code':'text'))))];}

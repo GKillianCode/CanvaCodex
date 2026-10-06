@@ -10,13 +10,13 @@ export function resizePosition(origin,handle,dx,dy,type) {
  const h=north?origin.y+origin.h-y:south?Math.max(minH,Math.min(HEIGHT-y,origin.h+dy)):origin.h;
  // Side handles change one dimension without shrinking type on the untouched axis.
  const ratio=(west||east)&&(north||south)?Math.min(w/origin.w,h/origin.h):1;
- return {...origin,x,y,w,h,size:['image','shape'].includes(type)?origin.size:Math.max(10,Math.min(260,origin.size*ratio))};
+ return {...origin,x,y,w,h,size:['image','shape','table'].includes(type)?origin.size:Math.max(10,Math.min(260,origin.size*ratio))};
 }
 export function duplicateElement(s,key) {
  if(!visibleBlocks(s).includes(key)||Object.keys(s.elements).length>=MAX_ELEMENTS)return null;
  const type=blockType(s,key),copyKey=type+crypto.randomUUID().replaceAll('-','').slice(0,8),source=s.elements[key];
  s.elements[copyKey]=source?JSON.parse(JSON.stringify(source)):{type,text:blockText(s,key),weight:key==='title'?700:400,label:key==='title'?s.label:'',caption:key==='code'?s.codeTitle:''};
- s.elements[copyKey].custom=true;s.elements[copyKey].name=(blockLabel(s,key)+' · copie').slice(0,100);
+ s.elements[copyKey].custom=true;s.elements[copyKey].template=false;s.elements[copyKey].name=(blockLabel(s,key)+' · copie').slice(0,100);
  const p=s.positions[key];s.positions[copyKey]={...JSON.parse(JSON.stringify(p)),x:Math.min(WIDTH-p.w,p.x+24),y:Math.min(HEIGHT-(p.h||40),p.y+24)};s.fragments[copyKey]={...s.fragments[key]};return copyKey;
 }
 
