@@ -134,4 +134,20 @@ Dans **Diapo → Ordre des apparitions**, chaque groupe possède une seule ligne
 - Taille, police et ajustement du cadre sont regroupés dans **Style du texte** ; position/dimensions ne contiennent que la géométrie. Placement et superposition restent dans des sections repliables. Les formes ont accès à la palette du thème pour le remplissage et le contour, individuellement ou en sélection multiple ; une couleur liée suit les changements de thème.
 - **Thème et fond** ouvre l’espace **Thèmes**, où se trouvent les couleurs globales, le dégradé, l’en-tête et le pied de diapo. Le sous-menu à chevron de l’enregistrement est supprimé. Ctrl S et Ctrl Maj S restent disponibles ; un bouton séparé télécharge une copie JSON.
 
-Format de sauvegarde : version 16, avec objets tableau et décors persistants (designVersion 3). Les anciens projets restent importables. Les copies et composants sont indépendants de leur modèle d’origine.
+Format de sauvegarde : version 17, avec objets tableau et décors persistants (designVersion 3). Les anciens projets restent importables. Les copies et composants sont indépendants de leur modèle d’origine.
+
+
+### Styles de tableau et repères entre objets
+
+Dans les propriétés d’un tableau, quatre styles sont disponibles : **Classique, Arrondi, Minimal, Contraste**. Ils modifient l’apparence en conservant les cellules et les proportions.
+
+- En-tête **en haut, en bas, à gauche, à droite, en haut et à gauche**, ou absent ; nombre de lignes/colonnes d’en-tête réglable. Les cellules du bord choisi deviennent l’en-tête sans déplacer leur contenu ; le dialogue indique les cellules concernées.
+- Coins arrondis en pixels et opacité globale. Les coins sont construits dans les dimensions finales, sans étirement de l’arrondi.
+- Fonds et textes distincts pour **l’en-tête et le corps**, via palette du thème ou couleur libre. Fonds désactivables pour la transparence. Taille et gras propres à l’en-tête et au corps.
+- Grille complète, horizontale, verticale, contour seul ou aucune bordure ; traits continus, tirets ou pointillés, épaisseur et couleur réglables. Séparateur d’en-tête avec couleur/épaisseur propres. « Aucune » masque aussi le séparateur.
+- Bandes alternées par lignes ou colonnes, couleur et intensité réglables ; alignement horizontal/vertical et marge des cellules.
+- Poids relatifs des lignes et colonnes : 2 réserve deux fois plus d’espace que 1, sans modifier les dimensions du tableau. Valeurs décimales conservées au rechargement.
+
+**Alt** : sélectionner un objet, placer la souris sur un autre puis maintenir Alt. Le survol traverse la sélection au premier plan pour trouver l’objet derrière ; Alt s’active aussi sans nouveau mouvement de souris. Tous les types d’objets et cadres de groupes sont pris en compte. Si un objet contient l’autre ou s’ils se superposent, quatre écarts **G/D/H/B** apparaissent ; une valeur négative indique un dépassement. Des objets séparés affichent les distances ΔX/ΔY. Sans objet cible, les quatre écarts à la diapo sont affichés. Rotations et pixels de sortie sont pris en compte ; repères absents des exports.
+
+Le format version 17 reprend les tableaux précédents : première ligne d’en-tête ou aucun en-tête selon l’ancien réglage, dimensions et cellules conservées. Les styles supplémentaires sont conservés dans les copies, composants et sauvegardes.

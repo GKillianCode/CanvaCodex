@@ -28,7 +28,7 @@ test('interior margins measure four edges, reject outside objects and account fo
  const outer={x:100,y:100,w:400,h:300},inner={x:130,y:150,w:220,h:100};const m=interiorMargins(inner,outer);assert.deepEqual([m.left,m.right,m.top,m.bottom],[30,150,50,150]);assert.equal(interiorMargins({...inner,x:80},outer),null);const o={...outer,rotation:90},center=rotatePoint({x:inner.x+inner.w/2,y:inner.y+inner.h/2},o),i={...inner,x:center.x-inner.w/2,y:center.y-inner.h/2,rotation:90};const r=interiorMargins(i,o);assert.ok(Math.abs(r.left-30)<1e-7&&Math.abs(r.top-50)<1e-7);
 });
 test('table renderer uses bounded clipping and header colors in the shared Canvas output',()=>{
- const fills=[],texts=[],ctx={save(){},restore(){},fillRect(){fills.push(this.fillStyle);},strokeRect(){},beginPath(){},rect(){},clip(){},fillText(t){texts.push(t);}};drawTable(ctx,normalizeTable({rows:2,columns:2,cells:[['A','B'],['1','2']]}),{x:0,y:0,w:1000,h:400},normalizeThemes()[0],(_ctx,t)=>[t]);assert.deepEqual(texts,['A','B','1','2']);assert.equal(fills[0],normalizeThemes()[0].accent);
+ const fills=[],texts=[],ctx={save(){},restore(){},fillRect(){fills.push(this.fillStyle);},strokeRect(){},beginPath(){},rect(){},roundRect(){},moveTo(){},lineTo(){},setLineDash(){},stroke(){},clip(){},fillText(t){texts.push(t);}};drawTable(ctx,normalizeTable({rows:2,columns:2,cells:[['A','B'],['1','2']]}),{x:0,y:0,w:1000,h:400},normalizeThemes()[0],(_ctx,t)=>[t]);assert.deepEqual(texts,['A','B','1','2']);assert.equal(fills[0],normalizeThemes()[0].accent);
 });
 
 
