@@ -23,7 +23,7 @@ Le dossier `dist` peut être servi par un serveur statique ou intégré à une a
 - Coller du Java : coloration Prism et indentation Prettier automatique dans un worker. Le bouton « Formater » permet de recommencer ; un extrait incomplet est conservé tel quel.
 - Le canvas propose **Parcours automatique** : déplacer les diapos recalcule le fil et l’ordre de lecture selon leurs positions. Le départ est en haut à gauche, ou choisi dans Départ. Les cas ambigus peuvent être définis avec **Tracer le parcours** : cliquer les diapos dans l’ordre, puis Valider (les restantes sont ajoutées à la fin). Glisser le point de liaison vers une diapo la place immédiatement après la source. Les numéros, la liste, Espace et l’aperçu suivent le même fil ; les transitions suivent les positions. Annuler le parcours restaure le dernier ordre. Les anciens projets conservent leur ordre au chargement, jusqu’au premier déplacement ou à l’activation du parcours automatique.
 - L’atelier s’ouvre sur un canvas spatial : glisser les diapos pour les disposer (une case occupée échange leurs positions), glisser le fond pour parcourir la grille, utiliser les boutons de zoom ou Ctrl/⌘ + molette. Le bouton « Voir toutes les diapos » recadre le parcours. Double-cliquer une diapo ouvre son édition.
-- Ajouter une diapo ouvre une galerie de **20 dispositions**, dont six avec images. Aucun choix de direction à la création. Le parcours mémoire ajoute quatre diapos verticales sans remplacer le projet.
+- Ajouter une diapo ouvre une galerie de **30 dispositions**, dont six avec images. Aucun choix de direction à la création. Le parcours mémoire ajoute quatre diapos verticales sans remplacer le projet.
 - Dans « Éditer », glisser une miniature ou sa poignée pour changer l’ordre de lecture. Les flèches ↑/↓ sur une poignée permettent aussi de réordonner au clavier. Les positions sur le canvas ne changent pas ; cette opération active le parcours manuel.
 - « Présenter » commence par la première diapo ; « Tester cette diapo » commence par la sélection.
 - Les propriétés affichent la **sortie de la diapo** : automatique selon la position de la suivante, ou forcée vers la gauche, la droite, le haut ou le bas. Cette direction concerne la diapo qui quitte l’écran.
@@ -44,7 +44,7 @@ Le dossier `dist` peut être servi par un serveur statique ou intégré à une a
 - Déplacer les blocs directement sur la diapo.
 - Créer, éditer, dupliquer ou supprimer des thèmes dans **Thèmes**. Ajuster cinq couleurs au sélecteur ou en hexadécimal avec aperçu immédiat ; la suppression peut être annulée. Les thèmes personnels sont intégrés aux exports JSON. Choisir parmi **10 thèmes** de départ : Terminal, Midnight, Carbon, Studio, Cobalt, Corail, Volt, Pulse, Glacier et Sunset. Les aperçus utilisent le rendu réel.
 - Cliquer sur la résolution sous le nom du projet : **2560 × 1440 (QHD) par défaut**, formats HD/Full HD/4K ou largeur personnalisée entre 640 et 3840 px, multiple de 16. Le ratio reste 16:9. Diapos PNG, bandeaux transparents et vidéos utilisent ce format ; les positions sont affichées en pixels de sortie.
-- Les 20 dispositions ont été recomposées. Sur les anciennes diapos, « Réappliquer la disposition » remet les nouvelles marges et tailles sans changer les textes/images ; « Annuler la recomposition » restaure la dernière composition.
+- Les 30 dispositions sont composées d’objets éditables, y compris les fonds de carte, pastilles, séparateurs et numéros. Sur les anciennes diapos, « Réappliquer la disposition » remet les nouvelles marges et tailles sans changer les textes/images ; « Annuler la recomposition » restaure la dernière composition.
 - L’en-tête et le pied de page sont désactivés par défaut ; les activer dans Style si souhaité.
 - Dans Élément / Apparition : définir l’ordre d’apparition de chaque élément (0 = visible au départ), son animation, les paramètres du parcours et des transitions se trouvent dans Diapo.
 - Présenter : aperçu repliable de la prochaine diapo, hors enregistrement ; **Espace** révèle les éléments puis passe à la suivante. Flèches pour le parcours spatial, Espace/Entrée ou le bouton Révéler/Suivant pour révéler puis avancer, Page précédente pour revenir, Échap pour quitter ; Maintenir le **clic gauche** avec le laser pour tracer ; relâcher arrête les nouveaux points et la traînée s’efface en 900 ms. Elle forme un ruban fin, translucide et lissé, sans marqueurs aux points échantillonnés. Le crayon conserve ses traits jusqu’à l’effacement.
@@ -64,7 +64,7 @@ npm run build
 
 Aucun service d’IA, paiement, microphone ou caméra. Les projets ne sont pas synchronisés entre appareils. Les polices de l’interface et des diapos sont servies localement avec un repli système pour les glyphes non fournis.
 
-Un atlas de contrôle visuel des 20 dispositions et 10 thèmes est accessible en développement à `/tests/visual.html`.
+Un atlas de contrôle visuel des 30 dispositions et 10 thèmes est accessible en développement à `/tests/visual.html`.
 
 ## Mesures et édition
 
@@ -123,3 +123,15 @@ En vue **Éditer**, maintiens le clic gauche sur une zone vide de la diapo et gl
 **Élément → Placer sur la diapo** propose neuf boutons : centre, haut/bas centrés, gauche/droite centrés et les quatre coins. La **Marge des bords** est exprimée en pixels de sortie ; à zéro, les positions de bord sont alignées sur le bord de la diapo. Le centrage utilise le cadre visible tourné. Une sélection multiple ou un groupe est déplacé comme un ensemble, avec dimensions, rotations et écarts conservés. Ctrl Z annule le placement.
 
 Dans **Diapo → Ordre des apparitions**, chaque groupe possède une seule ligne avec la liste de ses membres. Choisir son **Étape** fait apparaître tous ses éléments au même clic ; son **Animation** peut aussi être réglée d’un coup. Les valeurs différentes sont indiquées par **Mixte**, sans modifier les étapes antérieures tant que tu n’en choisis pas une commune. L’étape 0 rend le groupe visible au départ. Les éléments non groupés gardent leur propre ligne ; dissocier un groupe rétablit les lignes individuelles.
+
+
+### Tableaux, modèles et propriétés
+
+- **+ Tableau** dans la barre d’outils, le clic droit ou Ajouter un élément. Régler 1–20 lignes et 1–10 colonnes, puis **Modifier les cellules** pour saisir les contenus dans un dialogue et valider. Personnaliser police, taille, marges, alignement, en-tête, alternance, bordures et couleurs du thème ou personnalisées. Les cellules débordantes sont rognées dans leur cadre. Le tableau compte comme un objet, accepte rotation, apparitions, copie, groupes et composants réutilisables ; son rendu est partagé avec les exports.
+- Dix compositions supplémentaires : tableau comparatif, quatre repères, pipeline Java, stack/heap, pile d’appels, architecture JVM, décision, checklist, progression et code commenté. Leurs diagrammes et indicateurs sont assemblés avec les formes/textes habituels et peuvent être modifiés individuellement depuis **Calques**.
+- Les anciens décors de modèle sont convertis à la reprise en objets. Leur suppression est conservée ; ils ne sont recréés qu’en réappliquant volontairement une disposition. La conversion respecte la limite de 100 éléments ajoutés ; si une ancienne diapo est déjà pleine, les décors supplémentaires ne sont pas créés. Les positions et contenus existants sont conservés.
+- Texte sélectionné + **Alt** et survol d’un rectangle qui le contient : quatre marges G/D/H/B, en pixels de sortie, calculées sur les cadres avec rotations. Les distances habituelles restent disponibles hors conteneur. Ces repères n’apparaissent pas dans les exports.
+- Taille, police et ajustement du cadre sont regroupés dans **Style du texte** ; position/dimensions ne contiennent que la géométrie. Placement et superposition restent dans des sections repliables. Les formes ont accès à la palette du thème pour le remplissage et le contour, individuellement ou en sélection multiple ; une couleur liée suit les changements de thème.
+- **Thème et fond** ouvre l’espace **Thèmes**, où se trouvent les couleurs globales, le dégradé, l’en-tête et le pied de diapo. Le sous-menu à chevron de l’enregistrement est supprimé. Ctrl S et Ctrl Maj S restent disponibles ; un bouton séparé télécharge une copie JSON.
+
+Format de sauvegarde : version 16, avec objets tableau et décors persistants (designVersion 3). Les anciens projets restent importables. Les copies et composants sont indépendants de leur modèle d’origine.

@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 5 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 6 octobre 2026 (Europe/Paris).
 
 Ce fichier conserve le contexte, les décisions, les conventions, l’état réel du projet et sa roadmap. Le lire au début d’une session et le mettre à jour lorsque les décisions ou l’état changent. Résumer les échanges utiles, sans copier intégralement les conversations, sans secrets et sans présenter une idée comme une fonctionnalité livrée.
 
@@ -449,3 +449,20 @@ Demande : régler une fois l’étape d’apparition des trois membres d’un gr
 Diapo → Ordre des apparitions affiche une ligne par groupe, avec noms des membres, étape et animation communes ; objets isolés conservés. Valeurs différentes affichées Mixte sans écrasement automatique au regroupement. Modifier une étape ou animation de groupe l’applique à tous ses membres visibles, types hétérogènes compris ; étape depuis les propriétés individuelles étendue aussi au groupe. Dissociation retrouve les lignes individuelles. Modèle/fragments existants inchangés, étapes 0..20, historique/sauvegardes habituels.
 
 Validation : suite et build réussis, diff --check. Tests groupes de trois types/blocs avec étapes différentes, synchronisation depuis un membre, animation commune, séquence unique de révélation, étape 0, bornes/valeurs invalides, reprise JSON et dissociation. Navigateur isolé localhost:5181 : groupe titre/texte/code sur une seule ligne, étape 1 appliquée aux trois, présentation à 0/1 puis un clic Révéler affiche les trois ensemble à 1/1. Aucune erreur console au contrôle. Pas de nouveau contrôle mobile/export. Publication confirmée : [PR #54](https://github.com/GKillianCode/CanvaCodex/pull/54) ouverte vers `codex/slide-position-presets`, commit distant `6ecea4f`, arbre identique au commit local `1706cbf`. Aucune fusion automatique.
+
+
+### 6 octobre 2026 — modèles éditables, tableaux et propriétés
+
+Demande : tous les objets des templates modifiables/supprimables, tableau personnalisable, dix modèles supplémentaires, marges intérieures avec Alt, suppression du chevron de sauvegarde et réorganisation des propriétés/thèmes. Suivi : [issue #55](https://github.com/GKillianCode/CanvaCodex/issues/55), branche `codex/editor-tables-templates`, basée sur `codex/group-appearances` (PR #54).
+
+Modèle version 16 : type tableau, contenu borné à 20 lignes × 10 colonnes, cellules de 2 000 caractères maximum ; style et palette, dialogue de contenu avec validation/annulation. Tableau traité comme un objet pour rotation, fragments, groupes, duplication, presse-papiers et composants. Fonts normales/gras de tableau préparées. Rendu Canvas partagé, cellules rognées à leur cadre.
+
+DesignVersion 3 : fonds, pastilles, numéros, liens et séparateurs des modèles deviennent des éléments réels, modifiables via les calques. Reprise des anciens décors version 2 sans déplacer leurs textes, fragments initiaux conservés, suppressions persistantes. Dix compositions techniques portent la galerie à 30. Recomposition conserve les titres écrits et recrée les décors ; annulation restaure les fragments avec les décors et conserve les objets ajoutés ensuite ; les copies/composants n’ont plus le marqueur de modèle et sont conservés lors d’une recomposition. La migration respecte les 100 entrées : si la diapo est pleine, les décors excédentaires ne sont pas ajoutés. Surtitres convertis en textes distincts éditables lorsque la capacité le permet ; habillage global reste configurable dans Thèmes.
+
+Propriétés : typographie et taille/ajustement du texte regroupés, placement replié, thème/fond/habillage déplacés dans Thèmes avec accès direct. Palette liée au thème ou couleurs personnalisées pour remplissage/contour des formes, y compris édition multiple ; cinq couleurs configurables pour tableaux. Chevron de sauvegarde supprimé, copie JSON disponible comme bouton et Enregistrer sous conservé via Ctrl Maj S.
+
+Alt : texte sélectionné et rectangle contenant survolé affiche G/D/H/B en pixels de sortie ; calcul des coins dans les axes du rectangle, rotations prises en compte, retour aux distances classiques hors conteneur. Repères exclusivement dans l’éditeur.
+
+Validation locale : suite de 13 fichiers de tests réussie, incluant sept scénarios nouveaux (30 modèles et suppression, migration sans déplacement, tableau/copie, couleurs liées, marges tournées, rendu des cellules, annulation de recomposition). Navigateur isolé localhost:5182 : tableau 5 × 4 avec dernière cellule personnalisée conservé après rechargement ; fond de carte modifié avec la palette puis supprimé et non recréé ; galerie de 30 modèles inspectée ; accès Thèmes et options globales vérifié. Fixture temporaire avec événements de survol synthétiques : G/D 133 px, H 160 px, B 267 px observés et rendu inspecté pour un rectangle contenant le texte. Fixture supprimée. Aucune erreur console sur l’onglet applicatif au contrôle. Pas de nouveau contrôle mobile ni export PNG/WebM effectif.
+
+Publication confirmée : [PR #56](https://github.com/GKillianCode/CanvaCodex/pull/56) ouverte vers `codex/group-appearances`, commit distant `fc6ef3c`, arbre Git identique au commit local `595d623`. Issue #55 ouverte jusqu’à revue/fusion. Aucune fusion automatique.

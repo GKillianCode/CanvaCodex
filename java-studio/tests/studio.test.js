@@ -69,11 +69,11 @@ test('Java formatter indents classes and snippets but preserves incomplete paste
 });
 
 
-test('twenty templates offer distinct compositions with independent text and image blocks', () => {
-  assert.equal(presets.length,20);
+test('thirty templates offer distinct compositions with independent text and image blocks', () => {
+  assert.equal(presets.length,30);
   const signatures=new Set();
   for(const p of presets){ const s=makeSlide(p.id); const keys=visibleBlocks(s); assert.ok(keys.length>=2); for(const k of keys){assert.ok(s.positions[k]);assert.ok(s.fragments[k]);} signatures.add(JSON.stringify(keys.map(k=>[k,s.positions[k]]))); }
-  assert.equal(signatures.size,20);
+  assert.equal(signatures.size,30);
   const s=makeSlide('three');assert.deepEqual(fragmentOrders(s),[1,2,3]);setBlockText(s,'text1','Un texte indépendant.');assert.equal(blockText(s,'text1'),'Un texte indépendant.');
 });
 
@@ -107,8 +107,8 @@ test('QHD defaults and custom 16:9 formats reject malformed dimensions', async()
 test('laser samples densely, ignores released moves and expires independently between strokes',async()=>{
  const {LaserTrail}=await import('../src/laser.js');const t=new LaserTrail(900);t.append({x:1,y:1},0);assert.equal(t.points.length,0);t.begin({x:0,y:0},0,'#ff0000',12);t.append({x:100,y:0},100);assert.ok(t.points.length>30);for(let i=1;i<t.points.length;i++)assert.ok(t.points[i].x-t.points[i-1].x<=3);const count=t.points.length;t.end();t.append({x:200,y:0},200);assert.equal(t.points.length,count);assert.equal(t.active,false);const oldStroke=t.points.at(-1).stroke;t.begin({x:400,y:400},300,'#0000ff',8);assert.notEqual(oldStroke,t.points.at(-1).stroke);t.end();assert.equal(t.prune(950),true);assert.ok(t.points.every(p=>p.now>50));assert.equal(t.prune(1200),false);t.begin({x:0,y:0},1300,'#ff0000',10);for(let i=0;i<3000;i++)t.append({x:i,y:i},1300+i);assert.equal(t.points.length,2400);t.clear();assert.equal(t.points.length,0);
 });
-test('all twenty art-directed layouts keep their reserved regions within the design canvas',async()=>{
- const {themes}=await import('../src/model.js');assert.equal(themes.length,10);assert.equal(new Set(themes.map(t=>t.id)).size,10);for(const p of presets){const s=makeSlide(p.id);assert.equal(s.designVersion,2);for(const k of visibleBlocks(s)){const b=s.positions[k];assert.ok(b.x>=0&&b.y>=0&&b.x+b.w<=1920&&b.y+(b.h||0)<=1080,`${p.id}/${k}`);}}
+test('all thirty editable layouts keep their reserved regions within the design canvas',async()=>{
+ const {themes}=await import('../src/model.js');assert.equal(themes.length,10);assert.equal(new Set(themes.map(t=>t.id)).size,10);for(const p of presets){const s=makeSlide(p.id);assert.equal(s.designVersion,3);for(const k of visibleBlocks(s)){const b=s.positions[k];assert.ok(b.x>=0&&b.y>=0&&b.x+b.w<=1920&&b.y+(b.h||0)<=1080,`${p.id}/${k}`);}}
 });
 
 test('element duplication keeps independent content, styling, image source and fragment settings',async()=>{

@@ -1,3 +1,4 @@
+import { drawTable } from './tables.js';
 import { textColor, getTextStyle, normalizeTextStyle, styleFont } from './textStyles.js';
 import { fontCss } from './fonts.js';
 import { drawShape,shapeBounds } from './shapes.js';
@@ -64,7 +65,7 @@ function codeWidthSize(ctx,value,p){ctx.font=styleFont(p.size,fontCss(p.font,'co
 export function blockBounds(ctx, s, key) {
   const p = s.positions[key];
   if(blockType(s,key)==='shape')return shapeBounds(s.elements[key],p);
-  if(blockType(s,key)==='image')return {...p,h:p.h||360};
+  if(['image','table'].includes(blockType(s,key)))return {...p,h:p.h||360};
   if(blockType(s,key)==='code'){const value=blockText(s,key);const h=p.h||Math.max(260,value.split('\n').length*p.size*1.6+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,blockText(s,key).split('\n').length)*1.6),codeWidthSize(ctx,blockText(s,key),p)));return {...p,h,size};}
   if(p.autoSize)return {...p,...autoTextBounds(ctx,s,key)};
   const style=getTextStyle(s,key),leading=key==='title'||s.elements[key]?.weight===700?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=styleFont(size,fontCss(p.font),style);return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};
@@ -104,16 +105,6 @@ export function fitText(ctx,value,p,weight,leading) {
   let size=p.size;if(!p.h)return size;
   while(size>16){ctx.font=styleFont(size,fontCss(p.font),normalizeTextStyle(p.textStyle,p.font,'text',weight===700));if(wrapLines(ctx,value,p.w).length*size*leading<=p.h)break;size-=1;}return size;
 }
-function decoration(ctx,s,key,t) {
-  const p=s.positions[key],n=['body','text1','text2'].indexOf(key);if(n<0)return;
-  if(['three','before-after','question'].includes(s.layout)) {
-    round(ctx,p.x-32,p.y-104,p.w+64,(p.h||240)+144,24,t.panel);
-    text(ctx,s.layout==='before-after'?(n===0?'AVANT':'APRÈS'):s.layout==='question'?'EXPLICATION':String(n+1).padStart(2,'0'),p.x,p.y-65,p.w,24,n===1?t.secondary:t.accent,700);
-  }
-  if(['steps','summary'].includes(s.layout)) {round(ctx,p.x-112,p.y,64,64,20,t.accent);ctx.save();ctx.font='700 28px Arial';ctx.textAlign='center';ctx.textBaseline='alphabetic';const digit=String(n+1),metrics=ctx.measureText(digit);ctx.fillStyle=t.bg;ctx.fillText(digit,p.x-80,p.y+32+((metrics.actualBoundingBoxAscent||20)-(metrics.actualBoundingBoxDescent||0))/2);ctx.restore();ctx.fillStyle=t.ink+'15';ctx.fillRect(p.x,p.y+(p.h||120)+24,p.w,2);}
-  if(s.layout==='timeline') {ctx.fillStyle=t.accent;ctx.beginPath();ctx.arc(p.x+12,p.y-96,12,0,Math.PI*2);ctx.fill();ctx.fillStyle=t.accent+'40';ctx.fillRect(p.x+28,p.y-98,p.w-8,4);text(ctx,String(n+1).padStart(2,'0'),p.x,p.y-65,p.w,24,t.accent,700);}
-  if(s.layout==='definition'&&key==='body'){ctx.fillStyle=t.accent;ctx.fillRect(p.x,p.y-56,120,6);}
-}
 export function renderSlide(ctx, s, theme, options = {}) {
   background(ctx, theme, options.gradient!==false);
   const { header = false, footer = false, project = '', n = 0, total = 1, order = Infinity, motion = null, omit = null, now = performance.now() } = options;
@@ -133,11 +124,11 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if (f.animation !== 'none') ctx.globalAlpha *= ease;
     if (f.animation === 'up') ctx.translate(0, 35 * (1 - ease));
     if (f.animation === 'zoom') { const scale = .9 + ease * .1; ctx.translate(p.x + p.w / 2, p.y + b.h / 2); ctx.scale(scale, scale); ctx.translate(-p.x - p.w / 2, -p.y - b.h / 2); }
-    if(s.designVersion===2 && key!=='title' && blockType(s,key)==='text') decoration(ctx,s,key,theme);
     if (key === 'title'||s.elements[key]?.weight===700) {
       const label=key==='title'?s.label:s.elements[key]?.label;if (label) text(ctx, label, p.x, Math.max(10, p.y - 58), p.w, 23, theme.accent, style.weight,fontCss(p.font),1.35,style);
       const font=p.autoSize?p.size:fitText(ctx,blockText(s,key),p,700,1.12);const color=style.color||style.colorRole?textColor(style,theme):['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,font,color,style.weight,fontCss(p.font),1.12,style);
-    } else if (blockType(s,key)==='shape') drawShape(ctx,s.elements[key],p);
+    } else if (blockType(s,key)==='shape') drawShape(ctx,s.elements[key],p,theme);
+    else if (blockType(s,key)==='table') drawTable(ctx,s.elements[key],p,theme,wrapLines);
     else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
     else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key);
     else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,1.4),textColor(style,theme,`${theme.ink}df`),style.weight,fontCss(p.font),1.4,style);

@@ -1,3 +1,6 @@
+import { separateLabels, restoreTemplateLayout } from './editableTemplates.js';
+import { interiorMargins } from './interiorMargins.js';
+import { normalizeTable } from './tables.js';
 import { setAppearance } from './appearances.js';
 import { placeOnSlide } from './slidePlacement.js';
 import { MAX_ELEMENTS } from './limits.js';
@@ -68,7 +71,7 @@ export function useStudio() {
   const canPasteObjects=ref(false);
   const multiType=computed(()=>selectionType(current.value,selectedKeys.value));
   function commonProperty(scope,key){return commonValue(selectedKeys.value.map(k=>scope==='element'?current.value.elements[k]?.[key]:scope==='style'?getTextStyle(current.value,k)[key]:scope==='fragment'?current.value.fragments[k]?.[key]:current.value.positions[k]?.[key]));}
-  function updateCommon(scope,key,value){if(!multiType.value)return;for(const k of selectedKeys.value){if(scope==='element')current.value.elements[k][key]=value;else if(scope==='style'){const p=current.value.positions[k];p.textStyle={...getTextStyle(current.value,k),[key]:value};p.textStyle=getTextStyle(current.value,k);fitAuto(k);}else if(scope==='fragment')current.value.fragments[k][key]=value;else {current.value.positions[k][key]=value;if(['w','h'].includes(key))current.value.positions[k].autoSize=false;if(['font','size'].includes(key))fitAuto(k);}}requestDraw();}
+  function updateCommon(scope,key,value){if(!multiType.value)return;for(const k of selectedKeys.value){if(scope==='element'){current.value.elements[k][key]=value;if(['fill','stroke'].includes(key))current.value.elements[k][key+'Role']=null;}else if(scope==='style'){const p=current.value.positions[k];p.textStyle={...getTextStyle(current.value,k),[key]:value};p.textStyle=getTextStyle(current.value,k);fitAuto(k);}else if(scope==='fragment')current.value.fragments[k][key]=value;else {current.value.positions[k][key]=value;if(['w','h'].includes(key))current.value.positions[k].autoSize=false;if(['font','size'].includes(key))fitAuto(k);}}requestDraw();}
   function copySelection(){objectClipboard=copyObjects(current.value,selectedKeys.value);pasteCount=0;lastPasteSlide=null;canPasteObjects.value=!!objectClipboard;if(objectClipboard)objectClipboard.slideId=current.value.id;if(objectClipboard)notify('Sélection copiée. Choisis une diapo puis Ctrl V.');}
   function pasteSelection(){if(!objectClipboard)return;closeEdit();if(lastPasteSlide!==current.value.id)pasteCount=0;const offset=24*(pasteCount+(objectClipboard.slideId===current.value.id?1:0));const keys=pasteObjects(current.value,objectClipboard,offset);if(!keys.length){notify('La diapo dépasserait 100 éléments.');return;}pasteCount++;lastPasteSlide=current.value.id;workspace.value='editor';selectionScope.value='elements';selectedKeys.value=keys;selected.value=keys.length===1?keys[0]:null;prepareImages([current.value]);requestDraw();notify('Sélection collée.');}
   const selectedTextStyle=computed(()=>getTextStyle(current.value,selected.value));
@@ -91,7 +94,7 @@ export function useStudio() {
   const modelController = new AbortController();
   const thumbnailKeys = new Map(), formatRequests = new Map();
   const metrics = { frames: 0, thumbnails: 0, dragCommits: 0 };
-  const snapshot = () => ({ version: 15, components:components.value, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
+  const snapshot = () => ({ version: 16, components:components.value, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
   let history = new ProjectHistory(snapshot()), historyGesture=null, gestureId=0;
   const historyVersion=ref(0), canUndo=computed(()=>{historyVersion.value;return history.index>0;}), canRedo=computed(()=>{historyVersion.value;return history.index<history.states.length-1;});
   function historyGroup(){return historyGesture||(editing.value?'text:'+current.value.id+':'+editing.value:null);}
@@ -177,7 +180,7 @@ export function useStudio() {
       if (!presenting.value && !editing.value && (selectedKeys.value.length||visibleBlocks(s).includes(selected.value))) {
         for(const key of selectedKeys.value.length?selectedKeys.value:[selected.value]){
         const measured=blockBounds(ctx,s,key), b=blockType(s,key)==='shape'?measured:{...measured,h:s.positions[key].h||measured.h}; ctx.save();if(b.rotation){ctx.translate(b.x+b.w/2,b.y+b.h/2);ctx.rotate(b.rotation*Math.PI/180);ctx.translate(-b.x-b.w/2,-b.y-b.h/2);}ctx.strokeStyle = `${theme.value.accent}90`; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.strokeRect(b.x, b.y, b.w, b.h); ctx.setLineDash([]);ctx.restore();}
-        const keys=selectedKeys.value.length?selectedKeys.value:[selected.value],all=enclosingBounds(keys.map(k=>elementBounds(ctx,s,k)));if(keys.length>1){ctx.save();ctx.strokeStyle=theme.value.accent;ctx.lineWidth=2;ctx.strokeRect(all.x,all.y,all.w,all.h);ctx.restore();}if(altHeld.value){const target=hovered.value&&!keys.includes(hovered.value)?enclosingBounds([elementBounds(ctx,s,hovered.value)]):null;if(target)drawObjectDistances(ctx,all,target);else drawDistances(ctx,all);}
+        const keys=selectedKeys.value.length?selectedKeys.value:[selected.value],all=enclosingBounds(keys.map(k=>elementBounds(ctx,s,k)));if(keys.length>1){ctx.save();ctx.strokeStyle=theme.value.accent;ctx.lineWidth=2;ctx.strokeRect(all.x,all.y,all.w,all.h);ctx.restore();}if(altHeld.value){const target=hovered.value&&!keys.includes(hovered.value)?enclosingBounds([elementBounds(ctx,s,hovered.value)]):null;if(target){const k=hovered.value,outer=elementBounds(ctx,s,k),inner=keys.length===1&&blockType(s,keys[0])==='text'?elementBounds(ctx,s,keys[0]):null;const margins=inner&&blockType(s,k)==='shape'&&['rect','square','rounded'].includes(s.elements[k].shape)?interiorMargins(inner,outer):null;if(margins)drawInteriorMargins(ctx,outer,margins);else drawObjectDistances(ctx,all,target);}else drawDistances(ctx,all);}
       }
     }
     if(marquee?.rect&&!presenting.value&&view.value==='slides'){const b=marquee.rect;ctx.save();ctx.fillStyle='#76dfff22';ctx.strokeStyle='#76dfff';ctx.lineWidth=1.5*WIDTH/Math.max(1,stageWidth.value);ctx.fillRect(b.x,b.y,b.w,b.h);ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore();}
@@ -197,6 +200,11 @@ export function useStudio() {
   function drawObjectDistances(ctx,a,b){
     const scale=WIDTH/Math.max(1,stageWidth.value),f=resolution.value.width/WIDTH,x=axisDistance(a,b,'x'),y=axisDistance(a,b,'y');ctx.save();ctx.strokeStyle='#ffb86b';ctx.lineWidth=scale;ctx.setLineDash([4*scale,4*scale]);ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.setLineDash([]);ctx.font=`600 ${12*scale}px Arial`;ctx.textBaseline='top';
     const mark=(start,end,horizontal,label)=>{const cross=horizontal?Math.min(a.y,b.y)-14*scale:Math.max(a.x+a.w,b.x+b.w)+14*scale;ctx.beginPath();horizontal?(ctx.moveTo(start,cross),ctx.lineTo(end,cross)):(ctx.moveTo(cross,start),ctx.lineTo(cross,end));ctx.stroke();const lx=Math.max(0,Math.min(WIDTH-115*scale,horizontal?(start+end)/2:cross+5*scale)),ly=Math.max(0,Math.min(HEIGHT-22*scale,horizontal?cross-22*scale:(start+end)/2));ctx.fillStyle='#251708';ctx.fillRect(lx,ly,ctx.measureText(label).width+8*scale,20*scale);ctx.fillStyle='#ffb86b';ctx.fillText(label,lx+4*scale,ly+3*scale);};mark(x.from,x.to,true,`ΔX ${Math.round(x.gap*f)} px`);mark(y.from,y.to,false,`ΔY ${Math.round(y.gap*f)} px`);ctx.restore();
+  }
+  function drawInteriorMargins(ctx,outer,m){
+    const scale=WIDTH/Math.max(1,stageWidth.value),f=resolution.value.width/WIDTH,a=m.inner;ctx.save();if(outer.rotation){ctx.translate(outer.x+outer.w/2,outer.y+outer.h/2);ctx.rotate(outer.rotation*Math.PI/180);ctx.translate(-outer.x-outer.w/2,-outer.y-outer.h/2);}ctx.strokeStyle='#ffb86b';ctx.fillStyle='#ffb86b';ctx.lineWidth=scale;ctx.font=`600 ${12*scale}px Arial`;ctx.textBaseline='top';ctx.strokeRect(outer.x,outer.y,outer.w,outer.h);
+    const mark=(x,y,ex,ey,value,name)=>{ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(ex,ey);ctx.stroke();const label=`${name} ${Math.round(value*f)} px`,lx=(x+ex)/2+4*scale,ly=(y+ey)/2+4*scale;ctx.fillStyle='#251708';ctx.fillRect(lx,ly,ctx.measureText(label).width+8*scale,20*scale);ctx.fillStyle='#ffb86b';ctx.fillText(label,lx+4*scale,ly+3*scale);};
+    mark(outer.x,a.y+a.h/2,a.x,a.y+a.h/2,m.left,'G');mark(a.x+a.w,a.y+a.h/2,outer.x+outer.w,a.y+a.h/2,m.right,'D');mark(a.x+a.w/2,outer.y,a.x+a.w/2,a.y,m.top,'H');mark(a.x+a.w/2,a.y+a.h,a.x+a.w/2,outer.y+outer.h,m.bottom,'B');ctx.restore();
   }
   const selectionBounds=computed(()=>enclosingBounds(selectedKeys.value.filter(k=>visibleBlocks(current.value).includes(k)).map(k=>elementBounds(measurement,current.value,k))));
   const canUngroup=computed(()=>(current.value.groups||[]).some(g=>g.keys.some(k=>selectedKeys.value.includes(k))));
@@ -252,9 +260,9 @@ export function useStudio() {
     pointerDown = null; activeStroke = null; requestDraw();
   }
   function leave() { pointer = null;hovered.value=null; requestDraw(); }
-  function doubleClick(e) { if (presenting.value || view.value !== 'slides') return; const hit = hitBlock(coords(e)); if (!hit) return; drag = null; selected.value = hit;selectedKeys.value=[hit];selectionScope.value='elements'; if(!['image','shape'].includes(blockType(current.value,hit))) editing.value = hit; requestDraw(); }
+  function doubleClick(e) { if (presenting.value || view.value !== 'slides') return; const hit = hitBlock(coords(e)); if (!hit) return; drag = null; selected.value = hit;selectedKeys.value=[hit];selectionScope.value='elements'; if(!['image','shape','table'].includes(blockType(current.value,hit))) editing.value = hit; requestDraw(); }
   function closeEdit() { if(editing.value)history.group=null;editing.value = null; requestDraw(); }
-  function editSelected() { if (!visibleBlocks(current.value).includes(selected.value))return; if(!['image','shape'].includes(selectedType.value)) editing.value = selected.value; }
+  function editSelected() { if (!visibleBlocks(current.value).includes(selected.value))return; if(!['image','shape','table'].includes(selectedType.value)) editing.value = selected.value; }
   function chooseSlide(n) {
     if (n < 0 || n >= slides.value.length || n === index.value || moving.value) return;
     cancelMarquee();closeEdit(); drag = null; transformPreview.value=null;pointer = null; strokes = []; trail.clear();
@@ -280,11 +288,11 @@ export function useStudio() {
     const first = slides.value.length; slides.value.push(...memorySlides({ x, y: 0 })); gallery.value = false; chooseSlide(first);if(routeMode.value==='spatial')rebuildRoute(); notify('Parcours mémoire ajouté : descends avec ↓, révèle avec Espace.');
   }
   function applyFormat() { const width=Number(formatWidth.value); const next=normalizeResolution({width,height:width*9/16}); if(next.width!==width){notify('Largeur entre 640 et 3840, multiple de 16.');return;}resolution.value=next;formatOpen.value=false;nextTick(requestDraw); }
-  function undoLayout(){if(!canUndoLayout.value)return;closeEdit();const old=layoutBackup.value,added=Object.fromEntries(Object.entries(current.value.positions).filter(([k])=>!old.positions[k]));for(const key of ['layout','positions','blockKeys','designVersion','groups'])current.value[key]=JSON.parse(JSON.stringify(old[key]??(key==='groups'?[]:null)));Object.assign(current.value.positions,added);current.value.blockKeys=current.value.blockKeys.filter(k=>blocks.includes(k)||current.value.elements[k]);layoutBackup.value=null;if(!visibleBlocks(current.value).includes(selected.value))selected.value=visibleBlocks(current.value)[0]||'title';requestDraw();}
+  function undoLayout(){if(!canUndoLayout.value)return;closeEdit();const old=layoutBackup.value;restoreTemplateLayout(current.value,old);current.value.blockKeys=current.value.blockKeys.filter(k=>blocks.includes(k)||current.value.elements[k]);layoutBackup.value=null;if(!visibleBlocks(current.value).includes(selected.value))selected.value=visibleBlocks(current.value)[0]||'title';requestDraw();}
   function applyPreset(id) { layoutBackup.value=JSON.parse(JSON.stringify(current.value));closeEdit(); applyLayout(current.value,id);current.value.groups=normalizeGroups(current.value.groups,visibleBlocks(current.value)); if (!visibleBlocks(current.value).includes(selected.value)) selected.value = 'title'; }
   function fitAuto(key){if(current.value.positions[key]?.autoSize){const b=autoTextBounds(measurement,current.value,key);Object.assign(current.value.positions[key],{w:b.w,h:b.h});}}
   function fitSelection(){fitAuto(selected.value);}
-  function commitText(value){const key=editing.value;if(!key||blockType(current.value,key)!=='text')return;changeText(value.text);if(key==='title')current.value.label=value.label;else if(current.value.elements[key]?.weight===700)current.value.elements[key].label=value.label;closeEdit();}
+  function commitText(value){const key=editing.value;if(!key||blockType(current.value,key)!=='text')return;changeText(value.text);if(key==='title')current.value.label=value.label;else if(current.value.elements[key]?.weight===700)current.value.elements[key].label=value.label;separateLabels(current.value);closeEdit();}
   function setZoom(value,anchor=null){const next=clampZoom(value),viewport=stage.value?.parentElement;if(!viewport){zoom.value=next;return;}const rect=viewport.getBoundingClientRect(),point=anchor||{x:rect.left+rect.width/2,y:rect.top+rect.height/2},before=stage.value.getBoundingClientRect(),logical={x:(point.x-before.left)/before.width,y:(point.y-before.top)/before.height};zoom.value=next;nextTick(()=>{if(!stage.value)return;const after=stage.value.getBoundingClientRect();viewport.scrollLeft+=after.left+logical.x*after.width-point.x;viewport.scrollTop+=after.top+logical.y*after.height-point.y;});}
   function zoomWheel(event){if(!(event.ctrlKey||event.metaKey)||presenting.value||editing.value)return;event.preventDefault();setZoom(wheelZoom(zoom.value,event),{x:event.clientX,y:event.clientY});}
   function changeText(value) { setBlockText(current.value,editing.value,value);fitAuto(editing.value); }
@@ -298,10 +306,10 @@ export function useStudio() {
     if(Object.keys(current.value.elements).length>=MAX_ELEMENTS){notify('Cette diapo contient déjà 100 éléments ajoutés.');return;}
     closeEdit(); const key=type+crypto.randomUUID().replaceAll('-','').slice(0,8), s=current.value;
     const count=type==='text'?visibleBlocks(s).filter(k=>k!=='title'&&blockType(s,k)==='text').length+1:Object.values(s.elements).filter(e=>e.type===type).length+1;
-    s.elements[key]=type==='code'?{type,custom:true,name:'Code '+count,text:'// Ton extrait Java',caption:''}:type==='text'?{type,custom:true,name:'Texte '+count,text:'Ton nouveau texte.'}:{type,custom:true,name:'Image '+count,src:'',fit:'contain'};
+    s.elements[key]=type==='table'?normalizeTable({name:'Tableau '+count}):type==='code'?{type,custom:true,name:'Code '+count,text:'// Ton extrait Java',caption:''}:type==='text'?{type,custom:true,name:'Texte '+count,text:'Ton nouveau texte.'}:{type,custom:true,name:'Image '+count,src:'',fit:'contain'};
     const bottom=Math.max(250,...visibleBlocks(s).filter(k=>k!==key&&blockType(s,k)==='text').map(k=>{const b=blockBounds(measurement,s,k);return b.y+b.h;}));
     const y=type==='text'?Math.min(900,Math.round(bottom+55)):Math.min(640,300+count*120);
-    s.positions[key]={x:200,y,w:type==='text'?(visibleBlocks(s).includes('code')?650:1200):700,h:Math.min(400,HEIGHT-y-40),size:type==='code'?28:42};
+    s.positions[key]={x:200,y,w:type==='table'?1200:type==='text'?(visibleBlocks(s).includes('code')?650:1200):700,h:Math.min(400,HEIGHT-y-40),size:type==='code'?28:42};
     if(type==='text'){s.positions[key].autoSize=true;s.positions[key].wrapWidth=s.positions[key].w;fitAuto(key);}
     s.fragments[key]={order:Math.min(20,Math.max(0,...Object.values(s.fragments).map(f=>f.order))+1),animation:'up'};
     selectedKeys.value=[key];selectionScope.value='elements';selected.value=key;if(type==='text')editing.value=key;

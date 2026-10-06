@@ -1,3 +1,4 @@
+import { validColorRole, boundColor } from './colors.js';
 export const shapes = [
  ['line','Trait',true,520,24],['curve','Courbe',true,420,200],['rect','Rectangle',false,440,260],['square','Carré',false,300,300],['rounded','Rectangle arrondi',false,440,260],['circle','Cercle',false,300,300],['ellipse','Ellipse',false,440,240],['triangle','Triangle',false,340,300],['right-triangle','Triangle rectangle',false,340,300],['diamond','Losange',false,300,360],['pentagon','Pentagone',false,320,300],['hexagon','Hexagone',false,360,300],['star','Étoile',false,340,340],['arrow','Flèche',false,440,200],['double-arrow','Double flèche',false,440,200],['trapezoid','Trapèze',false,400,260],['parallelogram','Parallélogramme',false,400,260],['chevron','Chevron',false,320,300],['cross','Croix',false,300,300],['heart','Cœur',false,340,300],
 ].map(([id,name,open,w,h])=>({id,name,open,w,h}));
@@ -5,7 +6,7 @@ const clamp=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.max(mi
 const color=(value,fallback)=>/^#[\da-f]{6}$/i.test(value)?value:fallback;
 export function normalizeShape(raw={}) {
  const spec=shapes.find(s=>s.id===raw.shape)||shapes.find(s=>s.id==='rect');
- return {type:'shape',custom:true,name:String(raw.name||spec.name).slice(0,100),shape:spec.id,fill:color(raw.fill,'#35ff91'),stroke:color(raw.stroke,'#35ff91'),filled:raw.filled!==false,outlined:raw.outlined===true||spec.open,strokeWidth:clamp(raw.strokeWidth,1,60,6),opacity:clamp(raw.opacity,0,100,100),radius:clamp(raw.radius,0,45,12),points:Math.round(clamp(raw.points,3,12,5)),innerRatio:clamp(raw.innerRatio,.15,.8,.45),direction:['horizontal','vertical','down','up'].includes(raw.direction)?raw.direction:'horizontal',dashed:raw.dashed===true,roundedEnds:raw.roundedEnds!==false};
+ return {type:'shape',custom:raw.custom!==false,template:raw.template===true,fillRole:validColorRole(raw.fillRole),strokeRole:validColorRole(raw.strokeRole),name:String(raw.name||spec.name).slice(0,100),shape:spec.id,fill:color(raw.fill,'#35ff91'),stroke:color(raw.stroke,'#35ff91'),filled:raw.filled!==false,outlined:raw.outlined===true||spec.open,strokeWidth:clamp(raw.strokeWidth,1,60,6),opacity:clamp(raw.opacity,0,100,100),radius:clamp(raw.radius,0,45,12),points:Math.round(clamp(raw.points,3,12,5)),innerRatio:clamp(raw.innerRatio,.15,.8,.45),direction:['horizontal','vertical','down','up'].includes(raw.direction)?raw.direction:'horizontal',dashed:raw.dashed===true,roundedEnds:raw.roundedEnds!==false};
 }
 const polygon=points=>'M '+points.map(p=>p.map(v=>Number(v.toFixed(3))).join(' ')).join(' L ')+' Z';
 function regular(n,inner=1){return polygon(Array.from({length:n},(_,i)=>{const a=-Math.PI/2+i*2*Math.PI/n,r=i%2?inner:1;return [50+50*r*Math.cos(a),50+50*r*Math.sin(a)];}));}
@@ -45,10 +46,10 @@ export function shapeBounds(e,p){
  if(e.shape!=='line'||!['horizontal','vertical'].includes(e.direction))return {...p,h:p.h||300};
  const horizontal=e.direction==='horizontal',weight=Math.min(e.strokeWidth,horizontal?p.w:p.h||300);return horizontal?{...p,y:p.y+((p.h||300)-weight)/2,h:weight}:{...p,x:p.x+(p.w-weight)/2,w:weight,h:p.h||300};
 }
-export function drawShape(ctx,e,p) {
+export function drawShape(ctx,e,p,theme) {
  p=shapeBounds(e,p);const spec=shapes.find(s=>s.id===e.shape),w=p.w,h=p.h||300;
  const stroke=e.outlined||spec?.open,weight=e.shape==='line'&&['horizontal','vertical'].includes(e.direction)?Math.min(e.strokeWidth,e.direction==='horizontal'?w:h):Math.min(e.strokeWidth,Math.min(w,h)/2),inset=stroke?weight/2:0;
  const bounds=shapePathBounds(e),ix=e.shape==='line'&&e.direction==='horizontal'&&e.roundedEnds===false?0:inset,iy=e.shape==='line'&&e.direction==='vertical'&&e.roundedEnds===false?0:inset,sx=(w-2*ix)/bounds.w,sy=(h-2*iy)/bounds.h;
  const path=new Path2D();if(e.shape==='rounded'){const rw=w-2*inset,rh=h-2*inset;path.roundRect(p.x+inset,p.y+inset,rw,rh,Math.min(rw,rh)*e.radius/100);}else path.addPath(new Path2D(shapePath(e)),new DOMMatrix([sx,0,0,sy,p.x+ix-bounds.x*sx,p.y+iy-bounds.y*sy]));
- ctx.save();ctx.globalAlpha*=e.opacity/100;ctx.lineJoin='round';ctx.lineCap=e.roundedEnds===false?'butt':'round';if(!spec?.open&&e.filled){ctx.fillStyle=e.fill;ctx.fill(path);}if(stroke){ctx.strokeStyle=e.stroke;ctx.lineWidth=weight;ctx.setLineDash(e.dashed?[weight*3,weight*2]:[]);ctx.stroke(path);}ctx.restore();
+ ctx.save();ctx.globalAlpha*=e.opacity/100;ctx.lineJoin='round';ctx.lineCap=e.roundedEnds===false?'butt':'round';if(!spec?.open&&e.filled){ctx.fillStyle=boundColor(e,'fill',theme);ctx.fill(path);}if(stroke){ctx.strokeStyle=boundColor(e,'stroke',theme);ctx.lineWidth=weight;ctx.setLineDash(e.dashed?[weight*3,weight*2]:[]);ctx.stroke(path);}ctx.restore();
 }
