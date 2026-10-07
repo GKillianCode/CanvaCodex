@@ -1,6 +1,8 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 6 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 7 octobre 2026 (Europe/Paris).
+
+Ce fichier est l’unique mémoire et point d’entrée des consignes du projet. Le lire avant de travailler, le tenir à jour et respecter le workflow GitHub ci-dessous, en distinguant travail local et publication confirmée.
 
 Ce fichier conserve le contexte, les décisions, les conventions, l’état réel du projet et sa roadmap. Le lire au début d’une session et le mettre à jour lorsque les décisions ou l’état changent. Résumer les échanges utiles, sans copier intégralement les conversations, sans secrets et sans présenter une idée comme une fonctionnalité livrée.
 
@@ -481,3 +483,14 @@ Validation locale : suite de 14 fichiers et build réussis, diff --check. Sept s
 Fixture isolée localhost:5183 : événements de clavier AltLeft et pointermove synthétiques (sans bouton Repères), souris placée avant la pression Alt au-dessus de la sélection. Cas texte/forme, forme/forme, image/tableau et conteneur sélectionné : G 160, D 640, H 160, B 267 px ; chevauchement partiel : G -27, D 827, H 160, B 267 px. Une correction de la fixture a été nécessaire : supprimer l’iframe précédente avant de charger le projet suivant pour éviter que sa sauvegarde à la fermeture réécrive la nouvelle scène. Les types/identifiants des scènes ont ensuite été vérifiés dans les sorties. Erreur MutationObserver observée dans la fixture avec iframe, comme aux contrôles précédents ; aucun lien établi avec le code applicatif. Fixture temporaire supprimée après le contrôle. Geste physique Alt et export PNG/WebM effectif non automatisés ; pas de nouveau test mobile. Capture de preuve enregistrée hors dépôt dans le répertoire d’artefacts de la session.
 
 Publication confirmée : [PR #58](https://github.com/GKillianCode/CanvaCodex/pull/58) ouverte vers `codex/editor-tables-templates`, commit distant `1ef5c84`, arbre Git identique au commit local `d45e30f`. Issue #57 ouverte jusqu’à revue/fusion. Aucune fusion automatique.
+
+
+### 7 octobre 2026 — mémoire unique et aimantation
+
+Demande : un seul Agent.md, aimantation d’alignement désactivable et active par défaut, retirer + Formes/+ Tableau du haut de l’éditeur. Branche `codex/alignment-snapping`, basée sur `codex/table-styles-alt-guides` (PR #58). Les consignes du renvoi AGENTS.md sont intégrées en tête de ce fichier, puis AGENTS.md supprimé ; README racine mis à jour.
+
+Aimantation des bords et centres du cadre englobant sur ceux de la diapo et des objets non sélectionnés, axe par axe, cible la plus proche. Seuil 6 pixels d’écran converti via largeur du stage, donc adapté au zoom. Translation commune aux groupes/sélections, rotations et dimensions préservées, bornes de diapo respectées. Guides roses pendant le glisser, exclus du rendu partagé et des exports. Bouton sous la diapo, état dans frame-workspace, actif par défaut pour les préférences existantes. Taille/rotation au moyen des poignées restent libres. Ajout des formes/tableaux conservé dans les propriétés et menu contextuel.
+
+Validation : 15 fichiers de tests et build réussis. Nouveaux scénarios : axes indépendants, bords/centres, cible la plus proche, groupes rigides, tolérance selon zoom, rotation et bornes. Navigateur isolé 127.0.0.1:5184 : bouton actif initialement, boutons supérieurs absents ; fixture temporaire avec pointer events synthétiques, sélection déplacée de x128/y544 vers x128/y208, guides inspectés ; désactivation conservée au rechargement, déplacement libre x132/y209 ; réactivation accroche x128/y208. Capture hors dépôt, fixture supprimée. Erreurs MutationObserver dans l’iframe de test comme précédemment, sans attribution au code applicatif. Pas de nouveau contrôle d’export ni geste physique de glisser automatisé.
+
+Suivi : création d’issue via le connecteur échouée trois fois (erreur interne), y compris avec titre seul ; lecture du parent et création de branche distante réussies. Brouillon du ticket conservé dans .github/drafts/alignment-snapping-issue.md. Publication des sources en préparation ; aucune fusion automatique.
