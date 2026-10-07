@@ -151,3 +151,10 @@ Dans les propriétés d’un tableau, quatre styles sont disponibles : **Classiq
 **Alt** : sélectionner un objet, placer la souris sur un autre puis maintenir Alt. Le survol traverse la sélection au premier plan pour trouver l’objet derrière ; Alt s’active aussi sans nouveau mouvement de souris. Tous les types d’objets et cadres de groupes sont pris en compte. Si un objet contient l’autre ou s’ils se superposent, quatre écarts **G/D/H/B** apparaissent ; une valeur négative indique un dépassement. Des objets séparés affichent les distances ΔX/ΔY. Sans objet cible, les quatre écarts à la diapo sont affichés. Rotations et pixels de sortie sont pris en compte ; repères absents des exports.
 
 Le format version 17 reprend les tableaux précédents : première ligne d’en-tête ou aucun en-tête selon l’ancien réglage, dimensions et cellules conservées. Les styles supplémentaires sont conservés dans les copies, composants et sauvegardes.
+
+
+### Aimantation d’alignement
+
+Dans l’éditeur, le bouton **Aimantation** sous la diapo active ou désactive l’accrochage pendant le déplacement. Activé par défaut, ce choix est conservé sur cet appareil. Les bords et centres de la sélection s’alignent sur ceux de la diapo et des autres objets, avec des guides roses. Le seuil est de 6 pixels à l’écran quel que soit le zoom ; les groupes et sélections multiples gardent leurs écarts. Les poignées de taille et de rotation restent libres.
+
+Les boutons « + Formes » et « + Tableau » ont été retirés de la barre supérieure. Ces objets restent disponibles dans **Propriétés → Ajouter un élément** et dans le menu du clic droit.
