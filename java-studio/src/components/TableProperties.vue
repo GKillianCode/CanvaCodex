@@ -23,7 +23,6 @@ const colorGroups={header:[['headerFill','Fond de l’en-tête'],['headerText','
  <InspectorDrawer v-if="mode==='style'" id="table-1" title="Style du tableau">
   <div class="table-style-grid"><button v-for="style in tableStyles" :key="style.id" class="btn" @click="applyTableStyle(table,style.id)" :aria-label="'Style de tableau '+style.name">{{style.name}}</button></div>
   <label>Arrondi des coins · px<input type="number" min="0" :max="120*scale" :value="Math.round(table.cornerRadius*scale)" aria-label="Arrondi du tableau" @input="pixels('cornerRadius',$event.target.value,0,120)"></label>
-  <label>Opacité · {{Math.round(table.opacity)}} %<input type="range" min="0" max="100" step="1" v-model.number="table.opacity" aria-label="Opacité du tableau"></label>
  </InspectorDrawer>
  <InspectorDrawer v-if="mode==='style'" id="table-2" title="En-tête">
   <label>Position de l’en-tête<select :value="table.headerPosition" @change="header($event.target.value)" aria-label="Position de l’en-tête"><option v-for="[id,name] in headerPositions" :key="id" :value="id">{{name}}</option></select></label>
