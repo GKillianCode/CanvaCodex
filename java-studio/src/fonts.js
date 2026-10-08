@@ -12,6 +12,6 @@ export const fonts=[
  {id:'fira-code',weights:[300, 400, 500, 600, 700],italic:false,name:'Fira Code',css:'"Fira Code", monospace',mono:true},
  {id:'ibm-plex-mono',weights:[100, 200, 300, 400, 500, 600, 700],italic:true,name:'IBM Plex Mono',css:'"IBM Plex Mono", monospace',mono:true},
 ];
-export function normalizeFont(id,type='text'){return fonts.some(f=>f.id===id&&(type!=='code'||f.mono))?id:type==='code'?'monospace':'arial';}
+export function normalizeFont(id,type='text'){return fonts.some(f=>f.id===id&&(type!=='code'||f.mono))?id:type==='code'?'monospace':'inter';}
 export function fontCss(id,type='text'){return fonts.find(f=>f.id===normalizeFont(id,type)).css;}
 export function usedFonts(slides){return [...new Set(slides.flatMap(s=>Object.entries(s.positions).filter(([key])=>!['image','shape'].includes(s.elements?.[key]?.type)).map(([key,p])=>normalizeFont(s.elements?.[key]?.type==='table'?s.elements[key].font:p.font,key==='code'||s.elements?.[key]?.type==='code'?'code':'text'))))];}

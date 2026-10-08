@@ -1,3 +1,5 @@
+import { layoutText } from './textLists.js';
+import { textRole } from './textRoles.js';
 import { drawTable } from './tables.js';
 import { textColor, getTextStyle, normalizeTextStyle, styleFont } from './textStyles.js';
 import { fontCss } from './fonts.js';
@@ -45,11 +47,11 @@ export function wrapLines(ctx,value,width){
  const lines=[];for(const row of String(value).split('\n')){let line='';for(const part of row.match(/\S+\s*|\s+/g)||['']){if(line&&ctx.measureText(line+part).width>width){lines.push(line.trimEnd());line='';}for(const char of part){if(line&&ctx.measureText(line+char).width>width){lines.push(line.trimEnd());line='';}line+=char;}}lines.push(line.trimEnd());}return lines;
 }
 export function autoTextBounds(ctx,s,key){
- const p=s.positions[key],heading=key==='title'||s.elements[key]?.weight===700,leading=heading?1.12:1.4,style=getTextStyle(s,key);ctx.font=styleFont(p.size,fontCss(p.font),style);ctx.textBaseline='top';
- const lines=wrapLines(ctx,blockText(s,key),p.wrapWidth||1200),metrics=lines.map(line=>ctx.measureText(line||'M'));
+ const p=s.positions[key],leading=textRole(s,key).leading,style=getTextStyle(s,key);ctx.font=styleFont(p.size,fontCss(p.font),style);ctx.textBaseline='top';
+ const layout=layoutText(ctx,blockText(s,key),p.wrapWidth||1200,p.size,leading,style,wrapLines),lines=layout.rows.map(row=>row.text),metrics=lines.map(line=>ctx.measureText(line||'M'));
  const top=Math.min(...metrics.map(m=>Number.isFinite(m.actualBoundingBoxAscent)?-m.actualBoundingBoxAscent:0));
- const bottom=Math.max(...metrics.map((m,i)=>i*p.size*leading+(Number.isFinite(m.actualBoundingBoxDescent)?m.actualBoundingBoxDescent:p.size)));
- return {w:Math.max(8,...lines.map((line,i)=>Math.max(ctx.measureText(line).width,(metrics[i].actualBoundingBoxRight||0)+(metrics[i].actualBoundingBoxLeft||0))))+2,h:Math.max(12,bottom-top+2),size:p.size,inkOffset:top,lines};
+ const bottom=Math.max(...metrics.map((m,i)=>layout.rows[i].y+(Number.isFinite(m.actualBoundingBoxDescent)?m.actualBoundingBoxDescent:p.size)));
+ return {w:Math.max(8,...lines.map((line,i)=>Math.max(layout.rows[i].x+ctx.measureText(line).width,layout.rows[i].x+(metrics[i].actualBoundingBoxRight||0)+(metrics[i].actualBoundingBoxLeft||0))))+2,h:Math.max(12,bottom-top+2),size:p.size,inkOffset:top,lines};
 }
 export function paintTextMark(ctx,line,x,y,size,color,style,background=false){
  if(!line)return;const metrics=ctx.measureText(line),width=metrics.width,top=y-(Number.isFinite(metrics.actualBoundingBoxAscent)?metrics.actualBoundingBoxAscent:0),bottom=y+(Number.isFinite(metrics.actualBoundingBoxDescent)?metrics.actualBoundingBoxDescent:size),thickness=Math.max(1,size*.045);ctx.save();
@@ -58,8 +60,8 @@ export function paintTextMark(ctx,line,x,y,size,color,style,background=false){
  ctx.restore();
 }
 export function text(ctx, value, x, y, width, size, color, weight = 400, font = 'Arial', leading=1.35,style=null) {
- ctx.fillStyle=color;ctx.font=styleFont(size,font,style||{weight,italic:false});ctx.textBaseline='top';const lines=wrapLines(ctx,value,width);
- lines.forEach((line,n)=>{const row=y+n*size*leading;if(style)paintTextMark(ctx,line,x,row,size,color,style,true);ctx.fillText(line,x,row);if(style)paintTextMark(ctx,line,x,row,size,color,style);});return lines.length*size*leading;
+ ctx.fillStyle=color;ctx.font=styleFont(size,font,style||{weight,italic:false});ctx.textBaseline='top';const layout=layoutText(ctx,value,width,size,leading,style,wrapLines);
+ layout.rows.forEach(({text:line,x:offset,y:dy,marker,markerX})=>{const row=y+dy;if(marker){ctx.fillStyle=style?.markerColor||color;ctx.fillText(marker,x+markerX,row);}ctx.fillStyle=color;if(style)paintTextMark(ctx,line,x+offset,row,size,color,style,true);ctx.fillText(line,x+offset,row);if(style)paintTextMark(ctx,line,x+offset,row,size,color,style);});return layout.height;
 }
 function codeWidthSize(ctx,value,p){ctx.font=styleFont(p.size,fontCss(p.font,'code'),normalizeTextStyle(p.textStyle,p.font,'code'));return (p.w-110)*p.size/Math.max(1,...value.split('\n').map(line=>ctx.measureText(line.replaceAll('\t','    ')).width));}
 export function blockBounds(ctx, s, key) {
@@ -68,7 +70,7 @@ export function blockBounds(ctx, s, key) {
   if(['image','table'].includes(blockType(s,key)))return {...p,h:p.h||360};
   if(blockType(s,key)==='code'){const value=blockText(s,key);const h=p.h||Math.max(260,value.split('\n').length*p.size*1.6+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,blockText(s,key).split('\n').length)*1.6),codeWidthSize(ctx,blockText(s,key),p)));return {...p,h,size};}
   if(p.autoSize)return {...p,...autoTextBounds(ctx,s,key)};
-  const style=getTextStyle(s,key),leading=key==='title'||s.elements[key]?.weight===700?1.12:1.4, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=styleFont(size,fontCss(p.font),style);return {...p,size,h:wrapLines(ctx,blockText(s,key),p.w).length*size*leading};
+  const style=getTextStyle(s,key),leading=textRole(s,key).leading, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=styleFont(size,fontCss(p.font),style);return {...p,size,h:layoutText(ctx,blockText(s,key),p.w,size,leading,style,wrapLines).height};
 }
 export function background(ctx, theme, gradient=true) {
   if(!gradient){ctx.fillStyle=theme.bg;ctx.fillRect(0,0,WIDTH,HEIGHT);return;}
@@ -103,7 +105,7 @@ function drawCode(ctx, s, theme, key) {
 }
 export function fitText(ctx,value,p,weight,leading) {
   let size=p.size;if(!p.h)return size;
-  while(size>16){ctx.font=styleFont(size,fontCss(p.font),normalizeTextStyle(p.textStyle,p.font,'text',weight===700));if(wrapLines(ctx,value,p.w).length*size*leading<=p.h)break;size-=1;}return size;
+  while(size>16){ctx.font=styleFont(size,fontCss(p.font),normalizeTextStyle(p.textStyle,p.font,'text',weight===700));if(layoutText(ctx,value,p.w,size,leading,p.textStyle,wrapLines).height<=p.h)break;size-=1;}return size;
 }
 export function renderSlide(ctx, s, theme, options = {}) {
   background(ctx, theme, options.gradient!==false);
@@ -116,7 +118,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if (omit === key) continue;
     const f = s.fragments[key];
     if (f.order > order) continue;
-    const p = s.positions[key], b = blockBounds(ctx, s, key),style=getTextStyle(s,key);
+    const p = s.positions[key], b = blockBounds(ctx, s, key),style=getTextStyle(s,key);style.markerColor=textColor(style.list,theme,textColor(style,theme));
     const progress = motion && f.order > 0 && f.order === motion.order ? Math.min(1, Math.max(0, (now - motion.started) / 360)) : 1;
     const ease = 1 - (1 - progress) ** 3;
     ctx.save();
@@ -126,12 +128,12 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if (f.animation === 'zoom') { const scale = .9 + ease * .1; ctx.translate(p.x + p.w / 2, p.y + b.h / 2); ctx.scale(scale, scale); ctx.translate(-p.x - p.w / 2, -p.y - b.h / 2); }
     if (key === 'title'||s.elements[key]?.weight===700) {
       const label=key==='title'?s.label:s.elements[key]?.label;if (label) text(ctx, label, p.x, Math.max(10, p.y - 58), p.w, 23, theme.accent, style.weight,fontCss(p.font),1.35,style);
-      const font=p.autoSize?p.size:fitText(ctx,blockText(s,key),p,700,1.12);const color=style.color||style.colorRole?textColor(style,theme):['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,font,color,style.weight,fontCss(p.font),1.12,style);
+      const font=p.autoSize?p.size:fitText(ctx,blockText(s,key),p,700,textRole(s,key).leading);const color=style.color||style.colorRole?textColor(style,theme):['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,font,color,style.weight,fontCss(p.font),textRole(s,key).leading,style);
     } else if (blockType(s,key)==='shape') drawShape(ctx,s.elements[key],p,theme);
     else if (blockType(s,key)==='table') drawTable(ctx,s.elements[key],p,theme,wrapLines);
     else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
     else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key);
-    else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,1.4),textColor(style,theme,`${theme.ink}df`),style.weight,fontCss(p.font),1.4,style);
+    else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,textRole(s,key).leading),textColor(style,theme,`${theme.ink}df`),style.weight,fontCss(p.font),textRole(s,key).leading,style);
     ctx.restore();
   }
   if (footer) {
