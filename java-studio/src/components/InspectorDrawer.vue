@@ -1,6 +1,7 @@
 <script setup>
 import { inject,reactive } from 'vue';
-defineProps({id:String,title:String});
+const props=defineProps({id:String,title:String});
 const state=inject('inspectorDrawers',reactive({}));
+function toggle(event){if(event.target.open){for(const key of Object.keys(state))state[key]=key===props.id;state[props.id]=true;}else if(state[props.id])state[props.id]=false;}
 </script>
-<template><details class="property-details" :data-drawer="id" :open="state[id]===true" @toggle="state[id]=$event.target.open"><summary>{{title}}</summary><slot/></details></template>
+<template><details class="property-details" :data-drawer="id" :open="state[id]===true" @toggle="toggle"><summary>{{title}}</summary><slot/></details></template>
