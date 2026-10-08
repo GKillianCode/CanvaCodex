@@ -533,7 +533,7 @@ Validation : 18 fichiers de tests réussis et build réussi, diff --check propre
 
 ### 8 octobre 2026 — écriture, échelle, animations et écran des incrustations
 
-Demande : quatre alignements de texte, poignées de mise à l’échelle adaptées au contenu et aux groupes, animations sobres avec variation organisée, un seul tiroir ouvert, limites de l’écran transparent des incrustations. Suivi : [issue #66](https://github.com/GKillianCode/CanvaCodex/issues/66), branche `codex/text-scale-motion` basée sur `codex/shared-component-library` (PR #65). Publication en préparation, aucune fusion automatique.
+Demande : quatre alignements de texte, poignées de mise à l’échelle adaptées au contenu et aux groupes, animations sobres avec variation organisée, un seul tiroir ouvert, limites de l’écran transparent des incrustations. Suivi : [issue #66](https://github.com/GKillianCode/CanvaCodex/issues/66), branche `codex/text-scale-motion` basée sur `codex/shared-component-library` (PR #65). Publication confirmée : [PR #67](https://github.com/GKillianCode/CanvaCodex/pull/67) vers `codex/shared-component-library`, commit applicatif distant `34de912`, arbre identique au commit local `d0c830c`. Issue #66 ouverte jusqu’à revue/fusion. Aucune fusion automatique.
 
 Alignement dans textStyle, partagé par layoutText, rendu, listes, fitting et cadres automatiques ; justification des lignes repliées sauf dernière ligne de paragraphe. Boutons gauche/centre/droite/justifié pour texte individuel et sélection homogène, code Java conservé à gauche. Réglages conservés dans import/export et composants.
 
