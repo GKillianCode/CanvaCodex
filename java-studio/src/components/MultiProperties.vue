@@ -14,7 +14,7 @@ import { fonts } from '../fonts.js';
 const props=defineProps({studio:Object,mode:String});const s=props.studio;
 const type=computed(()=>s.multiType?.split(':')[0]);
 const shapeFields=computed(()=>[
- ['filled','Remplissage','checkbox'],['fill','Couleur de remplissage','color'],['outlined','Contour','checkbox'],['stroke','Couleur du contour','color'],['strokeWidth','Épaisseur du contour','number',1,60],['opacity','Opacité (%)','number',0,100],['dashed','Pointillés','checkbox'],
+ ['filled','Remplissage','checkbox'],['fill','Couleur de remplissage','color'],['outlined','Contour','checkbox'],['stroke','Couleur du contour','color'],['strokeWidth','Épaisseur du contour','number',1,60],['dashed','Pointillés','checkbox'],
  ...(['shape:rect','shape:square'].includes(s.multiType)?[['roundedCorners','Bords arrondis','checkbox']]:[]),
  ...(['shape:rounded','shape:rect','shape:square'].includes(s.multiType)?[['radius','Arrondi des coins (%)','number',0,50]]:[]),
  ...(s.multiType==='shape:star'?[['points','Branches','number',3,12],['innerRatio','Profondeur des branches','number',0.15,0.8]]:[]),
