@@ -546,7 +546,7 @@ Validation : 19 fichiers de tests réussis, build réussi, diff --check propre. 
 
 ### 8 octobre 2026 — puissances, apparitions compactes et notes Markdown
 
-Demande : écrire des puissances comme 2²³, alléger l’ordre des apparitions, enlever Position sur le canevas des propriétés Diapo, notes Markdown multilignes affichées en présentation. Suivi : [issue #68](https://github.com/GKillianCode/CanvaCodex/issues/68), branche `codex/powers-notes-appearance` basée sur `codex/text-scale-motion` (PR #67). Publication en préparation pour ce lot, aucune fusion automatique.
+Demande : écrire des puissances comme 2²³, alléger l’ordre des apparitions, enlever Position sur le canevas des propriétés Diapo, notes Markdown multilignes affichées en présentation. Suivi : [issue #68](https://github.com/GKillianCode/CanvaCodex/issues/68), branche `codex/powers-notes-appearance` basée sur `codex/text-scale-motion` (PR #67). Publication confirmée : [PR #69](https://github.com/GKillianCode/CanvaCodex/pull/69) vers `codex/text-scale-motion`, commit applicatif distant `e1bb85b`, arbre identique au commit local `8e1f221`. Issue #68 ouverte jusqu’à revue/fusion. Aucune fusion automatique.
 
 TextDialog : insertion Base/Exposant à la sélection/au curseur, transformation de chiffres sélectionnés en exposant, conservation du focus et du curseur, validation des caractères et de la longueur. Exposants Unicode 0–9, +/−/=, parenthèses, n/i ; restent du texte ordinaire portable, sans nouveau modèle de spans ni modification du code Java. Exemple 2 + 23 → 2²³. Enter dans les champs de puissance insère ; Ctrl/Cmd Enter valide le texte. Annuler conserve le contenu précédent.
 
