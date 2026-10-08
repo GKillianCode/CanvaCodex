@@ -178,3 +178,18 @@ Le bouton « Formats · 24 » ouvre une galerie d’aperçus avec recherche et c
 Rectangles, carrés et rectangles arrondis disposent de l’option « Arrondis par coin ». Les quatre pourcentages sont indépendants, de 0 à 50 % du petit côté. Les rayons restent circulaires lors de l’étirement. Les réglages sont disponibles dans les deux éditeurs et en sélection multiple ; sauvegardes, copies et composants les conservent. Les anciens rectangles sans arrondi restent rectangulaires.
 
 Le format 19 enregistre l’incrustation dans banner.slide. Les anciens bandeaux sont automatiquement convertis en objets éditables avec leurs textes, surtitres et notes ; les éléments supprimés ne sont pas recréés au rechargement.
+
+
+### Partager les composants entre navigateurs
+
+Dans Propriétés → Composants, « Projet » conserve la bibliothèque du diaporama et « Partagée » utilise un fichier indépendant. Sur le premier navigateur, ajouter un composant avec l’icône Partager de sa carte ou créer depuis la sélection dans Partagée, puis Enregistrer dans frame-composants.json. Sur le second navigateur, ouvrir le même fichier depuis Partagée. Enregistrer transmet les changements ; Actualiser relit le fichier. La bibliothèque est également relue au retour dans l’application, si l’accès est déjà autorisé. Chaque insertion reste une copie personnalisable.
+
+Les modifications sur des composants différents sont réunies. Si le même composant a changé des deux côtés, l’écriture est bloquée et la copie locale est conservée : exporter cette copie ou utiliser Enregistrer sous pour la préserver. Les composants présents sont conservés à l’ouverture/import ; un doublon identique n’est pas réimporté. Éviter les sauvegardes exactement simultanées : les contrôles de conflit sur fichier ne sont pas une transaction de serveur.
+
+Les navigateurs qui ne proposent pas l’accès direct aux fichiers utilisent les boutons Exporter/Importer JSON. Dans ce cas, réimporter le fichier actualisé pour récupérer les changements. Le fichier bibliothèque est distinct du fichier projet ; les modifications partagées en attente survivent au rechargement de l’onglet, mais doivent être enregistrées/exportées avant sa fermeture. Pas de serveur ni de synchronisation en ligne.
+
+### Copier entre instances
+
+Sélectionner les objets, placer le focus sur la composition et utiliser Ctrl C (Cmd C sur Mac). Ouvrir l’autre instance, cliquer sur sa composition puis Ctrl V/Cmd V. Textes, images intégrées, formes, tableaux, groupes, styles et dimensions sont transférés entre diapos et incrustations. Pour copier un composant complet, utiliser Copier sur sa carte puis coller sur la composition cible. Les collages répétés sont décalés de 24 unités de conception.
+
+Les boutons Copier/Coller utilisent également le presse-papiers système lorsque le navigateur l’autorise. En cas de refus ou d’API indisponible, les raccourcis natifs restent la voie proposée. La copie/collage de texte dans un champ continue de fonctionner normalement. Les objets sont transmis au format texte balisé Frame, sans exécuter de contenu importé. Limites : 100 objets par composition, 100 composants par bibliothèque, échange de 64 millions de caractères maximum.
