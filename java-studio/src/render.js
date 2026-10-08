@@ -1,3 +1,4 @@
+import { normalizeOverlay } from './overlays.js';
 import { layoutText } from './textLists.js';
 import { textRole } from './textRoles.js';
 import { drawTable } from './tables.js';
@@ -108,7 +109,7 @@ export function fitText(ctx,value,p,weight,leading) {
   while(size>16){ctx.font=styleFont(size,fontCss(p.font),normalizeTextStyle(p.textStyle,p.font,'text',weight===700));if(layoutText(ctx,value,p.w,size,leading,p.textStyle,wrapLines).height<=p.h)break;size-=1;}return size;
 }
 export function renderSlide(ctx, s, theme, options = {}) {
-  background(ctx, theme, options.gradient!==false);
+  if(!options.transparent)background(ctx, theme, options.gradient!==false);
   const { header = false, footer = false, project = '', n = 0, total = 1, order = Infinity, motion = null, omit = null, now = performance.now() } = options;
   if (header) {
     text(ctx, 'JAVA / SOUS LE CAPOT', 112, 60, 1300, 22, theme.accent, 700);
@@ -142,17 +143,4 @@ export function renderSlide(ctx, s, theme, options = {}) {
     text(ctx, 'FRAME', 1710, 1005, 120, 20, theme.accent, 700);
   }
 }
-export function renderBanner(ctx, b, t) {
-  if (b.type === 'lower') {
-    round(ctx, 110, 800, 1660, 190, 16, t.bg); round(ctx, 110, 800, 9, 190, 4, t.accent);
-    text(ctx, b.subtitle, 155, 835, 1570, 25, t.accent, 700); text(ctx, b.title, 155, 883, 1570, 48, t.ink, 700);
-  } else if (b.type === 'chapter') {
-    round(ctx, 200, 385, 1520, 300, 20, t.bg);
-    text(ctx, b.subtitle, 265, 435, 1370, 27, t.accent, 700); text(ctx, b.title, 265, 495, 1370, 64, t.ink, 700);
-  } else if(b.type==='video'){
-    round(ctx,1040,730,770,260,24,t.bg);round(ctx,1080,770,120,120,20,t.accent);ctx.fillStyle=t.bg;ctx.beginPath();ctx.moveTo(1126,800);ctx.lineTo(1126,860);ctx.lineTo(1170,830);ctx.closePath();ctx.fill();text(ctx,b.subtitle||'POUR ALLER PLUS LOIN',1232,766,530,22,t.accent,700);text(ctx,b.title,1232,813,530,fitText(ctx,b.title,{w:530,h:88,size:36},700,1.35),t.ink,700);text(ctx,b.note||'Une autre vidéo sur la chaîne',1080,923,690,24,t.ink+'a0');
-  } else {
-    round(ctx, 1080, 80, 730, 240, 16, t.bg);
-    text(ctx, 'À RETENIR', 1120, 112, 640, 24, t.accent, 700); text(ctx, b.title, 1120, 163, 640, 42, t.ink, 700);
-  }
-}
+export function renderBanner(ctx,b,theme){renderSlide(ctx,normalizeOverlay(b).slide,theme,{transparent:true});}

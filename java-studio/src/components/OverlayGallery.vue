@@ -1,0 +1,12 @@
+<script setup>
+import { ref,computed,onMounted,watch,nextTick } from 'vue';
+import { X,Search } from 'lucide-vue-next';
+import { overlayFormats,makeOverlay } from '../overlays.js';
+import { renderSlide } from '../render.js';
+import { prepareFonts } from '../fontAssets.js';
+const props=defineProps({theme:Object,current:String});const emit=defineEmits(['close','choose']);const query=ref(''),category=ref('Tous'),root=ref(null);
+const formats=computed(()=>overlayFormats.filter(f=>(category.value==='Tous'||category.value===f.category)&&f.name.toLocaleLowerCase('fr').includes(query.value.toLocaleLowerCase('fr'))));
+async function draw(){await nextTick();const samples=formats.value.map(f=>makeOverlay(f.id));try{await prepareFonts(samples);}catch{}if(!root.value)return;for(const canvas of root.value.querySelectorAll('canvas')){const ctx=canvas.getContext('2d');ctx.clearRect(0,0,384,216);ctx.save();ctx.scale(.2,.2);renderSlide(ctx,makeOverlay(canvas.dataset.format),props.theme,{transparent:true});ctx.restore();}}
+onMounted(draw);watch([formats,()=>props.theme],draw);
+</script>
+<template><div class="modal-backdrop" @click.self="emit('close')" @keydown.esc="emit('close')"><section ref="root" class="overlay-gallery" role="dialog" aria-modal="true" aria-label="Formats d’incrustation"><div class="export-heading"><div><h2>Une incrustation à votre image.</h2><p>24 compositions · chaque objet reste modifiable et supprimable.</p></div><button class="icon-btn" aria-label="Fermer les formats" @click="emit('close')"><X :size="20"/></button></div><div class="overlay-filters"><label><Search :size="16"/><input v-model="query" placeholder="Rechercher un format" aria-label="Rechercher un format"></label><select v-model="category" aria-label="Catégorie des formats"><option v-for="c in ['Tous','Titres','Informations','Vidéo','Social']" :key="c">{{c}}</option></select></div><p class="field-help">Appliquer un format remplace la composition actuelle. Vous pouvez annuler avec Ctrl Z.</p><div class="overlay-grid"><button v-for="format in formats" :key="format.id" :class="['overlay-preview',{chosen:format.id===current}]" @click="emit('choose',format.id)"><div class="checker"><canvas width="384" height="216" :data-format="format.id"/></div><strong>{{format.name}}</strong><small>{{format.category}}</small></button></div><p v-if="!formats.length" class="inspector-empty">Aucun format ne correspond.</p></section></div></template>
