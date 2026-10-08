@@ -1,3 +1,5 @@
+import { sceneAt,presentationSequence,addPedagogicalStep,movePedagogicalStep,allScenes } from './pedagogicalSteps.js';
+import { usePresenterWindow } from './usePresenterWindow.js';
 import { scaleObjects,scaleFromHandle } from './scaleObjects.js';
 import { useComponentSharing } from './useComponentSharing.js';
 import { serializeObjects,parseObjects,TRANSFER_MIME,serializeLibrary,parseLibrary,appendComponents } from './frameTransfer.js';
@@ -80,7 +82,11 @@ export function useStudio() {
   const workspace = ref(view.value==='banners'||session?.workspace==='editor'?'editor':'canvas'), listDrag = ref(null), listTarget = ref(null);
   const notesVisible=ref(true);
   const thumbs = shallowRef({}), step = ref(0), transitionMs = ref(initial?.transitionMs ?? 650), moving = ref(false), gridDraft = ref({ x: 0, y: 0 });
-  const current = computed(() => view.value==='banners'?banner.value.slide:slides.value[index.value]), baseTheme = computed(() => palette.value.find(t => t.id === themeId.value) || palette.value[0]),theme=computed(()=>projectTheme(baseTheme.value,projectColors.value));
+  const editStep=ref(0),baseSlide=computed(()=>slides.value[index.value]);
+  const sequence=computed(()=>presentationSequence(baseSlide.value,fragmentOrders));
+  const activeState=computed(()=>presenting.value?sequence.value[step.value]?.scene||0:editStep.value);
+  const current = computed(() => view.value==='banners'?banner.value.slide:(baseSlide.value.pedagogicalSteps?.[activeState.value-1]?.scene||baseSlide.value)), baseTheme = computed(() => palette.value.find(t => t.id === themeId.value) || palette.value[0]),theme=computed(()=>projectTheme(baseTheme.value,projectColors.value));
+  watch(()=>[baseSlide.value?.id,baseSlide.value?.grid?.x,baseSlide.value?.grid?.y,baseSlide.value?.exitDirection],()=>{if(!baseSlide.value)return;for(const item of baseSlide.value.pedagogicalSteps||[])Object.assign(item.scene,{id:baseSlide.value.id,grid:{...baseSlide.value.grid},exitDirection:baseSlide.value.exitDirection});},{flush:'sync'});
   const position = computed(() => current.value.positions[selected.value] || current.value.positions.title);
   const selectedType = computed(()=>blockType(current.value,selected.value));
   let objectClipboard=null,pasteCount=0,lastPasteSlide=null;
@@ -103,7 +109,12 @@ export function useStudio() {
   function refreshTextStyle(){if(position.value.textStyle)position.value.textStyle=getTextStyle(current.value,selected.value);fitAuto(selected.value);}
   const editedText = computed(()=>blockText(current.value,editing.value));
   const exitLabel = computed(()=>{ if(current.value.exitDirection!=='auto') return ({left:'← Vers la gauche',right:'→ Vers la droite',up:'↑ Vers le haut',down:'↓ Vers le bas'})[current.value.exitDirection]; const next=slides.value[index.value+1];if(!next)return 'Fin du diaporama'; const d=transitionDirection(current.value,next);return d.x>0?'← Vers la gauche':d.x<0?'→ Vers la droite':d.y>0?'↑ Vers le haut':'↓ Vers le bas'; });
-  const orders = computed(() => fragmentOrders(current.value));
+  const orders = computed(() => sequence.value.slice(1));
+  const stepLabel=computed(()=>sequence.value[step.value]?.name||'État initial');
+  function selectPedagogicalStep(n){closeEdit();editStep.value=Math.max(0,Math.min(n,baseSlide.value.pedagogicalSteps?.length||0));workspace.value='editor';requestDraw();}
+  function addPedagogical(){closeEdit();const n=addPedagogicalStep(baseSlide.value,editStep.value);if(n!==null){selectPedagogicalStep(n);notify('Étape créée. Modifie les objets dans ce nouvel état.');}}
+  function movePedagogical(n,delta){selectPedagogicalStep(movePedagogicalStep(baseSlide.value,n,delta));}
+  function removePedagogical(n){closeEdit();baseSlide.value.pedagogicalSteps.splice(n-1,1);selectPedagogicalStep(Math.min(editStep.value,baseSlide.value.pedagogicalSteps.length));}
   const measurement = document.createElement('canvas').getContext('2d');
   const editSize=computed(()=>selected.value?blockBounds(measurement,current.value,selected.value).size:42);
   const editStyle = computed(() => {
@@ -113,21 +124,21 @@ export function useStudio() {
   });
   let marquee=null;
   function cancelMarquee(){if(!marquee)return;selectedKeys.value=marquee.previous;selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;marquee=null;requestDraw();}
-  let toastTimer, saveTimer, thumbTimer, raf = 0, drag = null, pointer = null, pointerDown = null, strokes = [], activeStroke = null, slideMotion = null, revealMotion = null;
+  let toastTimer, saveTimer, thumbTimer, raf = 0, drag = null, pointer = null, pointerDown = null, strokes = [], activeStroke = null, slideMotion = null, revealMotion = null, stateMotion=null;
   let recorder, stream, timer, started = 0, observer, worker, workerCounter = 0;
   const modelController = new AbortController();
   const thumbnailKeys = new Map(), formatRequests = new Map();
   const metrics = { frames: 0, thumbnails: 0, dragCommits: 0 };
-  const snapshot = () => ({ version: 19, projectColors:projectColors.value,components:components.value, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
+  const snapshot = () => ({ version: 20, projectColors:projectColors.value,components:components.value, projectId:projectId.value, routeMode:routeMode.value,routeStart:routeStart.value, themes:palette.value, resolution: resolution.value, project: project.value, slides: slides.value, themeId: themeId.value, banner: banner.value, frame: frame.value, transitionMs: transitionMs.value });
   let history = new ProjectHistory(snapshot()), historyGesture=null, gestureId=0;
   const historyVersion=ref(0), canUndo=computed(()=>{historyVersion.value;return history.index>0;}), canRedo=computed(()=>{historyVersion.value;return history.index<history.states.length-1;});
-  function historyGroup(){return historyGesture||(editing.value?'text:'+current.value.id+':'+editing.value:null);}
+  function historyGroup(){return historyGesture||(editing.value?'text:'+current.value.id+':'+activeState.value+':'+editing.value:null);}
   function recordHistory(){history.record(snapshot(),historyGroup());historyVersion.value++;}
   watch(()=>JSON.stringify(snapshot()),recordHistory);
   function restoreHistory(data){
     if(!data)return;const id=slides.value[index.value].id,keys=selectedKeys.value.slice();closeEdit();contextMenu.value=null;layoutBackup.value=null;routeBackup.value=null;
     projectColors.value=normalizeProjectColors(data.projectColors);components.value=normalizeComponents(data.components);slides.value=data.slides;project.value=data.project;palette.value=data.themes;themeId.value=data.themeId;banner.value=normalizeOverlay(data.banner);frame.value=data.frame;resolution.value=data.resolution;transitionMs.value=data.transitionMs;routeMode.value=data.routeMode;routeStart.value=data.routeStart;
-    index.value=Math.max(0,slides.value.findIndex(s=>s.id===id));selectedKeys.value=keys.filter(k=>visibleBlocks(current.value).includes(k));selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;selectedSlides.value=[];
+    index.value=Math.max(0,slides.value.findIndex(s=>s.id===id));editStep.value=Math.min(editStep.value,baseSlide.value.pedagogicalSteps?.length||0);selectedKeys.value=keys.filter(k=>visibleBlocks(current.value).includes(k));selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;selectedSlides.value=[];
     nextTick(()=>{selectedKeys.value=keys.filter(k=>visibleBlocks(current.value).includes(k));selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;});
     historyVersion.value++;flushLocal();queueThumbnails();requestDraw();
   }
@@ -146,6 +157,7 @@ export function useStudio() {
   function notify(message) { toast.value = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 3500); }
   function flushLocal(){try{localStorage.setItem('frame-project',JSON.stringify(snapshot()));localStorage.setItem('frame-themes',JSON.stringify(palette.value));localStorage.setItem('frame-session',JSON.stringify({slideId:slides.value[index.value].id,view:view.value,workspace:workspace.value}));saved.value=true;}catch{saved.value=false;notify('Sauvegarde locale impossible. Enregistre le fichier.');}}
   function visibilitySave(){if(document.visibilityState==='hidden')flushLocal();}
+  watch([index,view],()=>{editStep.value=0;});
   watch([index,view,workspace],()=>{try{localStorage.setItem('frame-session',JSON.stringify({slideId:slides.value[index.value].id,view:view.value,workspace:workspace.value}));}catch{}});
   function queueSave() {
     saved.value = false;fileDirty.value=true; clearTimeout(saveTimer);
@@ -174,13 +186,13 @@ export function useStudio() {
   watch([altHeld,selectedKeys,index,workspace],()=>refreshMeasurementTarget(),{deep:true,flush:'sync'});
   watch([laser, laserSize, tool, altHeld, hovered,selectedKeys,snapGuides], requestDraw,{deep:true});
   let fontGeneration=0;
-  watch(()=>JSON.stringify(usedFontFaces([...slides.value,banner.value.slide])),async()=>{const generation=++fontGeneration;fontLoading.value=true;try{await prepareFonts([...slides.value,banner.value.slide]);if(generation===fontGeneration){const pristine=history.states.length===1&&JSON.stringify(snapshot())===history.states[0];for(const slide of [...slides.value,banner.value.slide])for(const key of visibleBlocks(slide))if(slide.positions[key]?.autoSize){const b=autoTextBounds(measurement,slide,key);Object.assign(slide.positions[key],{w:b.w,h:b.h});}if(pristine){history=new ProjectHistory(snapshot());historyVersion.value++;}thumbnailKeys.clear();queueThumbnails();requestDraw();}}catch{notify('Police non chargée. Réessaie avant d’exporter.');}finally{if(generation===fontGeneration)fontLoading.value=false;}},{immediate:true});
-  async function ensureFonts(){try{await prepareFonts([...slides.value,banner.value.slide]);return true;}catch{notify('Impossible de charger les polices. Réessaie avant de présenter ou d’exporter.');return false;}}
+  watch(()=>JSON.stringify(usedFontFaces([...allScenes(slides.value),banner.value.slide])),async()=>{const generation=++fontGeneration;fontLoading.value=true;try{await prepareFonts([...allScenes(slides.value),banner.value.slide]);if(generation===fontGeneration){const pristine=history.states.length===1&&JSON.stringify(snapshot())===history.states[0];for(const slide of [...allScenes(slides.value),banner.value.slide])for(const key of visibleBlocks(slide))if(slide.positions[key]?.autoSize){const b=autoTextBounds(measurement,slide,key);Object.assign(slide.positions[key],{w:b.w,h:b.h});}if(pristine){history=new ProjectHistory(snapshot());historyVersion.value++;}thumbnailKeys.clear();queueThumbnails();requestDraw();}}catch{notify('Police non chargée. Réessaie avant d’exporter.');}finally{if(generation===fontGeneration)fontLoading.value=false;}},{immediate:true});
+  async function ensureFonts(){try{await prepareFonts([...allScenes(slides.value),banner.value.slide]);return true;}catch{notify('Impossible de charger les polices. Réessaie avant de présenter ou d’exporter.');return false;}}
   function observeStage() { if (!stage.value) return; observer?.disconnect(); observer = new ResizeObserver(entries => { stageWidth.value = entries[0].contentRect.width; }); observer.observe(stage.value); }
   function requestDraw() { if (!raf) raf = requestAnimationFrame(tick); }
   function tick(now) {
     raf = 0; draw(now);
-    if (trail.prune(now) || recording.value || slideMotion || (revealMotion && now - revealMotion.started < 420)) requestDraw();
+    if (trail.prune(now) || recording.value || slideMotion || stateMotion || (revealMotion && now - revealMotion.started < 420)) requestDraw();
     else if(revealMotion){if(revealMotion.exit)step.value=Math.max(0,step.value-1);revealMotion=null;requestDraw();}
   }
   function snapshotCanvas(s, n, order) {
@@ -188,7 +200,7 @@ export function useStudio() {
     const g=c.getContext('2d');g.scale(c.width/WIDTH,c.height/HEIGHT);
     renderSlide(g, s, theme.value, renderOptions(s, n, order)); return c;
   }
-  function currentOrder() { return step.value > 0 ? orders.value[step.value - 1] : 0; }
+  function currentOrder() { return sequence.value[step.value]?.order||0; }
   function draw(now = performance.now()) {
     if (!canvas.value || !current.value) return;
     metrics.frames++;
@@ -201,7 +213,7 @@ export function useStudio() {
       let s = current.value;
       if (drag) s = { ...toRaw(s), positions: { ...s.positions, ...(drag.positions||(drag.position?{[drag.key]:drag.position}:{})) } };
       if(drag?.corner&&!drag.scaling){const e=s.elements[drag.key];if(e?.shape==='line'&&['horizontal','vertical'].includes(e.direction))s={...s,elements:{...s.elements,[drag.key]:{...e,strokeWidth:Math.max(1,Math.min(60,drag.position[e.direction==='horizontal'?'h':'w']))}}};}
-      renderSlide(ctx, s, theme.value, { ...renderOptions(s, index.value, presenting.value ? currentOrder() : Infinity), motion: presenting.value ? revealMotion : null, now, omit: editing.value&&blockType(s,editing.value)==='code'?editing.value:null });
+      renderSlide(ctx, s, theme.value, { ...renderOptions(s, index.value, presenting.value ? currentOrder() : Infinity), motion: presenting.value ? revealMotion : null, showHidden:!presenting.value, now, omit: editing.value&&blockType(s,editing.value)==='code'?editing.value:null });
       if (!presenting.value && !editing.value && (selectedKeys.value.length||visibleBlocks(s).includes(selected.value))) {
         for(const key of selectedKeys.value.length?selectedKeys.value:[selected.value]){
         const measured=blockBounds(ctx,s,key), b=blockType(s,key)==='shape'?measured:{...measured,h:s.positions[key].h||measured.h}; ctx.save();if(b.rotation){ctx.translate(b.x+b.w/2,b.y+b.h/2);ctx.rotate(b.rotation*Math.PI/180);ctx.translate(-b.x-b.w/2,-b.y-b.h/2);}ctx.strokeStyle = `${theme.value.accent}90`; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.strokeRect(b.x, b.y, b.w, b.h); ctx.setLineDash([]);ctx.restore();}
@@ -211,7 +223,9 @@ export function useStudio() {
     }
     if(!presenting.value&&['slides','banners'].includes(view.value)&&panels.value.snapping&&snapGuides.value.length){ctx.save();ctx.strokeStyle='#ff76d5';ctx.lineWidth=WIDTH/Math.max(1,stageWidth.value);ctx.setLineDash([5*ctx.lineWidth,4*ctx.lineWidth]);for(const guide of snapGuides.value){ctx.beginPath();if(guide.axis==='x'){ctx.moveTo(guide.value,0);ctx.lineTo(guide.value,HEIGHT);}else{ctx.moveTo(0,guide.value);ctx.lineTo(WIDTH,guide.value);}ctx.stroke();}ctx.restore();}
     if(marquee?.rect&&!presenting.value&&['slides','banners'].includes(view.value)){const b=marquee.rect;ctx.save();ctx.fillStyle='#76dfff22';ctx.strokeStyle='#76dfff';ctx.lineWidth=1.5*WIDTH/Math.max(1,stageWidth.value);ctx.fillRect(b.x,b.y,b.w,b.h);ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore();}
+    if(stateMotion&&presenting.value){const progress=Math.min(1,(now-stateMotion.started)/300);ctx.save();ctx.globalAlpha=1-progress;ctx.drawImage(stateMotion.from,0,0,WIDTH,HEIGHT);ctx.restore();if(progress===1)stateMotion=null;}
     if (presenting.value) { trail.draw(ctx,now); drawPointer(ctx); } ctx.restore();
+    if(presenting.value)presenter.mirror(canvas.value,now);
   }
   function drawPointer(ctx) {
     ctx.lineCap = 'round'; ctx.lineJoin = 'round';
@@ -265,6 +279,7 @@ export function useStudio() {
     return [...visibleBlocks(current.value)].reverse().find(k => { const measured=blockBounds(ctx,current.value,k),b=blockType(current.value,k)==='shape'?measured:{...measured,h:current.value.positions[k].h||measured.h};const margin=blockType(current.value,k)==='shape'?0:12; const local=rotatePoint(p,b,-(b.rotation||0));return local.x >= b.x - margin && local.x <= b.x + b.w + margin && local.y >= b.y - (k === 'title' && current.value.label ? 58 : margin) && local.y <= b.y + b.h + margin; });
   }
   function down(e) {
+    if(!canvas.value)return;
     if (e.button !== 0 || videoPreview.value) return;
     if(!presenting.value)canvas.value.focus({preventScroll:true});
     closeEdit();contextMenu.value=null;if(!presenting.value)selectionScope.value='elements';const p = coords(e);if(!presenting.value)guidePoint=p; canvas.value.setPointerCapture(e.pointerId);
@@ -274,6 +289,7 @@ export function useStudio() {
     requestDraw();
   }
   function move(e) {
+    if(!canvas.value)return;
     const p = coords(e);if(!presenting.value)guidePoint=p;
     if(marquee){if(marquee.slideId!==current.value.id){cancelMarquee();return;}if(Math.hypot(p.x-marquee.start.x,p.y-marquee.start.y)*stageWidth.value/WIDTH>=4||marquee.rect){marquee.rect=marqueeRect(marquee.start,p);selectedKeys.value=marqueeKeys(marquee.bounds,current.value.groups,marquee.rect,marquee.base);selected.value=selectedKeys.value.length===1?selectedKeys.value[0]:null;requestDraw();}return;}
     if(!presenting.value&&!drag){if(e.altKey)altHeld.value=true;if(altHeld.value)refreshMeasurementTarget();}
@@ -293,7 +309,7 @@ export function useStudio() {
     pointerDown = null; activeStroke = null; requestDraw();
   }
   function leave() { pointer = null;guidePoint=null;hovered.value=null; requestDraw(); }
-  function doubleClick(e) { if (presenting.value || !['slides','banners'].includes(view.value)) return; const hit = hitBlock(coords(e)); if (!hit) return; drag = null; selected.value = hit;selectedKeys.value=[hit];selectionScope.value='elements'; if(!['image','shape','table'].includes(blockType(current.value,hit))) editing.value = hit; requestDraw(); }
+  function doubleClick(e) { if (!canvas.value || presenting.value || !['slides','banners'].includes(view.value)) return; const hit = hitBlock(coords(e)); if (!hit) return; drag = null; selected.value = hit;selectedKeys.value=[hit];selectionScope.value='elements'; if(!['image','shape','table'].includes(blockType(current.value,hit))) editing.value = hit; requestDraw(); }
   function closeEdit() { if(editing.value)history.group=null;editing.value = null; requestDraw(); }
   function editSelected() { if (!visibleBlocks(current.value).includes(selected.value))return; if(!['image','shape','table'].includes(selectedType.value)) editing.value = selected.value; }
   function chooseSlide(n) {
@@ -305,11 +321,14 @@ export function useStudio() {
       const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : transitionMs.value;
       if (duration > 0) { slideMotion = { from, to, started: performance.now(), duration, direction: n < oldIndex ? (()=>{const d=transitionDirection(next,old);return {x:-d.x,y:-d.y};})() : transitionDirection(old, next) }; moving.value = true; }
     }
-    revealMotion = null; index.value = n; step.value = 0; gridDraft.value = { ...current.value.grid }; requestDraw();
+    revealMotion = null; stateMotion=null; index.value = n; step.value = 0;editStep.value=0; gridDraft.value = { ...current.value.grid }; requestDraw();
   }
   function navigate(delta) { if (presenting.value) delta > 0 ? advance() : retreat(); else chooseSlide(index.value + delta); }
-  function advance() { if (moving.value||revealMotion?.exit) return; if (step.value < orders.value.length) { step.value++; revealMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches?null:{ order: currentOrder(), started: performance.now() }; requestDraw(); } else chooseSlide(index.value + 1); }
-  function retreat() { if (moving.value||revealMotion?.exit) return; if (step.value > 0) {const order=currentOrder(),animated=visibleBlocks(current.value).some(k=>current.value.fragments[k].order===order&&current.value.fragments[k].exitAnimation&&current.value.fragments[k].exitAnimation!=='none');if(animated&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)revealMotion={order,exit:true,started:performance.now()};else {step.value--;revealMotion=null;}requestDraw();}else chooseSlide(index.value-1); }
+  function jumpStep(n){if(moving.value||n<0||n>=sequence.value.length||n===step.value)return;const previous=sequence.value[step.value],next=sequence.value[n],reduced=window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    if(next.scene!==previous.scene){const from=snapshotCanvas(current.value,index.value,currentOrder());stateMotion=reduced?null:{from,started:performance.now()};revealMotion=null;strokes=[];trail.clear();pointer=null;}
+    step.value=n;if(next.scene===previous.scene)revealMotion=!reduced&&n>0?{order:currentOrder(),started:performance.now()}:null;requestDraw();}
+  function advance() { if (moving.value||revealMotion?.exit) return; if(step.value<orders.value.length)jumpStep(step.value+1);else chooseSlide(index.value+1); }
+  function retreat() { if (moving.value||revealMotion?.exit) return;if(step.value>0){const now=sequence.value[step.value],previous=sequence.value[step.value-1],order=currentOrder(),animated=now.scene===previous.scene&&visibleBlocks(current.value).some(k=>current.value.fragments[k].order===order&&current.value.fragments[k].exitAnimation&&current.value.fragments[k].exitAnimation!=='none');if(animated&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches){revealMotion={order,exit:true,started:performance.now()};requestDraw();}else jumpStep(step.value-1);}else chooseSlide(index.value-1); }
   function goDirection(direction) { if (moving.value) return; const target = neighbor(slides.value, index.value, direction); if (target >= 0) chooseSlide(target); }
   function canGo(direction) { return neighbor(slides.value, index.value, direction) >= 0 && !moving.value; }
   function add() { closeEdit(); gallery.value = true; }
@@ -380,8 +399,8 @@ export function useStudio() {
   function undoRoute(){const backup=routeBackup.value;if(!backup)return;const id=current.value.id;slides.value=tracedRoute(slides.value,backup.ids);routeMode.value=backup.mode;routeStart.value=backup.start;for(const s of slides.value)if(backup.exits[s.id])s.exitDirection=backup.exits[s.id];index.value=Math.max(0,slides.value.findIndex(s=>s.id===id));routeBackup.value=null;requestDraw();}
   function moveGrid(id,x,y) { if(!Number.isInteger(x)||!Number.isInteger(y)||Math.abs(x)>10000||Math.abs(y)>10000)return; const s=slides.value.find(s=>s.id===id);if(!s)return;const occupant=slides.value.find(other=>other.id!==id&&other.grid.x===x&&other.grid.y===y);if(occupant){occupant.grid={...s.grid};notify('Positions des deux diapos interverties.');}s.grid={x,y};if(routeMode.value==='spatial')rebuildRoute(); }
   function imagesReady() {thumbnailKeys.clear();queueThumbnails();requestDraw();}
-  function duplicate() { if(slides.value.length>=100){notify('Le projet contient déjà 100 diapos.');return;} const s = JSON.parse(JSON.stringify(current.value)); s.id = crypto.randomUUID(); s.grid = nextFreeGrid(slides.value, current.value.grid, 'right'); slides.value.splice(index.value + 1, 0, s); chooseSlide(index.value + 1);if(routeMode.value==='spatial')rebuildRoute(); }
-  function remove() { if (slides.value.length <= 1) return; closeEdit(); slides.value.splice(index.value, 1); index.value = Math.min(index.value, slides.value.length - 1); gridDraft.value = { ...current.value.grid };if(routeMode.value==='spatial')rebuildRoute(); requestDraw(); }
+  function duplicate() { if(slides.value.length>=100){notify('Le projet contient déjà 100 diapos.');return;} const s = JSON.parse(JSON.stringify(baseSlide.value)); s.id = crypto.randomUUID(); s.grid = nextFreeGrid(slides.value, current.value.grid, 'right'); slides.value.splice(index.value + 1, 0, s); chooseSlide(index.value + 1);if(routeMode.value==='spatial')rebuildRoute(); }
+  function remove() { if (slides.value.length <= 1) return; closeEdit(); slides.value.splice(index.value, 1);editStep.value=0; index.value = Math.min(index.value, slides.value.length - 1); gridDraft.value = { ...current.value.grid };if(routeMode.value==='spatial')rebuildRoute(); requestDraw(); }
   function applyGrid() {
     const { x, y } = gridDraft.value;
     if (!Number.isInteger(x) || !Number.isInteger(y) || Math.abs(x) > 10000 || Math.abs(y) > 10000 || slides.value.some(s => s.id !== current.value.id && s.grid.x === x && s.grid.y === y)) { gridDraft.value = { ...current.value.grid }; notify('Cette case est occupée ou sa position est invalide.'); return; }
@@ -391,13 +410,13 @@ export function useStudio() {
   function updateAppearance(keys,field,value){setAppearance(current.value,keys,field,value);requestDraw();}
   function updateFragment(event){updateAppearance([selected.value],'order',event.target.value);}
   function formatCode(source = blockText(current.value,selected.value)) {
-    const slideId = current.value.id, key=selected.value;
+    const slideId = current.value.id, stateId=activeState.value?baseSlide.value.pedagogicalSteps[activeState.value-1]?.id:null, key=selected.value;
     if (!worker) {
       worker = new Worker(new URL('./formatter.worker.js', import.meta.url), { type: 'module' });
-      worker.onmessage = ({ data }) => { const job = formatRequests.get(data.id); formatRequests.delete(data.id); formatting.value = formatRequests.size > 0; if (!job) return; const s = [...slides.value,banner.value.slide].find(s => s.id === job.slideId); if (!s || blockText(s,job.key) !== job.source) return; if (data.ok) { setBlockText(s,job.key,data.code); notify('Code Java formaté.'); } else notify('Extrait incomplet ou non Java : texte conservé sans modification.'); };
+      worker.onmessage = ({ data }) => { const job = formatRequests.get(data.id); formatRequests.delete(data.id); formatting.value = formatRequests.size > 0; if (!job) return; const base = [...slides.value,banner.value.slide].find(s => s.id === job.slideId);const s=job.stateId?base?.pedagogicalSteps?.find(item=>item.id===job.stateId)?.scene:base; if (!s || blockText(s,job.key) !== job.source) return; if (data.ok) { setBlockText(s,job.key,data.code); notify('Code Java formaté.'); } else notify('Extrait incomplet ou non Java : texte conservé sans modification.'); };
       worker.onerror = () => { formatRequests.clear(); formatting.value = false; worker?.terminate(); worker = null; notify('Formatage indisponible : ton code est conservé.'); };
     }
-    const id = ++workerCounter; formatRequests.set(id, { slideId, key, source }); formatting.value = true; worker.postMessage({ id, code: source });
+    const id = ++workerCounter; formatRequests.set(id, { slideId, stateId, key, source }); formatting.value = true; worker.postMessage({ id, code: source });
   }
   function download(blob, name) {
     if (lastExport.value) URL.revokeObjectURL(lastExport.value.url);
@@ -412,15 +431,22 @@ export function useStudio() {
       banner.value = normalizeOverlay(data.banner);
       routeMode.value=['spatial','manual'].includes(data.routeMode)?data.routeMode:'spatial';routeStart.value=normalized.some(s=>s.id===data.routeStart)?data.routeStart:'';routeBackup.value=null;resolution.value=normalizeResolution(data.resolution);
       frame.value = normalizeFrame(data.frame); transitionMs.value = Number.isFinite(data.transitionMs) ? Math.min(2000, Math.max(0, data.transitionMs)) : 650;
-      index.value = 0; step.value = 0; gridDraft.value = { ...current.value.grid }; updateThumbnails(); requestDraw(); projectId.value=crypto.randomUUID();history=new ProjectHistory(snapshot());historyVersion.value++;flushLocal();
+      index.value = 0; step.value = 0;editStep.value=0; gridDraft.value = { ...current.value.grid }; updateThumbnails(); requestDraw(); projectId.value=crypto.randomUUID();history=new ProjectHistory(snapshot());historyVersion.value++;flushLocal();
   }
   async function importProject(event){try{applyProject(JSON.parse(await event.target.files[0].text()));await fileStore.detach();fileName.value='';fileDirty.value=true;notify('Projet importé. Utilise Enregistrer sous pour le lier à un fichier.');}catch{notify('Ce fichier n’est pas un projet Frame valide.');}event.target.value='';}
   async function openProject(){if(fileBusy.value)return;fileBusy.value=true;try{const r=await fileStore.open();applyProject(JSON.parse(r.text));await fileStore.link(r.handle,projectId.value);fileName.value=r.handle.name;fileDirty.value=false;notify('Fichier ouvert et lié.');}catch(error){if(error.name!=='AbortError')notify('Impossible d’ouvrir ce projet.');}finally{fileBusy.value=false;}}
   async function saveProject(saveAs=false){flushLocal();if(fileBusy.value)return;if(!fileStore.supported){exportProject();notify('Copie locale sauvegardée et JSON téléchargé. Ce navigateur ne peut pas écrire directement dans un fichier.');return;}fileBusy.value=true;const text=JSON.stringify(snapshot(),null,2);try{await fileStore.save(text,projectId.value,saveAs);fileName.value=fileStore.handle.name;fileDirty.value=JSON.stringify(snapshot(),null,2)!==text;notify('Fichier enregistré.');}catch(error){if(error.name!=='AbortError')notify(error.message==='conflict'?'Le fichier a changé en dehors de Frame. Utilise Enregistrer sous pour conserver tes modifications.':'Écriture impossible. Ta session reste sauvegardée localement.');}finally{fileBusy.value=false;}}
   const fileSupported=fileStore.supported,openSupported=!!window.showOpenFilePicker;
   async function png() { if(!await ensureFonts())return;await prepareImages([current.value]); const c = document.createElement('canvas'); c.width = resolution.value.width; c.height = resolution.value.height; const ctx = c.getContext('2d');ctx.scale(c.width/WIDTH,c.height/HEIGHT); renderSlide(ctx, current.value, theme.value, renderOptions(current.value, index.value)); c.toBlob(blob => { if (blob) download(blob, view.value === 'banners' ? 'frame-bandeau.png' : `frame-diapo-${index.value + 1}.png`); }, 'image/png'); }
-  async function startPresentation(fromStart=true) { cancelMarquee(); if(!await ensureFonts())return;await prepareImages(slides.value); closeEdit(); if(fromStart)index.value=0; view.value = 'slides'; notesVisible.value=slides.value.some(s=>s.notes?.trim());presenting.value = true; step.value = 0; revealMotion = null; strokes = []; trail.clear(); await nextTick(); observeStage(); requestDraw(); }
-  function exit() { cancelCountdown(); if (recording.value) stopRecord(); slideMotion = null; moving.value = false; presenting.value = false; strokes = []; trail.clear(); requestDraw(); }
+  async function startPresentation(fromStart=true) { cancelMarquee(); if(!await ensureFonts())return;await prepareImages(allScenes(slides.value)); closeEdit(); if(fromStart)index.value=0; view.value = 'slides'; notesVisible.value=true;presenting.value = true; step.value = 0; revealMotion = null; stateMotion=null;presentationStarted.value=Date.now();presentationSeconds.value=0;strokes = []; trail.clear(); await nextTick(); observeStage(); requestDraw(); }
+  function exit() { cancelCountdown(); if (recording.value) stopRecord(); slideMotion = null; moving.value = false; presenting.value = false;presenter.close(); stateMotion=null; strokes = []; trail.clear(); requestDraw(); }
+  const presentationStarted=ref(0),presentationSeconds=ref(0);
+  const presenter=usePresenterWindow({notify,command(action){if(!presenting.value)return;if(action==='advance')advance();else if(action==='retreat')retreat();else if(action==='exit')exit();else if(action==='ready')requestDraw();}});
+  function startPresenter(fromStart=true){if(!presenter.open())return;startPresentation(fromStart).then(()=>{if(!presenting.value)presenter.close();});}
+  function nextPreview(){const next=sequence.value[step.value+1];return next?snapshotCanvas(sceneAt(baseSlide.value,next.scene),index.value,next.order).toDataURL('image/jpeg',.75):slides.value[index.value+1]?snapshotCanvas(slides.value[index.value+1],index.value+1,0).toDataURL('image/jpeg',.75):'';}
+  const nextPreviewUrl=ref('');
+  watch([index,step,presenting,thumbs],()=>{if(presenting.value)nextPreviewUrl.value=nextPreview();});
+  let presenterClock;
   let countdownTimer;
   function cancelCountdown(){clearInterval(countdownTimer);countdown.value=0;}
   async function startRecord(){if(countdown.value){cancelCountdown();return;}if(recording.value||finalizing.value)return;if(!await ensureFonts())return;countdown.value=5;const deadline=performance.now()+5000;countdownTimer=setInterval(()=>{countdown.value=Math.max(0,Math.ceil((deadline-performance.now())/1000));if(!countdown.value){cancelCountdown();recordNow();}},100);}
@@ -450,7 +476,7 @@ export function useStudio() {
     if(e.type==='copy'&&selectionScope.value==='elements'&&selectedKeys.value.length&&e.clipboardData){try{const value=copySelection(false),text=serializeObjects(value);e.clipboardData.setData('text/plain',text);try{e.clipboardData.setData(TRANSFER_MIME,text);}catch{}e.preventDefault();clipboardStatus.value='Copié pour les autres instances';notify('Copié. Ouvre une autre instance puis Ctrl V.');}catch{notify('Sélection trop volumineuse pour le presse-papiers.');}}
     else if(e.type==='paste'&&e.clipboardData){const text=e.clipboardData.getData(TRANSFER_MIME)||e.clipboardData.getData('text/plain');try{const value=parseObjects(text);if(value){e.preventDefault();pasteSelection(value);}}catch{e.preventDefault();notify('Les objets Frame du presse-papiers sont invalides ou trop volumineux.');}}
   }
-  function presentationShortcut(e){if(e.key!=='F12'||e.ctrlKey||e.metaKey||e.altKey||e.shiftKey)return;e.preventDefault();e.stopPropagation();if(e.repeat||presenting.value)return;if(editing.value||overlayGallery.value||gallery.value||shapeGallery.value||themeEditor.value||formatOpen.value||videoPreview.value)return;startPresentation();}
+  function presentationShortcut(e){if(e.key!=='F12'||e.ctrlKey||e.metaKey||e.altKey||e.shiftKey)return;e.preventDefault();e.stopPropagation();if(e.repeat||presenting.value)return;if(editing.value||overlayGallery.value||gallery.value||shapeGallery.value||themeEditor.value||formatOpen.value||videoPreview.value)return;startPresenter();}
   function keys(e) {
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'&&!presenting.value){e.preventDefault();if(!e.repeat)saveProject(e.shiftKey);return;}
     if(['Alt','AltGraph'].includes(e.key)&&!presenting.value&&!editing.value&&['slides','banners'].includes(view.value)&&workspace.value==='editor'){altHeld.value=true;refreshMeasurementTarget();e.preventDefault();}
@@ -472,14 +498,15 @@ export function useStudio() {
   }
   function beforeUnload(e) { flushLocal();if (recording.value || finalizing.value) { e.preventDefault(); e.returnValue = ''; } }
   onMounted(() => {
+    presenterClock=setInterval(()=>{if(presenting.value)presentationSeconds.value=Math.floor((Date.now()-presentationStarted.value)/1000);},1000);
     fileBusy.value=true;fileStore.restore(projectId.value).then(()=>{fileName.value=fileStore.handle?.name||'';if(fileName.value)try{const disk=JSON.parse(fileStore.baseline);fileDirty.value=canonical({...disk,slides:normalizeSlides(disk.slides)})!==canonical({...snapshot(),slides:normalizeSlides(slides.value)});}catch{fileDirty.value=true;}}).finally(()=>fileBusy.value=false);window.addEventListener('pagehide',flushLocal);document.addEventListener('visibilitychange',visibilitySave);
     gridDraft.value = { ...current.value.grid }; updateThumbnails(); observeStage(); requestDraw(); window.addEventListener('frame-images-ready',imagesReady); window.addEventListener('copy',clipboardEvent);window.addEventListener('paste',clipboardEvent);window.addEventListener('keydown', keys);window.addEventListener('keydown',presentationShortcut,true);window.addEventListener('keyup',keyup);window.addEventListener('blur',resetKeys);window.addEventListener('pointerdown',contextOutside);window.addEventListener('pointerup',endHistoryGesture);window.addEventListener('pointercancel',endHistoryGesture); window.addEventListener('beforeunload', beforeUnload);
-    if (document.modelContext?.registerTool) try { Promise.resolve(document.modelContext.registerTool({ name: 'read_frame_project', description: 'Read the current slide project and presentation state', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: input => { if (!input || typeof input !== 'object' || Object.keys(input).length) throw Error('Expected an empty object'); return { ...JSON.parse(JSON.stringify(snapshot())), index: index.value, step: step.value, selected:selected.value, selectedKeys:selectedKeys.value,selectedSlides:selectedSlides.value,countdown:countdown.value,recording:recording.value, altHeld:altHeld.value, diagnostics: { ...metrics, trailPoints:trail.points.length, trailActive:trail.active } }; } }, { signal: modelController.signal })).catch(() => {}); } catch { /* Browser support is optional. */ }
+    if (document.modelContext?.registerTool) try { Promise.resolve(document.modelContext.registerTool({ name: 'read_frame_project', description: 'Read the current slide project and presentation state', inputSchema: { type: 'object', properties: {}, additionalProperties: false }, annotations: { readOnlyHint: true }, execute: input => { if (!input || typeof input !== 'object' || Object.keys(input).length) throw Error('Expected an empty object'); return { ...JSON.parse(JSON.stringify(snapshot())), index: index.value, step: step.value,editStep:editStep.value,activeState:activeState.value,presenter:presenter.diagnostics(), selected:selected.value, selectedKeys:selectedKeys.value,selectedSlides:selectedSlides.value,countdown:countdown.value,recording:recording.value, altHeld:altHeld.value, diagnostics: { ...metrics, trailPoints:trail.points.length, trailActive:trail.active } }; } }, { signal: modelController.signal })).catch(() => {}); } catch { /* Browser support is optional. */ }
   });
-  onUnmounted(() => { if(!presenting.value)flushLocal();window.removeEventListener('pagehide',flushLocal);document.removeEventListener('visibilitychange',visibilitySave);modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer);cancelCountdown(); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('frame-images-ready',imagesReady); window.removeEventListener('copy',clipboardEvent);window.removeEventListener('paste',clipboardEvent);window.removeEventListener('keydown', keys);window.removeEventListener('keydown',presentationShortcut,true);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',resetKeys);window.removeEventListener('pointerdown',contextOutside);window.removeEventListener('pointerup',endHistoryGesture);window.removeEventListener('pointercancel',endHistoryGesture); window.removeEventListener('beforeunload', beforeUnload); });
+  onUnmounted(() => {clearInterval(presenterClock);presenter.close(); if(!presenting.value)flushLocal();window.removeEventListener('pagehide',flushLocal);document.removeEventListener('visibilitychange',visibilitySave);modelController.abort(); clearTimeout(saveTimer); clearTimeout(thumbTimer); clearTimeout(toastTimer); clearInterval(timer);cancelCountdown(); cancelAnimationFrame(raf); observer?.disconnect(); worker?.terminate(); stream?.getTracks().forEach(t => t.stop()); if (lastExport.value) URL.revokeObjectURL(lastExport.value.url); window.removeEventListener('frame-images-ready',imagesReady); window.removeEventListener('copy',clipboardEvent);window.removeEventListener('paste',clipboardEvent);window.removeEventListener('keydown', keys);window.removeEventListener('keydown',presentationShortcut,true);window.removeEventListener('keyup',keyup);window.removeEventListener('blur',resetKeys);window.removeEventListener('pointerdown',contextOutside);window.removeEventListener('pointerup',endHistoryGesture);window.removeEventListener('pointercancel',endHistoryGesture); window.removeEventListener('beforeunload', beforeUnload); });
   function commonCorner(key){return commonValue(selectedKeys.value.map(k=>normalizeShape(current.value.elements[k]).cornerRadii[key]));}
   function updateCorner(key,value){for(const k of selectedKeys.value){const e=current.value.elements[k];if(e?.type==='shape')e.cornerRadii={...normalizeShape(e).cornerRadii,[key]:value};}requestDraw();}
   function chooseOverlay(id){if(!overlayFormats.some(f=>f.id===id))return;closeEdit();banner.value={type:id,slide:makeOverlay(id)};overlayGallery.value=false;deselect();selectionScope.value='elements';requestDraw();}
   const overlayGallery=ref(false);
-  return { notesVisible,scaleMode,scalePercent,applySelectionScale,...sharing,libraryComponents,renameComponent,shareComponent,exportComponents,importComponents,copyComponent,clipboardStatus,pasteFromSystem,commonCorner,updateCorner,overlayGallery,chooseOverlay,overlayFormats,projectColors,baseTheme,setProjectColor,selectTheme,setTextRole,textRole,snapGuides,updateAppearance,placementMargin,placeObjects,canPasteObjects,multiType,commonProperty,updateCommon,copySelection,pasteSelection,selectedName,commitText,setZoom,zoomWheel,setLayer,selectLayer,components,componentName,spacing,createComponent,useComponent,deleteComponent,arrangeObjects,centerObjects,undo,redo,canUndo,canRedo,dragImages,dropImages,fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,saveProject,selectionBounds,canUngroup,groupObjects,ungroupObjects,fitSelection, selectedTextStyle,updateTextStyle,refreshTextStyle, fontLoading,fontCss, rotationHandle,rotateDown,setRotation, shapeGallery,openShapes,addShape,moveLayer, routeMode,routeStart,routeBackup,setRouteMode,setRouteStart,traceRoute,connectSlides,undoRoute, palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
+  return { presenter,startPresenter,presentationSeconds,nextPreviewUrl,sequence,stepLabel,jumpStep,baseSlide,editStep,activeState,selectPedagogicalStep,addPedagogical,movePedagogical,removePedagogical, notesVisible,scaleMode,scalePercent,applySelectionScale,...sharing,libraryComponents,renameComponent,shareComponent,exportComponents,importComponents,copyComponent,clipboardStatus,pasteFromSystem,commonCorner,updateCorner,overlayGallery,chooseOverlay,overlayFormats,projectColors,baseTheme,setProjectColor,selectTheme,setTextRole,textRole,snapGuides,updateAppearance,placementMargin,placeObjects,canPasteObjects,multiType,commonProperty,updateCommon,copySelection,pasteSelection,selectedName,commitText,setZoom,zoomWheel,setLayer,selectLayer,components,componentName,spacing,createComponent,useComponent,deleteComponent,arrangeObjects,centerObjects,undo,redo,canUndo,canRedo,dragImages,dropImages,fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,saveProject,selectionBounds,canUngroup,groupObjects,ungroupObjects,fitSelection, selectedTextStyle,updateTextStyle,refreshTextStyle, fontLoading,fontCss, rotationHandle,rotateDown,setRotation, shapeGallery,openShapes,addShape,moveLayer, routeMode,routeStart,routeBackup,setRouteMode,setRouteStart,traceRoute,connectSlides,undoRoute, palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved, zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
 }

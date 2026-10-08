@@ -122,7 +122,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
   }
   const motionBounds=new Map();
   for (const key of visibleBlocks(s)) {
-    if (omit === key) continue;
+    if (omit === key || s.hiddenKeys?.includes(key)&&!options.showHidden) continue;
     const f = s.fragments[key];
     if (f.order > order) continue;
     let p = s.positions[key], b = blockBounds(ctx, s, key);const style=getTextStyle(s,key);style.markerColor=textColor(style.list,theme,textColor(style,theme));
@@ -146,6 +146,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
     else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key);
     else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,textRole(s,key).leading),textColor(style,theme,`${theme.ink}df`),style.weight,fontCss(p.font),textRole(s,key).leading,style);
     s=original;ctx.restore();
+    if(s.emphasisKeys?.includes(key)){ctx.save();const p=s.positions[key],b=blockBounds(ctx,s,key);if(p.rotation){ctx.translate(b.x+b.w/2,b.y+(p.h||b.h)/2);ctx.rotate(p.rotation*Math.PI/180);ctx.translate(-b.x-b.w/2,-b.y-(p.h||b.h)/2);}ctx.strokeStyle=theme.accent;ctx.lineWidth=4;ctx.shadowColor=theme.accent;ctx.shadowBlur=12;ctx.strokeRect(b.x-10,b.y-10,b.w+20,(p.h||b.h)+20);ctx.restore();}
   }
   if (footer) {
     ctx.strokeStyle = `${theme.ink}18`; ctx.beginPath(); ctx.moveTo(112, 972); ctx.lineTo(1808, 972); ctx.stroke();
