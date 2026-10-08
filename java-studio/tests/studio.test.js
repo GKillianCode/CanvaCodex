@@ -200,11 +200,11 @@ test('rotation is normalized during import and retained in independent copies',a
 });
 
 test('font catalog sanitizes selections and limits Java to monospace families',async()=>{
- const {fonts,normalizeFont,fontCss}=await import('../src/fonts.js');assert.equal(fonts.filter(f=>!f.local).length,8);assert.equal(new Set(fonts.map(f=>f.id)).size,fonts.length);assert.equal(normalizeFont('untrusted font'), 'arial');assert.equal(normalizeFont('lora','code'),'monospace');assert.equal(normalizeFont('jetbrains-mono','code'),'jetbrains-mono');assert.equal(fontCss('lora'),'"Lora", serif');
+ const {fonts,normalizeFont,fontCss}=await import('../src/fonts.js');assert.equal(fonts.filter(f=>!f.local).length,8);assert.equal(new Set(fonts.map(f=>f.id)).size,fonts.length);assert.equal(normalizeFont('untrusted font'), 'inter');assert.equal(normalizeFont('lora','code'),'monospace');assert.equal(normalizeFont('jetbrains-mono','code'),'jetbrains-mono');assert.equal(fontCss('lora'),'"Lora", serif');
 });
 
 test('font selections survive migration, JSON roundtrip and independent duplication',async()=>{
- const {duplicateElement}=await import('../src/editor.js');const {usedFonts}=await import('../src/fonts.js');const s=makeSlide();s.positions.title.font='lora';s.positions.code.font='jetbrains-mono';s.positions.body.font='invalid';const normalized=normalizeSlides([s])[0];assert.equal(normalized.positions.title.font,'lora');assert.equal(normalized.positions.body.font,'arial');const key=duplicateElement(normalized,'title');assert.equal(normalized.positions[key].font,'lora');normalized.positions[key].font='inter';const restored=normalizeSlides(JSON.parse(JSON.stringify([normalized])))[0];assert.equal(restored.positions[key].font,'inter');assert.equal(restored.positions.title.font,'lora');assert.equal(restored.positions.code.font,'jetbrains-mono');assert.ok(usedFonts([restored]).includes('jetbrains-mono'));assert.ok(usedFonts([restored]).includes('inter'));
+ const {duplicateElement}=await import('../src/editor.js');const {usedFonts}=await import('../src/fonts.js');const s=makeSlide();s.positions.title.font='lora';s.positions.code.font='jetbrains-mono';s.positions.body.font='invalid';const normalized=normalizeSlides([s])[0];assert.equal(normalized.positions.title.font,'lora');assert.equal(normalized.positions.body.font,'inter');const key=duplicateElement(normalized,'title');assert.equal(normalized.positions[key].font,'lora');normalized.positions[key].font='inter';const restored=normalizeSlides(JSON.parse(JSON.stringify([normalized])))[0];assert.equal(restored.positions[key].font,'inter');assert.equal(restored.positions.title.font,'lora');assert.equal(restored.positions.code.font,'jetbrains-mono');assert.ok(usedFonts([restored]).includes('jetbrains-mono'));assert.ok(usedFonts([restored]).includes('inter'));
 });
 
 test('text fitting and code bounds measure the selected font',async()=>{
@@ -216,7 +216,7 @@ test('text fitting and code bounds measure the selected font',async()=>{
 test('font loader awaits requested faces, shares loads and retries failures',async()=>{
  const {createFontLoader}=await import('../src/fontLoader.js');let calls=0,resolveLoads;const gate=new Promise(resolve=>{resolveLoads=resolve;});const load=createFontLoader(()=>({load:async()=>{calls++;await gate;return [{}];}}));const s=makeSlide();s.positions.title.font='inter';s.positions.body.font='inter';let ready=false;const first=load([s]).then(()=>{ready=true;});const second=load([s]);await Promise.resolve();assert.equal(calls,2);assert.equal(ready,false);resolveLoads();await Promise.all([first,second]);assert.equal(ready,true);await load([s]);assert.equal(calls,2);
  let fail=true;const retry=createFontLoader(()=>({load:async()=>fail?[]:[{}]}));await assert.rejects(retry([s]),/Police indisponible/);fail=false;await retry([s]);
- const system=createFontLoader(()=>({load(){throw Error('System fonts must not trigger downloads');}}));await system([makeSlide()]);
+ const system=createFontLoader(()=>({load(){throw Error('System fonts must not trigger downloads');}}));const systemSlide=makeSlide();systemSlide.positions.title.font='arial';systemSlide.positions.body.font='arial';await system([systemSlide]);
 });
 
 test('text styles sanitize values and select a real font weight',async()=>{
@@ -233,7 +233,7 @@ test('Canvas text draws per-line highlights behind glyphs and decorations in fro
 });
 
 test('font face cache differentiates weight and true italic while synthetic italic loads normal',async()=>{
- const {createFontLoader}=await import('../src/fontLoader.js');const requests=[];const load=createFontLoader(()=>({load:async spec=>{requests.push(spec);return [{}];}}));const s=makeSlide();s.positions.title.font='inter';s.positions.title.textStyle={weight:900,italic:true};await load([s]);assert.deepEqual(requests,['italic 900 24px "Inter"']);s.positions.title.textStyle.weight=300;await load([s]);assert.equal(requests.at(-1),'italic 300 24px "Inter"');s.positions.title.font='space-grotesk';await load([s]);assert.equal(requests.at(-1),'300 24px "Space Grotesk"');
+ const {createFontLoader}=await import('../src/fontLoader.js');const requests=[];const load=createFontLoader(()=>({load:async spec=>{requests.push(spec);return [{}];}}));const s=makeSlide();s.positions.body.font='arial';s.positions.title.font='inter';s.positions.title.textStyle={weight:900,italic:true};await load([s]);assert.deepEqual(requests,['italic 900 24px "Inter"']);s.positions.title.textStyle.weight=300;await load([s]);assert.equal(requests.at(-1),'italic 300 24px "Inter"');s.positions.title.font='space-grotesk';await load([s]);assert.equal(requests.at(-1),'300 24px "Space Grotesk"');
 });
 
 test('reapplying a composition preserves selected fonts and text styles',()=>{

@@ -1,0 +1,7 @@
+<script setup>
+import { reactive,computed,ref } from 'vue';
+import { themeColors } from '../themes.js';
+import ThemePreview from './ThemePreview.vue';
+const props=defineProps({studio:Object}),s=reactive(props.studio),opened=ref(false),colors=computed(()=>themeColors(s.theme));
+</script>
+<template><section class="project-palette"><div class="project-palette-heading"><div><span class="workspace-label">CE DIAPORAMA</span><h3>{{s.baseTheme.name}} <small v-if="Object.keys(s.projectColors).length">· palette personnalisée</small></h3><p>Ces couleurs sont enregistrées avec ton projet. Le thème de base reste disponible tel quel. Choisir un autre thème réinitialise cette palette.</p></div><button class="btn" @click="opened=!opened" :aria-expanded="opened">{{opened?'Fermer la palette':'Personnaliser la palette'}}</button></div><div v-if="opened" class="project-palette-editor"><ThemePreview :theme="s.theme"/><div><div class="theme-colors"><label v-for="color in colors" :key="color.id">{{color.name}}<input type="color" :aria-label="color.name+' du diaporama'" :value="color.color" @input="s.setProjectColor(color.id,$event.target.value)"><input class="color-hex" maxlength="7" :aria-label="color.name+' du diaporama hexadécimal'" :value="color.color" @input="s.setProjectColor(color.id,$event.target.value)"></label></div><button class="btn" :disabled="!Object.keys(s.projectColors).length" @click="s.projectColors={}">Revenir aux couleurs du thème</button></div></div></section></template>

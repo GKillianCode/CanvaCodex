@@ -1,3 +1,4 @@
+import { textRole } from './textRoles.js';
 import { extraPresets, materializeTemplate, clearTemplateDecorations, buildExtraTemplate, separateLabels } from './editableTemplates.js';
 import { normalizeTable } from './tables.js';
 import { MAX_ELEMENTS } from './limits.js';
@@ -97,7 +98,7 @@ export function blockLabel(s,key) { return (s.blockNames?.[key]||s.elements?.[ke
 export function setBlockName(s,key,value){if(!visibleBlocks(s).includes(key))return;const name=String(value||'').slice(0,100);if(s.elements?.[key])s.elements[key].name=name;else {s.blockNames||={};if(name.trim())s.blockNames[key]=name;else delete s.blockNames[key];}}
 
 export function applyLayout(s,layout) {
-  const typography=Object.fromEntries(Object.entries(s.positions||{}).map(([key,p])=>[key,{...(p.font?{font:p.font}:{}),...(p.textStyle?{textStyle:JSON.parse(JSON.stringify(p.textStyle))}:{})}]));
+  const typography=Object.fromEntries(Object.entries(s.positions||{}).map(([key,p])=>[key,{...(p.font?{font:p.font}:{}),...(p.textRole?{textRole:p.textRole}:{}),...(p.textStyle?{textStyle:JSON.parse(JSON.stringify(p.textStyle))}:{})}]));
   s.layout = layout;
   clearTemplateDecorations(s);
   s.designVersion = 3;
@@ -116,6 +117,7 @@ export function applyLayout(s,layout) {
   }
   for(const [key,style] of Object.entries(typography))if(s.positions[key])Object.assign(s.positions[key],style);
   materializeTemplate(s);buildExtraTemplate(s);
+  for(const key of visibleBlocks(s))if(blockType(s,key)==='text'){const role=textRole(s,key);s.positions[key].textRole||=role.id;s.positions[key].font||=role.font;}else if(blockType(s,key)==='code')s.positions[key].font||='monospace';
   return s;
 }
 export function reorderSlides(slides,from,to) {
@@ -132,6 +134,7 @@ export function makeSlide(layout = 'split', grid = { x: 0, y: 0 }) {
   if (layout==='quote') s.title='« Comprendre avant d’automatiser. »';
   if (layout==='question') {s.title='Que se passe-t-il sous le capot ?';s.fragments.body.order=1;}
   for(const [k,e] of Object.entries(s.elements))if(e.template){const owner=k.includes('Extra')?null:s.blockKeys.slice(s.blockKeys.indexOf(k)+1).find(key=>!s.elements[key]?.template);if(owner)s.fragments[k]={...s.fragments[owner]};}
+  for(const key of visibleBlocks(s))if(blockType(s,key)==='text'){const role=textRole(s,key);s.positions[key].textRole=role.id;s.positions[key].font||=role.font;}else if(blockType(s,key)==='code')s.positions[key].font||='monospace';
   return s;
 }
 const finite = (v, fallback, min, max) => Number.isFinite(v) ? Math.min(max, Math.max(min, v)) : fallback;
@@ -168,7 +171,8 @@ export function normalizeSlide(raw, n = 0) {
     if (s.designVersion === 1 && p && !Number.isFinite(p.h) && !['image','shape'].includes(blockType(s,k))) delete s.positions[k].h;
     s.positions[k].autoSize=p?.autoSize===true&&blockType(s,k)==='text';
     if(s.positions[k].autoSize)s.positions[k].wrapWidth=finite(p?.wrapWidth,1200,80,WIDTH);
-    s.positions[k].font=normalizeFont(p?.font,blockType(s,k));
+    s.positions[k].textRole=['title','subtitle','body'].includes(p?.textRole)?p.textRole:textRole(s,k).id;
+    s.positions[k].font=normalizeFont(p?.font||(blockType(s,k)==='text'?textRole(s,k).font:undefined),blockType(s,k));
     if(p?.textStyle&&typeof p.textStyle==='object'&&!['shape','image'].includes(blockType(s,k)))s.positions[k].textStyle=normalizeTextStyle(p.textStyle,s.positions[k].font,blockType(s,k),k==='title'||s.elements[k]?.weight===700);
     s.positions[k].rotation=Number.isFinite(Number(p?.rotation))?((Number(p.rotation)%360)+360)%360:0;
     const f = raw.fragments?.[k];

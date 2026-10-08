@@ -1,0 +1,3 @@
+export const textRoles=[{id:'title',name:'Titre',font:'inter',size:86,weight:700,leading:1.12},{id:'subtitle',name:'Sous-titre',font:'inter',size:48,weight:600,leading:1.25},{id:'body',name:'Texte',font:'montserrat',size:34,weight:400,leading:1.4}];
+export function textRole(slide,key){return textRoles.find(r=>r.id===slide.positions[key]?.textRole)||textRoles.find(r=>r.id===(key==='title'||slide.elements?.[key]?.weight===700?'title':'body'));}
+export function applyTextRole(slide,key,id){const role=textRoles.find(r=>r.id===id);if(!role||!slide.positions[key])return;const p=slide.positions[key];p.textRole=id;p.font=role.font;p.size=role.size;p.textStyle={...p.textStyle,weight:role.weight};}

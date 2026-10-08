@@ -134,7 +134,7 @@ Dans **Diapo → Ordre des apparitions**, chaque groupe possède une seule ligne
 - Taille, police et ajustement du cadre sont regroupés dans **Style du texte** ; position/dimensions ne contiennent que la géométrie. Placement et superposition restent dans des sections repliables. Les formes ont accès à la palette du thème pour le remplissage et le contour, individuellement ou en sélection multiple ; une couleur liée suit les changements de thème.
 - **Thème et fond** ouvre l’espace **Thèmes**, où se trouvent les couleurs globales, le dégradé, l’en-tête et le pied de diapo. Le sous-menu à chevron de l’enregistrement est supprimé. Ctrl S et Ctrl Maj S restent disponibles ; un bouton séparé télécharge une copie JSON.
 
-Format de sauvegarde : version 17, avec objets tableau et décors persistants (designVersion 3). Les anciens projets restent importables. Les copies et composants sont indépendants de leur modèle d’origine.
+Format de sauvegarde : version 18, avec objets tableau et décors persistants (designVersion 3). Les anciens projets restent importables. Les copies et composants sont indépendants de leur modèle d’origine.
 
 
 ### Styles de tableau et repères entre objets
@@ -158,3 +158,12 @@ Le format version 17 reprend les tableaux précédents : première ligne d’en-
 Dans l’éditeur, le bouton **Aimantation** sous la diapo active ou désactive l’accrochage pendant le déplacement. Activé par défaut, ce choix est conservé sur cet appareil. Les bords et centres de la sélection s’alignent sur ceux de la diapo et des autres objets, avec des guides roses. Le seuil est de 6 pixels à l’écran quel que soit le zoom ; les groupes et sélections multiples gardent leurs écarts. Les poignées de taille et de rotation restent libres.
 
 Les boutons « + Formes » et « + Tableau » ont été retirés de la barre supérieure. Ces objets restent disponibles dans **Propriétés → Ajouter un élément** et dans le menu du clic droit.
+
+
+### Propriétés, textes et palette du diaporama
+
+Le panneau conserve quatre accès : Objet, Diapo, Calques et Composants. Les options de l’objet sont réparties entre Style, Couleurs, Placement et Animation. Tous les tiroirs sont fermés au démarrage ; leur ouverture, la catégorie et le défilement sont conservés lorsqu’on sélectionne un autre objet. Les couleurs du tableau sont séparées en En-tête, Corps et Traits. Les sélections multiples disposent des mêmes réglages applicables, sans remplacer les contenus des tableaux.
+
+Les préréglages Titre et Sous-titre utilisent Inter, et Texte utilise Montserrat. Les polices explicitement choisies dans les anciens projets sont conservées. Un texte peut recevoir une liste à puces, cercles, carrés, tirets, nombres, lettres, chiffres romains, cases ou symbole personnalisé. Départ de numérotation, retrait, espacement et couleur du marqueur sont réglables ; chaque nouvelle ligne crée un item.
+
+Dans Thèmes, « Personnaliser la palette » modifie les couleurs uniquement pour le diaporama actuel. La bibliothèque du thème de base reste intacte. Ces couleurs sont enregistrées avec le projet et disponibles dans les palettes des objets. Choisir un autre thème remet la palette à celle de ce thème ; Réinitialiser restaure explicitement les couleurs de base. Thème et fond ne sont plus dupliqués dans les propriétés.
