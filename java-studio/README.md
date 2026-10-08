@@ -134,7 +134,7 @@ Dans **Diapo → Ordre des apparitions**, chaque groupe possède une seule ligne
 - Taille, police et ajustement du cadre sont regroupés dans **Style du texte** ; position/dimensions ne contiennent que la géométrie. Placement et superposition restent dans des sections repliables. Les formes ont accès à la palette du thème pour le remplissage et le contour, individuellement ou en sélection multiple ; une couleur liée suit les changements de thème.
 - **Thème et fond** ouvre l’espace **Thèmes**, où se trouvent les couleurs globales, le dégradé, l’en-tête et le pied de diapo. Le sous-menu à chevron de l’enregistrement est supprimé. Ctrl S et Ctrl Maj S restent disponibles ; un bouton séparé télécharge une copie JSON.
 
-Format de sauvegarde : version 18, avec objets tableau et décors persistants (designVersion 3). Les anciens projets restent importables. Les copies et composants sont indépendants de leur modèle d’origine.
+Format de sauvegarde : version 19, avec objets tableau et décors persistants (designVersion 3). Les anciens projets restent importables. Les copies et composants sont indépendants de leur modèle d’origine.
 
 
 ### Styles de tableau et repères entre objets
@@ -167,3 +167,14 @@ Le panneau conserve quatre accès : Objet, Diapo, Calques et Composants. Les opt
 Les préréglages Titre et Sous-titre utilisent Inter, et Texte utilise Montserrat. Les polices explicitement choisies dans les anciens projets sont conservées. Un texte peut recevoir une liste à puces, cercles, carrés, tirets, nombres, lettres, chiffres romains, cases ou symbole personnalisé. Départ de numérotation, retrait, espacement et couleur du marqueur sont réglables ; chaque nouvelle ligne crée un item.
 
 Dans Thèmes, « Personnaliser la palette » modifie les couleurs uniquement pour le diaporama actuel. La bibliothèque du thème de base reste intacte. Ces couleurs sont enregistrées avec le projet et disponibles dans les palettes des objets. Choisir un autre thème remet la palette à celle de ce thème ; Réinitialiser restaure explicitement les couleurs de base. Thème et fond ne sont plus dupliqués dans les propriétés.
+
+
+### Incrustations éditables et arrondis par coin
+
+Les incrustations utilisent le même composant Propriétés que les diaporamas : Style, Couleurs, Placement, Animation, Calques et Composants. Chaque texte, fond, accent et image est un objet modifiable, déplaçable, duplicable et supprimable. On peut ajouter des tableaux et tous les autres objets, grouper, aligner, espacer, copier/coller entre diapos et incrustations, utiliser les repères et l’aimantation. Le PNG utilise le rendu commun avec un fond transparent, sans en-tête ni pied global.
+
+Le bouton « Formats · 24 » ouvre une galerie d’aperçus avec recherche et catégories, remplaçant la liste latérale. Les quatre formats historiques sont conservés et vingt formats ajoutés : vidéo avec miniature, portrait intervenant, cartouche compact, titre panoramique, numéro de chapitre, citation, définition, attention, validation, liste de contrôle, trois étapes, chiffre clé, avant/après, abonnement, profil social, lien du site, épisode podcast, crédits, écran de fin, fiche produit. Choisir un format remplace la composition ; Ctrl Z permet de revenir en arrière. Dans le format avec miniature, sélectionner le calque Miniature puis Style → Image et cadrage → Importer une image.
+
+Rectangles, carrés et rectangles arrondis disposent de l’option « Arrondis par coin ». Les quatre pourcentages sont indépendants, de 0 à 50 % du petit côté. Les rayons restent circulaires lors de l’étirement. Les réglages sont disponibles dans les deux éditeurs et en sélection multiple ; sauvegardes, copies et composants les conservent. Les anciens rectangles sans arrondi restent rectangulaires.
+
+Le format 19 enregistre l’incrustation dans banner.slide. Les anciens bandeaux sont automatiquement convertis en objets éditables avec leurs textes, surtitres et notes ; les éléments supprimés ne sont pas recréés au rechargement.
