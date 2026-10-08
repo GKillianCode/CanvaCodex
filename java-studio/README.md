@@ -193,3 +193,14 @@ Les navigateurs qui ne proposent pas l’accès direct aux fichiers utilisent le
 Sélectionner les objets, placer le focus sur la composition et utiliser Ctrl C (Cmd C sur Mac). Ouvrir l’autre instance, cliquer sur sa composition puis Ctrl V/Cmd V. Textes, images intégrées, formes, tableaux, groupes, styles et dimensions sont transférés entre diapos et incrustations. Pour copier un composant complet, utiliser Copier sur sa carte puis coller sur la composition cible. Les collages répétés sont décalés de 24 unités de conception.
 
 Les boutons Copier/Coller utilisent également le presse-papiers système lorsque le navigateur l’autorise. En cas de refus ou d’API indisponible, les raccourcis natifs restent la voie proposée. La copie/collage de texte dans un champ continue de fonctionner normalement. Les objets sont transmis au format texte balisé Frame, sans exécuter de contenu importé. Limites : 100 objets par composition, 100 composants par bibliothèque, échange de 64 millions de caractères maximum.
+
+
+### Alignement, échelle et animations
+
+Style → Typographie propose quatre alignements pour les textes : gauche, centre, droite et justifié. La justification répartit les espaces sur les lignes repliées ; la dernière ligne de chaque paragraphe reste à gauche. Les listes gardent leurs marqueurs et retraits. Le réglage est aussi disponible pour plusieurs textes sélectionnés.
+
+Placement → Mise à l’échelle : activer les poignées proportionnelles pour un objet, puis tirer un coin. Les sélections multiples et groupes utilisent automatiquement quatre poignées proportionnelles. Textes, cadres, marges, puces, contours, tableaux et code suivent le même facteur ; les rotations et groupes sont conservés. On peut également saisir un pourcentage puis Appliquer l’échelle. Les transformations sont annulables et conservées dans les projets/composants. Les poignées ordinaires restent disponibles pour déformer un objet individuel hors de ce mode.
+
+Animation propose fondu, montée, descente, glissement gauche/droite, zoom, recul léger et immédiat. Automatique alterne des effets sobres de façon stable par diapo et étape ; les éléments d’un groupe partagent leur mouvement et le centre du zoom. Dans Diapo → Ordre des apparitions, Varier les apparitions automatiquement applique ce choix à toute la diapo, sans changer les étapes. Une disparition optionnelle s’applique au retour à l’étape précédente (Retour arrière/Page précédente). Les animations durent 420 ms ; la préférence système de réduction des mouvements est respectée. Les PNG restent des images statiques ; le rendu des animations est partagé avec la présentation et la capture Canvas.
+
+Un seul tiroir de propriétés reste ouvert à la fois. Les incrustations montrent un écran transparent au rapport 16:9, avec damier limité à son cadre, contour et dimensions de sortie ; le reste de l’atelier est uni. Ce cadre sert uniquement de repère dans l’éditeur et n’est pas exporté.

@@ -1,3 +1,4 @@
+import { normalizeAnimation } from './motion.js';
 import { textRole } from './textRoles.js';
 import { extraPresets, materializeTemplate, clearTemplateDecorations, buildExtraTemplate, separateLabels } from './editableTemplates.js';
 import { normalizeTable } from './tables.js';
@@ -165,18 +166,19 @@ export function normalizeSlide(raw, n = 0) {
     if (p) for (const key of ['x', 'y', 'w', 'size', 'h']) {
       if (key === 'h' && !Number.isFinite(p.h)) { delete s.positions[k].h; continue; }
       s.positions[k][key] = finite(p[key], s.positions[k][key] ?? 360,
-        key === 'size' ? 10 : key === 'x' || key === 'y' ? -10000 : 1,
-        key === 'size' ? 260 : 10000);
+        key === 'size' ? (p.contentScale ? .5 : 10) : key === 'x' || key === 'y' ? -10000 : 1,
+        key === 'size' ? (p.contentScale ? 2600 : 260) : 10000);
     }
     if (s.designVersion === 1 && p && !Number.isFinite(p.h) && !['image','shape'].includes(blockType(s,k))) delete s.positions[k].h;
     s.positions[k].autoSize=p?.autoSize===true&&blockType(s,k)==='text';
-    if(s.positions[k].autoSize)s.positions[k].wrapWidth=finite(p?.wrapWidth,1200,80,WIDTH);
+    if(s.positions[k].autoSize)s.positions[k].wrapWidth=finite(p?.wrapWidth,1200,1,10000);
     s.positions[k].textRole=['title','subtitle','body'].includes(p?.textRole)?p.textRole:textRole(s,k).id;
     s.positions[k].font=normalizeFont(p?.font||(blockType(s,k)==='text'?textRole(s,k).font:undefined),blockType(s,k));
     if(p?.textStyle&&typeof p.textStyle==='object'&&!['shape','image'].includes(blockType(s,k)))s.positions[k].textStyle=normalizeTextStyle(p.textStyle,s.positions[k].font,blockType(s,k),k==='title'||s.elements[k]?.weight===700);
     s.positions[k].rotation=Number.isFinite(Number(p?.rotation))?((Number(p.rotation)%360)+360)%360:0;
+    s.positions[k].contentScale=finite(p?.contentScale,1,.01,100);
     const f = raw.fragments?.[k];
-    s.fragments[k] = { order: Math.round(finite(f?.order, 0, 0, 20)), animation: ['fade', 'up', 'zoom', 'none'].includes(f?.animation) ? f.animation : 'fade' };
+    s.fragments[k] = { order: Math.round(finite(f?.order, 0, 0, 20)), animation: normalizeAnimation(f?.animation), ...(f?.exitAnimation?{exitAnimation:normalizeAnimation(f.exitAnimation,'none')}:{}) };
   }
   if (raw.grid && Number.isInteger(raw.grid.x) && Number.isInteger(raw.grid.y)) s.grid = { x: finite(raw.grid.x, n, -10000, 10000), y: finite(raw.grid.y, 0, -10000, 10000) };
   s.blockNames=Object.fromEntries(blocks.filter(k=>typeof raw.blockNames?.[k]==='string'&&raw.blockNames[k].trim()).map(k=>[k,raw.blockNames[k].trim().slice(0,100)]));

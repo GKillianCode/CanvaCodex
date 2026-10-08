@@ -9,9 +9,12 @@ export function listMarker(list,n){const index=list.start+n;return ({bullet:'•
 // Shared by drawing, fitting and auto-sized frames: wrapped lines retain a hanging indent.
 export function layoutText(ctx,value,width,size,leading,style,wrap){
  const list=normalizeList(style?.list),rows=[];let y=0;
- if(list.type==='none'){for(const line of wrap(ctx,value,width)){rows.push({text:line,x:0,y,marker:''});y+=size*leading;}return {rows,height:y};}
+ const align=style?.align||'left';
+ const add=(line,offset,available,last,marker='',markerX=0)=>{const measured=ctx.measureText(line).width,free=Math.max(0,available-measured);const words=line.trim().split(/\s+/);const justify=align==='justify'&&!last&&words.length>1;
+ rows.push({text:line,x:offset+(align==='center'?free/2:align==='right'?free:0),y,marker,markerX,words:justify?words:null,wordGap:justify?(available-words.reduce((sum,w)=>sum+ctx.measureText(w).width,0))/(words.length-1):0});y+=size*leading;};
+ if(list.type==='none'){for(const paragraph of String(value).split('\n')){const lines=wrap(ctx,paragraph,width);lines.forEach((line,i)=>add(line,0,width,i===lines.length-1));}return {rows,height:y};}
  const items=String(value).split('\n'),markers=items.map((item,n)=>item.trim()?listMarker(list,n):''),markerWidth=Math.max(0,...markers.map(m=>ctx.measureText(m).width));
  const indent=Math.min(Math.max(list.indent,markerWidth+list.gap),Math.max(0,width-8));
- items.forEach((item,n)=>{const lines=wrap(ctx,item,Math.max(8,width-indent));lines.forEach((line,i)=>{rows.push({text:line,x:indent,y,marker:i===0?markers[n]:'',markerX:Math.max(0,indent-list.gap-ctx.measureText(markers[n]).width)});y+=size*leading;});if(n<items.length-1)y+=list.spacing;});
+ items.forEach((item,n)=>{const available=Math.max(8,width-indent),lines=wrap(ctx,item,available);lines.forEach((line,i)=>add(line,indent,available,i===lines.length-1,i===0?markers[n]:'',Math.max(0,indent-list.gap-ctx.measureText(markers[n]).width)));if(n<items.length-1)y+=list.spacing;});
  return {rows,height:y};
 }
