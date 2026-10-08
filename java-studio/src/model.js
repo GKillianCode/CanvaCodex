@@ -1,3 +1,4 @@
+import { normalizeSteps } from './pedagogicalSteps.js';
 import { normalizeNotes } from './presentationNotes.js';
 import { normalizeAnimation } from './motion.js';
 import { textRole } from './textRoles.js';
@@ -127,7 +128,7 @@ export function reorderSlides(slides,from,to) {
   const result=slides.slice(), [item]=result.splice(from,1); result.splice(to,0,item); return result;
 }
 export function makeSlide(layout = 'split', grid = { x: 0, y: 0 }) {
-  const s = { id: crypto.randomUUID(), exitDirection:'auto', elements:{}, title: layout === 'metric' ? '1 Go' : extraPresets.find(p=>p.id===layout)?.name || 'Une nouvelle idée.', body: layout === 'metric' ? '1 Go = 1 000 Mo\nUnités décimales · division par 1 000' : 'Double-clique pour écrire ton explication.', code: 'public class Example {\n    public static void main(String[] args) {\n        System.out.println("Hello, Java!");\n    }\n}', notes:'', label: '', codeTitle:'', layout, grid: { ...grid }, positions: positionsFor(layout), fragments: Object.fromEntries(blocks.map(k => [k, { order: 0, animation: 'fade' }])) };
+  const s = { id: crypto.randomUUID(), exitDirection:'auto', elements:{}, title: layout === 'metric' ? '1 Go' : extraPresets.find(p=>p.id===layout)?.name || 'Une nouvelle idée.', body: layout === 'metric' ? '1 Go = 1 000 Mo\nUnités décimales · division par 1 000' : 'Double-clique pour écrire ton explication.', code: 'public class Example {\n    public static void main(String[] args) {\n        System.out.println("Hello, Java!");\n    }\n}', notes:'', pedagogicalSteps:[], hiddenKeys:[], emphasisKeys:[], label: '', codeTitle:'', layout, grid: { ...grid }, positions: positionsFor(layout), fragments: Object.fromEntries(blocks.map(k => [k, { order: 0, animation: 'fade' }])) };
   applyLayout(s,layout);
   if (['three','steps','timeline','summary'].includes(layout)) { s.title = ({three:'Trois idées à comprendre.',steps:'Étape par étape.',timeline:'Du source à la JVM.',summary:'Ce qu’il faut retenir.'})[layout]; s.body='Première idée.'; ['body','text1','text2'].forEach((k,n)=>s.fragments[k]={order:n+1,animation:'up'}); }
   if (['three','steps','timeline','summary'].includes(layout)) {s.body='Écrire.\nUn fichier source .java.';s.elements.text1.text='Compiler.\nLe bytecode prend forme.';s.elements.text2.text='Exécuter.\nLa JVM prend le relais.';}
@@ -187,6 +188,9 @@ export function normalizeSlide(raw, n = 0) {
   if(s.designVersion===2)materializeTemplate(s);
   separateLabels(s);
   s.groups=normalizeGroups(raw.groups,visibleBlocks(s));
+  s.hiddenKeys=Array.isArray(raw.hiddenKeys)?raw.hiddenKeys.filter(k=>visibleBlocks(s).includes(k)):[];
+  s.emphasisKeys=Array.isArray(raw.emphasisKeys)?raw.emphasisKeys.filter(k=>visibleBlocks(s).includes(k)):[];
+  s.pedagogicalSteps=normalizeSteps(raw.pedagogicalSteps,s,normalizeSlide);
   return s;
 }
 export function validImageSource(src) { return typeof src === 'string' && src.length < 3000000 && (/^data:image\/(png|jpeg|webp);base64,[a-zA-Z0-9+/=]+$/.test(src)||validSvgSource(src)); }
@@ -195,7 +199,7 @@ export function normalizeSlides(raw) {
   const used = new Set(), ids = new Set();
   return raw.map((r, n) => { const s = normalizeSlide(r, n); if (ids.has(s.id)) s.id = crypto.randomUUID(); ids.add(s.id); while (used.has(`${s.grid.x},${s.grid.y}`)) s.grid.x++; used.add(`${s.grid.x},${s.grid.y}`); return s; });
 }
-export function fragmentOrders(s) { return [...new Set(visibleBlocks(s).map(k => s.fragments[k].order).filter(n => n > 0))].sort((a, b) => a - b); }
+export function fragmentOrders(s) { return [...new Set(visibleBlocks(s).filter(k=>!s.hiddenKeys?.includes(k)).map(k => s.fragments[k].order).filter(n => n > 0))].sort((a, b) => a - b); }
 export function neighbor(slides, index, direction) {
   const d = directions[direction], origin = slides[index]?.grid;
   if (!d || !origin) return -1;
