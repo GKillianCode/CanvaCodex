@@ -1,3 +1,4 @@
+import { normalizeNotes } from './presentationNotes.js';
 import { normalizeAnimation } from './motion.js';
 import { textRole } from './textRoles.js';
 import { extraPresets, materializeTemplate, clearTemplateDecorations, buildExtraTemplate, separateLabels } from './editableTemplates.js';
@@ -126,7 +127,7 @@ export function reorderSlides(slides,from,to) {
   const result=slides.slice(), [item]=result.splice(from,1); result.splice(to,0,item); return result;
 }
 export function makeSlide(layout = 'split', grid = { x: 0, y: 0 }) {
-  const s = { id: crypto.randomUUID(), exitDirection:'auto', elements:{}, title: layout === 'metric' ? '1 Go' : extraPresets.find(p=>p.id===layout)?.name || 'Une nouvelle idée.', body: layout === 'metric' ? '1 Go = 1 000 Mo\nUnités décimales · division par 1 000' : 'Double-clique pour écrire ton explication.', code: 'public class Example {\n    public static void main(String[] args) {\n        System.out.println("Hello, Java!");\n    }\n}', label: '', codeTitle:'', layout, grid: { ...grid }, positions: positionsFor(layout), fragments: Object.fromEntries(blocks.map(k => [k, { order: 0, animation: 'fade' }])) };
+  const s = { id: crypto.randomUUID(), exitDirection:'auto', elements:{}, title: layout === 'metric' ? '1 Go' : extraPresets.find(p=>p.id===layout)?.name || 'Une nouvelle idée.', body: layout === 'metric' ? '1 Go = 1 000 Mo\nUnités décimales · division par 1 000' : 'Double-clique pour écrire ton explication.', code: 'public class Example {\n    public static void main(String[] args) {\n        System.out.println("Hello, Java!");\n    }\n}', notes:'', label: '', codeTitle:'', layout, grid: { ...grid }, positions: positionsFor(layout), fragments: Object.fromEntries(blocks.map(k => [k, { order: 0, animation: 'fade' }])) };
   applyLayout(s,layout);
   if (['three','steps','timeline','summary'].includes(layout)) { s.title = ({three:'Trois idées à comprendre.',steps:'Étape par étape.',timeline:'Du source à la JVM.',summary:'Ce qu’il faut retenir.'})[layout]; s.body='Première idée.'; ['body','text1','text2'].forEach((k,n)=>s.fragments[k]={order:n+1,animation:'up'}); }
   if (['three','steps','timeline','summary'].includes(layout)) {s.body='Écrire.\nUn fichier source .java.';s.elements.text1.text='Compiler.\nLe bytecode prend forme.';s.elements.text2.text='Exécuter.\nLa JVM prend le relais.';}
@@ -147,6 +148,7 @@ export function normalizeSlide(raw, n = 0) {
   s.id = typeof raw.id === 'string' ? raw.id : s.id;
   for (const k of [...blocks, 'label', 'codeTitle']) s[k] = typeof raw[k] === 'string' ? raw[k].slice(0, 100000) : '';
   s.codeTitle=s.codeTitle.slice(0,200);
+  s.notes=normalizeNotes(raw.notes);
   s.exitDirection = ['auto',...Object.keys(directions)].includes(raw.exitDirection) ? raw.exitDirection : 'auto';
   if (raw.elements && typeof raw.elements === 'object') {
     s.elements = {};
