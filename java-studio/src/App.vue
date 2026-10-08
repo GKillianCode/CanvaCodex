@@ -1,5 +1,5 @@
 <script setup>
-import { Menu, PanelsTopLeft, Clapperboard, Palette, Plus, Play, Download, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Copy, Trash2, Check, Code2, MousePointer2, RotateCcw, Upload, X, Circle, Square, Pencil, Monitor, Save, GripVertical, ImagePlus, Type, LayoutGrid } from 'lucide-vue-next';
+import { Menu, PanelsTopLeft, Clapperboard, Palette, Plus, Play, Download, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, Copy, Trash2, Check, Code2, MousePointer2, RotateCcw, Upload, X, Circle, Square, Pencil, Monitor, Save, GripVertical, NotebookPen, ImagePlus, Type, LayoutGrid } from 'lucide-vue-next';
 import { useStudio } from './useStudio.js';
 import { colorFields } from './themes.js';
 import { presets, visibleBlocks, blockLabel } from './model.js';
@@ -7,6 +7,7 @@ import OverlayGallery from './components/OverlayGallery.vue';
 import PropertiesPanel from './components/PropertiesPanel.vue';
 import ProjectPalette from './components/ProjectPalette.vue';
 import ThemePreview from './components/ThemePreview.vue';
+import PresentationNotes from './components/PresentationNotes.vue';
 import TextDialog from './components/TextDialog.vue';
 import InlineEditor from './components/InlineEditor.vue';
 import ShapeGallery from './components/ShapeGallery.vue';
@@ -18,7 +19,7 @@ const { fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,save
 </script>
 
 <template>
-<div class="studio" :class="{presenting,'rail-collapsed':panels.collapsed,'rail-hidden':!panels.rail}" :style="{'--inspector-width':panels.inspectorWidth+'px','--slides-width':panels.slidesWidth+'px'}">
+<div class="studio" :class="{presenting,'notes-open':presenting&&studio.notesVisible.value,'rail-collapsed':panels.collapsed,'rail-hidden':!panels.rail}" :style="{'--inspector-width':panels.inspectorWidth+'px','--slides-width':panels.slidesWidth+'px'}">
  <aside class="rail" v-if="!presenting&&panels.rail">
   <button class="rail-toggle" @click="panels.collapsed=!panels.collapsed" aria-label="Réduire ou développer la navigation"><Menu :size="20"/></button>
   <a class="brand" href="#" @click.prevent="view='slides'" aria-label="Frame accueil"><span class="brand-icon">f</span><span>frame<span class="brand-dot">.</span></span></a>
@@ -46,13 +47,14 @@ const { fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,save
     <div class="speaker-note" v-if="panels.toolbar&&!presenting&&view==='slides'"><div class="note-icon"><Code2 :size="20"/></div><div><strong>Le contenu d’abord. Le design suit.</strong><p>Un thème commun, des compositions prêtes à l’emploi. Garde ton énergie pour Java.</p></div><span>⌘ studio</span></div>
     <div v-if="presenting&&countdown" class="record-countdown" role="status"><strong>{{countdown}}</strong><span>L’enregistrement commence dans {{countdown}} s</span><button class="btn" @click="startRecord">Annuler</button></div>
     <aside v-if="presenting" class="next-preview"><button @click="previewVisible=!previewVisible" :aria-expanded="previewVisible">Prochaine diapo {{previewVisible?'−':'+'}}</button><template v-if="previewVisible"><img v-if="slides[index+1]" :src="thumbs[slides[index+1].id]" alt="Aperçu de la prochaine diapo"><span v-else>Fin du diaporama</span><small>{{orders.length-step}} apparition(s) restante(s) · Espace</small></template></aside>
+    <PresentationNotes v-if="presenting&&studio.notesVisible.value" :notes="current.notes" :index="index" @close="studio.notesVisible.value=false"/>
     <div class="present-controls" v-if="presenting">
       <button class="icon-btn" @click="exit" title="Quitter (Échap)"><X :size="19"/></button>
       <div class="direction-pad"><button class="icon-btn north" @click="goDirection('up')" :disabled="!canGo('up')" title="Diapo au-dessus (↑)"><ChevronUp :size="19"/></button><button class="icon-btn west" @click="goDirection('left')" :disabled="!canGo('left')" title="Diapo à gauche (←)"><ChevronLeft :size="19"/></button><button class="icon-btn south" @click="goDirection('down')" :disabled="!canGo('down')" title="Diapo en dessous (↓)"><ChevronDown :size="19"/></button><button class="icon-btn east" @click="goDirection('right')" :disabled="!canGo('right')" title="Diapo à droite (→)"><ChevronRight :size="19"/></button></div>
       <span class="presentation-status">{{index+1}} / {{slides.length}}<small>Étape {{step}} / {{orders.length}}</small></span>
       <button class="icon-btn" @click="retreat" :disabled="moving||(index===0&&step===0)" title="Revenir à l’étape précédente"><ChevronLeft :size="19"/></button>
       <button class="btn" @click="advance" :disabled="moving||(index===slides.length-1&&step===orders.length)" title="Espace ou Entrée">{{step<orders.length?'Révéler':'Suivant'}} · Espace<ChevronRight :size="16"/></button>
-      <span class="divider"></span>
+      <button class="icon-btn" :class="{active:studio.notesVisible.value}" :aria-pressed="studio.notesVisible.value" title="Afficher ou masquer les notes" @click="studio.notesVisible.value=!studio.notesVisible.value"><NotebookPen :size="19"/></button><span class="divider"></span>
       <button :class="['icon-btn',{active:tool==='laser'}]" @click="tool='laser'" title="Laser · maintenir le clic gauche pour tracer"><MousePointer2 :size="19"/></button><button :class="['icon-btn',{active:tool==='pen'}]" @click="tool='pen'" title="Dessiner en maintenant la souris"><Pencil :size="19"/></button><input type="color" v-model="laser" aria-label="Couleur du pointeur"><input class="laser-range" type="range" min="4" max="30" v-model.number="laserSize" aria-label="Taille du pointeur"><button class="icon-btn" @click="clearAnnotations" title="Effacer les annotations"><RotateCcw :size="18"/></button>
       <button :disabled="finalizing" :class="['btn',recording?'danger':'primary']" @click="recording?stopRecord():startRecord()"><Square v-if="recording" :size="14"/><Circle v-else :size="14"/>{{recording?'Stop · '+Math.floor(elapsed/60)+':'+String(elapsed%60).padStart(2,'0'):countdown?'Annuler · '+countdown+' s':'Enregistrer'}}</button>
     </div>
