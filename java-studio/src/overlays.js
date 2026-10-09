@@ -1,8 +1,10 @@
+import {normalizeBits} from './bits.js';
+import {setPrimitive} from './javaPrimitives.js';
 import { makeSlide, normalizeSlide } from './model.js';
 import { normalizeShape } from './shapes.js';
 export const overlayFormats = [
  ['lower','Bandeau de titre','Titres'],['chapter','Titre de chapitre','Titres'],['tip','À retenir','Informations'],['video','Voir une autre vidéo','Vidéo'],
- ['video-thumbnail','Vidéo avec miniature','Vidéo'],['speaker','Portrait intervenant','Titres'],['nameplate','Cartouche compact','Titres'],['headline','Titre panoramique','Titres'],['section','Numéro de chapitre','Titres'],['quote','Citation','Informations'],['definition','Définition','Informations'],['warning','Attention','Informations'],['success','Validation','Informations'],['checklist','Liste de contrôle','Informations'],['steps','Trois étapes','Informations'],['stat','Chiffre clé','Informations'],['compare','Avant / après','Informations'],['subscribe','Abonnement','Social'],['social','Profil social','Social'],['website','Lien du site','Social'],['podcast','Épisode podcast','Social'],['credits','Crédits','Titres'],['endcard','Écran de fin','Vidéo'],['product','Fiche produit','Vidéo'],
+ ['video-thumbnail','Vidéo avec miniature','Vidéo'],['speaker','Portrait intervenant','Titres'],['nameplate','Cartouche compact','Titres'],['headline','Titre panoramique','Titres'],['section','Numéro de chapitre','Titres'],['quote','Citation','Informations'],['definition','Définition','Informations'],['warning','Attention','Informations'],['success','Validation','Informations'],['checklist','Liste de contrôle','Informations'],['steps','Trois étapes','Informations'],['stat','Chiffre clé','Informations'],['compare','Avant / après','Informations'],['subscribe','Abonnement','Social'],['social','Profil social','Social'],['website','Lien du site','Social'],['podcast','Épisode podcast','Social'],['credits','Crédits','Titres'],['endcard','Écran de fin','Vidéo'],['product','Fiche produit','Vidéo'],['java-primitive','Fiche de type Java','Java'],['java-bits','Octets et bits','Java'],
 ].map(([id,name,category])=>({id,name,category}));
 export function makeOverlay(id='lower',legacy={}){
  const format=overlayFormats.find(f=>f.id===id)||overlayFormats[0];
@@ -13,6 +15,16 @@ export function makeOverlay(id='lower',legacy={}){
  const img=(key,x,y,w,h)=>add('image'+key,{type:'image',custom:true,name:key,src:'',fit:'cover',background:false,roundedCorners:true,cornerRadius:6},x,y,w,h);
  const title=legacy.title||'Votre titre ici',sub=legacy.subtitle||'À DÉCOUVRIR',note=legacy.note||'Une autre vidéo sur la chaîne';
  switch(format.id){
+ case 'java-primitive':
+  box('Carte',180,200,1560,680,'bg',6);box('Liseré',180,200,9,680,'accent',0);
+  txt('Label','JAVA · TYPE PRIMITIF',230,245,1380,40,23,'accent',true);txt('Type','int',230,300,480,110,86,'ink',true);txt('Width','4 octets · 32 bits',810,320,870,70,40,'accent',true);
+  box('Minimum',230,440,700,135,'panel',10);box('Maximum',970,440,700,135,'panel',10);
+  txt('MinimumLabel','VALEUR MINIMUM',255,460,640,32,20,'muted',true);txt('Minimum','−2 147 483 648',255,505,640,55,32,'ink',true);
+  txt('MaximumLabel','VALEUR MAXIMUM',995,460,640,32,20,'muted',true);txt('Maximum','2 147 483 647',995,505,640,55,32,'ink',true);
+  txt('DefaultLabel','VALEUR PAR DÉFAUT',230,610,400,34,20,'muted',true);txt('Default','0',230,655,320,60,46,'accent',true);txt('TypeNote','Entier signé · complément à deux',620,612,1040,110,26);
+  txt('DefaultNote','',230,766,1390,80,23,'muted');setPrimitive(s,'int');break;
+ case 'java-bits':box('Carte',180,230,1560,620,'bg',6);txt('Label','REPRÉSENTATION BINAIRE',230,270,1450,38,23,'accent',true);txt('Titre','Un octet. Huit bits.',230,335,1450,80,58,'ink',true);add('bitsValue',normalizeBits({value:'151',bytes:1,showWeights:true}),230,450,1450,270);txt('Note','Poids fort à gauche · 151 = 128 + 16 + 4 + 2 + 1',230,760,1450,45,25,'muted');break;
+
  case 'lower':box('Fond',110,800,1660,190);box('Accent',110,800,9,190,'accent');txt('Surtitre',sub,155,833,1550,42,25,'accent',true);txt('Titre',title,155,883,1550,82,48,'ink',true);break;
  case 'chapter':box('Fond',200,385,1520,300);txt('Surtitre',sub,265,435,1370,45,27,'accent',true);txt('Titre',title,265,495,1370,145,64,'ink',true);break;
  case 'tip':case 'warning':case 'success':box('Carte',1080,80,730,240);box('Accent',1080,80,8,240,format.id==='warning'?'secondary':'accent');txt('Label',format.id==='tip'?'À RETENIR':format.id==='warning'?'ATTENTION':'BIEN JOUÉ',1120,112,640,42,24,'accent',true);txt('Texte',title,1120,163,640,125,42,'ink',true);break;

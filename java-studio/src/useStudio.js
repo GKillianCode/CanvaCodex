@@ -1,5 +1,6 @@
+import {normalizeBits} from './bits.js';
 import { selectionOpacity,setObjectOpacity } from './objectOpacity.js';
-import { sceneAt,presentationSequence,addPedagogicalStep,movePedagogicalStep,allScenes } from './pedagogicalSteps.js';
+import { sceneAt,presentationSequence,addPedagogicalStep,movePedagogicalStep,removePedagogicalStep,allScenes } from './pedagogicalSteps.js';
 import { usePresenterWindow } from './usePresenterWindow.js';
 import { scaleObjects,scaleFromHandle } from './scaleObjects.js';
 import { useComponentSharing } from './useComponentSharing.js';
@@ -117,7 +118,7 @@ export function useStudio() {
   function selectPedagogicalStep(n){closeEdit();editStep.value=Math.max(0,Math.min(n,baseSlide.value.pedagogicalSteps?.length||0));workspace.value='editor';requestDraw();}
   function addPedagogical(){closeEdit();const n=addPedagogicalStep(baseSlide.value,editStep.value);if(n!==null){selectPedagogicalStep(n);notify('Étape créée. Modifie les objets dans ce nouvel état.');}}
   function movePedagogical(n,delta){selectPedagogicalStep(movePedagogicalStep(baseSlide.value,n,delta));}
-  function removePedagogical(n){closeEdit();baseSlide.value.pedagogicalSteps.splice(n-1,1);selectPedagogicalStep(Math.min(editStep.value,baseSlide.value.pedagogicalSteps.length));}
+  function removePedagogical(n){if(!Number.isInteger(n)||n<1||n>baseSlide.value.pedagogicalSteps.length)return;closeEdit();selectPedagogicalStep(removePedagogicalStep(baseSlide.value,n,editStep.value));notify('Étape supprimée · Ctrl Z pour annuler.');}
   const measurement = document.createElement('canvas').getContext('2d');
   const editSize=computed(()=>selected.value?blockBounds(measurement,current.value,selected.value).size:42);
   const editStyle = computed(() => {
@@ -313,9 +314,9 @@ export function useStudio() {
     pointerDown = null; activeStroke = null; requestDraw();
   }
   function leave() { pointer = null;guidePoint=null;hovered.value=null; requestDraw(); }
-  function doubleClick(e) { if (!canvas.value || presenting.value || !['slides','banners'].includes(view.value)) return; const hit = hitBlock(coords(e)); if (!hit) return; drag = null; selected.value = hit;selectedKeys.value=[hit];selectionScope.value='elements'; if(!['image','shape'].includes(blockType(current.value,hit))) editing.value = hit; requestDraw(); }
+  function doubleClick(e) { if (!canvas.value || presenting.value || !['slides','banners'].includes(view.value)) return; const hit = hitBlock(coords(e)); if (!hit) return; drag = null; selected.value = hit;selectedKeys.value=[hit];selectionScope.value='elements'; if(!['image','shape','bits'].includes(blockType(current.value,hit))) editing.value = hit; requestDraw(); }
   function closeEdit() { if(editing.value)history.group=null;editing.value = null; requestDraw(); }
-  function editSelected() { if (!visibleBlocks(current.value).includes(selected.value))return; if(!['image','shape'].includes(selectedType.value)) editing.value = selected.value; }
+  function editSelected() { if (!visibleBlocks(current.value).includes(selected.value))return; if(!['image','shape','bits'].includes(selectedType.value)) editing.value = selected.value; }
   function chooseSlide(n) {
     if (n < 0 || n >= slides.value.length || n === index.value || moving.value) return;
     cancelMarquee();closeEdit(); drag = null; transformPreview.value=null;pointer = null; strokes = []; trail.clear();
@@ -367,10 +368,10 @@ export function useStudio() {
     if(Object.keys(current.value.elements).length>=MAX_ELEMENTS){notify('Cette diapo contient déjà 100 éléments ajoutés.');return;}
     closeEdit(); const key=type+crypto.randomUUID().replaceAll('-','').slice(0,8), s=current.value;
     const count=type==='text'?visibleBlocks(s).filter(k=>k!=='title'&&blockType(s,k)==='text').length+1:Object.values(s.elements).filter(e=>e.type===type).length+1;
-    s.elements[key]=type==='table'?normalizeTable({name:'Tableau '+count}):type==='code'?{type,custom:true,name:'Code '+count,text:'// Ton extrait Java',caption:''}:type==='text'?{type,custom:true,name:'Texte '+count,text:'Ton nouveau texte.'}:{type,custom:true,name:'Image '+count,src:'',fit:'contain'};
+    s.elements[key]=type==='bits'?normalizeBits({name:'Octets et bits '+count}):type==='table'?normalizeTable({name:'Tableau '+count}):type==='code'?{type,custom:true,name:'Code '+count,text:'// Ton extrait Java',caption:''}:type==='text'?{type,custom:true,name:'Texte '+count,text:'Ton nouveau texte.'}:{type,custom:true,name:'Image '+count,src:'',fit:'contain'};
     const bottom=Math.max(250,...visibleBlocks(s).filter(k=>k!==key&&blockType(s,k)==='text').map(k=>{const b=blockBounds(measurement,s,k);return b.y+b.h;}));
     const y=type==='text'?Math.min(900,Math.round(bottom+55)):Math.min(640,300+count*120);
-    s.positions[key]={x:200,y,w:type==='table'?1200:type==='text'?(visibleBlocks(s).includes('code')?650:1200):700,h:Math.min(400,HEIGHT-y-40),size:type==='code'?28:42,font:type==='code'?'monospace':type==='text'?'montserrat':'inter',...(type==='text'?{textRole:'body'}:{})};
+    s.positions[key]={x:200,y,w:type==='bits'?1100:type==='table'?1200:type==='text'?(visibleBlocks(s).includes('code')?650:1200):700,h:type==='bits'?260:Math.min(400,HEIGHT-y-40),size:type==='code'?28:42,font:type==='code'?'monospace':type==='text'?'montserrat':'inter',...(type==='text'?{textRole:'body'}:{})};
     if(type==='text'&&['title','subtitle'].includes(variant)){applyTextRole(s,key,variant);s.elements[key].text=variant==='title'?'Ton titre.':'Ton sous-titre.';s.elements[key].name=variant==='title'?'Titre':'Sous-titre';}
     if(variant==='list'){s.elements[key].text='Première idée\nDeuxième idée\nTroisième idée';s.elements[key].name='Liste';s.positions[key].textStyle={list:{type:'bullet'}};}
     if(type==='text'){s.positions[key].autoSize=true;s.positions[key].wrapWidth=s.positions[key].w;fitAuto(key);}

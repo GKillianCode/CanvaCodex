@@ -10,7 +10,7 @@ export function resizePosition(origin,handle,dx,dy,type) {
  const h=north?origin.y+origin.h-y:south?Math.max(minH,Math.min(HEIGHT-y,origin.h+dy)):origin.h;
  // Side handles change one dimension without shrinking type on the untouched axis.
  const ratio=(west||east)&&(north||south)?Math.min(w/origin.w,h/origin.h):1;
- return {...origin,x,y,w,h,size:['image','shape','table'].includes(type)?origin.size:Math.max(10,Math.min(260,origin.size*ratio))};
+ return {...origin,x,y,w,h,size:['image','shape','table','bits'].includes(type)?origin.size:Math.max(10,Math.min(260,origin.size*ratio))};
 }
 export function duplicateElement(s,key) {
  if(!visibleBlocks(s).includes(key)||Object.keys(s.elements).length>=MAX_ELEMENTS)return null;
