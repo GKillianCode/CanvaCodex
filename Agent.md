@@ -597,7 +597,7 @@ Validation : 25 fichiers de tests passent, build réussi (avertissement Vite pr�
 
 ### 9 octobre 2026 — typographie stable, séparations et styles de cellules
 
-Demande : corriger le rétrécissement d’une colonne lorsque la taille de police augmente, retirer les poids relatifs peu pratiques, ajouter des poignées sur les séparations et permettre de personnaliser certaines cellules. Suivi : [issue #78](https://github.com/GKillianCode/CanvaCodex/issues/78), branche `codex/table-cell-controls` basée sur `codex/editor-table-refinement` (PR #77). Publication en préparation.
+Demande : corriger le rétrécissement d’une colonne lorsque la taille de police augmente, retirer les poids relatifs peu pratiques, ajouter des poignées sur les séparations et permettre de personnaliser certaines cellules. Suivi : [issue #78](https://github.com/GKillianCode/CanvaCodex/issues/78), branche `codex/table-cell-controls` basée sur `codex/editor-table-refinement` (PR #77). Publication confirmée : [PR #79](https://github.com/GKillianCode/CanvaCodex/pull/79) ouverte vers `codex/editor-table-refinement`, commit applicatif distant `e87dd49`, arbre identique au commit local `5543029`. Issue #78 ouverte jusqu’à revue/fusion. Aucune fusion automatique.
 
 Cause : fitting individuel par réductions multiplicatives et marge verticale dépendant de la taille demandée ; un nouveau retour à la ligne provoquait une réduction trop forte. Remplacement par recherche bornée avec marges stables ; une taille ajustée commune par rôle (corps/en-tête), cellules vides ignorées. La taille demandée peut augmenter jusqu’à la capacité sans faire rétrécir une colonne. L’option auto-fit désactivée et les tailles spécifiques de cellules respectent la taille demandée.
 
