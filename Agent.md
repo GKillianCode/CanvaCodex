@@ -579,7 +579,7 @@ Validation : 23 fichiers de tests passent, build réussi (avertissement de taill
 
 ### 9 octobre 2026 — interligne et espacement des lettres
 
-Demande : ajouter line-height et letter-spacing. Issue [#74](https://github.com/GKillianCode/CanvaCodex/issues/74), branche `codex/text-spacing` basée sur `codex/object-opacity` (PR #73). Publication en préparation.
+Demande : ajouter line-height et letter-spacing. Issue [#74](https://github.com/GKillianCode/CanvaCodex/issues/74), branche `codex/text-spacing` basée sur `codex/object-opacity` (PR #73). Publication confirmée : [PR #75](https://github.com/GKillianCode/CanvaCodex/pull/75) ouverte vers `codex/object-opacity`, commit distant `6901173`, arbre identique au commit local `6cb39e7`. Issue #74 ouverte jusqu’à revue/fusion. Aucune fusion automatique.
 
 Composant TextSpacing partagé dans Style → Typographie, Style commun des sélections texte/code, et Typographie et alignement des tableaux. Interligne 0,5–3 ×, null = automatique selon le rôle ; lettres −0,1 à 1 em, défaut 0. Valeurs relatives pour suivre le redimensionnement. Application immédiate à la saisie, aide sur les unités, retour automatique ; réinitialiser les effets conserve ces espacements. Normalisation textStyle et tableaux, conservation via JSON/copie/étapes. Canvas letterSpacing configuré avant mesures et dessin : retours à la ligne, alignement/justification, cadres automatiques, fit, listes et décorations cohérents. Code : largeur et hauteur ajustées, rythme vertical des lignes et espacement des tokens. Tableaux : corps/en-tête et alignement vertical. InlineEditor et aperçu du style cohérents. Rendu commun éditeur/présentation/export.
 
