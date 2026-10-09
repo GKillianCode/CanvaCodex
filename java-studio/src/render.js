@@ -125,13 +125,13 @@ export function renderSlide(ctx, s, theme, options = {}) {
   }
   const motionBounds=new Map();
   for (const key of visibleBlocks(s)) {
-    if (omit === key || s.hiddenKeys?.includes(key)&&!options.showHidden) continue;
+    if (options.objectMotion?.[key]?.visible===false || omit === key || s.hiddenKeys?.includes(key)&&!options.showHidden) continue;
     const f = s.fragments[key];
     if (f.order > order) continue;
     let p = s.positions[key], b = blockBounds(ctx, s, key);const style=getTextStyle(s,key);style.markerColor=textColor(style.list,theme,textColor(style,theme));
     const exiting=motion?.exit&&f.order===motion.order;
     const progress = motion && f.order > 0 && f.order === motion.order ? Math.min(1, Math.max(0, (now - motion.started) / 420)) : 1;
-    const animation=resolvedAnimation(exiting?f.exitAnimation||'none':f.animation,s,f.order),state=motionState(animation,progress,exiting);
+    const animation=resolvedAnimation(exiting?f.exitAnimation||'none':f.animation,s,f.order),state=options.objectMotion?.[key]||motionState(animation,progress,exiting);
     const group=s.groups?.find(g=>g.keys.includes(key)),groupId=group?.id||key;
     if(state.scale!==1&&!motionBounds.has(groupId))motionBounds.set(groupId,enclosingBounds((group?.keys||[key]).filter(k=>s.positions[k]).map(k=>{const measured=blockBounds(ctx,s,k);return {...measured,h:s.positions[k].h||measured.h};})));
     const groupBounds=motionBounds.get(groupId);
