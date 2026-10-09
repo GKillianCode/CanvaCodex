@@ -1,0 +1,5 @@
+<script setup>
+const props=defineProps({value:Object,mixed:Boolean});const emit=defineEmits(['change']);
+function update(key,event){const raw=event.target.value;if(raw===''){if(key==='lineHeight')emit('change',key,null);return;}const value=Number(raw);if(Number.isFinite(value))emit('change',key,Math.max(key==='lineHeight' ? .5 : -.1,Math.min(key==='lineHeight'?3:1,value)));}
+</script>
+<template><div class="text-spacing-controls"><div class="position-grid"><label>Interligne · ×<input type="number" aria-label="Interligne" min="0.5" max="3" step="0.05" :value="value.lineHeight??''" :placeholder="mixed?'Mixte / Auto':'Automatique'" @input="update('lineHeight',$event)"></label><label>Espacement · em<input type="number" aria-label="Espacement des lettres" min="-0.1" max="1" step="0.01" :value="value.letterSpacing??''" :placeholder="mixed?'Mixte':'0'" @input="update('letterSpacing',$event)"></label></div><p class="field-help">Interligne : multiple de la taille du texte. Espacement : 0,1 em = 10 % de cette taille.</p><button class="btn full" @click="emit('change','lineHeight',null);emit('change','letterSpacing',0)">Espacement automatique</button></div></template>

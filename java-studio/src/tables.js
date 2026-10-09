@@ -1,3 +1,4 @@
+import {normalizeTextSpacing,applyLetterSpacing,textLeading} from './textSpacing.js';
 import { validColorRole, boundColor } from './colors.js';
 import { fontCss, normalizeFont } from './fonts.js';
 const number=(n,min,max,fallback)=>Number.isFinite(Number(n))?Math.max(min,Math.min(max,Number(n))):fallback;
@@ -13,7 +14,7 @@ export function applyTableStyle(table,id){const style=tableStyles.find(s=>s.id==
 export function normalizeTable(raw={}) {
  const rows=integer(raw.rows,1,20,4),columns=integer(raw.columns,1,10,3);
  const headerPosition=headerPositions.some(([id])=>id===raw.headerPosition)?raw.headerPosition:raw.header===false?'none':'top';
- const result={type:'table',custom:raw.custom!==false,template:raw.template===true,name:String(raw.name||'Tableau').slice(0,100),rows,columns,
+ const result={...normalizeTextSpacing(raw),type:'table',custom:raw.custom!==false,template:raw.template===true,name:String(raw.name||'Tableau').slice(0,100),rows,columns,
  cells:Array.from({length:rows},(_,r)=>Array.from({length:columns},(_,c)=>String(raw.cells?.[r]?.[c]??(r===0?'Colonne '+(c+1):'')).slice(0,2000))),
  header:headerPosition!=='none',headerPosition,headerCount:integer(raw.headerCount,1,['left','right'].includes(headerPosition)?columns:headerPosition==='top-left'?Math.min(rows,columns):rows,1),headerBold:raw.headerBold!==false,bodyBold:raw.bodyBold===true,headerFilled:raw.headerFilled!==false,bodyFilled:raw.bodyFilled!==false,
  striped:raw.striped!==false,stripeAxis:raw.stripeAxis==='columns'?'columns':'rows',stripeOpacity:number(raw.stripeOpacity,0,100,6),padding:number(raw.padding,0,80,18),fontSize:number(raw.fontSize,10,120,30),headerFontSize:number(raw.headerFontSize,10,120,number(raw.fontSize,10,120,30)),font:normalizeFont(raw.font,'text'),
@@ -37,7 +38,7 @@ export function drawTable(ctx,e,p,theme,wrapLines) {
   const stripe=e.stripeAxis==='columns'?c:r;if(e.striped&&!head&&stripe%2===0){ctx.save();ctx.globalAlpha*=(e.stripeOpacity??6)/100;ctx.fillStyle=boundColor(e,'stripeFill',theme)||theme.ink;ctx.fillRect(x,y,cw,ch);ctx.restore();}
   const pad=Math.min(e.padding,cw/3,ch/3),width=Math.max(1,cw-pad*2),available=Math.max(1,ch-pad*2),size=head?(e.headerFontSize||e.fontSize):e.fontSize;
   ctx.save();ctx.beginPath();ctx.rect(x+pad,y+pad,width,available);ctx.clip();ctx.font=`${(head?e.headerBold!==false:e.bodyBold)?700:400} ${size}px ${fontCss(e.font)}`;ctx.fillStyle=boundColor(e,head?'headerText':'textColor',theme);
-  const lines=wrapLines(ctx,e.cells[r][c],width),lineHeight=size*1.3,free=Math.max(0,available-Math.min(available,lines.length*lineHeight)),offset=e.verticalAlign==='top'?0:e.verticalAlign==='bottom'?free:free/2,tx=e.align==='center'?x+cw/2:e.align==='right'?x+cw-pad:x+pad;
+  applyLetterSpacing(ctx,e,size);const lines=wrapLines(ctx,e.cells[r][c],width),lineHeight=size*textLeading(e,1.3),free=Math.max(0,available-Math.min(available,lines.length*lineHeight)),offset=e.verticalAlign==='top'?0:e.verticalAlign==='bottom'?free:free/2,tx=e.align==='center'?x+cw/2:e.align==='right'?x+cw-pad:x+pad;
   lines.forEach((line,n)=>ctx.fillText(line,tx,y+pad+offset+n*lineHeight));ctx.restore();
  }
  const line=(x,y,ex,ey,width,color)=>{if(width<=0)return;ctx.beginPath();ctx.moveTo(x,y);ctx.lineTo(ex,ey);ctx.lineWidth=width;ctx.strokeStyle=color;ctx.setLineDash(e.lineStyle==='dashed'?[width*4,width*3]:e.lineStyle==='dotted'?[width,width*2]:[]);ctx.stroke();};

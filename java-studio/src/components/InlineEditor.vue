@@ -25,7 +25,7 @@ function blur(event) { if (event.relatedTarget && root.value?.contains(event.rel
 nextTick(() => { input.value?.focus(); });
 </script>
 <template>
-  <div ref="root" class="inline-editor styled-inline" :class="{ 'inline-code': code }" :style="{ background:code?theme.panel:theme.bg,color:textColor(textStyle,theme),fontFamily: font, fontSize: `${size * scale}px`, fontWeight:textStyle.weight,fontStyle:textStyle.italic?'italic':'normal',fontSynthesis:'style', lineHeight: code ? 1.6 : label !== undefined ? 1.12 : 1.4 }" @focusout="blur" @pointerdown.stop @dblclick.stop>
+  <div ref="root" class="inline-editor styled-inline" :class="{ 'inline-code': code }" :style="{ background:code?theme.panel:theme.bg,color:textColor(textStyle,theme),fontFamily: font, fontSize: `${size * scale}px`, fontWeight:textStyle.weight,fontStyle:textStyle.italic?'italic':'normal',fontSynthesis:'style', letterSpacing:(textStyle.letterSpacing||0)+'em',lineHeight: textStyle.lineHeight??(code ? 1.6 : label !== undefined ? 1.12 : 1.4) }" @focusout="blur" @pointerdown.stop @dblclick.stop>
     <div class="inline-tools">
       <input v-if="!code && label !== undefined" :value="label" @input="emit('label', $event.target.value)" aria-label="Surtitre du bloc" placeholder="Surtitre facultatif">
       <button v-if="code" @click="emit('format', draft)" title="Formater le code Java"><Code2 :size="15"/>Formater</button>

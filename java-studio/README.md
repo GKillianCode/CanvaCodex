@@ -236,3 +236,7 @@ Espace/Entrée/Page suivante avance ; Retour arrière/Page précédente recule d
 ### Opacité des objets
 
 Sélectionner un objet puis Objet → Couleurs → Opacité : curseur de 0 à 100 %, commun aux textes, code, formes, images et tableaux, dans les diapos et les incrustations. Une sélection multiple applique la valeur à tous ses membres ; « Mixte » indique des valeurs différentes. Le réglage est conservé en sauvegarde, copie, composants et étapes pédagogiques, et utilisé en présentation et export.
+
+### Interligne et espacement des lettres
+
+Dans Objet → Style → Typographie, régler l’interligne (0,5–3 fois la taille du texte) et l’espacement des lettres (−0,1 à 1 em). Une valeur de 0,1 em ajoute 10 % de la taille du texte entre les lettres. « Espacement automatique » restaure l’interligne du style et un espacement nul. Réglages partagés entre diapos et incrustations, disponibles aussi sur les sélections de textes/code et dans la typographie des tableaux. Les retours à la ligne, cadres automatiques, décorations et exports utilisent le même espacement ; les valeurs relatives suivent le redimensionnement.

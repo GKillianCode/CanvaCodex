@@ -1,4 +1,5 @@
 <script setup>
+import TextSpacing from './TextSpacing.vue';
 import InspectorDrawer from './InspectorDrawer.vue';
 import { ref, watch,inject,reactive } from 'vue';
 import { resizeTable,headerPositions,tableStyles,applyTableStyle,isHeaderCell } from '../tables.js';
@@ -49,7 +50,7 @@ const colorGroups={header:[['headerFill','Fond de l’en-tête'],['headerText','
  <InspectorDrawer v-if="mode==='style'" id="table-5" title="Typographie et alignement">
   <label>Police<select v-model="table.font" aria-label="Police du tableau"><option v-for="f in fonts" :key="f.id" :value="f.id">{{f.name}}</option></select></label>
   <label>Taille du corps · px<input type="number" :min="10*scale" :max="120*scale" :value="Math.round(table.fontSize*scale)" aria-label="Taille du texte du tableau" @input="pixels('fontSize',$event.target.value,10,120)"></label>
-  <label class="checkbox-label"><input type="checkbox" v-model="table.bodyBold">Corps en gras</label>
+  <TextSpacing :value="table" @change="(key,v)=>table[key]=v"/><label class="checkbox-label"><input type="checkbox" v-model="table.bodyBold">Corps en gras</label>
   <div class="position-grid"><label>Horizontal<select v-model="table.align" aria-label="Alignement horizontal des cellules"><option value="left">Gauche</option><option value="center">Centre</option><option value="right">Droite</option></select></label><label>Vertical<select v-model="table.verticalAlign" aria-label="Alignement vertical des cellules"><option value="top">Haut</option><option value="middle">Centre</option><option value="bottom">Bas</option></select></label></div>
   <label>Marge des cellules · px<input type="number" min="0" :max="80*scale" :value="Math.round(table.padding*scale)" aria-label="Marge intérieure des cellules" @input="pixels('padding',$event.target.value,0,80)"></label>
  </InspectorDrawer>
