@@ -621,7 +621,7 @@ Validation : 27 fichiers de tests et build passent, avec avertissement Vite pré
 
 ### 9 octobre 2026 — incrustations animées et vidéo avec alpha
 
-Demande : gérer arrivée/sortie des blocs d’une incrustation et exporter quelques secondes de vidéo, transparence préférée au fond vert. Issue [#82](https://github.com/GKillianCode/CanvaCodex/issues/82), branche `codex/animated-overlays`, basée sur `codex/java-bits-overlays` (PR #81). Publication en préparation, aucune fusion demandée.
+Demande : gérer arrivée/sortie des blocs d’une incrustation et exporter quelques secondes de vidéo, transparence préférée au fond vert. Issue [#82](https://github.com/GKillianCode/CanvaCodex/issues/82), branche `codex/animated-overlays`, basée sur `codex/java-bits-overlays` (PR #81). Publication confirmée : [PR #83](https://github.com/GKillianCode/CanvaCodex/pull/83) ouverte vers `codex/java-bits-overlays`, commit applicatif distant `dfcda97`, arbre identique au commit local `3399e5f`. Issue #82 ouverte jusqu’à revue/fusion ; aucune fusion automatique.
 
 Choix technique : MOV QuickTime contenant des échantillons PNG RGBA sans perte, assemblé localement sans dépendance/serveur ; transparence conservée sans supposer que MediaRecorder préserve l’alpha. 30 images/s, 2–20 secondes, dimensions du projet, limite de 256 Mo. Alternative WebM VP9/VP8 avec fond de chrominance vert/bleu/personnalisé, capture temps réel ; onglet masqué annule avec message, watchdog de finalisation, nettoyage recorder/timers/tracks et annulation. MOV plus volumineux ; import PNG-in-MOV dépend du logiciel de montage, conversion ProRes 4444 documentée. Aucun encoder ProRes intégré, audio ou MP4 ajouté.
 
