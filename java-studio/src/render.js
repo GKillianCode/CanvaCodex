@@ -1,3 +1,4 @@
+import {drawBits} from './bits.js';
 import {applyLetterSpacing,textLeading} from './textSpacing.js';
 import { objectOpacity } from './objectOpacity.js';
 import { resolvedAnimation,motionState } from './motion.js';
@@ -75,7 +76,7 @@ export function blockBounds(ctx, s, key) {
   const scale=s.positions[key].contentScale||1;if(scale!==1){const b=blockBounds(ctx,unscaledObject(s,key),key),p=s.positions[key];return {...p,x:p.x+b.x*scale,y:p.y+b.y*scale,w:b.w*scale,h:b.h*scale,size:b.size*scale,inkOffset:(b.inkOffset||0)*scale};}
   const p = s.positions[key];
   if(blockType(s,key)==='shape')return shapeBounds(s.elements[key],p);
-  if(['image','table'].includes(blockType(s,key)))return {...p,h:p.h||360};
+  if(['image','table','bits'].includes(blockType(s,key)))return {...p,h:p.h||360};
   if(blockType(s,key)==='code'){const value=blockText(s,key);const h=p.h||Math.max(260,value.split('\n').length*p.size*textLeading(p.textStyle,1.6)+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,blockText(s,key).split('\n').length)*textLeading(p.textStyle,1.6)),codeWidthSize(ctx,blockText(s,key),p)));return {...p,h,size};}
   if(p.autoSize)return {...p,...autoTextBounds(ctx,s,key)};
   const style=getTextStyle(s,key),leading=textRole(s,key).leading, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=styleFont(size,fontCss(p.font),style);return {...p,size,h:layoutText(ctx,blockText(s,key),p.w,size,leading,style,wrapLines).height};
@@ -143,6 +144,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
       const label=key==='title'?s.label:s.elements[key]?.label;if (label) text(ctx, label, p.x, Math.max(contentScale!==1?(10-original.positions[key].y)/contentScale:10, p.y - 58), p.w, 23, theme.accent, style.weight,fontCss(p.font),1.35,style);
       const font=p.autoSize?p.size:fitText(ctx,blockText(s,key),p,700,textRole(s,key).leading);const color=style.color||style.colorRole?textColor(style,theme):['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,font,color,style.weight,fontCss(p.font),textRole(s,key).leading,style);
     } else if (blockType(s,key)==='shape') drawShape(ctx,{...s.elements[key],opacity:100},p,theme);
+    else if (blockType(s,key)==='bits') drawBits(ctx,s.elements[key],p,theme);
     else if (blockType(s,key)==='table') drawTable(ctx,{...s.elements[key],opacity:100},p,theme,wrapLines);
     else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
     else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key);

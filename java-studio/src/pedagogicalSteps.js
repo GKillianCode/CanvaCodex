@@ -9,3 +9,5 @@ export function addPedagogicalStep(slide,source=0){slide.pedagogicalSteps||=[];i
 export function movePedagogicalStep(slide,n,delta){const target=n-1+delta;if(n<1||target<0||target>=slide.pedagogicalSteps.length)return n;const [item]=slide.pedagogicalSteps.splice(n-1,1);slide.pedagogicalSteps.splice(target,0,item);return target+1;}
 
 export function allScenes(slides){return slides.flatMap(s=>[s,...(s.pedagogicalSteps||[]).map(item=>item.scene)]);}
+
+export function removePedagogicalStep(slide,n,active=0){const steps=slide.pedagogicalSteps||[];if(!Number.isInteger(n)||n<1||n>steps.length)return active;const activeId=steps[active-1]?.id,removed=steps.splice(n-1,1)[0],index=steps.findIndex(s=>s.id===activeId);return removed.id===activeId?Math.max(0,n-1):index<0?0:index+1;}

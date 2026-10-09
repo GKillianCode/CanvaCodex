@@ -1,3 +1,4 @@
+import {normalizeBits} from './bits.js';
 import { objectOpacity } from './objectOpacity.js';
 import { normalizeSteps } from './pedagogicalSteps.js';
 import { normalizeNotes } from './presentationNotes.js';
@@ -155,7 +156,8 @@ export function normalizeSlide(raw, n = 0) {
   if (raw.elements && typeof raw.elements === 'object') {
     s.elements = {};
     for (const [key,e] of Object.entries(raw.elements).slice(0,MAX_ELEMENTS)) {
-      if (!/^(text|image|code|shape|table)[a-zA-Z0-9_-]+$/.test(key) || !e || !['text','image','code','shape','table'].includes(e.type)) continue;
+      if (!/^(text|image|code|shape|table|bits)[a-zA-Z0-9_-]+$/.test(key) || !e || !['text','image','code','shape','table','bits'].includes(e.type)) continue;
+      if(e.type==='bits'){s.elements[key]=normalizeBits(e);continue;}
       if(e.type==='table'){s.elements[key]=normalizeTable(e);continue;}
       if(e.type==='shape'){s.elements[key]=normalizeShape(e);continue;}
       s.elements[key] = e.type !== 'image' ? {type:e.type,weight:e.weight===700?700:400,label:String(e.label||'').slice(0,100),caption:String(e.caption||'').slice(0,200),template:e.template===true,custom:e.custom===true||e.custom!==false&&!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',template:e.template===true,custom:e.custom===true||e.custom!==false&&!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),src:validImageSource(e.src)?e.src:'',fit:e.fit==='cover'?'cover':'contain',background:e.background===true,roundedCorners:e.roundedCorners===true,cornerRadius:finite(e.cornerRadius,10,0,50)};
@@ -192,6 +194,7 @@ export function normalizeSlide(raw, n = 0) {
   s.groups=normalizeGroups(raw.groups,visibleBlocks(s));
   s.hiddenKeys=Array.isArray(raw.hiddenKeys)?raw.hiddenKeys.filter(k=>visibleBlocks(s).includes(k)):[];
   s.emphasisKeys=Array.isArray(raw.emphasisKeys)?raw.emphasisKeys.filter(k=>visibleBlocks(s).includes(k)):[];
+  if(['byte','short','int','long','char','float','double','boolean'].includes(raw.primitiveType))s.primitiveType=raw.primitiveType;
   s.pedagogicalSteps=normalizeSteps(raw.pedagogicalSteps,s,normalizeSlide);
   return s;
 }
