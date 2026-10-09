@@ -1,3 +1,4 @@
+import { applyLetterSpacing,textLeading } from './textSpacing.js';
 export const listTypes=[['none','Aucune'],['bullet','Puces rondes'],['circle','Cercles'],['square','Carrés'],['dash','Tirets'],['decimal','Numéros'],['alpha','Lettres'],['roman','Chiffres romains'],['check','Coches'],['custom','Symbole personnalisé']];
 const number=(v,f,min,max)=>Number.isFinite(Number(v))?Math.max(min,Math.min(max,Number(v))):f;
 export function normalizeList(raw={}) {
@@ -8,6 +9,7 @@ function alpha(n){let result='';while(n>0){n--;result=String.fromCharCode(97+n%2
 export function listMarker(list,n){const index=list.start+n;return ({bullet:'•',circle:'○',square:'▪',dash:'–',check:'✓',custom:list.symbol})[list.type]??(list.type==='decimal'?index+'.':list.type==='alpha'?alpha(index)+'.':list.type==='roman'?roman(index).toLowerCase()+'.':'');}
 // Shared by drawing, fitting and auto-sized frames: wrapped lines retain a hanging indent.
 export function layoutText(ctx,value,width,size,leading,style,wrap){
+ applyLetterSpacing(ctx,style,size);leading=textLeading(style,leading);
  const list=normalizeList(style?.list),rows=[];let y=0;
  const align=style?.align||'left';
  const add=(line,offset,available,last,marker='',markerX=0)=>{const measured=ctx.measureText(line).width,free=Math.max(0,available-measured);const words=line.trim().split(/\s+/);const justify=align==='justify'&&!last&&words.length>1;

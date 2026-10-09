@@ -1,3 +1,4 @@
+import {applyLetterSpacing,textLeading} from './textSpacing.js';
 import { objectOpacity } from './objectOpacity.js';
 import { resolvedAnimation,motionState } from './motion.js';
 import { enclosingBounds } from './selection.js';
@@ -68,14 +69,14 @@ export function text(ctx, value, x, y, width, size, color, weight = 400, font = 
  ctx.fillStyle=color;ctx.font=styleFont(size,font,style||{weight,italic:false});ctx.textBaseline='top';const layout=layoutText(ctx,value,width,size,leading,style,wrapLines);
  ctx.textAlign='left';layout.rows.forEach(({text:line,x:offset,y:dy,marker,markerX,words,wordGap})=>{const row=y+dy;if(marker){ctx.fillStyle=style?.markerColor||color;ctx.fillText(marker,x+markerX,row);}ctx.fillStyle=color;if(style&&!words)paintTextMark(ctx,line,x+offset,row,size,color,style,true);if(words){let at=x+offset;for(const word of words){if(style)paintTextMark(ctx,word,at,row,size,color,style,true);ctx.fillText(word,at,row);if(style)paintTextMark(ctx,word,at,row,size,color,style);at+=ctx.measureText(word).width+wordGap;}}else {ctx.fillText(line,x+offset,row);if(style)paintTextMark(ctx,line,x+offset,row,size,color,style);}});return layout.height;
 }
-function codeWidthSize(ctx,value,p){ctx.font=styleFont(p.size,fontCss(p.font,'code'),normalizeTextStyle(p.textStyle,p.font,'code'));return (p.w-110)*p.size/Math.max(1,...value.split('\n').map(line=>ctx.measureText(line.replaceAll('\t','    ')).width));}
+function codeWidthSize(ctx,value,p){applyLetterSpacing(ctx,p.textStyle,p.size);ctx.font=styleFont(p.size,fontCss(p.font,'code'),normalizeTextStyle(p.textStyle,p.font,'code'));return (p.w-110)*p.size/Math.max(1,...value.split('\n').map(line=>ctx.measureText(line.replaceAll('\t','    ')).width));}
 function unscaledObject(s,key){const p=s.positions[key],scale=p.contentScale||1;return {...s,positions:{...s.positions,[key]:{...p,x:0,y:0,w:p.w/scale,...(p.h?{h:p.h/scale}:{}),size:p.size/scale,wrapWidth:p.wrapWidth/scale,contentScale:1}}};}
 export function blockBounds(ctx, s, key) {
   const scale=s.positions[key].contentScale||1;if(scale!==1){const b=blockBounds(ctx,unscaledObject(s,key),key),p=s.positions[key];return {...p,x:p.x+b.x*scale,y:p.y+b.y*scale,w:b.w*scale,h:b.h*scale,size:b.size*scale,inkOffset:(b.inkOffset||0)*scale};}
   const p = s.positions[key];
   if(blockType(s,key)==='shape')return shapeBounds(s.elements[key],p);
   if(['image','table'].includes(blockType(s,key)))return {...p,h:p.h||360};
-  if(blockType(s,key)==='code'){const value=blockText(s,key);const h=p.h||Math.max(260,value.split('\n').length*p.size*1.6+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,blockText(s,key).split('\n').length)*1.6),codeWidthSize(ctx,blockText(s,key),p)));return {...p,h,size};}
+  if(blockType(s,key)==='code'){const value=blockText(s,key);const h=p.h||Math.max(260,value.split('\n').length*p.size*textLeading(p.textStyle,1.6)+115);const size=Math.max(12,Math.min(p.size,(h-128)/(Math.max(1,blockText(s,key).split('\n').length)*textLeading(p.textStyle,1.6)),codeWidthSize(ctx,blockText(s,key),p)));return {...p,h,size};}
   if(p.autoSize)return {...p,...autoTextBounds(ctx,s,key)};
   const style=getTextStyle(s,key),leading=textRole(s,key).leading, size=fitText(ctx,blockText(s,key),p,key==='title'||s.elements[key]?.weight===700?700:400,leading);ctx.font=styleFont(size,fontCss(p.font),style);return {...p,size,h:layoutText(ctx,blockText(s,key),p.w,size,leading,style,wrapLines).height};
 }
@@ -93,16 +94,16 @@ export function background(ctx, theme, gradient=true) {
 }
 function drawCode(ctx, s, theme, key) {
   const p = s.positions[key], b = blockBounds(ctx, s, key), family=fontCss(p.font,'code'),style=getTextStyle(s,key);
-  const lines=javaLines(blockText(s,key));const size=Math.max(12,Math.min(p.size,(b.h-128)/(Math.max(1,lines.length)*1.6),codeWidthSize(ctx,blockText(s,key),p)));ctx.save();ctx.shadowColor=theme.bg+'80';ctx.shadowBlur=36;ctx.shadowOffsetY=16;
+  const lines=javaLines(blockText(s,key));const size=Math.max(12,Math.min(p.size,(b.h-128)/(Math.max(1,lines.length)*textLeading(style,1.6)),codeWidthSize(ctx,blockText(s,key),p)));ctx.save();ctx.shadowColor=theme.bg+'80';ctx.shadowBlur=36;ctx.shadowOffsetY=16;
   round(ctx, p.x, p.y, p.w, b.h, 24, theme.panel);ctx.restore();
-  let caption=key==='code'?(s.codeTitle||''):(s.elements[key]?.caption||'');ctx.font=styleFont(21,family,style);if(ctx.measureText(caption).width>p.w-60){while(caption.length&&ctx.measureText(caption+'…').width>p.w-60)caption=caption.slice(0,-1);caption+='…';}text(ctx,caption.replaceAll('\n',' '),p.x+30,p.y+24,p.w-60,21,`${theme.ink}80`,style.weight,family,1.35,style);
+  applyLetterSpacing(ctx,style,21);let caption=key==='code'?(s.codeTitle||''):(s.elements[key]?.caption||'');ctx.font=styleFont(21,family,style);if(ctx.measureText(caption).width>p.w-60){while(caption.length&&ctx.measureText(caption+'…').width>p.w-60)caption=caption.slice(0,-1);caption+='…';}text(ctx,caption.replaceAll('\n',' '),p.x+30,p.y+24,p.w-60,21,`${theme.ink}80`,style.weight,family,1.35,style);
   ctx.strokeStyle = `${theme.ink}15`; ctx.beginPath(); ctx.moveTo(p.x + 24, p.y + 72); ctx.lineTo(p.x + p.w - 24, p.y + 72); ctx.stroke();
   ctx.save(); ctx.beginPath(); ctx.rect(p.x + 12, p.y + 90, p.w - 24, b.h - 100); ctx.clip();
   javaLines(blockText(s,key)).forEach((segments, n) => {
-    const y = p.y + 103 + n * size * 1.6;
+    const y = p.y + 103 + n * size * textLeading(style,1.6);
     text(ctx, String(n + 1).padStart(2, ' '), p.x + 28, y + 4, 50, size * .75, `${theme.ink}45`, 400, family);
     const line=segments.map(token=>token.text).join('');
-    ctx.font=styleFont(size,family,style);ctx.textBaseline='top';paintTextMark(ctx,line,p.x+80,y,size,theme.ink,style,true);
+    applyLetterSpacing(ctx,style,size);ctx.font=styleFont(size,family,style);ctx.textBaseline='top';paintTextMark(ctx,line,p.x+80,y,size,theme.ink,style,true);
     let x = p.x + 80;
     ctx.font = styleFont(size,family,style); ctx.textBaseline = 'top';
     for (const token of segments) { ctx.fillStyle = textColor(style,theme,codeColor(token.type, theme)); ctx.fillText(token.text, x, y); x += ctx.measureText(token.text).width; }

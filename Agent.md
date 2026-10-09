@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 8 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 9 octobre 2026 (Europe/Paris).
 
 Ce fichier est l’unique mémoire et point d’entrée des consignes du projet. Le lire avant de travailler, le tenir à jour et respecter le workflow GitHub ci-dessous, en distinguant travail local et publication confirmée.
 
@@ -576,3 +576,11 @@ Demande : curseur d’opacité sur chaque élément, textes compris. Issue [#72]
 Objet → Couleurs → Opacité, curseur 0–100 %, sélection multiple y compris types hétérogènes et groupes, indicateur Mixte. Champ positions[key].opacity commun ; reprise rétrocompatible des anciennes valeurs de formes et tableaux, priorité au champ commun, aucune double multiplication. Anciennes commandes spécifiques supprimées. Rendu partagé multiplie opacité et alpha d’animation, contour pédagogique inclus ; textes, code, images, tableaux et formes dans diapos/incrustations. Conservation par normalisation, sauvegarde/JSON, copies, duplication, bibliothèque de composants et états pédagogiques indépendants.
 
 Validation : 23 fichiers de tests passent, build réussi (avertissement de taille du bundle préexistant), diff --check propre. Tests bornes/valeur zéro, valeurs mixtes, migration et priorité, copie/composants/duplication/étapes, alpha commun et animations via renderer. Navigateur de test 127.0.0.1:5189 : titre à 35 %, atténuation visible, valeur conservée après rechargement ; sélection texte/code affiche Mixte. Capture hors dépôt object-opacity.png. Aucun nouvel export PNG/WebM inspecté dans ce lot ; rendu commun testé.
+
+### 9 octobre 2026 — interligne et espacement des lettres
+
+Demande : ajouter line-height et letter-spacing. Issue [#74](https://github.com/GKillianCode/CanvaCodex/issues/74), branche `codex/text-spacing` basée sur `codex/object-opacity` (PR #73). Publication en préparation.
+
+Composant TextSpacing partagé dans Style → Typographie, Style commun des sélections texte/code, et Typographie et alignement des tableaux. Interligne 0,5–3 ×, null = automatique selon le rôle ; lettres −0,1 à 1 em, défaut 0. Valeurs relatives pour suivre le redimensionnement. Application immédiate à la saisie, aide sur les unités, retour automatique ; réinitialiser les effets conserve ces espacements. Normalisation textStyle et tableaux, conservation via JSON/copie/étapes. Canvas letterSpacing configuré avant mesures et dessin : retours à la ligne, alignement/justification, cadres automatiques, fit, listes et décorations cohérents. Code : largeur et hauteur ajustées, rythme vertical des lignes et espacement des tokens. Tableaux : corps/en-tête et alignement vertical. InlineEditor et aperçu du style cohérents. Rendu commun éditeur/présentation/export.
+
+Validation : 24 fichiers de tests et build réussis, diff --check propre. Nouveaux tests : bornes/defaults/imports invalides, retours à la ligne et alignement/décorations, dimensions automatiques/scaling/code, JSON/copie/étapes indépendantes, tableau multiligne. Navigateur isolé 127.0.0.1:5190 : titre interligne 1,8 et espacement 0,08 em avec effet visible, retour automatique, modification simultanée titre/corps à 1,6 et 0,05 em conservée après rechargement via lecture du projet ; mêmes commandes dans incrustations, texte à 0,12 em. Aucun message console error au contrôle. Capture hors dépôt text-spacing.png. Aucun nouvel export PNG/WebM inspecté ni navigateur ancien testé ; Canvas letterSpacing natif requis pour le suivi des lettres. Avertissement Vite préexistant : bundle >500 Ko.
