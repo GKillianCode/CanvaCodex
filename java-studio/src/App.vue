@@ -4,6 +4,7 @@ import {boundedNumber} from './numericControls.js';
 import { useStudio } from './useStudio.js';
 import { colorFields } from './themes.js';
 import { presets, visibleBlocks, blockLabel } from './model.js';
+import OverlayVideoDialog from './components/OverlayVideoDialog.vue';
 import OverlayGallery from './components/OverlayGallery.vue';
 import AppHeader from './components/AppHeader.vue';
 import TableDialog from './components/TableDialog.vue';
@@ -76,6 +77,7 @@ const { fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,save
 <OverlayGallery v-if="studio.overlayGallery.value" :theme="theme" :current="banner.type" @close="studio.overlayGallery.value=false" @choose="studio.chooseOverlay"/>
 <ShapeGallery v-if="shapeGallery" :theme="theme" @close="shapeGallery=false" @choose="addShape"/>
 <LayoutGallery v-if="gallery" :theme="theme" @close="gallery=false" @choose="chooseLayout" @memory="addMemory"/>
+<OverlayVideoDialog v-if="studio.overlayVideoOpen.value" :studio="studio"/>
 <div v-if="videoPreview&&lastExport?.video" class="export-backdrop" @click.self="videoPreview=false"><section class="export-dialog" role="dialog" aria-modal="true" aria-label="Votre enregistrement"><div class="export-heading"><div><strong>Ton enregistrement est prêt.</strong><p>{{lastExport.size}} Ko · WebM <span v-if="videoMeta">· {{videoMeta}}</span></p></div><button class="icon-btn" @click="videoPreview=false" title="Fermer l’aperçu"><X :size="20"/></button></div><video :src="lastExport.url" controls @loadedmetadata="videoMeta=$event.target.videoWidth+' × '+$event.target.videoHeight"/><a class="btn primary" :href="lastExport.url" :download="lastExport.name"><Download :size="16"/>Télécharger la vidéo</a></section></div>
 <a v-if="lastExport&&!videoPreview&&!presenting" class="last-export" :href="lastExport.url" :download="lastExport.name"><Download :size="15"/>{{lastExport.name}} · {{lastExport.size}} Ko</a>
   <div v-if="formatOpen" class="modal-backdrop" @click.self="formatOpen=false"><section class="format-dialog" role="dialog" aria-modal="true" aria-label="Format du projet"><h2>Format du projet</h2><p>Diapos, bandeaux et vidéo utilisent ce format 16:9.</p><select v-model.number="formatWidth" aria-label="Résolution"><option :value="1280">HD · 1280 × 720</option><option :value="1920">Full HD · 1920 × 1080</option><option :value="2560">QHD · 2560 × 1440</option><option :value="3840">4K · 3840 × 2160</option></select><label>Largeur personnalisée<input type="number" v-model.number="formatWidth" min="640" max="3840" step="16"></label><p>Hauteur : {{formatWidth*9/16}} px</p><button class="btn" @click="formatOpen=false">Annuler</button><button class="btn primary" @click="applyFormat">Appliquer</button></section></div><div v-if="contextMenu" class="element-context" role="menu" :style="{left:contextMenu.x+'px',top:contextMenu.y+'px'}" @pointerdown.stop>
