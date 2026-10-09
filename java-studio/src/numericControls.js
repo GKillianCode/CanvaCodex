@@ -1,0 +1,1 @@
+export function boundedNumber(raw,min,max){if(raw===null||raw===undefined||String(raw).trim()==='')return null;const value=Number(raw);return Number.isFinite(value)?Math.max(min,Math.min(max,value)):null;}

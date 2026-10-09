@@ -1,5 +1,6 @@
 <script setup>
 import { ref, computed, onMounted, watch, nextTick } from 'vue';
+import {boundedNumber} from '../numericControls.js';
 import { transitionDirection } from '../model.js';
 import { routePath } from '../route.js';
 import { Plus, Minus, Maximize2, MousePointer2 } from 'lucide-vue-next';
@@ -23,6 +24,7 @@ function zoom(next,point) {
  next=Math.min(2,Math.max(.12,next));const ratio=next/scale.value;
  pan.value={x:cx-(cx-pan.value.x)*ratio,y:cy-(cy-pan.value.y)*ratio};scale.value=next;
 }
+function inputZoom(event,commit=false){const raw=event.target.value,next=boundedNumber(raw,12,200);if(next===null||!commit&&(Number(raw)<12||Number(raw)>200))return;zoom(next/100);if(commit)event.target.value=String(next);}
 function wheel(e){e.preventDefault();if(e.ctrlKey||e.metaKey){const r=surface.value.getBoundingClientRect();zoom(scale.value*Math.exp(-e.deltaY*.005),{x:e.clientX-r.left,y:e.clientY-r.top});}else pan.value={x:pan.value.x-e.deltaX,y:pan.value.y-e.deltaY};}
 function traceNode(s){if(!traceIds.value.includes(s.id))traceIds.value.push(s.id);}
 function finishTrace(){emit('trace',traceIds.value);tracing.value=false;traceIds.value=[];}
@@ -47,6 +49,6 @@ onMounted(fit);
    </div>
    <div v-if="!slides.length" class="deck-empty">Ajoute ta première diapo.</div>
   </div>
-  <div class="deck-bottom"><span><MousePointer2 :size="14"/>Glisser une diapo · fond pour déplacer la vue · double-clic pour éditer</span><div><button class="icon-btn" @click="zoom(scale/1.2)" title="Dézoomer le canvas"><Minus :size="17"/></button><span>{{Math.round(scale*100)}} %</span><button class="icon-btn" @click="zoom(scale*1.2)" title="Zoomer le canvas"><Plus :size="17"/></button><button class="icon-btn" @click="fit" title="Voir toutes les diapos"><Maximize2 :size="17"/></button></div></div>
+  <div class="deck-bottom"><span><MousePointer2 :size="14"/>Glisser une diapo · fond pour déplacer la vue · double-clic pour éditer</span><div><button class="icon-btn" @click="zoom(scale/1.2)" title="Dézoomer le canvas"><Minus :size="17"/></button><label class="number-unit"><input type="number" :value="Math.round(scale*100)" min="12" max="200" step="1" aria-label="Zoom du canvas" @input="inputZoom" @change="inputZoom($event,true)" @keydown.enter="inputZoom($event,true)"><span>%</span></label><button class="icon-btn" @click="zoom(scale*1.2)" title="Zoomer le canvas"><Plus :size="17"/></button><button class="icon-btn" @click="fit" title="Voir toutes les diapos"><Maximize2 :size="17"/></button></div></div>
  </section>
 </template>
