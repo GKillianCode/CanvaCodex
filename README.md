@@ -26,6 +26,14 @@ npm run build
 
 Les projets sont sauvegardés dans le navigateur sur l’appareil utilisé et peuvent être exportés/importés en JSON. Les incrustations sont exportées en PNG transparent et les présentations enregistrées en WebM, sans audio.
 
+## Sauvegardes indépendantes
+
+Diaporamas et Incrustations conservent chacun leur document dans le navigateur. À la réouverture, Frame retrouve le dernier espace utilisé et l’incrustation en cours, avec ses objets et animations. Noms, thèmes, couleurs, résolution et historiques sont indépendants.
+
+Le menu Fichier agit sur l’espace actif : `frame-diaporama.json` pour les diaporamas, `frame-incrustation.json` pour les incrustations. Chaque espace peut être lié à son propre fichier local. Importer un document ouvre son espace sans remplacer l’autre création.
+
+Les anciennes sauvegardes combinées sont migrées automatiquement ; l’ancien stockage est conservé jusqu’à la réussite des nouvelles écritures. Un ancien fichier combiné lié demande un premier « Enregistrer sous » pour préserver l’original. Son import reste compatible et restaure les deux espaces. Il s’agit d’un document courant par espace, sans catalogue de projets ni synchronisation entre navigateurs.
+
 La présentation dispose d’états pédagogiques dans une même diapo et d’une console privée synchronisée avec une fenêtre Public, pour filmer ou projeter sans afficher les notes.
 
 

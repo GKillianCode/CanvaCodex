@@ -4,10 +4,10 @@ export async function fileMemory(record,write=false,slot='active'){
  return new Promise((resolve,reject)=>{const request=indexedDB.open('frame-files',1);request.onupgradeneeded=()=>request.result.createObjectStore('session');request.onerror=()=>reject(request.error);request.onsuccess=()=>{const db=request.result,tx=db.transaction('session',write?'readwrite':'readonly'),store=tx.objectStore('session'),op=write?store.put(record,slot):store.get(slot);let value;op.onsuccess=()=>value=op.result;tx.oncomplete=()=>{db.close();resolve(value);};tx.onerror=()=>{db.close();reject(tx.error);};};});
 }
 export class ProjectFile {
- constructor(api=window,memory=fileMemory){this.api=api;this.memory=memory;this.handle=null;this.baseline=null;this.projectId=null;this.busy=false;}
+ constructor(api=window,memory=fileMemory,{slot='active',suggestedName='frame-projet.json',legacySlot=null}={}){this.slot=slot;this.suggestedName=suggestedName;this.legacySlot=legacySlot;this.api=api;this.memory=memory;this.handle=null;this.baseline=null;this.projectId=null;this.busy=false;}
  get supported(){return !!this.api.showSaveFilePicker;}
- async restore(projectId){try{const r=await this.memory();if(r?.projectId===projectId){this.handle=r.handle;this.baseline=r.baseline;this.projectId=projectId;}}catch{} }
- async remember(){try{await this.memory({handle:this.handle,baseline:this.baseline,projectId:this.projectId},true);}catch{/* File linking still works until this tab closes. */}}
+ async restore(projectId){try{let r=await this.memory(undefined,false,this.slot),migrated=false;if(!r&&this.legacySlot){r=await this.memory(undefined,false,this.legacySlot);migrated=true;}if(r?.projectId===projectId){this.handle=r.handle;this.baseline=r.baseline;this.projectId=projectId;if(migrated)await this.remember();}}catch{} }
+ async remember(){try{await this.memory({handle:this.handle,baseline:this.baseline,projectId:this.projectId},true,this.slot);}catch{/* File linking still works until this tab closes. */}}
  async detach(){this.handle=null;this.baseline=null;this.projectId=null;await this.remember();}
  async open(){const [handle]=await this.api.showOpenFilePicker(options);const file=await handle.getFile();return {handle,text:await file.text()};}
  async link(handle,projectId){this.handle=handle;this.projectId=projectId;this.baseline=await (await handle.getFile()).text();await this.remember();}
@@ -15,7 +15,9 @@ export class ProjectFile {
  if(this.busy) return 'busy';this.busy=true;
  try{
  let handle=this.handle,baseline=this.baseline;
- if(saveAs||!handle){handle=await this.api.showSaveFilePicker({...options,suggestedName:this.handle?.name||'frame-projet.json'});baseline=null;}
+ if(saveAs||!handle){handle=await this.api.showSaveFilePicker({...options,suggestedName:saveAs?this.suggestedName:this.handle?.name||this.suggestedName});baseline=null;}
+ let incoming,existing;try{incoming=JSON.parse(text);}catch{}try{existing=JSON.parse(await (await handle.getFile()).text());}catch{}
+ if(incoming?.format==='frame-workspace'&&existing?.format==='frame-workspace'&&incoming.kind!==existing.kind)throw Error('wrong-kind');
  const permission={mode:'readwrite'};
  if(handle.queryPermission&&await handle.queryPermission(permission)!=='granted'&&await handle.requestPermission(permission)!=='granted')throw Error('permission');
  if(baseline!==null&&await (await handle.getFile()).text()!==baseline)throw Error('conflict');
