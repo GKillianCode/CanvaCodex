@@ -6,9 +6,9 @@ import {mkdtempSync,writeFileSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {normalizeClip,clipTrack,clipMotion} from '../src/overlayAnimation.js';
-import {normalizeOverlay,makeOverlay} from '../src/overlays.js';
+import {normalizeOverlay,makeOverlay,overlayFormats} from '../src/overlays.js';
 import {appearanceRows} from '../src/appearances.js';
-import {renderOverlayFrame,exportTransparentMovie,exportChromaMovie} from '../src/overlayVideo.js';
+import {captureOverlayVideo,renderOverlayFrame,exportTransparentMovie,exportChromaMovie} from '../src/overlayVideo.js';
 import {pngMovie} from '../src/pngMovie.js';
 const theme={bg:'#000000',panel:'#111111',ink:'#ffffff',muted:'#aaaaaa',accent:'#00ff00',secondary:'#ffffff'};
 function context(){const painted=[],stack=[];const ctx=new Proxy({globalAlpha:1,fillStyle:'',save(){stack.push([this.globalAlpha,this.fillStyle]);},restore(){[this.globalAlpha,this.fillStyle]=stack.pop();},measureText(t){return {width:t.length*10};},fillText(t){painted.push([t,this.globalAlpha]);},fill(){painted.push(['fill',this.globalAlpha]);},fillRect(){painted.push(['background',this.fillStyle]);},createLinearGradient(){return {addColorStop(){}};}},{get(o,k){return k in o?o[k]:()=>{};}});return {ctx,painted};}
@@ -24,3 +24,20 @@ test('chroma cancellation stops recorder and tracks and removes listeners withou
  globalThis.document={addEventListener:(name,fn)=>listeners.set(name,fn),removeEventListener:name=>listeners.delete(name)};
  globalThis.MediaRecorder=class {static isTypeSupported(){return true;}constructor(){recording=this;this.state='inactive';}start(){this.state='recording';}stop(){this.state='inactive';this.onstop?.();}};
  try{const s=makeOverlay('java-bits'),clip=normalizeClip({duration:2},s.blockKeys),c=context(),controller=new AbortController(),canvas={width:8,height:8,getContext:()=>c.ctx,captureStream:()=>({getTracks:()=>[{stop:()=>stops++}]})};const promise=exportChromaMovie({canvas,slide:s,theme,clip,signal:controller.signal});controller.abort();await assert.rejects(promise,{name:'AbortError'});assert.equal(stops,1);assert.equal(recording.state,'inactive');assert.equal(listeners.size,0);}finally{globalThis.MediaRecorder=oldRecorder;globalThis.document=oldDocument;}});
+
+test('animated exports capture every edited primitive and custom content without rebuilding presets',async()=>{
+ const {javaPrimitives,setPrimitive}=await import('../src/javaPrimitives.js');
+ for(const primitive of javaPrimitives){
+  const slide=makeOverlay('java-primitive');setPrimitive(slide,primitive.id);
+  slide.elements.textMinimum.text='Minimum personnalisé';delete slide.elements.textMaximum;slide.blockKeys=slide.blockKeys.filter(k=>k!=='textMaximum');
+  // Editor scenes do not need obsolete template text fields to render.
+  delete slide.body;
+  const source={type:'java-primitive',slide,clip:{duration:2,animation:'none',exitAnimation:'none'}},snapshot=captureOverlayVideo(source);
+  assert.deepEqual(snapshot.slide,slide);assert.equal(snapshot.slide.elements.textType.text,primitive.id);
+  const {ctx,painted}=context();renderOverlayFrame(ctx,snapshot.slide,theme,snapshot.clip,1,1920,1080);
+  assert.ok(painted.some(([text])=>text===primitive.id));assert.ok(painted.some(([text])=>text.includes('personnalisé')));
+  slide.elements.textType.text='Modification pendant export';assert.equal(snapshot.slide.elements.textType.text,primitive.id);
+ }
+ for(const format of overlayFormats){const slide=makeOverlay(format.id),key=slide.blockKeys.find(k=>slide.elements[k].type==='text');slide.elements[key].text='Contenu édité '+format.id;const snapshot=captureOverlayVideo({type:format.id,slide});assert.deepEqual(snapshot.slide,slide);}
+ assert.throws(()=>captureOverlayVideo({type:'java-primitive'}),/indisponible/);
+});

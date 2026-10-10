@@ -1,6 +1,6 @@
 import {loadWorkspaces,saveWorkspaces,captureWorkspace,parseWorkspaceFile,workspaceNames} from './workspaceStorage.js';
 import {normalizeClip} from './overlayAnimation.js';
-import {exportTransparentMovie,exportChromaMovie} from './overlayVideo.js';
+import {captureOverlayVideo,exportTransparentMovie,exportChromaMovie} from './overlayVideo.js';
 import {normalizeBits} from './bits.js';
 import { selectionOpacity,setObjectOpacity } from './objectOpacity.js';
 import { sceneAt,presentationSequence,addPedagogicalStep,movePedagogicalStep,removePedagogicalStep,allScenes } from './pedagogicalSteps.js';
@@ -462,7 +462,7 @@ export function useStudio() {
   function cancelOverlayVideo(){overlayVideoController?.abort();}
   async function exportOverlayVideo(){
     if(overlayVideoBusy.value)return;
-    const overlay=normalizeOverlay(structuredClone(toRaw(banner.value))),colors=structuredClone(toRaw(theme.value)),size={...resolution.value};
+    const overlay=captureOverlayVideo(banner.value),colors=structuredClone(toRaw(theme.value)),size={...resolution.value};
     overlayVideoBusy.value=true;overlayVideoProgress.value=0;const controller=new AbortController();overlayVideoController=controller;
     try{await prepareFonts([overlay.slide]);await prepareImages([overlay.slide]);if(controller.signal.aborted)return;
       const c=document.createElement('canvas');c.width=size.width;c.height=size.height;const clip=normalizeClip(overlay.clip,visibleBlocks(overlay.slide));
