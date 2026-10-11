@@ -1,3 +1,4 @@
+import {verticalTextOffset} from './textVerticalAlignment.js';
 import {imageFilter} from './imageEffects.js';
 import {drawBits} from './bits.js';
 import {applyLetterSpacing,textLeading} from './textSpacing.js';
@@ -67,8 +68,9 @@ export function paintTextMark(ctx,line,x,y,size,color,style,background=false){
  if(!background){ctx.fillStyle=color;if(style.underline)ctx.fillRect(x,bottom+size*.06,width,thickness);if(style.strike)ctx.fillRect(x,top+(bottom-top)*.55,width,thickness);}
  ctx.restore();
 }
-export function text(ctx, value, x, y, width, size, color, weight = 400, font = 'Arial', leading=1.35,style=null) {
+export function text(ctx, value, x, y, width, size, color, weight = 400, font = 'Arial', leading=1.35,style=null,frameHeight=null) {
  ctx.fillStyle=color;ctx.font=styleFont(size,font,style||{weight,italic:false});ctx.textBaseline='top';const layout=layoutText(ctx,value,width,size,leading,style,wrapLines);
+ y+=verticalTextOffset(ctx,layout.rows,size,frameHeight,style?.verticalAlign);
  ctx.textAlign='left';layout.rows.forEach(({text:line,x:offset,y:dy,marker,markerX,words,wordGap})=>{const row=y+dy;if(marker){ctx.fillStyle=style?.markerColor||color;ctx.fillText(marker,x+markerX,row);}ctx.fillStyle=color;if(style&&!words)paintTextMark(ctx,line,x+offset,row,size,color,style,true);if(words){let at=x+offset;for(const word of words){if(style)paintTextMark(ctx,word,at,row,size,color,style,true);ctx.fillText(word,at,row);if(style)paintTextMark(ctx,word,at,row,size,color,style);at+=ctx.measureText(word).width+wordGap;}}else {ctx.fillText(line,x+offset,row);if(style)paintTextMark(ctx,line,x+offset,row,size,color,style);}});return layout.height;
 }
 function codeWidthSize(ctx,value,p){applyLetterSpacing(ctx,p.textStyle,p.size);ctx.font=styleFont(p.size,fontCss(p.font,'code'),normalizeTextStyle(p.textStyle,p.font,'code'));return (p.w-110)*p.size/Math.max(1,...value.split('\n').map(line=>ctx.measureText(line.replaceAll('\t','    ')).width));}
@@ -101,8 +103,9 @@ function drawCode(ctx, s, theme, key) {
   applyLetterSpacing(ctx,style,21);let caption=key==='code'?(s.codeTitle||''):(s.elements[key]?.caption||'');ctx.font=styleFont(21,family,style);if(ctx.measureText(caption).width>p.w-60){while(caption.length&&ctx.measureText(caption+'…').width>p.w-60)caption=caption.slice(0,-1);caption+='…';}text(ctx,caption.replaceAll('\n',' '),p.x+30,p.y+24,p.w-60,21,`${theme.ink}80`,style.weight,family,1.35,style);
   ctx.strokeStyle = `${theme.ink}15`; ctx.beginPath(); ctx.moveTo(p.x + 24, p.y + 72); ctx.lineTo(p.x + p.w - 24, p.y + 72); ctx.stroke();
   ctx.save(); ctx.beginPath(); ctx.rect(p.x + 12, p.y + 90, p.w - 24, b.h - 100); ctx.clip();
+  ctx.font=styleFont(size,family,style);ctx.textBaseline='top';const codeOffset=verticalTextOffset(ctx,lines.map((segments,n)=>({text:segments.map(t=>t.text).join(''),y:n*size*textLeading(style,1.6)})),size,Math.max(0,b.h-119),style.verticalAlign);
   javaLines(blockText(s,key)).forEach((segments, n) => {
-    const y = p.y + 103 + n * size * textLeading(style,1.6);
+    const y = p.y + 103 + codeOffset + n * size * textLeading(style,1.6);
     text(ctx, String(n + 1).padStart(2, ' '), p.x + 28, y + 4, 50, size * .75, `${theme.ink}45`, 400, family);
     const line=segments.map(token=>token.text).join('');
     applyLetterSpacing(ctx,style,size);ctx.font=styleFont(size,family,style);ctx.textBaseline='top';paintTextMark(ctx,line,p.x+80,y,size,theme.ink,style,true);
@@ -143,13 +146,13 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if(contentScale!==1){ctx.translate(p.x,p.y);ctx.scale(contentScale,contentScale);s=unscaledObject(s,key);p=s.positions[key];b=blockBounds(ctx,s,key);}
     if (key === 'title'||s.elements[key]?.weight===700) {
       const label=key==='title'?s.label:s.elements[key]?.label;if (label) text(ctx, label, p.x, Math.max(contentScale!==1?(10-original.positions[key].y)/contentScale:10, p.y - 58), p.w, 23, theme.accent, style.weight,fontCss(p.font),1.35,style);
-      const font=p.autoSize?p.size:fitText(ctx,blockText(s,key),p,700,textRole(s,key).leading);const color=style.color||style.colorRole?textColor(style,theme):['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,font,color,style.weight,fontCss(p.font),textRole(s,key).leading,style);
+      const font=p.autoSize?p.size:fitText(ctx,blockText(s,key),p,700,textRole(s,key).leading);const color=style.color||style.colorRole?textColor(style,theme):['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,font,color,style.weight,fontCss(p.font),textRole(s,key).leading,style,p.autoSize?null:p.h);
     } else if (blockType(s,key)==='shape') drawShape(ctx,{...s.elements[key],opacity:100},p,theme);
     else if (blockType(s,key)==='bits') drawBits(ctx,s.elements[key],p,theme);
     else if (blockType(s,key)==='table') drawTable(ctx,{...s.elements[key],opacity:100},p,theme,wrapLines);
     else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
     else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key);
-    else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,textRole(s,key).leading),textColor(style,theme,`${theme.ink}df`),style.weight,fontCss(p.font),textRole(s,key).leading,style);
+    else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,textRole(s,key).leading),textColor(style,theme,`${theme.ink}df`),style.weight,fontCss(p.font),textRole(s,key).leading,style,p.autoSize?null:p.h);
     s=original;ctx.restore();
     if(s.emphasisKeys?.includes(key)){ctx.save();ctx.globalAlpha*=state.alpha*objectOpacity(s,key)/100;const p=s.positions[key],b=blockBounds(ctx,s,key);if(p.rotation){ctx.translate(b.x+b.w/2,b.y+(p.h||b.h)/2);ctx.rotate(p.rotation*Math.PI/180);ctx.translate(-b.x-b.w/2,-b.y-(p.h||b.h)/2);}ctx.strokeStyle=theme.accent;ctx.lineWidth=4;ctx.shadowColor=theme.accent;ctx.shadowBlur=12;ctx.strokeRect(b.x-10,b.y-10,b.w+20,(p.h||b.h)+20);ctx.restore();}
   }
