@@ -6,7 +6,7 @@ const clamp=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.max(mi
 const color=(value,fallback)=>/^#[\da-f]{6}$/i.test(value)?value:fallback;
 export function normalizeShape(raw={}) {
  const spec=shapes.find(s=>s.id===raw.shape)||shapes.find(s=>s.id==='rect');
- return {type:'shape',custom:raw.custom!==false,template:raw.template===true,fillRole:validColorRole(raw.fillRole),strokeRole:validColorRole(raw.strokeRole),name:String(raw.name||spec.name).slice(0,100),shape:spec.id,fill:color(raw.fill,'#35ff91'),stroke:color(raw.stroke,'#35ff91'),filled:raw.filled!==false,outlined:raw.outlined===true||spec.open,strokeWidth:clamp(raw.strokeWidth,1,60,6),opacity:clamp(raw.opacity,0,100,100),radius:clamp(raw.radius,0,50,spec.id==='rounded'?12:0),roundedCorners:raw.roundedCorners===true,individualCorners:raw.individualCorners===true,cornerRadii:Object.fromEntries(['tl','tr','br','bl'].map(k=>[k,clamp(raw.cornerRadii?.[k],0,50,clamp(raw.radius,0,50,spec.id==='rounded'?12:0))])),points:Math.round(clamp(raw.points,3,12,5)),innerRatio:clamp(raw.innerRatio,.15,.8,.45),direction:['horizontal','vertical','down','up'].includes(raw.direction)?raw.direction:'horizontal',dashed:raw.dashed===true,roundedEnds:raw.roundedEnds!==false};
+ return {...(Array.isArray(raw.topGap)&&raw.topGap.length===2?{topGap:raw.topGap.map(v=>clamp(v,0,100,0)).sort((a,b)=>a-b)}:{}),type:'shape',custom:raw.custom!==false,template:raw.template===true,fillRole:validColorRole(raw.fillRole),strokeRole:validColorRole(raw.strokeRole),name:String(raw.name||spec.name).slice(0,100),shape:spec.id,fill:color(raw.fill,'#35ff91'),stroke:color(raw.stroke,'#35ff91'),filled:raw.filled!==false,outlined:raw.outlined===true||spec.open,strokeWidth:clamp(raw.strokeWidth,1,60,6),opacity:clamp(raw.opacity,0,100,100),radius:clamp(raw.radius,0,50,spec.id==='rounded'?12:0),roundedCorners:raw.roundedCorners===true,individualCorners:raw.individualCorners===true,cornerRadii:Object.fromEntries(['tl','tr','br','bl'].map(k=>[k,clamp(raw.cornerRadii?.[k],0,50,clamp(raw.radius,0,50,spec.id==='rounded'?12:0))])),points:Math.round(clamp(raw.points,3,12,5)),innerRatio:clamp(raw.innerRatio,.15,.8,.45),direction:['horizontal','vertical','down','up'].includes(raw.direction)?raw.direction:'horizontal',dashed:raw.dashed===true,roundedEnds:raw.roundedEnds!==false};
 }
 const polygon=points=>'M '+points.map(p=>p.map(v=>Number(v.toFixed(3))).join(' ')).join(' L ')+' Z';
 function regular(n,inner=1){return polygon(Array.from({length:n},(_,i)=>{const a=-Math.PI/2+i*2*Math.PI/n,r=i%2?inner:1;return [50+50*r*Math.cos(a),50+50*r*Math.sin(a)];}));}
@@ -15,7 +15,7 @@ export function shapePath(shape) {
  switch(e.shape){
   case 'line':return ({horizontal:'M 0 50 L 100 50',vertical:'M 50 0 L 50 100',down:'M 0 0 L 100 100',up:'M 0 100 L 100 0'})[e.direction];
   case 'curve':return 'M 0 100 Q 50 0 100 100';
-  case 'rect':case 'square':return 'M 0 0 H 100 V 100 H 0 Z';
+  case 'rect':case 'square':return e.topGap?`M ${e.topGap[1]} 0 H 100 V 100 H 0 V 0 H ${e.topGap[0]}`:'M 0 0 H 100 V 100 H 0 Z';
   case 'rounded':{const r=e.radius;return `M ${r} 0 H ${100-r} Q 100 0 100 ${r} V ${100-r} Q 100 100 ${100-r} 100 H ${r} Q 0 100 0 ${100-r} V ${r} Q 0 0 ${r} 0 Z`;}
   case 'circle':case 'ellipse':return 'M 100 50 A 50 50 0 1 1 0 50 A 50 50 0 1 1 100 50 Z';
   case 'triangle':return polygon([[50,0],[100,100],[0,100]]);
