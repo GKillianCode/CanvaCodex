@@ -188,6 +188,7 @@ export function normalizeSlide(raw, n = 0) {
     s.positions[k].textRole=['title','subtitle','body'].includes(p?.textRole)?p.textRole:textRole(s,k).id;
     s.positions[k].font=normalizeFont(p?.font||(blockType(s,k)==='text'?textRole(s,k).font:undefined),blockType(s,k));
     if(p?.textStyle&&typeof p.textStyle==='object'&&!['shape','image'].includes(blockType(s,k)))s.positions[k].textStyle=normalizeTextStyle(p.textStyle,s.positions[k].font,blockType(s,k),k==='title'||s.elements[k]?.weight===700);
+    s.positions[k].locked=p?.locked===true;
     s.positions[k].rotation=Number.isFinite(Number(p?.rotation))?((Number(p.rotation)%360)+360)%360:0;
     s.positions[k].opacity=objectOpacity(raw,k);
     s.positions[k].contentScale=finite(p?.contentScale,1,.01,100);
