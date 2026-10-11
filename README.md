@@ -30,7 +30,9 @@ Les projets sont sauvegardés dans le navigateur sur l’appareil utilisé et pe
 
 L’accueil ouvre trois applications : **Diaporamas**, **Incrustations** et **Miniatures**. Le bouton Accueil remplace la navigation latérale entre applications. Un seul atelier est actif ; chacun garde ses préférences, thèmes, création et fichier lié.
 
-Miniatures propose douze presets entièrement éditables, répartis entre Java, IA, Conception, DevOps, Mise en production et Versioning. Deux compositions par catégorie : Impact (titre et badge) et Duo (texte et emplacement pour une image). Format par défaut 1280 × 720, export PNG, images/textes/formes, calques, groupes et propriétés partagés avec les autres éditeurs. Le format du projet reste réglable.
+Miniatures propose six **identités de playlists**, sur fond blanc avec écritures noires : Java rouge, IA bleu, Conception violet, DevOps vert pétrole, Production orange et Versioning ardoise. Un contour et un petit nom de playlist servent de repères constants ; le centre reste libre pour ton contenu. Le bouton Playlists applique l’habillage sans remplacer tes titres, images ou autres objets, et Ctrl Z permet d’annuler. Les quatre calques d’habillage restent personnalisables. Les créations existantes ne sont pas remplacées automatiquement.
+
+Format par défaut 1280 × 720, export PNG et JSON propres à Miniatures, outils de texte/image/formes/calques/groupes communs.
 
 ## Sauvegardes indépendantes
 
