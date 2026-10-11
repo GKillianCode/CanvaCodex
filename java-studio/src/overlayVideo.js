@@ -34,3 +34,12 @@ export function exportChromaMovie({canvas,slide,theme,clip,signal,onProgress=()=
   }catch(error){fail(error);}
  });
 }
+
+// Export the edited scene verbatim. Import normalization may rebuild a template
+// on malformed legacy data; that fallback must never replace visible content.
+export function captureOverlayVideo(banner){
+ const snapshot=JSON.parse(JSON.stringify(banner));
+ if(!snapshot?.slide?.elements||!Array.isArray(snapshot.slide.blockKeys))throw Error('Incrustation indisponible pour l’export.');
+ snapshot.clip=normalizeClip(snapshot.clip,snapshot.slide.blockKeys);
+ return snapshot;
+}

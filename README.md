@@ -64,3 +64,5 @@ Conversion optionnelle sur une machine disposant de [FFmpeg](https://www.ffmpeg.
 ```bash
 ffmpeg -i frame-incrustation-alpha.mov -c:v prores_ks -profile:v 4 -pix_fmt yuva444p10le frame-incrustation-prores.mov
 ```
+
+Les exports animés utilisent une copie exacte de l’incrustation éditée : valeurs Java, textes personnalisés et suppressions sont conservés, sans réappliquer le modèle initial.
