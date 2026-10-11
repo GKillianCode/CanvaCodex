@@ -164,6 +164,12 @@ export function normalizeSlide(raw, n = 0) {
       s.elements[key] = e.type !== 'image' ? {type:e.type,weight:e.weight===700?700:400,label:String(e.label||'').slice(0,100),caption:String(e.caption||'').slice(0,200),template:e.template===true,custom:e.custom===true||e.custom!==false&&!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',template:e.template===true,custom:e.custom===true||e.custom!==false&&!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),src:validImageSource(e.src)?e.src:'',fit:e.fit==='cover'?'cover':'contain',effects:normalizeImageEffects(e.effects),background:e.background===true,roundedCorners:e.roundedCorners===true,cornerRadius:finite(e.cornerRadius,10,0,50)};
     }
   }
+  // Upgrade the former white playlist patch without replacing user content.
+  const patch=s.elements.shapePlaylistLabel,border=s.elements.shapePlaylistBorder;
+  if(patch?.name==='Fond du repère de playlist'&&patch.fill==='#FFFFFF'&&border?.shape==='rect'&&!border.topGap){
+    const r=raw.positions?.shapePlaylistLabel,b=raw.positions?.shapePlaylistBorder;
+    if(r&&b&&b.w>0){patch.filled=false;patch.outlined=false;patch.name='Zone transparente du repère de playlist';border.topGap=[(r.x-b.x)/b.w*100,(r.x+r.w-b.x)/b.w*100].map(v=>Math.max(0,Math.min(100,v)));}
+  }
   if (Array.isArray(raw.blockKeys)) s.blockKeys = [...new Set(raw.blockKeys.filter(k=>blocks.includes(k)||s.elements[k]))];
   for (const k of [...new Set([...blocks,...visibleBlocks(s)])]) {
     s.positions[k] ||= pos(150,500,1200);
