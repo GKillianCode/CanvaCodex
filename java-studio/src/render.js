@@ -1,3 +1,4 @@
+import {imageFilter} from './imageEffects.js';
 import {drawBits} from './bits.js';
 import {applyLetterSpacing,textLeading} from './textSpacing.js';
 import { objectOpacity } from './objectOpacity.js';
@@ -44,7 +45,7 @@ export function drawImageBlock(ctx,s,key,theme) {
   const img=asset.image, r=imageDrawingRect(p,img,e.fit);
   const clip=e.fit==='cover'?{x:p.x,y:p.y,w:p.w,h}:r;
   const radius=e.roundedCorners?Math.min(clip.w,clip.h)*Math.max(0,Math.min(50,e.cornerRadius??10))/100:0;
-  ctx.save();ctx.beginPath();ctx.roundRect(clip.x,clip.y,clip.w,clip.h,radius);ctx.clip();ctx.drawImage(img,r.x,r.y,r.w,r.h);ctx.restore();
+  ctx.save();ctx.beginPath();ctx.roundRect(clip.x,clip.y,clip.w,clip.h,radius);ctx.clip();ctx.filter=imageFilter(e.effects);ctx.drawImage(img,r.x,r.y,r.w,r.h);ctx.restore();
 }
 export function round(ctx, x, y, w, h, r, color) {
   ctx.fillStyle = color; ctx.beginPath(); ctx.roundRect(x, y, w, h, r); ctx.fill();

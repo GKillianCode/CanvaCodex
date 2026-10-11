@@ -1,0 +1,3 @@
+export const imageEffects=[{id:'grayscale',label:'Niveaux de gris',default:0,max:100},{id:'blur',label:'Flou',default:0,max:100},{id:'brightness',label:'Luminosité',default:100,max:200},{id:'contrast',label:'Contraste',default:100,max:200},{id:'saturate',label:'Saturation',default:100,max:200}];
+export function normalizeImageEffects(value={}){return Object.fromEntries(imageEffects.map(e=>[e.id,Number.isFinite(Number(value?.[e.id]))?Math.max(0,Math.min(e.max,Number(value[e.id]))):e.default]));}
+export function imageFilter(value){const e=normalizeImageEffects(value);return `grayscale(${e.grayscale}%) blur(${e.blur*0.4}px) brightness(${e.brightness}%) contrast(${e.contrast}%) saturate(${e.saturate}%)`;}
