@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {applicationStorage,applicationFile,readApplicationFile} from '../src/applicationDocuments.js';
 import {loadWorkspaces,saveWorkspaces,workspaceKeys} from '../src/workspaceStorage.js';
-import {thumbnailPresets,makeThumbnail} from '../src/thumbnails.js';
+import {thumbnailPresets,makeThumbnail,applyThumbnailIdentity} from '../src/thumbnails.js';
 import {normalizeSlides} from '../src/model.js';
 function storage(){const data=new Map();return {getItem:k=>data.get(k)||null,setItem:(k,v)=>data.set(k,v),removeItem:k=>data.delete(k)};}
 test('applications preserve legacy creations and never overwrite an inactive document',()=>{
@@ -21,7 +21,9 @@ test('each file imports into its application exclusively, including scoped legac
  for(const app of ['slides','banners','thumbnails']){const file=applicationFile(data,app);assert.equal(file.kind,app);assert.equal('banner' in file,app==='banners');assert.equal('slides' in file,app!=='banners');assert.equal(Object.keys(readApplicationFile(file,app)).length,1);for(const other of ['slides','banners','thumbnails'].filter(a=>a!==app))assert.throws(()=>readApplicationFile(file,other),/autre application/);}
  assert.deepEqual(Object.keys(readApplicationFile(data,'slides')),['slides']);assert.deepEqual(Object.keys(readApplicationFile(data,'banners')),['banners']);assert.throws(()=>readApplicationFile(data,'thumbnails'));
 });
-test('twelve thumbnail presets remain editable and survive normalization',()=>{
- assert.equal(thumbnailPresets.length,12);assert.equal(new Set(thumbnailPresets.map(p=>p.category)).size,6);
- for(const preset of thumbnailPresets){const scene=makeThumbnail(preset.id);scene.elements.textTitle.text='Titre personnalisé';delete scene.elements.textSubtitle;scene.blockKeys=scene.blockKeys.filter(k=>k!=='textSubtitle');const [restored]=normalizeSlides([JSON.parse(JSON.stringify(scene))]);assert.equal(restored.elements.textTitle.text,'Titre personnalisé');assert.ok(!restored.blockKeys.includes('textSubtitle'));assert.ok(restored.blockKeys.every(k=>restored.elements[k]&&restored.positions[k]));if(preset.style==='split')assert.equal(restored.elements.imageSubject.type,'image');}
+test('playlist identities preserve custom content and survive saving without accumulating frames',()=>{
+ assert.equal(thumbnailPresets.length,6);
+ const scene=makeThumbnail();scene.elements.textTitle={type:'text',custom:true,text:'Mon titre'};scene.positions.textTitle={x:200,y:200,w:700,h:200,size:80};scene.fragments.textTitle={order:0};scene.blockKeys.push('textTitle');
+ for(const preset of thumbnailPresets){applyThumbnailIdentity(scene,preset.id);const [restored]=normalizeSlides([JSON.parse(JSON.stringify(scene))]);assert.equal(restored.elements.textTitle.text,'Mon titre');assert.equal(restored.elements.shapePlaylistBorder.stroke,preset.color);assert.equal(restored.elements.shapePlaylistBackground.fill,'#FFFFFF');assert.equal(restored.elements.textPlaylistLabel.text,preset.label);assert.equal(scene.blockKeys.length,5);}
+ assert.equal(thumbnailPresets[0].color,'#D32F2F');assert.equal(thumbnailPresets[1].color,'#2563EB');
 });

@@ -1,16 +1,22 @@
 import {makeOverlay} from './overlays.js';
 import {normalizeShape} from './shapes.js';
-export const thumbnailCategories=[['java','Java','JAVA SOUS LE CAPOT','BYTECODE\nDÉCRYPTÉ','JVM'],['ai','IA','INTELLIGENCE ARTIFICIELLE','COMPRENDRE\nL’IA','IA'],['design','Conception','ARCHITECTURE & CONCEPTION','DU CODE\nAU SYSTÈME','DESIGN'],['devops','DevOps','AUTOMATISER & LIVRER','LE PIPELINE\nEXPLIQUÉ','CI / CD'],['production','Mise en production','DE LA MACHINE AU SERVEUR','PRÊT POUR\nLA PROD ?','DEPLOY'],['git','Versioning','HISTORIQUE & COLLABORATION','GIT SANS\nCONFUSION','GIT']];
-export const thumbnailPresets=thumbnailCategories.flatMap(([category,label,eyebrow,title,badge])=>['focus','split'].map(style=>({id:category+'-'+style,category,label,name:label+' · '+(style==='focus'?'Impact':'Duo'),eyebrow,title,badge,style})));
-export function makeThumbnail(id='java-focus'){
- const p=thumbnailPresets.find(p=>p.id===id)||thumbnailPresets[0],s=makeOverlay('chapter');s.elements={};s.positions={};s.fragments={};s.blockKeys=[];s.thumbnailPreset=p.id;s.overlayFormat=undefined;s.overlayName=undefined;
- const add=(key,e,x,y,w,h,size=32)=>{s.elements[key]=e;s.positions[key]={x,y,w,h,size,font:'inter',textRole:'title'};s.fragments[key]={order:0,animation:'none'};s.blockKeys.push(key);};
- const shape=(key,x,y,w,h,role,radius=8)=>add(key,normalizeShape({shape:'rounded',fillRole:role,radius,name:key}),x,y,w,h);
- const text=(key,value,x,y,w,h,size,role='ink')=>{add(key,{type:'text',custom:true,name:key,text:value,weight:700},x,y,w,h,size);s.positions[key].textStyle={weight:700,colorRole:role};};
- shape('shapePanel',p.style==='split'?1030:1230,0,p.style==='split'?890:690,1080,'panel',0);shape('shapeAccent',100,230,110,10,'accent',0);
- text('textCategory',p.eyebrow,100,135,1700,60,32,'accent');text('textTitle',p.title,100,300,p.style==='split'?900:1150,470,112);
- text('textSubtitle','Une explication claire. Un sujet en profondeur.',110,825,1550,75,32,'muted');
- shape('shapeBadge',p.style==='split'?1110:1300,350,p.style==='split'?700:510,330,'accent',14);text('textBadge',p.badge,p.style==='split'?1140:1330,440,p.style==='split'?640:450,140,p.badge.length>5?65:100,'bg');
- if(p.style==='split'){add('imageSubject',{type:'image',custom:true,name:'Visuel du sujet',src:'',fit:'cover'},1070,90,760,890);s.blockKeys.splice(s.blockKeys.indexOf('imageSubject'),1);s.blockKeys.splice(1,0,'imageSubject');}
- return s;
+export const thumbnailCategories=[['java','Java','#D32F2F'],['ai','IA','#2563EB'],['design','Conception','#7C3AED'],['devops','DevOps','#0F766E'],['production','Mise en production','#C2410C'],['git','Versioning','#475569']];
+export const thumbnailPresets=thumbnailCategories.map(([category,label,color])=>({id:category,category,label,color,name:label}));
+export const thumbnailPalette={bg:'#FFFFFF',panel:'#FFFFFF',ink:'#111111',muted:'#525252',accent:'#D32F2F',secondary:'#2563EB'};
+const identityKeys=['shapePlaylistBackground','shapePlaylistBorder','shapePlaylistLabel','textPlaylistLabel'];
+export function applyThumbnailIdentity(scene,id){
+ const p=thumbnailPresets.find(p=>p.id===id)||thumbnailPresets[0],remove=new Set(identityKeys);
+ const kept=scene.blockKeys.filter(k=>!remove.has(k));if(kept.length+identityKeys.length>100)throw Error('Libère quatre calques pour appliquer cette identité.');
+ for(const key of remove){delete scene.elements[key];delete scene.positions[key];delete scene.fragments[key];}
+ const add=(key,e,x,y,w,h,size=32)=>{scene.elements[key]=e;scene.positions[key]={x,y,w,h,size,font:'inter',textRole:'subtitle'};scene.fragments[key]={order:0,animation:'none'};};
+ add(identityKeys[0],normalizeShape({shape:'rect',name:'Fond blanc',fill:'#FFFFFF'}),0,0,1920,1080);
+ add(identityKeys[1],normalizeShape({shape:'rect',name:'Contour · '+p.label,filled:false,outlined:true,stroke:p.color,strokeWidth:20}),16,16,1888,1048);
+ const width=Math.max(210,p.label.length*28+96);
+ add(identityKeys[2],normalizeShape({shape:'rect',name:'Fond du repère de playlist',fill:'#FFFFFF'}),74,0,width,100);
+ add(identityKeys[3],{type:'text',custom:true,name:'Nom de la playlist',text:p.label,weight:700},106,30,width-64,60,38);scene.positions[identityKeys[3]].textStyle={weight:700,color:'#111111'};
+ scene.blockKeys=[identityKeys[0],...kept,...identityKeys.slice(1)];scene.groups=(scene.groups||[]).map(g=>({...g,keys:g.keys.filter(k=>!remove.has(k))})).filter(g=>g.keys.length>1);
+ scene.hiddenKeys=(scene.hiddenKeys||[]).filter(k=>!remove.has(k));scene.thumbnailPreset=p.id;return p;
+}
+export function makeThumbnail(id='java'){
+ const scene=makeOverlay('chapter');scene.elements={};scene.positions={};scene.fragments={};scene.blockKeys=[];scene.overlayFormat=undefined;scene.overlayName=undefined;applyThumbnailIdentity(scene,id);return scene;
 }
