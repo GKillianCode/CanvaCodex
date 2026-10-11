@@ -1,6 +1,6 @@
 # CanvaCodex — Frame
 
-Atelier personnel pour préparer des diaporamas techniques Java et des incrustations vidéo avec une charte graphique commune.
+Studio personnel pour préparer des diaporamas, des incrustations vidéo et des miniatures avec une charte graphique commune.
 
 L’application se trouve dans [`java-studio/`](java-studio/README.md). Elle utilise Vue 3 et Vite, sans backend dans cette première version.
 
@@ -26,13 +26,19 @@ npm run build
 
 Les projets sont sauvegardés dans le navigateur sur l’appareil utilisé et peuvent être exportés/importés en JSON. Les incrustations sont exportées en PNG transparent et les présentations enregistrées en WebM, sans audio.
 
+## Accueil et ateliers indépendants
+
+L’accueil ouvre trois applications : **Diaporamas**, **Incrustations** et **Miniatures**. Le bouton Accueil remplace la navigation latérale entre applications. Un seul atelier est actif ; chacun garde ses préférences, thèmes, création et fichier lié.
+
+Miniatures propose douze presets entièrement éditables, répartis entre Java, IA, Conception, DevOps, Mise en production et Versioning. Deux compositions par catégorie : Impact (titre et badge) et Duo (texte et emplacement pour une image). Format par défaut 1280 × 720, export PNG, images/textes/formes, calques, groupes et propriétés partagés avec les autres éditeurs. Le format du projet reste réglable.
+
 ## Sauvegardes indépendantes
 
-Diaporamas et Incrustations conservent chacun leur document dans le navigateur. À la réouverture, Frame retrouve le dernier espace utilisé et l’incrustation en cours, avec ses objets et animations. Noms, thèmes, couleurs, résolution et historiques sont indépendants.
+Diaporamas et Incrustations conservent chacun leur document dans le navigateur. À la réouverture, Frame affiche l’accueil ; ouvrir un atelier retrouve sa création en cours, avec ses objets et réglages. Noms, thèmes, couleurs, résolution et historiques sont indépendants.
 
-Le menu Fichier agit sur l’espace actif : `frame-diaporama.json` pour les diaporamas, `frame-incrustation.json` pour les incrustations. Chaque espace peut être lié à son propre fichier local. Importer un document ouvre son espace sans remplacer l’autre création.
+Le menu Fichier agit sur l’espace actif : `frame-diaporama.json` pour les diaporamas, `frame-incrustation.json` pour les incrustations, `frame-miniature.json` pour les miniatures. Chaque espace peut être lié à son propre fichier local. Importer un document agit uniquement dans l’application ouverte. Les documents des autres applications sont refusés avec un message.
 
-Les anciennes sauvegardes combinées sont migrées automatiquement ; l’ancien stockage est conservé jusqu’à la réussite des nouvelles écritures. Un ancien fichier combiné lié demande un premier « Enregistrer sous » pour préserver l’original. Son import reste compatible et restaure les deux espaces. Il s’agit d’un document courant par espace, sans catalogue de projets ni synchronisation entre navigateurs.
+Les anciennes sauvegardes combinées sont migrées automatiquement ; l’ancien stockage est conservé jusqu’à la réussite des nouvelles écritures. Un ancien fichier combiné lié demande un premier « Enregistrer sous » pour préserver l’original. Son import reste compatible et restaure uniquement la partie de l’application ouverte ; importer le même ancien fichier dans l’autre atelier pour en retrouver l’autre partie. Il s’agit d’un document courant par espace, sans catalogue de projets ni synchronisation entre navigateurs.
 
 La présentation dispose d’états pédagogiques dans une même diapo et d’une console privée synchronisée avec une fenêtre Public, pour filmer ou projeter sans afficher les notes.
 
