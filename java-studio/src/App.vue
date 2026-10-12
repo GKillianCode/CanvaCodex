@@ -1,13 +1,15 @@
 <script setup>
-import {ref,onMounted,onBeforeUnmount} from 'vue';
+import {ref,shallowRef,onMounted,onBeforeUnmount} from 'vue';
 import {applicationFromHash,applicationHash} from './applicationRoutes.js';
-import {PanelsTopLeft,Clapperboard,Image,ArrowUpRight} from 'lucide-vue-next';
+import {videoRepository,videoRoute,videoHash,creationSession} from './videoProjects.js';
 import StudioApp from './StudioApp.vue';
-import {applications} from './applicationDocuments.js';
-const active=ref(applicationFromHash(window.location.hash)),icons={slides:PanelsTopLeft,banners:Clapperboard,thumbnails:Image};
-function syncRoute(){active.value=applicationFromHash(window.location.hash);}
-function openApplication(id){window.location.hash=applicationHash(id);syncRoute();}
-onMounted(()=>window.addEventListener('hashchange',syncRoute));
-onBeforeUnmount(()=>window.removeEventListener('hashchange',syncRoute));
+import VideoLibrary from './components/VideoLibrary.vue';
+const repository=videoRepository(),active=ref(null),video=ref(null),context=shallowRef(null),studio=ref(null),loading=ref(true),error=ref('');let generation=0;
+function navigate(hash){window.location.hash=hash;}
+async function syncRoute(){const request=++generation;error.value='';try{if(studio.value)await studio.value.flush();const route=videoRoute(window.location.hash),app=applicationFromHash(window.location.hash);if(route?.creationId){loading.value=true;const [project,row]=await Promise.all([repository.get(route.videoId),repository.creation(route.creationId)]);if(request!==generation)return;if(!project||!row||row.videoId!==project.id||row.app!==route.app||!project.creations.some(c=>c.id===row.id&&c.app===row.app))throw Error('Cette création est introuvable dans la vidéo.');const status=ref('saved');const storage=creationSession(row,snapshot=>repository.saveCreation(snapshot),(state,e)=>{status.value=state;if(state==='saved'&&error.value.startsWith('Sauvegarde de la création impossible.'))error.value='';if(e)error.value='Sauvegarde de la création impossible. Ton travail reste ouvert ; réessaie avant de partir.';});context.value={storage,fileSlot:'video:'+row.id,videoName:project.name,name:row.name,status};active.value=row.app;video.value=route;}
+ else {context.value=null;active.value=app;video.value=route;}loading.value=false;}catch(e){if(request!==generation)return;loading.value=false;error.value=e.message||'Impossible d’ouvrir cet espace.';}}
+function home(){navigate(video.value?.creationId?videoHash(video.value.videoId):applicationHash(null));}
+async function retry(){try{if(studio.value)await studio.value.flush();error.value='';await syncRoute();}catch(e){error.value=e.message;}}
+onMounted(()=>{window.addEventListener('hashchange',syncRoute);syncRoute();});onBeforeUnmount(()=>window.removeEventListener('hashchange',syncRoute));
 </script>
-<template><StudioApp v-if="active" :key="active" :application="active" @home="openApplication(null)"/><main v-else class="frame-home"><header><span class="brand-name">frame<span class="brand-dot">.</span></span><span class="home-personal">TON STUDIO PERSONNEL</span></header><section class="home-intro"><span class="eyebrow">DE L’IDÉE À LA VIDÉO</span><h1>Un sujet. Trois façons<br>de lui donner vie.</h1><p>Choisis ton atelier et retrouve ta création. Chaque application garde ses fichiers, ses réglages et son espace de travail.</p></section><section class="home-apps" aria-label="Applications"><button v-for="app in applications" :key="app.id" :class="['home-app',app.id]" @click="openApplication(app.id)"><div class="home-app-art"><component :is="icons[app.id]" :size="64"/><span>{{app.tag}}</span><div class="home-art-lines"><i/><i/><i/></div></div><div class="home-app-caption"><component :is="icons[app.id]" :size="22"/><h2>{{app.name}}</h2><ArrowUpRight :size="20"/></div><p>{{app.description}}</p><span class="home-open">Ouvrir l’atelier →</span></button></section><footer>Sauvegarde automatique sur cet appareil · Un fichier par application</footer></main></template>
+<template><div v-if="error" class="video-route-alert" role="alert">{{error}}<button class="btn" @click="retry">Réessayer</button><button v-if="!active" class="btn" @click="navigate('#/')">Bibliothèque</button></div><div v-if="loading" class="video-loading">Ouverture de ton espace…</div><StudioApp v-else-if="active" ref="studio" :key="context?.fileSlot||active" :application="active" :creation-context="context" @home="home"/><VideoLibrary v-else :key="video?.videoId||'home'" :repository="repository" :video-id="video?.videoId" @home="navigate('#/')" @open-app="id=>navigate(applicationHash(id))" @open-video="id=>navigate(videoHash(id))" @open-creation="(id,app,key)=>navigate(videoHash(id,app,key))"/></template>
