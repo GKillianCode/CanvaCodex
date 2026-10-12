@@ -1,3 +1,4 @@
+import {graphemes,typewriterState} from './typewriter.js';
 import {interpolatePosition,interpolationProgress} from './stepInterpolation.js';
 import {verticalTextOffset} from './textVerticalAlignment.js';
 import {imageFilter} from './imageEffects.js';
@@ -69,10 +70,19 @@ export function paintTextMark(ctx,line,x,y,size,color,style,background=false){
  if(!background){ctx.fillStyle=color;if(style.underline)ctx.fillRect(x,bottom+size*.06,width,thickness);if(style.strike)ctx.fillRect(x,top+(bottom-top)*.55,width,thickness);}
  ctx.restore();
 }
-export function text(ctx, value, x, y, width, size, color, weight = 400, font = 'Arial', leading=1.35,style=null,frameHeight=null) {
+export function text(ctx, value, x, y, width, size, color, weight = 400, font = 'Arial', leading=1.35,style=null,frameHeight=null,typing=null) {
  ctx.fillStyle=color;ctx.font=styleFont(size,font,style||{weight,italic:false});ctx.textBaseline='top';const layout=layoutText(ctx,value,width,size,leading,style,wrapLines);
  y+=verticalTextOffset(ctx,layout.rows,size,frameHeight,style?.verticalAlign);
- ctx.textAlign='left';layout.rows.forEach(({text:line,x:offset,y:dy,marker,markerX,words,wordGap})=>{const row=y+dy;if(marker){ctx.fillStyle=style?.markerColor||color;ctx.fillText(marker,x+markerX,row);}ctx.fillStyle=color;if(style&&!words)paintTextMark(ctx,line,x+offset,row,size,color,style,true);if(words){let at=x+offset;for(const word of words){if(style)paintTextMark(ctx,word,at,row,size,color,style,true);ctx.fillText(word,at,row);if(style)paintTextMark(ctx,word,at,row,size,color,style);at+=ctx.measureText(word).width+wordGap;}}else {ctx.fillText(line,x+offset,row);if(style)paintTextMark(ctx,line,x+offset,row,size,color,style);}});return layout.height;
+ ctx.textAlign='left';let sourceOffset=0,cursorDrawn=false;
+ layout.rows.forEach(({text:full,x:offset,y:dy,marker,markerX,words,wordGap})=>{
+ const source=String(value),atSource=Math.max(sourceOffset,source.indexOf(full,sourceOffset)),before=typing&&Number.isFinite(typing.count)?graphemes(source.slice(0,atSource)).length:0;sourceOffset=atSource+full.length;
+ const chars=graphemes(full),take=Math.max(0,Math.min(chars.length,(typing?.count??Infinity)-before)),line=chars.slice(0,take).join(''),row=y+dy;
+ const cursor=!cursorDrawn&&typing?.cursor&&take<chars.length&&(typing?.count??Infinity)>=before?typing.cursor:'';if(cursor)cursorDrawn=true;
+ if(marker&&(line||!typing)){ctx.fillStyle=style?.markerColor||color;ctx.fillText(marker,x+markerX,row);}ctx.fillStyle=color;
+ let at=x+offset;
+ if(words){let budget=take;for(const word of words){const letters=graphemes(word),part=letters.slice(0,Math.max(0,budget)).join('');if(part){if(style)paintTextMark(ctx,part,at,row,size,color,style,true);ctx.fillText(part,at,row);if(style)paintTextMark(ctx,part,at,row,size,color,style);}if(budget<letters.length){if(cursor)ctx.fillText(cursor,at+ctx.measureText(part).width,row);break;}budget-=letters.length+1;at+=ctx.measureText(word).width+wordGap;}}
+ else {if(style)paintTextMark(ctx,line,at,row,size,color,style,true);ctx.fillText(line,at,row);if(style)paintTextMark(ctx,line,at,row,size,color,style);if(cursor)ctx.fillText(cursor,at+ctx.measureText(line).width,row);}
+ });return layout.height;
 }
 function codeWidthSize(ctx,value,p){applyLetterSpacing(ctx,p.textStyle,p.size);ctx.font=styleFont(p.size,fontCss(p.font,'code'),normalizeTextStyle(p.textStyle,p.font,'code'));return (p.w-110)*p.size/Math.max(1,...value.split('\n').map(line=>ctx.measureText(line.replaceAll('\t','    ')).width));}
 function unscaledObject(s,key){const p=s.positions[key],scale=p.contentScale||1;return {...s,positions:{...s.positions,[key]:{...p,x:0,y:0,w:p.w/scale,...(p.h?{h:p.h/scale}:{}),size:p.size/scale,wrapWidth:p.wrapWidth/scale,contentScale:1}}};}
@@ -97,7 +107,7 @@ export function background(ctx, theme, gradient=true) {
   }
   ctx.drawImage(backgrounds.get(key), 0, 0);
 }
-function drawCode(ctx, s, theme, key) {
+function drawCode(ctx, s, theme, key,typing=null) {
   const p = s.positions[key], b = blockBounds(ctx, s, key), family=fontCss(p.font,'code'),style=getTextStyle(s,key);
   const lines=javaLines(blockText(s,key));const size=Math.max(12,Math.min(p.size,(b.h-128)/(Math.max(1,lines.length)*textLeading(style,1.6)),codeWidthSize(ctx,blockText(s,key),p)));ctx.save();ctx.shadowColor=theme.bg+'80';ctx.shadowBlur=36;ctx.shadowOffsetY=16;
   round(ctx, p.x, p.y, p.w, b.h, 24, theme.panel);ctx.restore();
@@ -105,14 +115,16 @@ function drawCode(ctx, s, theme, key) {
   ctx.strokeStyle = `${theme.ink}15`; ctx.beginPath(); ctx.moveTo(p.x + 24, p.y + 72); ctx.lineTo(p.x + p.w - 24, p.y + 72); ctx.stroke();
   ctx.save(); ctx.beginPath(); ctx.rect(p.x + 12, p.y + 90, p.w - 24, b.h - 100); ctx.clip();
   ctx.font=styleFont(size,family,style);ctx.textBaseline='top';const codeOffset=verticalTextOffset(ctx,lines.map((segments,n)=>({text:segments.map(t=>t.text).join(''),y:n*size*textLeading(style,1.6)})),size,Math.max(0,b.h-119),style.verticalAlign);
+  let written=0,cursorDrawn=false;
   javaLines(blockText(s,key)).forEach((segments, n) => {
     const y = p.y + 103 + codeOffset + n * size * textLeading(style,1.6);
     text(ctx, String(n + 1).padStart(2, ' '), p.x + 28, y + 4, 50, size * .75, `${theme.ink}45`, 400, family);
-    const line=segments.map(token=>token.text).join('');
+    const full=segments.map(token=>token.text).join(''),letters=graphemes(full),budget=Math.max(0,Math.min(letters.length,(typing?.count??Infinity)-written)),line=letters.slice(0,budget).join('');written+=letters.length+1;
     applyLetterSpacing(ctx,style,size);ctx.font=styleFont(size,family,style);ctx.textBaseline='top';paintTextMark(ctx,line,p.x+80,y,size,theme.ink,style,true);
     let x = p.x + 80;
     ctx.font = styleFont(size,family,style); ctx.textBaseline = 'top';
-    for (const token of segments) { ctx.fillStyle = textColor(style,theme,codeColor(token.type, theme)); ctx.fillText(token.text, x, y); x += ctx.measureText(token.text).width; }
+    let remaining=budget;for (const token of segments) {const letters=graphemes(token.text),part=letters.slice(0,remaining).join('');ctx.fillStyle = textColor(style,theme,codeColor(token.type, theme));ctx.fillText(part,x,y);x+=ctx.measureText(part).width;remaining=Math.max(0,remaining-letters.length);}
+    if(!cursorDrawn&&typing?.cursor&&budget<letters.length&&typing.count>=written-letters.length-1){ctx.fillStyle=textColor(style,theme);ctx.fillText(typing.cursor,x,y);cursorDrawn=true;}
     paintTextMark(ctx,line,p.x+80,y,size,theme.ink,style);
   });
   ctx.restore();
@@ -143,17 +155,19 @@ export function renderSlide(ctx, s, theme, options = {}) {
     ctx.save();ctx.globalAlpha*=state.alpha*objectOpacity(s,key)/100;ctx.translate(state.x,state.y);
     if(state.scale!==1){const cx=groupBounds.x+groupBounds.w/2,cy=groupBounds.y+groupBounds.h/2;ctx.translate(cx,cy);ctx.scale(state.scale,state.scale);ctx.translate(-cx,-cy);}
     if(p.rotation){ctx.translate(p.x+p.w/2,p.y+(p.h||b.h)/2);ctx.rotate(p.rotation*Math.PI/180);ctx.translate(-p.x-p.w/2,-p.y-(p.h||b.h)/2);}
+    const typingElapsed=options.objectMotion?.[key]?.typingElapsed??options.typingElapsed?.[key];
+    const typing=['text','code'].includes(blockType(s,key))?typewriterState(blockType(s,key)==='code'?blockText(s,key).replaceAll('\t','    '):blockText(s,key),p.typewriter,typingElapsed):null;
     const contentScale=p.contentScale||1,original=s;
     if(contentScale!==1){ctx.translate(p.x,p.y);ctx.scale(contentScale,contentScale);s=unscaledObject(s,key);p=s.positions[key];b=blockBounds(ctx,s,key);}
     if (key === 'title'||s.elements[key]?.weight===700) {
       const label=key==='title'?s.label:s.elements[key]?.label;if (label) text(ctx, label, p.x, Math.max(contentScale!==1?(10-original.positions[key].y)/contentScale:10, p.y - 58), p.w, 23, theme.accent, style.weight,fontCss(p.font),1.35,style);
-      const font=p.autoSize?p.size:fitText(ctx,blockText(s,key),p,700,textRole(s,key).leading);const color=style.color||style.colorRole?textColor(style,theme):['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,font,color,style.weight,fontCss(p.font),textRole(s,key).leading,style,p.autoSize?null:p.h);
+      const font=p.autoSize?p.size:fitText(ctx,blockText(s,key),p,700,textRole(s,key).leading);const color=style.color||style.colorRole?textColor(style,theme):['title','metric','definition'].includes(s.layout)?(()=>{const g=ctx.createLinearGradient(p.x,p.y,p.x+p.w,p.y+(p.h||b.h));g.addColorStop(0,theme.accent);g.addColorStop(1,theme.secondary);return g;})():theme.ink;text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,font,color,style.weight,fontCss(p.font),textRole(s,key).leading,style,p.autoSize?null:p.h,typing);
     } else if (blockType(s,key)==='shape') drawShape(ctx,{...s.elements[key],opacity:100},p,theme);
     else if (blockType(s,key)==='bits') drawBits(ctx,s.elements[key],p,theme);
     else if (blockType(s,key)==='table') drawTable(ctx,{...s.elements[key],opacity:100},p,theme,wrapLines);
     else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
-    else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key);
-    else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,textRole(s,key).leading),textColor(style,theme,`${theme.ink}df`),style.weight,fontCss(p.font),textRole(s,key).leading,style,p.autoSize?null:p.h);
+    else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key,typing);
+    else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,textRole(s,key).leading),textColor(style,theme,`${theme.ink}df`),style.weight,fontCss(p.font),textRole(s,key).leading,style,p.autoSize?null:p.h,typing);
     s=original;ctx.restore();
     if(s.emphasisKeys?.includes(key)){ctx.save();ctx.globalAlpha*=state.alpha*objectOpacity(s,key)/100;const p=s.positions[key],b=blockBounds(ctx,s,key);if(p.rotation){ctx.translate(b.x+b.w/2,b.y+(p.h||b.h)/2);ctx.rotate(p.rotation*Math.PI/180);ctx.translate(-b.x-b.w/2,-b.y-(p.h||b.h)/2);}ctx.strokeStyle=theme.accent;ctx.lineWidth=4;ctx.shadowColor=theme.accent;ctx.shadowBlur=12;ctx.strokeRect(b.x-10,b.y-10,b.w+20,(p.h||b.h)+20);ctx.restore();}
   }

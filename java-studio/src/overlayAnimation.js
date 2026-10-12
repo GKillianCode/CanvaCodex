@@ -13,5 +13,5 @@ export function clipTrack(clip,key,row=0){
  const ratio=Math.min(1,span/(t.entry+t.exit));return {...t,start,end,entry:t.entry*ratio,exit:t.exit*ratio};
 }
 export function clipMotion(slide,clip,time,rows){
- const result={};rows.forEach((row,n)=>row.keys.forEach(key=>{const t=clipTrack(clip,row.keys[0],n);if(time<t.start||time>=t.end){result[key]={visible:false,alpha:0,x:0,y:0,scale:1};return;}const exiting=time>=t.end-t.exit,progress=exiting?(time-t.end+t.exit)/t.exit:Math.min(1,(time-t.start)/t.entry);const animation=resolvedAnimation(exiting?t.exitAnimation:t.animation,slide,n);result[key]={visible:true,...motionState(animation,progress,exiting)};}));return result;
+ const result={};rows.forEach((row,n)=>row.keys.forEach(key=>{const t=clipTrack(clip,row.keys[0],n);if(time<t.start||time>=t.end){result[key]={visible:false,alpha:0,x:0,y:0,scale:1};return;}const exiting=time>=t.end-t.exit,progress=exiting?(time-t.end+t.exit)/t.exit:Math.min(1,(time-t.start)/t.entry);const animation=resolvedAnimation(exiting?t.exitAnimation:t.animation,slide,n);result[key]={visible:true,typingElapsed:(time-t.start)*1000,...motionState(animation,progress,exiting)};}));return result;
 }
