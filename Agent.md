@@ -833,3 +833,5 @@ Publication confirmée : [PR #115](https://github.com/GKillianCode/CanvaCodex/pu
 ## Suppression des créations vidéo — issue #116
 
 Branche codex/delete-video-creations basée sur codex/unified-workspaces (PR #115 non fusionnée). Action Supprimer sur chaque carte des trois ateliers, confirmation et annulation de la dernière suppression tant que la fiche reste ouverte. Suppression atomique IndexedDB du document et de sa référence, couverture et résumé actualisés ; restauration conserve ID, contenu et place. Dossier vidéo : manifeste actualisé, exports sur disque conservés. 229 tests passent, build réussi (avertissement Vite préexistant), diff --check propre. UI synthétique : 3→2 créations, autres ateliers conservés, annulation 2→3 et rechargement, console sans erreur. Publication à confirmer, aucune fusion autorisée.
+
+Publication confirmée : [PR #117](https://github.com/GKillianCode/CanvaCodex/pull/117) en brouillon vers codex/unified-workspaces, dépend de #115. Commit distant cf1dd788770bc46a01a427bf36f161dbd3062463 ; arbre d054ae3f7371a02ae487a4ab4fcdaecba19765db identique au commit local 08e9321. Aucune fusion effectuée.
