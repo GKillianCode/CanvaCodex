@@ -173,3 +173,10 @@ Le navigateur peut redemander l’autorisation après une fermeture. Le bouton R
 La taille de police saisie correspond aux pixels du document exporté, même après mise à l’échelle. La réduction automatique au cadre est désormais une option explicite de Typographie, désactivée par défaut et lorsqu’une nouvelle taille est saisie. Un cadre trop petit peut donc nécessiter un agrandissement. Les coordonnées peuvent être négatives ou dépasser les dimensions de l’écran ; déplacements, groupes, clavier et poignées conservent les parties hors cadre. Les exports gardent les dimensions de la création et coupent naturellement ce qui déborde.
 
 Dans la fiche vidéo, chaque création dispose de **Supprimer**, avec confirmation. **Annuler la suppression** restaure la dernière création retirée tant que la fiche reste ouverte. Les autres créations et fichiers déjà exportés sont conservés ; le manifeste du dossier vidéo est mis à jour.
+
+
+### Mettre en forme un mot ou un passage
+
+Dans les trois ateliers, ouvre **Éditer le contenu** d’un texte, sélectionne un mot ou un groupe de mots dans la zone de saisie puis utilise la barre de styles : gras, italique, souligné, barré, surlignage, couleur du thème ou couleur personnalisée. Un aperçu montre les styles avant **Appliquer** ; Annuler laisse le texte original intact. **Retirer le style de la sélection** revient aux propriétés du bloc uniquement sur le passage sélectionné. Ctrl/⌘ B, I et U sont disponibles dans la saisie.
+
+Les styles locaux suivent le texte lors de l’édition et sont conservés avec les sauvegardes, les copies et les composants. Le style général du bloc reste la base des passages sans mise en forme locale. Les retours à la ligne, les listes, l’alignement et l’écriture progressive utilisent les styles dans le rendu partagé des aperçus, présentations et exports. Limite : 1 000 passages mis en forme par texte. La coloration syntaxique du code et les styles des cellules de tableau gardent leurs outils dédiés.
