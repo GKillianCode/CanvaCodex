@@ -1,3 +1,4 @@
+import { normalizeVideoCanvas } from "./videoCanvas.js";
 import {
   applications,
   applicationStorage,
@@ -235,6 +236,8 @@ export function importVideoBundle(raw, { duplicate = false } = {}) {
   return { project, creations };
 }
 export function videoRoute(hash) {
+  const notebook=String(hash).match(/^#\/videos\/([\w-]+)\/notes$/);
+  if(notebook)return {videoId:notebook[1],app:null,creationId:null,notes:true};
   const match = String(hash).match(
     /^#\/videos\/([\w-]+)(?:\/(slides|banners|thumbnails)\/([\w-]+))?$/,
   );
@@ -456,6 +459,15 @@ export function videoRepository(api = globalThis.indexedDB) {
       };
   }
   return {
+    canvas: () =>
+      transaction("readonly", (p, c, set, tx, s, settings) => {
+        settings.get("learning-canvas").onsuccess = (e) =>
+          set(normalizeVideoCanvas(e.target.result));
+      }),
+    saveCanvas: (value) =>
+      transaction("readwrite", (p, c, set, tx, s, settings) => {
+        settings.put(normalizeVideoCanvas(value), "learning-canvas");
+      }),
     playlists: () =>
       transaction("readonly", (p, c, set, tx, s, settings) => {
         settings.get("playlists").onsuccess = (e) => set(e.target.result || []);
@@ -643,4 +655,13 @@ export function creationSession(row, save, onStatus = () => {}) {
     return tail;
   }
   return { ...storage, flush };
+}
+
+export function preferredVideoCreation(creations = []) {
+  return (
+    creations.find((row) => row.app === "thumbnails") ||
+    creations.find((row) => row.app === "slides") ||
+    creations[0] ||
+    null
+  );
 }

@@ -31,9 +31,16 @@ import {
   clone,
 } from "../videoProjects.js";
 import LibraryPreview from "./LibraryPreview.vue";
+import VideoCanvas from "./VideoCanvas.vue";
 import PlaylistOrder from "./PlaylistOrder.vue";
 const props = defineProps({ repository: Object, videoId: String }),
-  emit = defineEmits(["open-video", "open-creation", "open-app", "home"]);
+  emit = defineEmits([
+    "open-video",
+    "open-notes",
+    "open-creation",
+    "open-app",
+    "home",
+  ]);
 function initialSort() {
   try {
     const value = localStorage.getItem("frame-video-sort");
@@ -317,6 +324,15 @@ async function removePlaylistVideo(row) {
     await reload();
   });
 }
+async function changeVideoPlaylist(id, playlist) {
+  await run(async () => {
+    const project = await props.repository.get(id);
+    project.playlist = playlist;
+    project.updatedAt = Date.now();
+    await props.repository.put(project);
+    await reload();
+  });
+}
 async function saveDetails() {
   await run(async () => {
     const project = await props.repository.get(props.videoId);
@@ -469,6 +485,9 @@ async function importVideo(event) {
             >
           </div>
         </details>
+        <button class="btn" @click="modal = { type: 'canvas' }">
+          Canvas des parcours
+        </button>
         <button class="btn" @click="modal = { type: 'playlists' }">
           Gérer les playlists</button
         ><button
@@ -637,7 +656,7 @@ async function importVideo(event) {
       </section>
       <details class="video-details">
         <summary>
-          Fiche de la vidéo <span>Nom, playlist, statut et notes</span>
+          Fiche de la vidéo <span>Nom, playlist et statut</span>
         </summary>
         <form @submit.prevent="saveDetails">
           <div class="video-details-grid">
@@ -663,14 +682,7 @@ async function importVideo(event) {
               </select></label
             >
           </div>
-          <label
-            >Notes générales<textarea
-              v-model="draft.notes"
-              maxlength="20000"
-              rows="4"
-              placeholder="Objectif du cours, idées, choses à préparer…"
-            /></label
-          ><button class="btn primary" :disabled="busy">
+          <button class="btn primary" :disabled="busy">
             Enregistrer la fiche
           </button>
         </form>
@@ -742,6 +754,19 @@ async function importVideo(event) {
           }}
         </div>
       </section>
+      <section class="video-notebook-entry">
+        <div>
+          <span class="eyebrow">ÉCRITURE</span>
+          <h2>Carnet de la vidéo</h2>
+          <p>
+            Prépare ton plan, ton script et tes notes dans l’atelier Markdown
+            dédié.
+          </p>
+        </div>
+        <button class="btn primary" @click="emit('open-notes', selected.id)">
+          Ouvrir le carnet <ArrowUpRight :size="16" />
+        </button>
+      </section>
     </template>
     <div v-else-if="!busy" class="video-empty">
       <h2>Vidéo introuvable.</h2>
@@ -756,7 +781,9 @@ async function importVideo(event) {
     <div
       v-if="
         modal &&
-        !['playlists', 'playlist', 'playlist-view'].includes(modal.type)
+        !['canvas', 'playlists', 'playlist', 'playlist-view'].includes(
+          modal.type,
+        )
       "
       class="modal-backdrop"
       @click.self="modal = null"
@@ -953,6 +980,14 @@ async function importVideo(event) {
         <div v-if="error" class="video-alert" role="alert">{{ error }}</div>
       </section>
     </div>
+    <div v-if="modal?.type === 'canvas'" class="learning-canvas-backdrop">
+      <VideoCanvas
+        :repository="repository"
+        :videos="projects"
+        @close="modal = null"
+        @open="openPlaylistVideo"
+      />
+    </div>
     <div
       v-if="modal?.type === 'playlist-view'"
       class="modal-backdrop playlist-order-backdrop"
@@ -960,6 +995,9 @@ async function importVideo(event) {
     >
       <PlaylistOrder
         :name="modal.playlist"
+        :repository="repository"
+        :playlists="playlists"
+        @change-playlist="changeVideoPlaylist"
         :rows="playlistRows"
         :busy="busy"
         :error="error"

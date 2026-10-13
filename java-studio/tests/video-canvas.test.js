@@ -1,0 +1,136 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {
+  normalizeVideoCanvas,
+  connectVideoCanvas,
+  removeCanvasNode,
+  canvasEdgePath,
+} from "../src/videoCanvas.js";
+test("learning canvas normalizes positions, independent video references and valid links", () => {
+  const c = normalizeVideoCanvas({
+    nodes: [
+      { id: "a", type: "note", x: -10, y: Infinity, title: "Bases" },
+      { id: "b", type: "video", videoId: "java", x: 99999, y: 500 },
+      { id: "a" },
+    ],
+    edges: [
+      { from: "a", to: "b" },
+      { from: "a", to: "b" },
+      { from: "b", to: "b" },
+      { from: "a", to: "missing" },
+    ],
+  });
+  assert.equal(c.nodes.length, 2);
+  assert.equal(c.nodes[0].x, -10);
+  assert.equal(c.nodes[0].y, 0);
+  assert.equal(c.nodes[1].x, 99999);
+  assert.equal(c.nodes[1].videoId, "java");
+  assert.equal(c.edges.length, 1);
+  assert.equal(c.nodes[1].playlist, undefined);
+  assert.deepEqual(normalizeVideoCanvas(JSON.parse(JSON.stringify(c))), c);
+});
+test("canvas supports branches and merges without altering video or playlist order", () => {
+  const original = normalizeVideoCanvas({
+    nodes: ["base", "project", "path-a", "path-b", "end"].map((id) => ({ id })),
+  });
+  let c = connectVideoCanvas(original, "base", "project");
+  c = connectVideoCanvas(c, "project", "path-a");
+  c = connectVideoCanvas(c, "project", "path-b");
+  c = connectVideoCanvas(c, "path-a", "end");
+  c = connectVideoCanvas(c, "path-b", "end");
+  assert.equal(c.edges.length, 5);
+  assert.equal(original.edges.length, 0);
+  assert.equal(connectVideoCanvas(c, "base", "project"), c);
+  assert.throws(() => connectVideoCanvas(c, "base", "base"));
+  assert.throws(() => connectVideoCanvas(c, "missing", "end"));
+  const removed = removeCanvasNode(c, "project");
+  assert.equal(removed.edges.length, 2);
+  assert.equal(removed.nodes.length, 4);
+  assert.equal(c.nodes.length, 5);
+});
+test("attached connectors follow moved cards in either direction", () => {
+  const a = { x: 100, y: 200 },
+    b = { x: 500, y: 600 };
+  assert.match(canvasEdgePath(a, b), /^M 380 320 C/);
+  assert.match(canvasEdgePath(a, b), /500 720$/);
+  assert.match(canvasEdgePath(b, a), /^M 780 720 C/);
+  assert.match(canvasEdgePath(b, a), /100 320$/);
+  assert.notEqual(
+    canvasEdgePath(a, b),
+    canvasEdgePath(a, { ...b, x: 700, y: 800 }),
+  );
+});
+
+test("groups keep members and clean dangling memberships on deletion", async () => {
+  const {
+    groupCanvasNodes,
+    canvasGroupBounds,
+    snapCanvasPosition,
+    freeCanvasPosition,
+  } = await import("../src/videoCanvas.js");
+  const c = normalizeVideoCanvas({
+    nodes: [
+      { id: "a", x: 240, y: 240 },
+      { id: "b", x: 600, y: 500 },
+    ],
+  });
+  const grouped = groupCanvasNodes(c, ["a", "b", "b", "missing"], "group");
+  assert.deepEqual(grouped.groups[0].members, ["a", "b"]);
+  assert.equal(canvasGroupBounds(grouped, grouped.groups[0]).x, 216);
+  assert.equal(canvasGroupBounds(grouped, grouped.groups[0]).height, 580);
+  assert.equal(removeCanvasNode(grouped, "a").groups[0].members[0], "b");
+  assert.throws(() => groupCanvasNodes(c, ["a"], "bad"));
+  assert.equal(snapCanvasPosition(251, 11720), 240);
+  assert.equal(snapCanvasPosition(251, 11720, false), 251);
+  const place = freeCanvasPosition(c.nodes, 240, 240);
+  assert.ok(
+    !c.nodes.some(
+      (n) => Math.abs(n.x - place.x) < 300 && Math.abs(n.y - place.y) < 260,
+    ),
+  );
+  assert.equal(normalizeVideoCanvas({ ...grouped, snap: false }).snap, false);
+});
+test("canvas expands around negative or distant coordinates and marquee is direction independent", async () => {
+  const { canvasWorldBounds, nodesInCanvasRect } =
+    await import("../src/videoCanvas.js");
+  const nodes = [
+    { id: "a", x: -12000, y: -9000 },
+    { id: "b", x: 240, y: 240 },
+  ];
+  const bounds = canvasWorldBounds(nodes);
+  assert.ok(bounds.x < -12000);
+  assert.ok(bounds.y < -9000);
+  assert.deepEqual(
+    nodesInCanvasRect(nodes, { x1: 200, y1: 200, x2: 600, y2: 600 }),
+    ["b"],
+  );
+  assert.deepEqual(
+    nodesInCanvasRect(nodes, { x1: 600, y1: 600, x2: 200, y2: 200 }),
+    ["b"],
+  );
+  assert.deepEqual(
+    nodesInCanvasRect(nodes, { x1: 200, y1: 200, x2: 300, y2: 300 }),
+    [],
+  );
+  const expanded = canvasWorldBounds([], {
+    x: -16000,
+    y: -10000,
+    right: 20000,
+    bottom: 12000,
+  });
+  assert.ok(expanded.width >= 36000);
+  assert.ok(expanded.height >= 22000);
+});
+
+test("panning preserves world position when the canvas origin grows", async () => {
+  const { panCanvasScroll } = await import("../src/videoCanvas.js");
+  const start = { x: 500, y: 300 },
+    delta = { x: -100, y: 50 },
+    zoom = 0.8;
+  const first = panCanvasScroll(start, delta, zoom, { x: -6000, y: -4000 });
+  const grown = panCanvasScroll(start, delta, zoom, { x: -10000, y: -8000 });
+  assert.equal(grown.left - first.left, 3200);
+  assert.equal(grown.top - first.top, 3200);
+  assert.equal(first.left / zoom - 6000, grown.left / zoom - 10000);
+  assert.equal(first.top / zoom - 4000, grown.top / zoom - 8000);
+});

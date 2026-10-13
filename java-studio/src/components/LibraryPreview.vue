@@ -1,6 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
 import { Film } from "lucide-vue-next";
+import { preferredVideoCreation } from "../videoProjects.js";
 import CreationPreview from "./CreationPreview.vue";
 const props = defineProps({
     repository: Object,
@@ -27,8 +28,14 @@ async function load() {
       const data = await props.repository.creation(props.creation.id);
       if (alive && visible) row.value = data;
     } else {
-      const data = await props.repository.cover(props.projectId);
-      if (alive && visible) image.value = data;
+      const project = await props.repository.get(props.projectId);
+      const meta = preferredVideoCreation(project?.creations);
+      if (!alive || !visible) return;
+      if (meta?.preview) image.value = meta.preview;
+      else if (meta) {
+        const data = await props.repository.creation(meta.id);
+        if (alive && visible) row.value = data;
+      } else image.value = project?.preview;
     }
   } catch {
     failed.value = true;
@@ -37,6 +44,11 @@ async function load() {
   }
 }
 function drawn(value) {
+  const creationId = row.value?.id;
+  if (!props.creation && creationId && alive && visible)
+    props.repository
+      .preview(props.projectId, creationId, value)
+      .catch(() => {});
   image.value = value;
   row.value = null;
   emit("preview", value);

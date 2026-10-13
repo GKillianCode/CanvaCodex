@@ -362,3 +362,17 @@ test("backlog status survives editable video bundles", async () => {
     "backlog",
   );
 });
+
+test("video cover prefers thumbnails then first slide then overlay", async () => {
+  const { preferredVideoCreation } = await import("../src/videoProjects.js");
+  const rows = [
+    { id: "b", app: "banners" },
+    { id: "s", app: "slides" },
+    { id: "t", app: "thumbnails" },
+  ];
+  assert.equal(preferredVideoCreation(rows).id, "t");
+  assert.equal(preferredVideoCreation(rows.slice(0, 2)).id, "s");
+  assert.equal(preferredVideoCreation(rows.slice(0, 1)).id, "b");
+  assert.equal(preferredVideoCreation([]), null);
+  assert.equal(rows[0].id, "b");
+});

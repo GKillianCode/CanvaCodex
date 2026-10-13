@@ -1,5 +1,5 @@
 <script setup>
-import { ref, onBeforeUnmount, onMounted } from "vue";
+import { ref, computed, watch, onBeforeUnmount, onMounted } from "vue";
 import {
   GripVertical,
   X,
@@ -11,15 +11,19 @@ import {
   Trash2,
   MoreHorizontal,
 } from "lucide-vue-next";
+import LibraryPreview from "./LibraryPreview.vue";
 import { videoStatuses, playlistDropPosition } from "../videoProjects.js";
 const props = defineProps({
     name: String,
+    repository: Object,
+    playlists: Array,
     rows: Array,
     busy: Boolean,
     error: String,
   }),
   emit = defineEmits([
     "move",
+    "change-playlist",
     "open",
     "close",
     "back",
@@ -36,6 +40,24 @@ const dragged = ref(null),
   localError = ref(""),
   list = ref(null),
   panel = ref(null);
+const page = ref(1);
+const pages = computed(() => Math.max(1, Math.ceil(props.rows.length / 24)));
+const paged = computed(() =>
+  props.rows.slice((page.value - 1) * 24, page.value * 24),
+);
+watch(
+  () => props.name,
+  () => {
+    page.value = 1;
+    clearDrag();
+  },
+);
+watch(pages, () => (page.value = Math.min(page.value, pages.value)));
+function navigatePage(value) {
+  clearDrag();
+  page.value = value;
+  list.value?.scrollTo(0, 0);
+}
 let scrollFrame = null,
   scrollSpeed = 0,
   pending = null,
@@ -149,7 +171,7 @@ function keyboardMove(row, delta) {
 function trapTab(event) {
   const fields = [
     ...panel.value.querySelectorAll(
-      "button:not([disabled]),input:not([disabled]),summary",
+      "button:not([disabled]),input:not([disabled]),select:not([disabled]),summary",
     ),
   ].filter((element) => element.getClientRects().length);
   const first = fields[0],
@@ -226,7 +248,7 @@ onBeforeUnmount(clearDrag);
     <div ref="list" class="playlist-order-scroll">
       <ol class="playlist-order-list" aria-label="Vidéos de la playlist">
         <li
-          v-for="row in rows"
+          v-for="row in paged"
           :key="row.id"
           class="playlist-order-row"
           :class="{
@@ -263,7 +285,10 @@ onBeforeUnmount(clearDrag);
             :aria-label="'Ouvrir la vidéo ' + row.name"
             @click="emit('open', row.id)"
           >
-            <strong>{{ row.name }}</strong
+            <LibraryPreview
+              :repository="repository"
+              :project-id="row.id"
+            /><strong>{{ row.name }}</strong
             ><small
               >{{ row.total }} création{{ row.total > 1 ? "s" : ""
               }}<span v-if="row.archived">
@@ -278,6 +303,19 @@ onBeforeUnmount(clearDrag);
               <MoreHorizontal :size="18" />
             </summary>
             <div>
+              <label class="playlist-transfer"
+                >Déplacer vers<select
+                  :value="name"
+                  :disabled="busy"
+                  :aria-label="'Playlist de ' + row.name"
+                  @change="emit('change-playlist', row.id, $event.target.value)"
+                >
+                  <option value="">Sans playlist</option>
+                  <option v-for="p in playlists" :key="p" :value="p">
+                    {{ p }}
+                  </option>
+                </select></label
+              >
               <button :disabled="busy" @click="emit('open', row.id)">
                 Ouvrir la vidéo</button
               ><button :disabled="busy" @click="emit('rename-video', row)">
@@ -310,6 +348,29 @@ onBeforeUnmount(clearDrag);
         Aucune vidéo dans cette playlist pour le moment.
       </div>
     </div>
+    <nav
+      v-if="pages > 1"
+      class="playlist-pagination"
+      aria-label="Pages de la playlist"
+    >
+      <button
+        class="btn"
+        :disabled="page === 1 || busy"
+        @click="navigatePage(page - 1)"
+      >
+        Précédent</button
+      ><span
+        >Page {{ page }} / {{ pages }} · Positions {{ (page - 1) * 24 + 1 }}–{{
+          Math.min(page * 24, rows.length)
+        }}</span
+      ><button
+        class="btn"
+        :disabled="page === pages || busy"
+        @click="navigatePage(page + 1)"
+      >
+        Suivant
+      </button>
+    </nav>
     <footer class="playlist-order-footer">
       <span role="status" aria-live="polite">{{
         busy
