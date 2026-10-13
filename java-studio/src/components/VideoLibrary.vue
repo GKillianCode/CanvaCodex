@@ -10,6 +10,7 @@ import {
   FolderOpen,
   Search,
   Copy,
+  Trash2,
   Archive,
   Download,
   Upload,
@@ -67,6 +68,8 @@ const projects = ref([]),
   copyCurrent = ref(false),
   draft = ref(null),
   icons = { slides: PanelsTopLeft, banners: Clapperboard, thumbnails: Image };
+const deletedCreation = ref(null);
+watch(() => props.videoId,()=>{deletedCreation.value=null;});
 const starterApps = ref(["slides", "banners", "thumbnails"]);
 const browserOnly = ref(false);
 const selected = ref(null),
@@ -398,6 +401,24 @@ async function duplicate(project) {
     emit("open-video", copy.project.id);
   });
 }
+async function removeCreation(row) {
+  if(busy.value||!window.confirm(`Supprimer « ${row.name} » de cette vidéo ? Les fichiers déjà exportés sont conservés.`))return;
+  await run(async()=>{
+    deletedCreation.value=await props.repository.removeCreation(props.videoId,row.id);
+    await reload();
+  });
+}
+async function restoreCreation() {
+  await run(async()=>{
+    const removed=deletedCreation.value;if(!removed||removed.videoId!==props.videoId)return;
+    const project=await props.repository.get(props.videoId);
+    if(project.creations.length>=100)throw Error("Limite de 100 créations par vidéo.");
+    if(!project.creations.some(row=>row.id===removed.row.id))project.creations.splice(removed.index,0,removed.meta);
+    project.preview=project.creations[0]?.preview||null;project.updatedAt=Date.now();
+    await props.repository.put(project,[removed.row]);deletedCreation.value=null;
+    await reload();
+  });
+}
 async function duplicateCreation(row) {
   await run(async () => {
     const project = await props.repository.get(props.videoId),
@@ -499,6 +520,10 @@ async function importVideo(event) {
         }}</span></template
       >
     </WorkspaceHeader>
+    <div v-if="deletedCreation" class="video-alert" role="status">
+      « {{ deletedCreation.meta.name }} » supprimé.
+      <button class="btn" :disabled="busy" @click="restoreCreation">Annuler la suppression</button>
+    </div>
     <div v-if="error" class="video-alert" role="alert">
       {{ error }}
       <button class="btn" :disabled="busy" @click="run(retryAction || reload)">
@@ -845,6 +870,7 @@ async function importVideo(event) {
                 ><button :disabled="busy" @click="duplicateCreation(row)">
                   <Copy :size="14" />Dupliquer
                 </button>
+                <button :disabled="busy" :aria-label="'Supprimer '+row.name" @click="removeCreation(row)"><Trash2 :size="14"/>Supprimer</button>
               </div>
             </article>
           </div>

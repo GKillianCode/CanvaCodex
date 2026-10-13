@@ -192,6 +192,12 @@ export function videoFolderStorage(
           if (project) await mirror(project, []);
         }
       },
+      async removeCreation(videoId,id) {
+        const removed=await repository.removeCreation(videoId,id);
+        const project=await repository.get(videoId);
+        if(project)await mirror(project,[]);
+        return removed;
+      },
       async saveCreation(row) {
         await repository.saveCreation(row);
         const project = await repository.get(row.videoId);

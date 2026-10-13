@@ -171,3 +171,5 @@ Le navigateur peut redemander l’autorisation après une fermeture. Le bouton R
 ### Taille des textes et débordement du canevas
 
 La taille de police saisie correspond aux pixels du document exporté, même après mise à l’échelle. La réduction automatique au cadre est désormais une option explicite de Typographie, désactivée par défaut et lorsqu’une nouvelle taille est saisie. Un cadre trop petit peut donc nécessiter un agrandissement. Les coordonnées peuvent être négatives ou dépasser les dimensions de l’écran ; déplacements, groupes, clavier et poignées conservent les parties hors cadre. Les exports gardent les dimensions de la création et coupent naturellement ce qui déborde.
+
+Dans la fiche vidéo, chaque création dispose de **Supprimer**, avec confirmation. **Annuler la suppression** restaure la dernière création retirée tant que la fiche reste ouverte. Les autres créations et fichiers déjà exportés sont conservés ; le manifeste du dossier vidéo est mis à jour.

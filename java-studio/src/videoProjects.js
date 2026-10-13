@@ -128,6 +128,14 @@ export function documentFromStorage(values, app) {
   readApplicationFile(doc, app);
   return doc;
 }
+export function detachCreation(project, id) {
+  const index=project.creations.findIndex(row=>row.id===id);
+  if(index<0)throw Error("Cette création n’existe plus dans la vidéo.");
+  const [meta]=project.creations.splice(index,1);
+  project.preview=project.creations[0]?.preview||null;
+  project.updatedAt=Date.now();
+  return {meta,index};
+}
 export function makeCreation(project, app, name, source = null) {
   if (!applications.some((a) => a.id === app)) throw Error("Atelier inconnu.");
   if (project.creations.length >= 100)
@@ -580,6 +588,18 @@ export function videoRepository(api = globalThis.indexedDB) {
       transaction("readwrite", (p, c, set, tx, s, settings) => {
         storeProject(p, s, settings, project);
         for (const row of creations) c.put(clone(row));
+      }),
+    removeCreation: (videoId, id) =>
+      transaction("readwrite",(p,c,set,tx,s,settings)=>{
+        p.get(videoId).onsuccess=e=>{
+          const project=e.target.result;
+          c.get(id).onsuccess=event=>{
+            const row=event.target.result;
+            if(!project||!row||row.videoId!==videoId){set(Error("Création introuvable."));tx.abort();return;}
+            try{const removed=detachCreation(project,id);c.delete(id);storeProject(p,s,settings,project);set({...removed,row,videoId});}
+            catch(error){set(error);tx.abort();}
+          };
+        };
       }),
     saveCreation: (row) =>
       transaction("readwrite", (p, c, set, tx, s, settings) => {
