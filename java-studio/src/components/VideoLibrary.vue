@@ -26,12 +26,21 @@ import {
   videoBundle,
   importVideoBundle,
   videoStatuses,
+  sortVideos,
   documentFromStorage,
   clone,
 } from "../videoProjects.js";
 import LibraryPreview from "./LibraryPreview.vue";
 const props = defineProps({ repository: Object, videoId: String }),
   emit = defineEmits(["open-video", "open-creation", "open-app", "home"]);
+function initialSort() {
+  try {
+    const value = localStorage.getItem("frame-video-sort");
+    return ["recent", "process", "playlist"].includes(value) ? value : "recent";
+  } catch {
+    return "recent";
+  }
+}
 const projects = ref([]),
   creations = ref([]),
   busy = ref(false),
@@ -48,16 +57,22 @@ const projects = ref([]),
 const selected = ref(null),
   playlists = ref([]),
   page = ref(1),
+  sortMode = ref(initialSort()),
+  orderPosition = ref(1),
   importFiles = ref({}),
   playlistName = ref(""),
   newPlaylist = ref("");
 const filtered = computed(() =>
-  projects.value.filter(
-    (p) =>
-      p.archived === archives.value &&
-      (!playlist.value ||
-        p.playlist === (playlist.value === "__none__" ? "" : playlist.value)) &&
-      p.name.toLocaleLowerCase().includes(query.value.toLocaleLowerCase()),
+  sortVideos(
+    projects.value.filter(
+      (p) =>
+        p.archived === archives.value &&
+        (!playlist.value ||
+          p.playlist ===
+            (playlist.value === "__none__" ? "" : playlist.value)) &&
+        p.name.toLocaleLowerCase().includes(query.value.toLocaleLowerCase()),
+    ),
+    sortMode.value,
   ),
 );
 const pages = computed(() =>
@@ -66,7 +81,12 @@ const pages = computed(() =>
   paged = computed(() =>
     filtered.value.slice((page.value - 1) * 24, page.value * 24),
   );
-watch([query, playlist, archives], () => (page.value = 1));
+watch([query, playlist, archives, sortMode], () => (page.value = 1));
+watch(sortMode, (value) => {
+  try {
+    localStorage.setItem("frame-video-sort", value);
+  } catch {}
+});
 let retryAction = null;
 watch(modal, (value) => {
   if (!value) {
@@ -79,7 +99,7 @@ const date = (value) =>
     value,
   );
 const status = (id) =>
-  videoStatuses.find(([key]) => key === id)?.[1] || "Préparation";
+  videoStatuses.find(([key]) => key === id)?.[1] || "Création";
 async function savePreview(row, image) {
   try {
     const meta = selected.value?.creations.find((c) => c.id === row.id);
@@ -102,6 +122,8 @@ async function reload() {
     : null;
   creations.value = selected.value?.creations || [];
   draft.value = selected.value ? clone(selected.value) : null;
+  orderPosition.value =
+    projects.value.find((p) => p.id === props.videoId)?.playlistPosition || 1;
   page.value = Math.min(page.value, pages.value);
 }
 async function run(action) {
@@ -247,6 +269,20 @@ async function submit() {
     }
   });
 }
+function positionVideo(project) {
+  orderPosition.value = project.playlistPosition;
+  modal.value = { type: "order", project };
+}
+async function saveOrder() {
+  await run(async () => {
+    await props.repository.moveVideo(
+      modal.value.project.id,
+      Number(orderPosition.value),
+    );
+    modal.value = null;
+    await reload();
+  });
+}
 async function saveDetails() {
   await run(async () => {
     const project = await props.repository.get(props.videoId);
@@ -376,6 +412,10 @@ async function importVideo(event) {
           <option value="">Toutes les playlists</option>
           <option value="__none__">Sans playlist</option>
           <option v-for="p in playlists" :key="p">{{ p }}</option></select
+        ><select v-model="sortMode" aria-label="Trier les vidéos">
+          <option value="recent">Dernières modifications</option>
+          <option value="process">État du processus</option>
+          <option value="playlist">Ordre dans les playlists</option></select
         ><button class="btn" @click="modal = { type: 'playlists' }">
           Gérer les playlists</button
         ><button
@@ -410,6 +450,10 @@ async function importVideo(event) {
               <span class="video-status" :data-status="p.status">{{
                 status(p.status)
               }}</span>
+              <span class="video-order-number"
+                >N° {{ p.playlistPosition }} dans
+                {{ p.playlist || "Sans playlist" }}</span
+              >
               <h2>{{ p.name }}</h2>
               <p>
                 {{ p.total }} création{{ p.total > 1 ? "s" : "" }} · Modifié le
@@ -425,6 +469,13 @@ async function importVideo(event) {
             </div>
           </button>
           <div class="video-card-tools">
+            <button
+              :disabled="busy"
+              :aria-label="'Changer la position de ' + p.name"
+              @click="positionVideo(p)"
+            >
+              Position {{ p.playlistPosition }}
+            </button>
             <button
               :disabled="busy"
               @click="duplicate(p)"
@@ -512,7 +563,13 @@ async function importVideo(event) {
           </p>
         </div>
         <div class="video-actions">
-          <button class="btn" :disabled="busy" @click="duplicate(selected)">
+          <button
+            class="btn"
+            :disabled="busy"
+            @click="positionVideo(projects.find((p) => p.id === selected.id))"
+          >
+            Ordre dans la playlist</button
+          ><button class="btn" :disabled="busy" @click="duplicate(selected)">
             <Copy :size="16" />Dupliquer</button
           ><button class="btn" :disabled="busy" @click="exportVideo(selected)">
             <Download :size="16" />Sauvegarder la vidéo</button
@@ -642,7 +699,7 @@ async function importVideo(event) {
       transférer ou la conserver sur ton ordinateur.
     </footer>
     <div
-      v-if="modal && !['playlists', 'playlist'].includes(modal.type)"
+      v-if="modal && !['playlists', 'playlist', 'order'].includes(modal.type)"
       class="modal-backdrop"
       @click.self="modal = null"
     >
@@ -811,6 +868,55 @@ async function importVideo(event) {
         </form>
         <div v-if="error" class="video-alert" role="alert">{{ error }}</div>
       </section>
+    </div>
+    <div
+      v-if="modal?.type === 'order'"
+      class="modal-backdrop"
+      @click.self="modal = null"
+    >
+      <form
+        class="video-modal"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Ordre dans la playlist"
+        @submit.prevent="saveOrder"
+      >
+        <button
+          type="button"
+          class="icon-btn video-modal-close"
+          aria-label="Fermer"
+          @click="modal = null"
+        >
+          <X :size="19" /></button
+        ><span class="eyebrow">{{
+          modal.project.playlist || "Sans playlist"
+        }}</span>
+        <h2>Ordre dans la playlist</h2>
+        <p>{{ modal.project.name }}</p>
+        <label
+          >Position de la vidéo<input
+            v-model.number="orderPosition"
+            type="number"
+            min="1"
+            :max="
+              projects.filter((p) => p.playlist === modal.project.playlist)
+                .length
+            "
+            step="1"
+            required
+        /></label>
+        <p>
+          Les autres vidéos sont décalées automatiquement. Cet ordre reste
+          indépendant du statut de production. Les vidéos archivées conservent
+          leur position.
+        </p>
+        <div v-if="error" class="video-alert" role="alert">{{ error }}</div>
+        <div class="video-modal-actions">
+          <button type="button" class="btn" @click="modal = null">
+            Annuler</button
+          ><button class="btn primary" :disabled="busy">Enregistrer</button>
+        </div>
+      </form>
     </div>
   </main>
 </template>

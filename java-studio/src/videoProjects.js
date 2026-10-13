@@ -9,10 +9,13 @@ import { makeSlide } from "./model.js";
 import { makeThumbnail, thumbnailPalette } from "./thumbnails.js";
 import { makeOverlay } from "./overlays.js";
 export const videoStatuses = [
-  ["preparation", "Préparation"],
+  ["preparation", "Création"],
   ["ready", "Prêt à tourner"],
+  ["recording", "Tournage"],
   ["editing", "Montage"],
   ["done", "Terminé"],
+  ["publishing", "À publier"],
+  ["published", "Publié"],
 ];
 export const videoPlaylists = [
   "Java",
@@ -249,6 +252,7 @@ export function videoSummary(project) {
     status: project.status,
     archived: project.archived === true,
     updatedAt: project.updatedAt,
+    createdAt: project.createdAt,
     counts: Object.fromEntries(
       applications.map((a) => [
         a.id,
@@ -257,6 +261,69 @@ export function videoSummary(project) {
     ),
     total: project.creations.length,
   };
+}
+export function videoOrderIds(rows, saved = []) {
+  const existing = new Set(rows.map((p) => p.id)),
+    seen = new Set(),
+    result = [];
+  for (const id of Array.isArray(saved) ? saved : []) {
+    if (existing.has(id) && !seen.has(id)) {
+      result.push(id);
+      seen.add(id);
+    }
+  }
+  for (const row of [...rows].sort(
+    (a, b) =>
+      (a.createdAt || 0) - (b.createdAt || 0) || a.id.localeCompare(b.id),
+  )) {
+    if (!seen.has(row.id)) {
+      result.push(row.id);
+      seen.add(row.id);
+    }
+  }
+  return result;
+}
+export function numberedVideos(rows, saved = []) {
+  const byId = new Map(rows.map((p) => [p.id, p])),
+    counts = new Map();
+  return videoOrderIds(rows, saved).map((id) => {
+    const row = byId.get(id),
+      position = (counts.get(row.playlist) || 0) + 1;
+    counts.set(row.playlist, position);
+    return { ...row, playlistPosition: position };
+  });
+}
+export function moveVideoOrder(rows, saved, id, position) {
+  const row = rows.find((p) => p.id === id);
+  if (!row) throw Error("Vidéo introuvable.");
+  const order = videoOrderIds(rows, saved),
+    members = order.filter(
+      (key) => rows.find((p) => p.id === key)?.playlist === row.playlist,
+    );
+  if (!Number.isInteger(position) || position < 1 || position > members.length)
+    throw Error("Position attendue entre 1 et " + members.length + ".");
+  const previous = members.indexOf(id);
+  members.splice(previous, 1);
+  members.splice(position - 1, 0, id);
+  const memberSet = new Set(members);
+  let index = 0;
+  return order.map((key) => (memberSet.has(key) ? members[index++] : key));
+}
+export function sortVideos(rows, mode = "recent") {
+  const rank = (id) => {
+    const index = videoStatuses.findIndex(([key]) => key === id);
+    return index < 0 ? videoStatuses.length : index;
+  };
+  return [...rows].sort((a, b) =>
+    mode === "process"
+      ? rank(a.status) - rank(b.status) ||
+        a.playlist.localeCompare(b.playlist, "fr") ||
+        a.playlistPosition - b.playlistPosition
+      : mode === "playlist"
+        ? a.playlist.localeCompare(b.playlist, "fr") ||
+          a.playlistPosition - b.playlistPosition
+        : b.updatedAt - a.updatedAt || a.id.localeCompare(b.id),
+  );
 }
 export function changePlaylist(project, previous, next) {
   return project.playlist === previous
@@ -436,9 +503,40 @@ export function videoRepository(api = globalThis.indexedDB) {
         };
       }),
     list: () =>
-      transaction("readonly", (p, c, set, tx, s) => {
-        s.getAll().onsuccess = (e) =>
-          set(e.target.result.sort((a, b) => b.updatedAt - a.updatedAt));
+      transaction("readwrite", (p, c, set, tx, s, settings) => {
+        let rows, order;
+        const finish = () => {
+          if (!rows || order === undefined) return;
+          const ids = videoOrderIds(rows, order);
+          if (JSON.stringify(ids) !== JSON.stringify(order))
+            settings.put(ids, "video-order");
+          set(numberedVideos(rows, ids));
+        };
+        s.getAll().onsuccess = (e) => {
+          rows = e.target.result;
+          finish();
+        };
+        settings.get("video-order").onsuccess = (e) => {
+          order = e.target.result || [];
+          finish();
+        };
+      }),
+    moveVideo: (id, position) =>
+      transaction("readwrite", (p, c, set, tx, s, settings) => {
+        s.getAll().onsuccess = (e) => {
+          const rows = e.target.result;
+          settings.get("video-order").onsuccess = (event) => {
+            try {
+              settings.put(
+                moveVideoOrder(rows, event.target.result || [], id, position),
+                "video-order",
+              );
+            } catch (error) {
+              set(error);
+              tx.abort();
+            }
+          };
+        };
       }),
     cover: (id) =>
       transaction("readonly", (p, c, set) => {

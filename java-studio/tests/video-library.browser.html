@@ -77,6 +77,34 @@
         p.playlist = i % 2 ? "Java" : "IA";
         await repo.put(p);
       }
+      const beforeOrder = await repo.list(),
+        target = beforeOrder.filter((p) => p.playlist === "Java").at(-1);
+      await repo.moveVideo(target.id, 1);
+      if (
+        (await repo.list()).find((p) => p.id === target.id).playlistPosition !==
+        1
+      )
+        throw Error("Position non enregistrée");
+      const targetProject = await repo.get(target.id);
+      targetProject.status = "published";
+      await repo.put(targetProject);
+      if (
+        (await repo.list()).find((p) => p.id === target.id).playlistPosition !==
+        1
+      )
+        throw Error("Statut altère ordre");
+      await repo.editPlaylist("Java", "Java ordonnée");
+      if (
+        (await repo.list()).find((p) => p.id === target.id).playlistPosition !==
+        1
+      )
+        throw Error("Renommage altère ordre");
+      const again = videoRepository();
+      if (
+        (await again.list()).find((p) => p.id === target.id)
+          .playlistPosition !== 1
+      )
+        throw Error("Ordre non durable");
       const summaries = await repo.list();
       if (
         summaries.length !== 500 ||
@@ -101,7 +129,7 @@
         document.body.append(a);
       }
       output.textContent =
-        "PASS : migration v2→v3, playlists CRUD, 500 vidéos, fiches sans assets. Taille JSON des 500 résumés : " +
+        "PASS : migration v2→v3, playlists CRUD, ordre durable indépendant du statut, 500 vidéos, fiches sans assets. Taille JSON des 500 résumés : " +
         JSON.stringify(summaries).length +
         " caractères.";
     } catch (e) {

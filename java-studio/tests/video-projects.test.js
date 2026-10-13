@@ -241,3 +241,86 @@ test("individual imports normalize legacy projects and reject a different applic
     "Texte préservé",
   );
 });
+
+test("playlist positions are independent, contiguous and moving one video preserves other playlists", async () => {
+  const { numberedVideos, moveVideoOrder } =
+    await import("../src/videoProjects.js");
+  const rows = [
+    { id: "a", playlist: "Java", createdAt: 1 },
+    { id: "x", playlist: "IA", createdAt: 2 },
+    { id: "b", playlist: "Java", createdAt: 3, archived: true },
+    { id: "y", playlist: "IA", createdAt: 4 },
+    { id: "c", playlist: "Java", createdAt: 5 },
+  ];
+  const ids = moveVideoOrder(rows, [], "c", 1),
+    numbered = numberedVideos(rows, ids);
+  assert.deepEqual(
+    numbered
+      .filter((p) => p.playlist === "Java")
+      .map((p) => [p.id, p.playlistPosition]),
+    [
+      ["c", 1],
+      ["a", 2],
+      ["b", 3],
+    ],
+  );
+  assert.deepEqual(
+    numbered
+      .filter((p) => p.playlist === "IA")
+      .map((p) => [p.id, p.playlistPosition]),
+    [
+      ["x", 1],
+      ["y", 2],
+    ],
+  );
+  assert.throws(() => moveVideoOrder(rows, ids, "a", 0));
+  assert.throws(() => moveVideoOrder(rows, ids, "a", 4));
+  assert.throws(() => moveVideoOrder(rows, ids, "a", 1.5));
+  assert.throws(() => moveVideoOrder(rows, ids, "unknown", 1));
+  assert.equal(rows[0].playlistPosition, undefined);
+});
+test("saved video order survives status, names and playlist renames and appends new videos", async () => {
+  const { numberedVideos, videoOrderIds, changePlaylist } =
+    await import("../src/videoProjects.js");
+  const rows = [
+      { id: "a", playlist: "Java", createdAt: 1, status: "preparation" },
+      { id: "b", playlist: "Java", createdAt: 2, status: "published" },
+    ],
+    saved = ["b", "a"];
+  const changed = rows.map((p) =>
+    changePlaylist({ ...p, status: "editing", updatedAt: 9999 }, "Java", "JVM"),
+  );
+  assert.deepEqual(
+    numberedVideos(changed, saved).map((p) => [p.id, p.playlistPosition]),
+    [
+      ["b", 1],
+      ["a", 2],
+    ],
+  );
+  const added = [...rows, { id: "c", playlist: "Java", createdAt: 3 }];
+  assert.deepEqual(videoOrderIds(added, ["b", "b", "missing", "a"]), [
+    "b",
+    "a",
+    "c",
+  ]);
+});
+test("process sorting follows the workflow while playlist sorting follows manual positions", async () => {
+  const { sortVideos, videoStatuses } = await import("../src/videoProjects.js");
+  const rows = videoStatuses.map(([status], i) => ({
+    id: String(i),
+    playlist: "Java",
+    status,
+    playlistPosition: videoStatuses.length - i,
+    updatedAt: i,
+  }));
+  assert.deepEqual(
+    sortVideos(rows.slice().reverse(), "process").map((p) => p.status),
+    videoStatuses.map(([id]) => id),
+  );
+  assert.deepEqual(
+    sortVideos(rows, "playlist").map((p) => p.playlistPosition),
+    rows.map((p) => p.playlistPosition).sort((a, b) => a - b),
+  );
+  assert.equal(sortVideos(rows, "recent")[0].updatedAt, rows.length - 1);
+  assert.equal(rows[0].status, "preparation");
+});
