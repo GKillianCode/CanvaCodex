@@ -139,3 +139,5 @@ Canvas sauvegardé automatiquement dans IndexedDB, avec indication d’erreur et
 Les groupes du canvas disposent de quatre poignées pour redimensionner leur cadre. Glisse une carte entièrement à l’intérieur pour l’ajouter, ou à l’extérieur pour la retirer ; déplace tout le groupe par son titre. Les cadres restent enregistrés, même lorsqu’ils sont vides.
 
 Le canvas affiche l’état de production sur les cartes vidéo avec un liseré discret. Toutes les cartes ont les mêmes dimensions. Les poignées apparaissent au survol ou à la sélection ; les groupes possèdent huit poignées (coins et côtés). Le panneau latéral a été retiré : double-clique une étape ou un groupe pour le modifier, ou passe par le clic droit. Les vidéos déjà placées sont exclues du sélecteur d’ajout.
+
+Le prototype des espaces vidéo, playlists, carnet et canvas a été validé le 13 octobre 2026 pour intégration dans `main`. Les cartes vidéo utilisent une bordure de 2 px dans la couleur du statut pour faciliter la lecture de leur avancement.

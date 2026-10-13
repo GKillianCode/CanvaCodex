@@ -420,7 +420,7 @@ async function importVideo(event) {
     <header class="video-library-header">
       <a class="brand-name" href="#/" @click.prevent="emit('home')"
         >frame<span class="brand-dot">.</span></a
-      ><span class="video-test-badge">ESPACES VIDÉO · VERSION TEST</span
+      ><span class="video-test-badge">ESPACES VIDÉO</span
       ><span class="home-personal">TON STUDIO PERSONNEL</span>
     </header>
     <div v-if="error" class="video-alert" role="alert">
