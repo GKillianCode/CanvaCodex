@@ -136,17 +136,51 @@ test("panning preserves world position when the canvas origin grows", async () =
 });
 
 test("resizable group frames survive reload and accept or release dropped cards", async () => {
-  const { assignCanvasGroups, canvasGroupBounds } = await import("../src/videoCanvas.js");
-  let c = normalizeVideoCanvas({ nodes: [{id:"a",x:24,y:72},{id:"b",x:360,y:72}], groups:[{id:"g",members:["a"],bounds:{x:0,y:0,width:720,height:360}}] });
-  c = assignCanvasGroups(c,["b"]);
-  assert.deepEqual(c.groups[0].members,["a","b"]);
-  assert.deepEqual(canvasGroupBounds(c,c.groups[0]),{x:0,y:0,width:720,height:360});
-  assert.deepEqual(normalizeVideoCanvas(JSON.parse(JSON.stringify(c))),c);
-  c.nodes[1].x=800;
-  c=assignCanvasGroups(c,["b"]);
-  assert.deepEqual(c.groups[0].members,["a"]);
-  c.nodes[0].x=900;
-  c=assignCanvasGroups(c,["a"]);
-  assert.equal(c.groups.length,1);
-  assert.equal(normalizeVideoCanvas(c).groups.length,1);
+  const { assignCanvasGroups, canvasGroupBounds } =
+    await import("../src/videoCanvas.js");
+  let c = normalizeVideoCanvas({
+    nodes: [
+      { id: "a", x: 24, y: 72 },
+      { id: "b", x: 360, y: 72 },
+    ],
+    groups: [
+      {
+        id: "g",
+        members: ["a"],
+        bounds: { x: 0, y: 0, width: 720, height: 360 },
+      },
+    ],
+  });
+  c = assignCanvasGroups(c, ["b"]);
+  assert.deepEqual(c.groups[0].members, ["a", "b"]);
+  assert.deepEqual(canvasGroupBounds(c, c.groups[0]), {
+    x: 0,
+    y: 0,
+    width: 720,
+    height: 360,
+  });
+  assert.deepEqual(normalizeVideoCanvas(JSON.parse(JSON.stringify(c))), c);
+  c.nodes[1].x = 800;
+  c = assignCanvasGroups(c, ["b"]);
+  assert.deepEqual(c.groups[0].members, ["a"]);
+  c.nodes[0].x = 900;
+  c = assignCanvasGroups(c, ["a"]);
+  assert.equal(c.groups.length, 1);
+  assert.equal(normalizeVideoCanvas(c).groups.length, 1);
+});
+
+test("video picker excludes existing and archived videos without hiding reusable steps", async () => {
+  const { availableCanvasVideos } = await import("../src/videoCanvas.js");
+  const c = normalizeVideoCanvas({
+    nodes: [
+      { id: "n", type: "video", videoId: "a" },
+      { id: "step", type: "note", title: "b" },
+    ],
+  });
+  const videos = [{ id: "a" }, { id: "b" }, { id: "c", archived: true }];
+  assert.deepEqual(availableCanvasVideos(c, videos), [videos[1]]);
+  assert.deepEqual(
+    availableCanvasVideos(removeCanvasNode(c, "n"), videos),
+    videos.slice(0, 2),
+  );
 });

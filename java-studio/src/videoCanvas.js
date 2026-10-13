@@ -68,7 +68,24 @@ export function normalizeVideoCanvas(raw = {}) {
       id: row.id,
       title: String(row.title || "Groupe").slice(0, 200),
       members,
-      ...(row.bounds && Number.isFinite(Number(row.bounds.width)) && Number.isFinite(Number(row.bounds.height)) ? { bounds: { x: coordinate(row.bounds.x), y: coordinate(row.bounds.y), width: Math.max(328, Math.min(CANVAS_LIMIT, Number(row.bounds.width))), height: Math.max(320, Math.min(CANVAS_LIMIT, Number(row.bounds.height))) } } : {}),
+      ...(row.bounds &&
+      Number.isFinite(Number(row.bounds.width)) &&
+      Number.isFinite(Number(row.bounds.height))
+        ? {
+            bounds: {
+              x: coordinate(row.bounds.x),
+              y: coordinate(row.bounds.y),
+              width: Math.max(
+                328,
+                Math.min(CANVAS_LIMIT, Number(row.bounds.width)),
+              ),
+              height: Math.max(
+                320,
+                Math.min(CANVAS_LIMIT, Number(row.bounds.height)),
+              ),
+            },
+          }
+        : {}),
     });
   }
   return { version: 1, nodes, edges, groups, snap: raw.snap !== false };
@@ -201,15 +218,42 @@ export function panCanvasScroll(start, delta, zoom, origin) {
 
 export function assignCanvasGroups(canvas, ids) {
   const assignments = new Map();
-  for (const node of canvas.nodes.filter(n => ids.includes(n.id))) {
-    const target = canvas.groups.filter(g => {
-      const b = canvasGroupBounds(canvas, g);
-      return b && node.x >= b.x + 12 && node.y >= b.y + 48 && node.x + 280 <= b.x + b.width - 12 && node.y + 240 <= b.y + b.height - 12;
-    }).sort((a,b) => {
-      const x = canvasGroupBounds(canvas,a), y = canvasGroupBounds(canvas,b);
-      return x.width*x.height-y.width*y.height;
-    })[0];
+  for (const node of canvas.nodes.filter((n) => ids.includes(n.id))) {
+    const target = canvas.groups
+      .filter((g) => {
+        const b = canvasGroupBounds(canvas, g);
+        return (
+          b &&
+          node.x >= b.x + 12 &&
+          node.y >= b.y + 48 &&
+          node.x + 280 <= b.x + b.width - 12 &&
+          node.y + 240 <= b.y + b.height - 12
+        );
+      })
+      .sort((a, b) => {
+        const x = canvasGroupBounds(canvas, a),
+          y = canvasGroupBounds(canvas, b);
+        return x.width * x.height - y.width * y.height;
+      })[0];
     assignments.set(node.id, target?.id);
   }
-  return { ...canvas, groups: canvas.groups.map(g => ({ ...g, members: [...g.members.filter(id => !assignments.has(id)), ...ids.filter(id => assignments.get(id) === g.id)] })).filter(g => g.members.length || g.bounds) };
+  return {
+    ...canvas,
+    groups: canvas.groups
+      .map((g) => ({
+        ...g,
+        members: [
+          ...g.members.filter((id) => !assignments.has(id)),
+          ...ids.filter((id) => assignments.get(id) === g.id),
+        ],
+      }))
+      .filter((g) => g.members.length || g.bounds),
+  };
+}
+
+export function availableCanvasVideos(canvas, videos) {
+  const present = new Set(
+    canvas.nodes.filter((n) => n.type === "video").map((n) => n.videoId),
+  );
+  return videos.filter((v) => !v.archived && !present.has(v.id));
 }

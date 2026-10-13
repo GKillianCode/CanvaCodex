@@ -17,6 +17,7 @@ import {
   ArrowUpRight,
 } from "lucide-vue-next";
 import LibraryPreview from "./LibraryPreview.vue";
+import { videoStatuses } from "../videoProjects.js";
 import {
   normalizeVideoCanvas,
   connectVideoCanvas,
@@ -33,6 +34,7 @@ import {
   nodesInCanvasRect,
   panCanvasScroll,
   assignCanvasGroups,
+  availableCanvasVideos,
 } from "../videoCanvas.js";
 const props = defineProps({ repository: Object, videos: Array });
 const emit = defineEmits(["close", "open"]);
@@ -61,7 +63,18 @@ const space = ref(false),
   marquee = ref(null),
   extent = ref({ x: -6000, y: -4000, right: 6000, bottom: 4000 });
 const world = computed(() =>
-  canvasWorldBounds([...canvas.value.nodes, ...canvas.value.groups.filter(g => g.bounds).flatMap(g => [{ x:g.bounds.x, y:g.bounds.y }, { x:g.bounds.x+g.bounds.width, y:g.bounds.y+g.bounds.height }])], extent.value),
+  canvasWorldBounds(
+    [
+      ...canvas.value.nodes,
+      ...canvas.value.groups
+        .filter((g) => g.bounds)
+        .flatMap((g) => [
+          { x: g.bounds.x, y: g.bounds.y },
+          { x: g.bounds.x + g.bounds.width, y: g.bounds.y + g.bounds.height },
+        ]),
+    ],
+    extent.value,
+  ),
 );
 function extendWorld() {
   if (!viewport.value) return;
@@ -108,7 +121,7 @@ function editable(event) {
   );
 }
 function canvasKey(event) {
-  if (editable(event)) return;
+  if (editable(event) || picker.value || editingCard.value) return;
   if (event.code === "Space") {
     event.preventDefault();
     space.value = true;
@@ -321,14 +334,23 @@ const draftConnection = computed(() => {
   });
 });
 const videoMap = computed(() => new Map(props.videos.map((v) => [v.id, v])));
+const editingCard = ref(false);
+watch(editingCard, async (open) => {
+  await nextTick();
+  if (open) panel.value?.querySelector(".canvas-card-editor input")?.focus();
+  else panel.value?.focus();
+});
 const selectedNode = computed(() =>
   canvas.value.nodes.find((n) => n.id === selected.value),
 );
+const availableVideos = computed(() =>
+  availableCanvasVideos(canvas.value, props.videos),
+);
+const statusTitle = (id) =>
+  videoStatuses.find(([key]) => key === id)?.[1] || "Création";
 const candidates = computed(() =>
-  props.videos.filter(
-    (v) =>
-      !v.archived &&
-      v.name.toLocaleLowerCase().includes(query.value.toLocaleLowerCase()),
+  availableVideos.value.filter((v) =>
+    v.name.toLocaleLowerCase().includes(query.value.toLocaleLowerCase()),
   ),
 );
 const pickerPages = computed(() =>
@@ -338,6 +360,7 @@ const pickerRows = computed(() =>
   candidates.value.slice((page.value - 1) * 24, page.value * 24),
 );
 watch(query, () => (page.value = 1));
+watch(pickerPages, (count) => (page.value = Math.min(page.value, count)));
 let timer,
   active = true,
   writing = false,
@@ -476,7 +499,9 @@ function addNote() {
   changed();
 }
 function addVideos() {
-  const ids = checked.value;
+  const ids = [...new Set(checked.value)].filter((id) =>
+    availableVideos.value.some((v) => v.id === id),
+  );
   if (canvas.value.nodes.length + ids.length > 500) {
     error.value = "Limite de 500 cartes atteinte.";
     return;
@@ -549,7 +574,8 @@ const paths = computed(() =>
 let drag = null;
 function beginDrag(event, ids, groupId = null) {
   event.preventDefault();
-  for (const g of canvas.value.groups) g.bounds ||= canvasGroupBounds(canvas.value, g);
+  for (const g of canvas.value.groups)
+    g.bounds ||= canvasGroupBounds(canvas.value, g);
   drag = {
     items: canvas.value.nodes
       .filter((n) => ids.includes(n.id))
@@ -558,7 +584,12 @@ function beginDrag(event, ids, groupId = null) {
     py: event.clientY,
     moved: false,
     groupId,
-    bounds: groupId ? canvasGroupBounds(canvas.value, canvas.value.groups.find(g => g.id === groupId)) : null,
+    bounds: groupId
+      ? canvasGroupBounds(
+          canvas.value,
+          canvas.value.groups.find((g) => g.id === groupId),
+        )
+      : null,
   };
   window.addEventListener("pointermove", moveDrag);
   window.addEventListener("pointerup", endDrag);
@@ -591,11 +622,17 @@ function moveDrag(event) {
       : dy;
   const boundedX = Math.max(
     -CANVAS_LIMIT - Math.min(anchor.x, ...drag.items.map((n) => n.x)),
-    Math.min(CANVAS_LIMIT - Math.max(anchor.x, ...drag.items.map((n) => n.x)), sx),
+    Math.min(
+      CANVAS_LIMIT - Math.max(anchor.x, ...drag.items.map((n) => n.x)),
+      sx,
+    ),
   );
   const boundedY = Math.max(
     -CANVAS_LIMIT - Math.min(anchor.y, ...drag.items.map((n) => n.y)),
-    Math.min(CANVAS_LIMIT - Math.max(anchor.y, ...drag.items.map((n) => n.y)), sy),
+    Math.min(
+      CANVAS_LIMIT - Math.max(anchor.y, ...drag.items.map((n) => n.y)),
+      sy,
+    ),
   );
   drag.items.forEach((item) => {
     const node = canvas.value.nodes.find((n) => n.id === item.id);
@@ -603,16 +640,24 @@ function moveDrag(event) {
     node.y = item.y + boundedY;
   });
   if (drag.groupId) {
-    const group = canvas.value.groups.find(g => g.id === drag.groupId);
-    group.bounds = { ...drag.bounds, x: drag.bounds.x + boundedX, y: drag.bounds.y + boundedY };
+    const group = canvas.value.groups.find((g) => g.id === drag.groupId);
+    group.bounds = {
+      ...drag.bounds,
+      x: drag.bounds.x + boundedX,
+      y: drag.bounds.y + boundedY,
+    };
   }
   drag.moved = true;
 }
 function endDrag(event) {
   if (drag?.moved) {
     if (!drag.groupId && event?.type !== "pointercancel") {
-      for (const g of canvas.value.groups) g.bounds ||= canvasGroupBounds(canvas.value, g);
-      canvas.value = assignCanvasGroups(canvas.value, drag.items.map(n => n.id));
+      for (const g of canvas.value.groups)
+        g.bounds ||= canvasGroupBounds(canvas.value, g);
+      canvas.value = assignCanvasGroups(
+        canvas.value,
+        drag.items.map((n) => n.id),
+      );
     }
     changed();
   }
@@ -624,29 +669,51 @@ function endDrag(event) {
 let resizing = null;
 function startResize(event, group, corner) {
   if (event.button !== 0 || space.value) return;
-  event.preventDefault(); event.stopPropagation();
+  event.preventDefault();
+  event.stopPropagation();
   selectedGroup.value = group.id;
-  resizing = { id: group.id, corner, x: event.clientX, y: event.clientY, bounds: canvasGroupBounds(canvas.value, group) };
+  resizing = {
+    id: group.id,
+    corner,
+    x: event.clientX,
+    y: event.clientY,
+    bounds: canvasGroupBounds(canvas.value, group),
+  };
   window.addEventListener("pointermove", resizeGroup);
   window.addEventListener("pointerup", endResize);
   window.addEventListener("pointercancel", endResize);
 }
 function resizeGroup(event) {
-  const r = resizing; if (!r) return;
-  const b = r.bounds, dx = (event.clientX-r.x)/zoom.value, dy = (event.clientY-r.y)/zoom.value;
-  let left=b.x, top=b.y, right=b.x+b.width, bottom=b.y+b.height;
-  if(r.corner.includes("w")) left=snapCanvasPosition(b.x+dx); else right=snapCanvasPosition(right+dx);
-  if(r.corner.includes("n")) top=snapCanvasPosition(b.y+dy); else bottom=snapCanvasPosition(bottom+dy);
-  const members=canvas.value.nodes.filter(n => canvas.value.groups.find(g=>g.id===r.id).members.includes(n.id));
-  left=Math.min(left,right-328,...members.map(n=>n.x-12));
-  top=Math.min(top,bottom-320,...members.map(n=>n.y-48));
-  right=Math.max(right,left+328,...members.map(n=>n.x+292));
-  bottom=Math.max(bottom,top+320,...members.map(n=>n.y+252));
-  canvas.value.groups.find(g=>g.id===r.id).bounds={x:left,y:top,width:right-left,height:bottom-top};
+  const r = resizing;
+  if (!r) return;
+  const b = r.bounds,
+    dx = (event.clientX - r.x) / zoom.value,
+    dy = (event.clientY - r.y) / zoom.value;
+  let left = b.x,
+    top = b.y,
+    right = b.x + b.width,
+    bottom = b.y + b.height;
+  if (r.corner.includes("w")) left = snapCanvasPosition(b.x + dx);
+  else if (r.corner.includes("e")) right = snapCanvasPosition(right + dx);
+  if (r.corner.includes("n")) top = snapCanvasPosition(b.y + dy);
+  else if (r.corner.includes("s")) bottom = snapCanvasPosition(bottom + dy);
+  const members = canvas.value.nodes.filter((n) =>
+    canvas.value.groups.find((g) => g.id === r.id).members.includes(n.id),
+  );
+  left = Math.min(left, right - 328, ...members.map((n) => n.x - 12));
+  top = Math.min(top, bottom - 320, ...members.map((n) => n.y - 48));
+  right = Math.max(right, left + 328, ...members.map((n) => n.x + 292));
+  bottom = Math.max(bottom, top + 320, ...members.map((n) => n.y + 252));
+  canvas.value.groups.find((g) => g.id === r.id).bounds = {
+    x: left,
+    y: top,
+    width: right - left,
+    height: bottom - top,
+  };
 }
 function endResize() {
-  if(resizing) changed();
-  resizing=null;
+  if (resizing) changed();
+  resizing = null;
   window.removeEventListener("pointermove", resizeGroup);
   window.removeEventListener("pointerup", endResize);
   window.removeEventListener("pointercancel", endResize);
@@ -720,11 +787,13 @@ function selectEdge(value) {
     @keydown.esc="
       menu
         ? (menu = null)
-        : picker
-          ? (picker = false)
-          : source
-            ? cancelConnection()
-            : close()
+        : editingCard
+          ? (editingCard = false)
+          : picker
+            ? (picker = false)
+            : source
+              ? cancelConnection()
+              : close()
     "
   >
     <header class="learning-canvas-header">
@@ -769,6 +838,11 @@ function selectEdge(value) {
               v-for="group in groups"
               :key="group.id"
               class="canvas-group"
+              @dblclick="
+                selectedGroup = group.id;
+                selected = null;
+                editingCard = true;
+              "
               :class="{ selected: selectedGroup === group.id }"
               :style="{
                 left: group.x - world.x + 'px',
@@ -793,7 +867,14 @@ function selectEdge(value) {
               >
                 {{ group.title }}<span>{{ group.members.length }} cartes</span>
               </button>
-              <button v-for="corner in ['nw','ne','sw','se']" :key="corner" class="canvas-group-resize" :class="corner" :aria-label="'Redimensionner le groupe '+group.title" @pointerdown.stop="startResize($event,group,corner)" />
+              <button
+                v-for="corner in ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w']"
+                :key="corner"
+                class="canvas-group-resize"
+                :class="corner"
+                :aria-label="'Redimensionner le groupe ' + group.title"
+                @pointerdown.stop="startResize($event, group, corner)"
+              />
             </div>
             <svg
               class="canvas-connections"
@@ -852,6 +933,11 @@ function selectEdge(value) {
               :key="node.id"
               class="canvas-node"
               :data-node-id="node.id"
+              :data-status="
+                node.type === 'video'
+                  ? videoMap.get(node.videoId)?.status || 'preparation'
+                  : null
+              "
               :class="{
                 selected: selectedIds.includes(node.id),
                 source: source === node.id,
@@ -893,6 +979,7 @@ function selectEdge(value) {
               ><button
                 class="canvas-node-content"
                 @click="selectNode(node, $event)"
+                @dblclick="node.type === 'note' && (editingCard = true)"
               >
                 <LibraryPreview
                   v-if="node.type === 'video'"
@@ -903,8 +990,16 @@ function selectEdge(value) {
                   <Link2 :size="28" /><span>ÉTAPE DU PARCOURS</span>
                 </div>
                 <strong>{{ title(node) }}</strong>
+                <span
+                  v-if="node.type === 'video'"
+                  class="canvas-video-status"
+                  :data-status="
+                    videoMap.get(node.videoId)?.status || 'preparation'
+                  "
+                  >{{ statusTitle(videoMap.get(node.videoId)?.status) }}</span
+                >
                 <p v-if="node.type === 'note'">
-                  {{ node.text || "Définis cette étape dans le panneau." }}
+                  {{ node.text || "Double-clique pour définir cette étape." }}
                 </p></button
               ><button
                 v-if="node.type === 'video' && videoMap.has(node.videoId)"
@@ -921,80 +1016,6 @@ function selectEdge(value) {
           </div>
         </div>
       </div>
-      <aside class="canvas-inspector">
-        <h3>
-          {{
-            currentGroup
-              ? "Groupe sélectionné"
-              : linking
-                ? "Créer un lien"
-                : selectedNode
-                  ? "Carte sélectionnée"
-                  : edge
-                    ? "Lien sélectionné"
-                    : "Construire un parcours"
-          }}
-        </h3>
-        <template v-if="currentGroup"
-          ><label
-            >Nom du groupe<input
-              v-model="currentGroup.title"
-              maxlength="200"
-              @input="changed"
-          /></label>
-          <p>
-            {{ currentGroup.members.length }} cartes · glisse une carte dans le cadre pour l’ajouter. Étire les coins pour agrandir le cadre. Déplace le groupe par son
-            titre.
-          </p>
-          <button class="btn" @click="ungroup">Dégrouper</button></template
-        >
-        <p v-else-if="linking">
-          {{
-            source
-              ? "Clique sur la carte qui vient ensuite."
-              : "Clique sur la carte de départ, puis sur celle qui vient ensuite."
-          }}
-        </p>
-        <template v-else-if="selectedNode"
-          ><label v-if="selectedNode.type === 'note'"
-            >Titre<input
-              v-model="selectedNode.title"
-              maxlength="200"
-              @input="changed" /></label
-          ><label v-if="selectedNode.type === 'note'"
-            >Description<textarea
-              v-model="selectedNode.text"
-              maxlength="4000"
-              rows="8"
-              @input="changed"
-            />
-          </label>
-          <p v-else>{{ title(selectedNode) }}</p>
-          <p>
-            Déplace la carte avec sa poignée. Les flèches restent attachées.
-          </p> </template
-        ><template v-else-if="edge"
-          ><p>Retirer ce lien ne supprime aucune vidéo.</p>
-          <button class="btn" @click="removeSelected">
-            Supprimer le lien
-          </button></template
-        ><template v-else
-          ><p>
-            Ajoute une étape « Bases de Java », tes vidéos, puis un projet fil
-            rouge. Une carte peut mener à plusieurs chemins parallèles.
-          </p>
-          <p>{{ selectedIds.length }} cartes sélectionnées.</p>
-          <p>
-            Molette enfoncée ou Espace + glisser pour se déplacer ; Ctrl +
-            molette pour zoomer. Tire un rectangle dans le vide pour
-            sélectionner une zone, Ctrl A pour tout sélectionner. Maj + clic
-            ajoute une carte à la sélection.
-          </p></template
-        ><small
-          >{{ canvas.nodes.length }} cartes ·
-          {{ canvas.edges.length }} liens</small
-        >
-      </aside>
     </div>
     <footer class="canvas-status">
       <span role="status" aria-live="polite"
@@ -1081,6 +1102,16 @@ function selectEdge(value) {
       </button>
       <hr />
       <button
+        v-if="currentGroup || selectedNode?.type === 'note'"
+        role="menuitem"
+        @click="
+          editingCard = true;
+          menu = null;
+        "
+      >
+        {{ currentGroup ? "Renommer le groupe" : "Modifier l’étape" }}
+      </button>
+      <button
         role="menuitem"
         :disabled="selectedIds.length < 2"
         @click="groupSelection"
@@ -1142,6 +1173,54 @@ function selectEdge(value) {
       >
         Dézoomer
       </button>
+    </div>
+    <div
+      v-if="editingCard && (currentGroup || selectedNode?.type === 'note')"
+      class="canvas-picker-backdrop"
+      @click.self="editingCard = false"
+    >
+      <section
+        class="canvas-card-editor canvas-picker"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Modifier la carte"
+      >
+        <header>
+          <h3>
+            {{ currentGroup ? "Modifier le groupe" : "Modifier l’étape" }}
+          </h3>
+          <button
+            class="icon-btn"
+            aria-label="Fermer la modification"
+            @click="editingCard = false"
+          >
+            <X :size="20" />
+          </button>
+        </header>
+        <label v-if="currentGroup"
+          >Nom du groupe<input
+            v-model="currentGroup.title"
+            maxlength="200"
+            @input="changed"
+        /></label>
+        <template v-else
+          ><label
+            >Titre<input
+              v-model="selectedNode.title"
+              maxlength="200"
+              @input="changed" /></label
+          ><label
+            >Description<textarea
+              v-model="selectedNode.text"
+              maxlength="4000"
+              rows="6"
+              @input="changed"
+            /></label
+        ></template>
+        <button class="btn primary" @click="editingCard = false">
+          Terminer
+        </button>
+      </section>
     </div>
     <div v-if="picker" class="canvas-picker-backdrop">
       <section
