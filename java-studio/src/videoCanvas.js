@@ -62,12 +62,13 @@ export function normalizeVideoCanvas(raw = {}) {
     const members = [
       ...new Set(Array.isArray(row.members) ? row.members : []),
     ].filter((id) => ids.has(id) && !grouped.has(id));
-    if (!members.length) continue;
+    if (!members.length && !row.bounds) continue;
     members.forEach((id) => grouped.add(id));
     groups.push({
       id: row.id,
       title: String(row.title || "Groupe").slice(0, 200),
       members,
+      ...(row.bounds && Number.isFinite(Number(row.bounds.width)) && Number.isFinite(Number(row.bounds.height)) ? { bounds: { x: coordinate(row.bounds.x), y: coordinate(row.bounds.y), width: Math.max(328, Math.min(CANVAS_LIMIT, Number(row.bounds.width))), height: Math.max(320, Math.min(CANVAS_LIMIT, Number(row.bounds.height))) } } : {}),
     });
   }
   return { version: 1, nodes, edges, groups, snap: raw.snap !== false };
@@ -149,6 +150,7 @@ export function groupCanvasNodes(canvas, members, id) {
   };
 }
 export function canvasGroupBounds(canvas, group) {
+  if (group.bounds) return { ...group.bounds };
   const nodes = canvas.nodes.filter((n) => group.members.includes(n.id));
   if (!nodes.length) return null;
   const x = Math.min(...nodes.map((n) => n.x)) - 24,
@@ -195,4 +197,19 @@ export function panCanvasScroll(start, delta, zoom, origin) {
     left: (start.x - origin.x) * zoom + delta.x,
     top: (start.y - origin.y) * zoom + delta.y,
   };
+}
+
+export function assignCanvasGroups(canvas, ids) {
+  const assignments = new Map();
+  for (const node of canvas.nodes.filter(n => ids.includes(n.id))) {
+    const target = canvas.groups.filter(g => {
+      const b = canvasGroupBounds(canvas, g);
+      return b && node.x >= b.x + 12 && node.y >= b.y + 48 && node.x + 280 <= b.x + b.width - 12 && node.y + 240 <= b.y + b.height - 12;
+    }).sort((a,b) => {
+      const x = canvasGroupBounds(canvas,a), y = canvasGroupBounds(canvas,b);
+      return x.width*x.height-y.width*y.height;
+    })[0];
+    assignments.set(node.id, target?.id);
+  }
+  return { ...canvas, groups: canvas.groups.map(g => ({ ...g, members: [...g.members.filter(id => !assignments.has(id)), ...ids.filter(id => assignments.get(id) === g.id)] })).filter(g => g.members.length || g.bounds) };
 }

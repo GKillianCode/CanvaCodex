@@ -32,6 +32,7 @@ import {
   canvasWorldBounds,
   nodesInCanvasRect,
   panCanvasScroll,
+  assignCanvasGroups,
 } from "../videoCanvas.js";
 const props = defineProps({ repository: Object, videos: Array });
 const emit = defineEmits(["close", "open"]);
@@ -60,7 +61,7 @@ const space = ref(false),
   marquee = ref(null),
   extent = ref({ x: -6000, y: -4000, right: 6000, bottom: 4000 });
 const world = computed(() =>
-  canvasWorldBounds(canvas.value.nodes, extent.value),
+  canvasWorldBounds([...canvas.value.nodes, ...canvas.value.groups.filter(g => g.bounds).flatMap(g => [{ x:g.bounds.x, y:g.bounds.y }, { x:g.bounds.x+g.bounds.width, y:g.bounds.y+g.bounds.height }])], extent.value),
 );
 function extendWorld() {
   if (!viewport.value) return;
@@ -125,6 +126,7 @@ function releaseKey(event) {
 }
 function resetPointer() {
   space.value = false;
+  endResize();
   finishGesture();
   endDrag();
   cancelConnection();
@@ -437,6 +439,7 @@ onBeforeUnmount(() => {
   window.removeEventListener("keydown", canvasKey);
   window.removeEventListener("keyup", releaseKey);
   window.removeEventListener("blur", resetPointer);
+  endResize();
   finishGesture();
   active = false;
   clearTimeout(timer);
@@ -544,8 +547,9 @@ const paths = computed(() =>
   }),
 );
 let drag = null;
-function beginDrag(event, ids) {
+function beginDrag(event, ids, groupId = null) {
   event.preventDefault();
+  for (const g of canvas.value.groups) g.bounds ||= canvasGroupBounds(canvas.value, g);
   drag = {
     items: canvas.value.nodes
       .filter((n) => ids.includes(n.id))
@@ -553,6 +557,8 @@ function beginDrag(event, ids) {
     px: event.clientX,
     py: event.clientY,
     moved: false,
+    groupId,
+    bounds: groupId ? canvasGroupBounds(canvas.value, canvas.value.groups.find(g => g.id === groupId)) : null,
   };
   window.addEventListener("pointermove", moveDrag);
   window.addEventListener("pointerup", endDrag);
@@ -561,15 +567,6 @@ function beginDrag(event, ids) {
 function startDrag(event, node) {
   if (event.button !== 0 || loading.value || linking.value || space.value)
     return;
-  const group = canvas.value.groups.find((g) => g.members.includes(node.id));
-  if (
-    group &&
-    !event.shiftKey &&
-    selectedIds.value.every((id) => group.members.includes(id))
-  ) {
-    startGroupDrag(event, group);
-    return;
-  }
   if (!selectedIds.value.includes(node.id)) selectNode(node, event);
   beginDrag(event, selectedIds.value);
 }
@@ -578,14 +575,14 @@ function startGroupDrag(event, group) {
   selectedGroup.value = group.id;
   selected.value = null;
   selectedIds.value = [...group.members];
-  beginDrag(event, group.members);
+  beginDrag(event, group.members, group.id);
 }
 function moveDrag(event) {
   if (!drag) return;
   event.preventDefault();
   const dx = (event.clientX - drag.px) / zoom.value,
     dy = (event.clientY - drag.py) / zoom.value;
-  const anchor = drag.items[0];
+  const anchor = drag.items[0] || drag.bounds;
   const sx = canvas.value.snap
       ? Math.round((anchor.x + dx) / 24) * 24 - anchor.x
       : dx,
@@ -593,26 +590,66 @@ function moveDrag(event) {
       ? Math.round((anchor.y + dy) / 24) * 24 - anchor.y
       : dy;
   const boundedX = Math.max(
-    -CANVAS_LIMIT - Math.min(...drag.items.map((n) => n.x)),
-    Math.min(CANVAS_LIMIT - Math.max(...drag.items.map((n) => n.x)), sx),
+    -CANVAS_LIMIT - Math.min(anchor.x, ...drag.items.map((n) => n.x)),
+    Math.min(CANVAS_LIMIT - Math.max(anchor.x, ...drag.items.map((n) => n.x)), sx),
   );
   const boundedY = Math.max(
-    -CANVAS_LIMIT - Math.min(...drag.items.map((n) => n.y)),
-    Math.min(CANVAS_LIMIT - Math.max(...drag.items.map((n) => n.y)), sy),
+    -CANVAS_LIMIT - Math.min(anchor.y, ...drag.items.map((n) => n.y)),
+    Math.min(CANVAS_LIMIT - Math.max(anchor.y, ...drag.items.map((n) => n.y)), sy),
   );
   drag.items.forEach((item) => {
     const node = canvas.value.nodes.find((n) => n.id === item.id);
     node.x = item.x + boundedX;
     node.y = item.y + boundedY;
   });
+  if (drag.groupId) {
+    const group = canvas.value.groups.find(g => g.id === drag.groupId);
+    group.bounds = { ...drag.bounds, x: drag.bounds.x + boundedX, y: drag.bounds.y + boundedY };
+  }
   drag.moved = true;
 }
-function endDrag() {
-  if (drag?.moved) changed();
+function endDrag(event) {
+  if (drag?.moved) {
+    if (!drag.groupId && event?.type !== "pointercancel") {
+      for (const g of canvas.value.groups) g.bounds ||= canvasGroupBounds(canvas.value, g);
+      canvas.value = assignCanvasGroups(canvas.value, drag.items.map(n => n.id));
+    }
+    changed();
+  }
   drag = null;
   window.removeEventListener("pointermove", moveDrag);
   window.removeEventListener("pointerup", endDrag);
   window.removeEventListener("pointercancel", endDrag);
+}
+let resizing = null;
+function startResize(event, group, corner) {
+  if (event.button !== 0 || space.value) return;
+  event.preventDefault(); event.stopPropagation();
+  selectedGroup.value = group.id;
+  resizing = { id: group.id, corner, x: event.clientX, y: event.clientY, bounds: canvasGroupBounds(canvas.value, group) };
+  window.addEventListener("pointermove", resizeGroup);
+  window.addEventListener("pointerup", endResize);
+  window.addEventListener("pointercancel", endResize);
+}
+function resizeGroup(event) {
+  const r = resizing; if (!r) return;
+  const b = r.bounds, dx = (event.clientX-r.x)/zoom.value, dy = (event.clientY-r.y)/zoom.value;
+  let left=b.x, top=b.y, right=b.x+b.width, bottom=b.y+b.height;
+  if(r.corner.includes("w")) left=snapCanvasPosition(b.x+dx); else right=snapCanvasPosition(right+dx);
+  if(r.corner.includes("n")) top=snapCanvasPosition(b.y+dy); else bottom=snapCanvasPosition(bottom+dy);
+  const members=canvas.value.nodes.filter(n => canvas.value.groups.find(g=>g.id===r.id).members.includes(n.id));
+  left=Math.min(left,right-328,...members.map(n=>n.x-12));
+  top=Math.min(top,bottom-320,...members.map(n=>n.y-48));
+  right=Math.max(right,left+328,...members.map(n=>n.x+292));
+  bottom=Math.max(bottom,top+320,...members.map(n=>n.y+252));
+  canvas.value.groups.find(g=>g.id===r.id).bounds={x:left,y:top,width:right-left,height:bottom-top};
+}
+function endResize() {
+  if(resizing) changed();
+  resizing=null;
+  window.removeEventListener("pointermove", resizeGroup);
+  window.removeEventListener("pointerup", endResize);
+  window.removeEventListener("pointercancel", endResize);
 }
 function keyboardMove(event, node) {
   if (!["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key))
@@ -756,6 +793,7 @@ function selectEdge(value) {
               >
                 {{ group.title }}<span>{{ group.members.length }} cartes</span>
               </button>
+              <button v-for="corner in ['nw','ne','sw','se']" :key="corner" class="canvas-group-resize" :class="corner" :aria-label="'Redimensionner le groupe '+group.title" @pointerdown.stop="startResize($event,group,corner)" />
             </div>
             <svg
               class="canvas-connections"
@@ -905,7 +943,7 @@ function selectEdge(value) {
               @input="changed"
           /></label>
           <p>
-            {{ currentGroup.members.length }} cartes · déplace le groupe par son
+            {{ currentGroup.members.length }} cartes · glisse une carte dans le cadre pour l’ajouter. Étire les coins pour agrandir le cadre. Déplace le groupe par son
             titre.
           </p>
           <button class="btn" @click="ungroup">Dégrouper</button></template
