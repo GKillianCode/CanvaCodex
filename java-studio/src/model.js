@@ -1,3 +1,4 @@
+import { normalizeRuns,remapRuns } from './richText.js';
 import {normalizeTypewriter} from './typewriter.js';
 import {normalizeImageEffects} from './imageEffects.js';
 import {normalizeBits} from './bits.js';
@@ -100,7 +101,7 @@ export function positionsFor(layout) {
 }
 export function blockType(s,key) { return s.elements?.[key]?.type || (key === 'code' ? 'code' : 'text'); }
 export function blockText(s,key) { return s.elements?.[key]?.text ?? s[key] ?? ''; }
-export function setBlockText(s,key,value) { if (s.elements?.[key]) s.elements[key].text = value; else s[key] = value; }
+export function setBlockText(s,key,value) { if(s.positions?.[key]&&blockType(s,key)==='text')s.positions[key].textRuns=remapRuns(blockText(s,key),value,s.positions[key].textRuns);if (s.elements?.[key]) s.elements[key].text = value; else s[key] = value; }
 export function blockLabel(s,key) { return (s.blockNames?.[key]||s.elements?.[key]?.name||'').trim()||({title:'Titre',body:'Texte 1',code:'Code Java'})[key]||key; }
 export function setBlockName(s,key,value){if(!visibleBlocks(s).includes(key))return;const name=String(value||'').slice(0,100);if(s.elements?.[key])s.elements[key].name=name;else {s.blockNames||={};if(name.trim())s.blockNames[key]=name;else delete s.blockNames[key];}}
 
@@ -190,6 +191,7 @@ export function normalizeSlide(raw, n = 0) {
     s.positions[k].font=normalizeFont(p?.font||(blockType(s,k)==='text'?textRole(s,k).font:undefined),blockType(s,k));
     if(p?.textStyle&&typeof p.textStyle==='object'&&!['shape','image'].includes(blockType(s,k)))s.positions[k].textStyle=normalizeTextStyle(p.textStyle,s.positions[k].font,blockType(s,k),k==='title'||s.elements[k]?.weight===700);
     s.positions[k].typewriter=normalizeTypewriter(p?.typewriter);
+    s.positions[k].textRuns=blockType(s,k)==='text'?normalizeRuns(p?.textRuns,blockText(s,k)):[];
     s.positions[k].fitFont=p?.fitFont===true;
     s.positions[k].interpolate=p?.interpolate===true;
     s.positions[k].locked=p?.locked===true;

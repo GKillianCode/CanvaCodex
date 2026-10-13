@@ -1,3 +1,4 @@
+import { normalizeRuns } from './richText.js';
 import {normalizeTypewriter,typewriterDuration} from './typewriter.js';
 import {STEP_INTERPOLATION_MS} from './stepInterpolation.js';
 import {lockedSelection,setElementLocks,lockedTransform} from './elementLocks.js';
@@ -389,7 +390,7 @@ export function useStudio(application='slides',creationContext=null) {
   function previewTable(table){tablePreview.value=table?{key:selected.value,id:current.value.id,table}:null;requestDraw();}
   function commitTableTracks(weights){if(selectedType.value!=='table'||!weights)return;Object.assign(current.value.elements[selected.value],weights);previewTable(null);}
   function commitTable(cells,styles){const key=editing.value;if(!key||blockType(current.value,key)!=='table')return;if(styles)current.value.elements[key].cellStyles=normalizeCellStyles(styles,current.value.elements[key].rows,current.value.elements[key].columns);current.value.elements[key].cells=cells.map(row=>row.map(value=>String(value).slice(0,2000)));closeEdit();}
-  function commitText(value){const key=editing.value;if(!key||blockType(current.value,key)!=='text')return;changeText(value.text);if(key==='title')current.value.label=value.label;else if(current.value.elements[key]?.weight===700)current.value.elements[key].label=value.label;separateLabels(current.value);closeEdit();}
+  function commitText(value){const key=editing.value;if(!key||blockType(current.value,key)!=='text')return;changeText(value.text);current.value.positions[key].textRuns=normalizeRuns(value.runs,value.text);fitAuto(key);if(key==='title')current.value.label=value.label;else if(current.value.elements[key]?.weight===700)current.value.elements[key].label=value.label;separateLabels(current.value);closeEdit();}
   function setZoom(value,anchor=null){const next=clampZoom(value),viewport=stage.value?.parentElement;if(!viewport){zoom.value=next;return;}const rect=viewport.getBoundingClientRect(),point=anchor||{x:rect.left+rect.width/2,y:rect.top+rect.height/2},before=stage.value.getBoundingClientRect(),logical={x:(point.x-before.left)/before.width,y:(point.y-before.top)/before.height};zoom.value=next;nextTick(()=>{if(!stage.value)return;const after=stage.value.getBoundingClientRect();viewport.scrollLeft+=after.left+logical.x*after.width-point.x;viewport.scrollTop+=after.top+logical.y*after.height-point.y;});}
   function zoomWheel(event){if(!(event.ctrlKey||event.metaKey)||presenting.value||editing.value)return;event.preventDefault();setZoom(wheelZoom(zoom.value,event),{x:event.clientX,y:event.clientY});}
   function changeText(value) { setBlockText(current.value,editing.value,value);fitAuto(editing.value); }
