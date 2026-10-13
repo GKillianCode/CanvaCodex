@@ -184,3 +184,35 @@ test("video picker excludes existing and archived videos without hiding reusable
     videos.slice(0, 2),
   );
 });
+
+test("canvas file roundtrip preserves edited groups and rejects other application documents", async () => {
+  const { canvasDocument, readCanvasDocument } =
+    await import("../src/videoCanvas.js");
+  const c = normalizeVideoCanvas({
+    nodes: [
+      { id: "a", type: "note", title: "Cours", text: "Édité", x: -500, y: 240 },
+    ],
+    groups: [
+      {
+        id: "g",
+        title: "Socle",
+        members: ["a"],
+        bounds: { x: -600, y: 150, width: 600, height: 360 },
+      },
+    ],
+  });
+  assert.deepEqual(
+    readCanvasDocument(JSON.parse(JSON.stringify(canvasDocument(c)))),
+    c,
+  );
+  assert.throws(() =>
+    readCanvasDocument({ format: "frame-application", version: 1, canvas: c }),
+  );
+  assert.throws(() =>
+    readCanvasDocument({
+      format: "frame-learning-canvas",
+      version: 2,
+      canvas: c,
+    }),
+  );
+});

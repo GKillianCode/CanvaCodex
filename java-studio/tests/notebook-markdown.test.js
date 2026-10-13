@@ -40,3 +40,10 @@ test("notebook refuses active HTML, image requests and unsafe links", () => {
   );
   assert.doesNotMatch(html, /<script|<img|href="javascript/);
 });
+
+test("presentation and notebook use the same secure highlighted Markdown renderer", async () => {
+  const { renderNotes } = await import("../src/presentationNotes.js");
+  const source = "### Titre\n\n```java\nint x = 1;\n```";
+  assert.equal(renderNotes(source), renderNotebook(source));
+  assert.match(renderNotes(source), /token keyword/);
+});

@@ -28,7 +28,7 @@ test('list wrapping has hanging indents and shared fitting accounts for item spa
  assert.equal(layout.rows.filter(r=>r.marker).length,2);assert.equal(layout.rows[0].marker,'1.');assert.equal(layout.rows.find(r=>r.marker==='2.').y,layout.rows.filter(r=>!r.marker||r.marker==='1.').length*28+12);
  assert.ok(layout.rows.every(r=>r.x===40));assert.equal(layout.rows[1].marker,'');assert.ok(layout.rows[0].markerX+ctx.measureText('1.').width<layout.rows[0].x);
  const plain=layoutText(ctx,'alpha\nbeta',120,20,1.4,{},wrapLines);assert.equal(plain.height,56);assert.ok(plain.rows.every(r=>r.x===0&&!r.marker));
- const value='alpha\nbeta\ngamma',p={w:180,h:180,size:42,font:'inter',textStyle:{list:{type:'bullet',spacing:40}}};assert.ok(fitText(ctx,value,p,400,1.4)<fitText(ctx,value,{...p,textStyle:{}},400,1.4));
+ const value='alpha\nbeta\ngamma',p={fitFont:true,w:180,h:180,size:42,font:'inter',textStyle:{list:{type:'bullet',spacing:40}}};assert.ok(fitText(ctx,value,p,400,1.4)<fitText(ctx,value,{...p,textStyle:{}},400,1.4));
 });
 test('Canvas renders custom-colored markers and aligns continuation text; auto frames include list indent',()=>{
  const calls=[],g={...ctx,save(){},restore(){},fillText(t,x,y){calls.push({t,x,y,color:this.fillStyle});}},style={weight:400,list:normalizeList({type:'square',spacing:10,indent:40}),markerColor:'#ff0000'};
@@ -48,4 +48,16 @@ test('project palette changes stay independent of the base, other projects and s
  const snapshot={version:18,projectColors:custom,themeId:base.id,themes:[base]},roundtrip=JSON.parse(JSON.stringify(snapshot));assert.equal(projectTheme(roundtrip.themes[0],roundtrip.projectColors).accent,'#112233');
  const history=new ProjectHistory({...snapshot,projectColors:{}});history.record(snapshot);assert.deepEqual(history.undo().projectColors,{});assert.equal(history.redo().projectColors.accent,'#112233');
  const malformed=JSON.parse('{"__proto__":"#112233","accent":"bad","unknown":"#223344"}');assert.deepEqual(normalizeProjectColors(malformed),{unknown:'#223344'});assert.equal(projectTheme(base,malformed).unknown,undefined);assert.deepEqual(normalizeProjectColors(null),{});
+});
+test('explicit font pixels stay exact in small frames after scaling and reload',async()=>{
+ const {blockBounds}=await import('../src/render.js');const s=makeSlide();s.body='alpha\nbeta\ngamma';
+ for(const contentScale of [.25,1,4]){
+  s.positions.body={x:-50,y:1100,w:180,h:20,size:30,font:'montserrat',contentScale,autoSize:false};
+  assert.equal(blockBounds(ctx,s,'body').size,30);
+  const restored=normalizeSlides(JSON.parse(JSON.stringify([s])))[0];assert.equal(blockBounds(ctx,restored,'body').size,30);
+  assert.equal(restored.positions.body.x,-50);assert.equal(restored.positions.body.y,1100);
+ }
+ s.positions.body.contentScale=1;s.positions.body.fitFont=true;
+ assert.ok(blockBounds(ctx,s,'body').size<30);
+ assert.equal(normalizeSlides(JSON.parse(JSON.stringify([s])))[0].positions.body.fitFont,true);
 });

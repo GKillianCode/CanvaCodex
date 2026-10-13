@@ -190,6 +190,7 @@ export function normalizeSlide(raw, n = 0) {
     s.positions[k].font=normalizeFont(p?.font||(blockType(s,k)==='text'?textRole(s,k).font:undefined),blockType(s,k));
     if(p?.textStyle&&typeof p.textStyle==='object'&&!['shape','image'].includes(blockType(s,k)))s.positions[k].textStyle=normalizeTextStyle(p.textStyle,s.positions[k].font,blockType(s,k),k==='title'||s.elements[k]?.weight===700);
     s.positions[k].typewriter=normalizeTypewriter(p?.typewriter);
+    s.positions[k].fitFont=p?.fitFont===true;
     s.positions[k].interpolate=p?.interpolate===true;
     s.positions[k].locked=p?.locked===true;
     s.positions[k].rotation=Number.isFinite(Number(p?.rotation))?((Number(p.rotation)%360)+360)%360:0;

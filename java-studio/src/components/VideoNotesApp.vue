@@ -1,6 +1,6 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from "vue";
-import { ArrowLeft } from "lucide-vue-next";
+import WorkspaceHeader from "./WorkspaceHeader.vue";
 import VideoNotebook from "./VideoNotebook.vue";
 const props = defineProps({ repository: Object, videoId: String });
 const emit = defineEmits(["back"]);
@@ -43,6 +43,15 @@ async function save() {
     busy.value = false;
   }
 }
+function exportMarkdown() {
+  const blob = new Blob([notes.value], { type: "text/markdown;charset=utf-8" }),
+    url = URL.createObjectURL(blob),
+    a = document.createElement("a");
+  a.href = url;
+  a.download = "carnet.md";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 async function back() {
   if (dirty.value) await save();
   if (!busy.value && !dirty.value) emit("back");
@@ -66,19 +75,26 @@ onMounted(() => {
 onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
 </script>
 <template>
-  <main class="video-notes-app">
-    <header class="notebook-app-header">
-      <button class="btn" @click="back">
-        <ArrowLeft :size="16" />Retour à la vidéo
-      </button>
-      <div>
-        <span class="eyebrow">CARNET · ATELIER D’ÉCRITURE</span>
-        <h1>{{ project?.name || "Carnet vidéo" }}</h1>
-      </div>
-      <span>{{
-        dirty ? "Modifications à enregistrer" : "Enregistré sur cet appareil"
-      }}</span>
-    </header>
+  <main
+    class="video-notes-app"
+    @keydown.ctrl.s.prevent="save"
+    @keydown.meta.s.prevent="save"
+  >
+    <WorkspaceHeader title="Carnet" back-label="Vidéo" @back="back"
+      ><template #context
+        ><span class="creation-context-name">{{
+          project?.name
+        }}</span></template
+      ><template #file
+        ><button :disabled="busy" @click="save">
+          Enregistrer le carnet · Ctrl S</button
+        ><button @click="exportMarkdown">Exporter en Markdown</button></template
+      ><template #actions
+        ><span class="save-state">{{
+          dirty ? "Modifications à enregistrer" : "Carnet sauvegardé"
+        }}</span></template
+      ></WorkspaceHeader
+    >
     <div v-if="error" class="video-alert" role="alert">
       {{ error
       }}<button class="btn" @click="project ? save() : load()">

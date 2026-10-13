@@ -376,3 +376,10 @@ test("video cover prefers thumbnails then first slide then overlay", async () =>
   assert.equal(preferredVideoCreation([]), null);
   assert.equal(rows[0].id, "b");
 });
+
+test("learning canvas has an independent application route", async () => {
+  const { applicationFromHash, applicationHash } =
+    await import("../src/applicationRoutes.js");
+  assert.equal(applicationFromHash("#/parcours"), "canvas");
+  assert.equal(applicationHash("canvas"), "#/parcours");
+});

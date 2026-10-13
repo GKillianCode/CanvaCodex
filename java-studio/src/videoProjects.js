@@ -459,6 +459,8 @@ export function videoRepository(api = globalThis.indexedDB) {
       };
   }
   return {
+    getSetting: key => transaction("readonly",(p,c,set,tx,s,settings)=>{settings.get(key).onsuccess=e=>set(e.target.result);}),
+    setSetting: (key,value) => transaction("readwrite",(p,c,set,tx,s,settings)=>{settings.put(value,key);}),
     canvas: () =>
       transaction("readonly", (p, c, set, tx, s, settings) => {
         settings.get("learning-canvas").onsuccess = (e) =>

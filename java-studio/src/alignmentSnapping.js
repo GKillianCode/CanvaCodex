@@ -11,7 +11,7 @@ export function snapTranslation(positions, bounds, targets, dx, dy, tolerance=6,
     for(const target of [{x:0,y:0,w:width,h:height},...targets]){
       for(const line of [target[axis],target[axis]+target[size]/2,target[axis]+target[size]])for(const anchor of anchors){
         const delta=line-anchor,distance=Math.abs(delta),next=start+delta;
-        if(distance<=tolerance&&next>=-1e-8&&next+bounds[size]<=limit+1e-8&&(!best||distance<best.distance))best={delta,distance,line};
+        if(distance<=tolerance&&(!best||distance<best.distance))best={delta,distance,line};
       }
     }
     if(best){shift[axis]+=best.delta;guides.push({axis,value:best.line});}

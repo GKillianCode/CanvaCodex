@@ -16,6 +16,7 @@ import {
   Search,
   ArrowUpRight,
 } from "lucide-vue-next";
+import WorkspaceHeader from "./WorkspaceHeader.vue";
 import LibraryPreview from "./LibraryPreview.vue";
 import { videoStatuses } from "../videoProjects.js";
 import {
@@ -35,9 +36,20 @@ import {
   panCanvasScroll,
   assignCanvasGroups,
   availableCanvasVideos,
+  canvasDocument,
+  readCanvasDocument,
 } from "../videoCanvas.js";
 const props = defineProps({ repository: Object, videos: Array });
 const emit = defineEmits(["close", "open"]);
+const importBackup = ref(null);
+
+defineExpose({
+  flush: async () => {
+    await flush();
+    if (dirty.value || writing)
+      throw Error(error.value || "Le parcours n’a pas encore été sauvegardé.");
+  },
+});
 const canvas = ref(normalizeVideoCanvas()),
   loading = ref(true),
   saving = ref(false),
@@ -397,7 +409,7 @@ async function close() {
     return;
   }
   await flush();
-  if (writing || dirty.value || error.value) return;
+  if (writing || dirty.value) return;
   emit("close");
 }
 function trapTab(event) {
@@ -745,9 +757,41 @@ function keyboardMove(event, node) {
   );
   changed();
 }
+function exportCanvas() {
+  const blob = new Blob(
+    [JSON.stringify(canvasDocument(canvas.value), null, 2)],
+    { type: "application/json" },
+  );
+  const url = URL.createObjectURL(blob),
+    a = document.createElement("a");
+  a.href = url;
+  a.download = "frame-parcours.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function importCanvas(event) {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) return;
+  try {
+    if (file.size > 10000000)
+      throw Error("Ce fichier de parcours est trop volumineux.");
+    const raw = JSON.parse(await file.text());
+    const next = readCanvasDocument(raw);
+    importBackup.value = JSON.parse(JSON.stringify(canvas.value));
+    canvas.value = next;
+    clearSelection();
+    changed();
+    await nextTick();
+    center();
+  } catch (e) {
+    error.value = e.message;
+  }
+}
 function setZoom(value, event) {
+  if (!Number.isFinite(value) || !viewport.value) return;
   const old = zoom.value,
-    next = Math.max(0.25, Math.min(1.5, value));
+    next = Math.max(0.03, Math.min(5, value));
   const box = viewport.value.getBoundingClientRect(),
     px = event ? event.clientX - box.left : box.width / 2,
     py = event ? event.clientY - box.top : box.height / 2;
@@ -779,10 +823,11 @@ function selectEdge(value) {
     ref="panel"
     tabindex="-1"
     @keydown.tab="trapTab"
-    class="learning-canvas"
+    @keydown.ctrl.s.prevent="flush"
+    @keydown.meta.s.prevent="flush"
+    class="learning-canvas canvas-workspace-app"
     @pointerdown="menu = null"
-    role="dialog"
-    aria-modal="true"
+    role="region"
     aria-label="Canvas des parcours"
     @keydown.esc="
       menu
@@ -796,19 +841,43 @@ function selectEdge(value) {
               : close()
     "
   >
-    <header class="learning-canvas-header">
-      <div>
-        <span class="eyebrow">PARCOURS PÉDAGOGIQUES</span>
-        <h2>Ton canvas</h2>
-        <p>
-          Clic droit pour ajouter · Espace ou molette pour se déplacer · Tire
-          les flèches depuis les cartes
-        </p>
-      </div>
-      <button class="icon-btn" aria-label="Fermer le canvas" @click="close">
-        <X :size="22" />
-      </button>
-    </header>
+    <WorkspaceHeader title="Canvas des parcours" @back="close">
+      <template #file
+        ><button @click="flush">Enregistrer le parcours</button
+        ><button @click="exportCanvas">Exporter le parcours JSON</button
+        ><label class="menu-file"
+          >Importer un parcours JSON<input
+            type="file"
+            accept="application/json,.json"
+            @change="importCanvas" /></label
+        ><button
+          v-if="importBackup"
+          @click="
+            canvas = importBackup;
+            importBackup = null;
+            changed();
+          "
+        >
+          Annuler l’import
+        </button></template
+      >
+      <template #view
+        ><button @click="center">Recentrer les cartes</button
+        ><button @click="setZoom(1)">Zoom à 100 %</button
+        ><label class="menu-checkbox"
+          ><input
+            type="checkbox"
+            v-model="canvas.snap"
+            @change="changed"
+          />Aimantation à la grille</label
+        ></template
+      >
+      <template #actions
+        ><span class="save-state">{{
+          dirty ? "Sauvegarde…" : "Parcours sauvegardé"
+        }}</span></template
+      >
+    </WorkspaceHeader>
     <div class="canvas-workspace">
       <div
         ref="viewport"
@@ -982,12 +1051,18 @@ function selectEdge(value) {
                 @dblclick="node.type === 'note' && (editingCard = true)"
               >
                 <LibraryPreview
-                  v-if="node.type === 'video'"
+                  v-if="node.type === 'video' && zoom >= 0.25"
                   :repository="repository"
                   :project-id="node.videoId"
                 />
+                <div
+                  v-else-if="node.type === 'video'"
+                  class="canvas-overview-cover"
+                >
+                  <ArrowUpRight :size="24" />
+                </div>
                 <div v-else class="canvas-note-visual">
-                  <Link2 :size="28" /><span>ÉTAPE DU PARCOURS</span>
+                  <Link2 :size="28" /><span>POINT DU PARCOURS</span>
                 </div>
                 <strong>{{ title(node) }}</strong>
                 <span
@@ -1006,7 +1081,7 @@ function selectEdge(value) {
                 class="canvas-open-video"
                 @click="
                   flush().then(() => {
-                    if (!dirty && !error) emit('open', node.videoId);
+                    if (!dirty && !saving) emit('open', node.videoId);
                   })
                 "
               >
@@ -1044,31 +1119,22 @@ function selectEdge(value) {
         <button
           class="icon-btn"
           aria-label="Dézoomer le canvas"
-          @click="setZoom(zoom - 0.1)"
+          @click="setZoom(zoom / 1.15)"
         >
           −</button
-        ><select
-          :value="zoom"
-          aria-label="Zoom du canvas"
-          @change="setZoom(Number($event.target.value))"
-        >
-          <option
-            v-for="v in [0.25, 0.5, 0.8, 1, 1.25, 1.5]"
-            :key="v"
-            :value="v"
-          >
-            {{ Math.round(v * 100) }} %
-          </option>
-          <option
-            v-if="![0.25, 0.5, 0.8, 1, 1.25, 1.5].includes(zoom)"
-            :value="zoom"
-          >
-            {{ Math.round(zoom * 100) }} %
-          </option></select
+        ><label class="number-unit"
+          ><input
+            type="number"
+            :value="Math.round(zoom * 100)"
+            min="3"
+            max="500"
+            aria-label="Zoom du canvas"
+            @change="setZoom(Number($event.target.value) / 100)"
+          /><span>%</span></label
         ><button
           class="icon-btn"
           aria-label="Zoomer le canvas"
-          @click="setZoom(zoom + 0.1)"
+          @click="setZoom(zoom * 1.15)"
         >
           +
         </button>
@@ -1159,7 +1225,7 @@ function selectEdge(value) {
       ><button
         role="menuitem"
         @click="
-          setZoom(zoom + 0.1);
+          setZoom(zoom * 1.15);
           menu = null;
         "
       >
@@ -1167,7 +1233,7 @@ function selectEdge(value) {
       ><button
         role="menuitem"
         @click="
-          setZoom(zoom - 0.1);
+          setZoom(zoom / 1.15);
           menu = null;
         "
       >

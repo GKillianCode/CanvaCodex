@@ -10,7 +10,7 @@ export function normalizeGroups(raw,keys){const used=new Set();return (Array.isA
 export function selectionFor(s,key){return s.groups?.find(g=>g.keys.includes(key))?.keys.slice()||[key];}
 export function groupSelection(s,keys){if(keys.length<2)return; s.groups=(s.groups||[]).filter(g=>!g.keys.some(k=>keys.includes(k)));s.groups.push({id:crypto.randomUUID(),keys:[...keys]});}
 export function ungroupSelection(s,keys){s.groups=(s.groups||[]).filter(g=>!g.keys.some(k=>keys.includes(k)));}
-export function translateSelection(positions,b,dx,dy,width=1920,height=1080){dx=Math.max(-b.x,Math.min(width-b.x-b.w,dx));dy=Math.max(-b.y,Math.min(height-b.y-b.h,dy));return Object.fromEntries(Object.entries(positions).map(([k,p])=>[k,{...p,x:p.x+dx,y:p.y+dy}]));}
+export function translateSelection(positions,b,dx,dy,width=1920,height=1080){const all=Object.values(positions);if(!all.length)return {};dx=Math.max(-10000-Math.min(...all.map(p=>p.x)),Math.min(10000-Math.max(...all.map(p=>p.x)),dx));dy=Math.max(-10000-Math.min(...all.map(p=>p.y)),Math.min(10000-Math.max(...all.map(p=>p.y)),dy));return Object.fromEntries(Object.entries(positions).map(([k,p])=>[k,{...p,x:p.x+dx,y:p.y+dy}]));}
 // Align the visible (rotated) bounds, preserving each object's rotation and size.
 export function arrangeSelection(positions,bounds,axis,mode,gap=0){
  const size=axis==='x'?'w':'h',all=enclosingBounds(Object.values(bounds)),entries=Object.entries(bounds).sort((a,b)=>a[1][axis]-b[1][axis]);if(!all)return positions;

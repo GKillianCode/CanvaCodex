@@ -7,7 +7,7 @@ import "prismjs/components/prism-bash.js";
 import "prismjs/components/prism-json.js";
 import "prismjs/components/prism-sql.js";
 import "prismjs/components/prism-yaml.js";
-import { normalizeNotes } from "./presentationNotes.js";
+import { normalizeNotes } from "./notesContent.js";
 const aliases = {
   js: "javascript",
   ts: "typescript",
@@ -50,4 +50,12 @@ markdown.renderer.rules.link_open = (tokens, index, options, env, self) => {
   tokens[index].attrSet("rel", "noopener noreferrer");
   return linkOpen(tokens, index, options, env, self);
 };
-export const renderNotebook = (value) => markdown.render(normalizeNotes(value));
+const cache = new Map();
+export function renderNotebook(value) {
+  const normalized = normalizeNotes(value);
+  if (cache.has(normalized)) return cache.get(normalized);
+  const html = markdown.render(normalized);
+  cache.set(normalized, html);
+  if (cache.size > 12) cache.delete(cache.keys().next().value);
+  return html;
+}

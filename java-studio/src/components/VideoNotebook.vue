@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed } from "vue";
+import { ref, computed, watch, onBeforeUnmount } from "vue";
 import { MAX_NOTES } from "../presentationNotes.js";
 import { renderNotebook } from "../notebookMarkdown.js";
 const props = defineProps({
@@ -9,7 +9,20 @@ const props = defineProps({
 });
 const emit = defineEmits(["update:modelValue", "save"]);
 const mode = ref("split");
-const html = computed(() => renderNotebook(props.modelValue));
+const html = ref(renderNotebook(props.modelValue));
+let previewTimer;
+watch(
+  () => [props.modelValue, mode.value],
+  () => {
+    clearTimeout(previewTimer);
+    if (mode.value === "write") return;
+    previewTimer = setTimeout(
+      () => (html.value = renderNotebook(props.modelValue)),
+      100,
+    );
+  },
+);
+onBeforeUnmount(() => clearTimeout(previewTimer));
 const words = computed(
   () => (props.modelValue || "").trim().split(/\s+/).filter(Boolean).length,
 );

@@ -257,3 +257,19 @@ export function availableCanvasVideos(canvas, videos) {
   );
   return videos.filter((v) => !v.archived && !present.has(v.id));
 }
+export function canvasDocument(canvas) {
+  return {
+    format: "frame-learning-canvas",
+    version: 1,
+    canvas: normalizeVideoCanvas(canvas),
+  };
+}
+export function readCanvasDocument(raw) {
+  if (
+    raw?.format !== "frame-learning-canvas" ||
+    raw.version !== 1 ||
+    !Array.isArray(raw.canvas?.nodes)
+  )
+    throw Error("Ce fichier n’est pas un parcours Frame.");
+  return normalizeVideoCanvas(raw.canvas);
+}

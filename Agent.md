@@ -791,3 +791,38 @@ Suite utilisateur groupes du canvas : cadre persistant bounds{x,y,width,height},
 
 
 Validation explicite utilisateur le 13 octobre : prototype espaces vidéo/playlist/carnet/canvas validé, toutes fonctionnalités à conserver dans la branche principale de développement. Autorisation de fusion désormais donnée pour ce prototype. Dernier ajustement : bordures des cartes vidéo passent à 2px avec couleur de statut pleine (au lieu 1px mélangée à 55%), dimensions extérieures restent 280×240 avec box-sizing border-box. Intégration confirmée vers main : PR #107 retargetée depuis codex/text-typewriter puis fusionnée avec autorisation utilisateur le 13 octobre au commit f284d4982ab51f33f6f68c27085a63e3ad7408e2. Main contient tous les éditeurs hérités et le prototype validé, arbre bc95d9ee61a87a5d26631a5cc13448a0d204bdbc identique au lot local 618960a. Badge VERSION TEST retiré. 215 tests passent, compilation réussie et diff --check propre ; navigateur bordure Montage 2px rgb(240,197,134), dimensions280×240 conservées. Checkout local main actualisé ; prochain travail à baser sur main et nouvelles PRs, prototype plus en attente de validation. Les indications historiques « sans fusion » ci-dessus décrivent les phases antérieures et ne sont plus l’état actuel.
+
+
+## Chantier en cours — ateliers unifiés (#114)
+
+Branche codex/unified-workspaces. Travail local, publication à confirmer.
+
+
+Le canvas des parcours est un atelier autonome accessible dans la liste des applications : `#/parcours`. Il utilise le même en-tête que le carnet et les éditeurs, avec Accueil (ou Vidéo lorsque l’atelier appartient à une vidéo) et les menus propres à l’application. Le canvas propose Enregistrer, exporter/importer un JSON de parcours et annuler le dernier import. Son zoom accepte une valeur saisie de **3 % à 500 %**. En vue éloignée, les aperçus lourds ne sont pas chargés. Les cartes restent 280 × 240.
+
+L’accueil place les ateliers en haut ; recherche, Affichage (tri, états, archives) et Playlists structurent le catalogue. Importer une vidéo se trouve dans Fichier. La fiche vidéo regroupe les trois ateliers en colonnes sur grand écran et garde le carnet à la fin ; les actions secondaires sont regroupées. Les dialogues bloquent le défilement du fond. Une nouvelle vidéo peut créer immédiatement ses trois documents ou importer des JSON existants. Un diaporama lié s’ouvre en édition ; Éditer précède Canvas dans l’en-tête.
+
+Carnet et notes de diapo partagent Markdown-it et Prism. Les ligatures sont désactivées dans les zones de saisie pour rendre chaque `#` visible. L’aperçu du carnet attend une courte pause de 100 ms ; les changements de notes privées ne déclenchent plus les rendus du canevas et des miniatures. Les sauvegardes et l’historique restent actifs.
+
+Dans **Fichier → Choisir le dossier de travail**, autorise une fois un répertoire sur ton ordinateur. En navigateur compatible avec File System Access (contexte HTTPS ou localhost), la création et les modifications d’une vidéo y écrivent automatiquement :
+
+```text
+Dossier choisi/
+  ID-de-la-vidéo/
+    video.frame.json
+    carnet.md
+    slides-ID-de-création.json
+    banners-ID-de-création.json
+    thumbnails-ID-de-création.json
+```
+
+Chaque fichier d’atelier est un JSON importable indépendamment dans son application ; son nom reste stable lorsque la création est renommée. Les documents sont conservés dans IndexedDB en parallèle. Un nouvel emplacement de vidéo copie ses créations depuis la bibliothèque ; Fichier → Mettre cette vidéo dans le dossier permet aussi de copier une vidéo existante. Ctrl S d’un éditeur lié enregistre sa création sans demander un fichier individuel ; Enregistrer sous reste disponible pour une copie manuelle.
+
+Le navigateur peut redemander l’autorisation après une fermeture. Le bouton Réautoriser reprend les écritures en attente, même après rechargement. Une erreur disque conserve la copie dans le navigateur et affiche un avertissement ; les projets à reprendre sont mémorisés sans garder toutes leurs images en RAM. Un navigateur sans sélecteur de répertoire conserve la sauvegarde locale et l’export JSON ; « Conserver uniquement dans le navigateur pour le moment » est également disponible avant le premier choix de dossier. Le dossier n’est pas choisi silencieusement, les fichiers externes ne sont pas relus ni fusionnés automatiquement, et l’écriture de plusieurs fichiers n’est pas une transaction de dossier.
+
+
+### Taille des textes et débordement du canevas
+
+La taille de police saisie correspond aux pixels du document exporté, même après mise à l’échelle. La réduction automatique au cadre est désormais une option explicite de Typographie, désactivée par défaut et lorsqu’une nouvelle taille est saisie. Un cadre trop petit peut donc nécessiter un agrandissement. Les coordonnées peuvent être négatives ou dépasser les dimensions de l’écran ; déplacements, groupes, clavier et poignées conservent les parties hors cadre. Les exports gardent les dimensions de la création et coupent naturellement ce qui déborde.
+
+Validation locale : 228 tests passent, compilation Vite réussie (avertissement de taille de chunk préexistant). Vérifications UI sur catalogue synthétique, responsive 390px, Markdown six niveaux, route parcours et zoom 10%, champ texte 30px et coordonnée -100px. Adaptateurs de dossiers simulés et disque temporaire vérifiés ; sélecteur natif de dossier non automatisé. Dossiers personnels videos/ exclus de Git. Publication en cours via connecteur GitHub, sans fusion autorisée pour ce lot.
