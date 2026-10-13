@@ -1,0 +1,111 @@
+<!doctype html><meta charset="utf-8" />
+<h1>Vérification locale — données synthétiques</h1>
+<p>
+  À ouvrir uniquement sur une origine de développement neuve (port dédié). Crée
+  500 vidéos de test ; ne pas utiliser sur une bibliothèque personnelle. Le test
+  refuse une base déjà mise à jour.
+</p>
+<button id="run">Tester la migration et 500 vidéos</button>
+<pre id="results"></pre>
+<a href="/">Ouvrir la bibliothèque</a>
+<script type="module">
+  import {
+    videoRepository,
+    makeVideoProject,
+    makeCreation,
+    attachCreation,
+    videoBundle,
+    documentFromStorage,
+  } from "/src/videoProjects.js";
+  const output = document.querySelector("#results");
+  document.querySelector("#run").onclick = async () => {
+    try {
+      // Seed version 2 to exercise the upgrade without touching another origin.
+      const db = await new Promise((resolve, reject) => {
+        const r = indexedDB.open("frame-video-library", 2);
+        r.onupgradeneeded = () => {
+          r.result.createObjectStore("projects", { keyPath: "id" });
+          r.result
+            .createObjectStore("creations", { keyPath: "id" })
+            .createIndex("videoId", "videoId");
+        };
+        r.onsuccess = () => resolve(r.result);
+        r.onerror = () => reject(r.error);
+      });
+      const old = makeVideoProject("Migration v2");
+      old.playlist = "Ancienne playlist";
+      const oldRow = makeCreation(old, "slides", "Document migré");
+      attachCreation(old, oldRow);
+      await new Promise((resolve, reject) => {
+        const tx = db.transaction(["projects", "creations"], "readwrite");
+        tx.objectStore("projects").put(old);
+        tx.objectStore("creations").put(oldRow);
+        tx.oncomplete = resolve;
+        tx.onerror = () => reject(tx.error);
+      });
+      db.close();
+      const repo = videoRepository();
+      if (!(await repo.playlists()).includes("Ancienne playlist"))
+        throw Error("Migration playlist");
+      if (!(await repo.list()).some((p) => p.id === old.id))
+        throw Error("Migration index");
+      let duplicateRefused = false;
+      try {
+        await repo.editPlaylist(null, "Java");
+      } catch (e) {
+        duplicateRefused = /existe déjà/.test(e.message);
+      }
+      if (!duplicateRefused) throw Error("Erreur de doublon non explicite");
+      await repo.editPlaylist(null, "Playlist test");
+      old.playlist = "Playlist test";
+      await repo.put(old);
+      await repo.editPlaylist("Playlist test", "Playlist renommée");
+      if ((await repo.get(old.id)).playlist !== "Playlist renommée")
+        throw Error("Renommage");
+      await repo.editPlaylist("Playlist renommée", null);
+      if ((await repo.get(old.id)).playlist !== "") throw Error("Suppression");
+      if (!(await repo.creation(oldRow.id))) throw Error("Document supprimé");
+      await repo.preview(old.id, oldRow.id, "data:image/png;base64,AAAA");
+      oldRow.name = "Renommé";
+      await repo.saveCreation(oldRow);
+      const saved = await repo.get(old.id);
+      if (saved.creations[0].name !== "Renommé" || saved.preview !== null)
+        throw Error("Index et aperçu périmés");
+      for (let i = 1; i < 500; i++) {
+        const p = makeVideoProject("Cours " + String(i).padStart(3, "0"));
+        p.notes = "Notes non chargées dans la bibliothèque".repeat(500);
+        p.playlist = i % 2 ? "Java" : "IA";
+        await repo.put(p);
+      }
+      const summaries = await repo.list();
+      if (
+        summaries.length !== 500 ||
+        summaries.some((s) => s.preview || s.notes || s.creations)
+      )
+        throw Error("Catalogue lourd");
+      const p = makeVideoProject("Documents importables"),
+        rows = ["slides", "banners", "thumbnails"].map((a) =>
+          makeCreation(p, a, "Exemple " + a),
+        );
+      for (const row of rows) attachCreation(p, row);
+      for (const row of rows) {
+        const a = document.createElement("a");
+        a.textContent = "Télécharger " + row.app;
+        a.download = row.app + ".json";
+        a.href = URL.createObjectURL(
+          new Blob(
+            [JSON.stringify(documentFromStorage(row.storage, row.app))],
+            { type: "application/json" },
+          ),
+        );
+        document.body.append(a);
+      }
+      output.textContent =
+        "PASS : migration v2→v3, playlists CRUD, 500 vidéos, fiches sans assets. Taille JSON des 500 résumés : " +
+        JSON.stringify(summaries).length +
+        " caractères.";
+    } catch (e) {
+      output.textContent = "FAIL : " + e.stack;
+    }
+  };
+</script>
