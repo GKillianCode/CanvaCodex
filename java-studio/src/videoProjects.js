@@ -9,6 +9,7 @@ import { makeSlide } from "./model.js";
 import { makeThumbnail, thumbnailPalette } from "./thumbnails.js";
 import { makeOverlay } from "./overlays.js";
 export const videoStatuses = [
+  ["backlog", "Idées / Backlog"],
   ["preparation", "Création"],
   ["ready", "Prêt à tourner"],
   ["recording", "Tournage"],
@@ -308,6 +309,17 @@ export function moveVideoOrder(rows, saved, id, position) {
   const memberSet = new Set(members);
   let index = 0;
   return order.map((key) => (memberSet.has(key) ? members[index++] : key));
+}
+export function playlistDropPosition(rows, sourceId, targetId, after = false) {
+  const source = rows.findIndex((row) => row.id === sourceId),
+    target = rows.findIndex((row) => row.id === targetId);
+  if (source < 0 || target < 0)
+    throw Error("Vidéo introuvable dans cette playlist.");
+  const insertion = target + (after ? 1 : 0);
+  return Math.max(
+    1,
+    Math.min(rows.length, insertion - (source < insertion ? 1 : 0) + 1),
+  );
 }
 export function sortVideos(rows, mode = "recent") {
   const rank = (id) => {

@@ -322,5 +322,43 @@ test("process sorting follows the workflow while playlist sorting follows manual
     rows.map((p) => p.playlistPosition).sort((a, b) => a - b),
   );
   assert.equal(sortVideos(rows, "recent")[0].updatedAt, rows.length - 1);
-  assert.equal(rows[0].status, "preparation");
+  assert.equal(rows[0].status, "backlog");
+});
+
+test("playlist drag insertion handles upward/downward drops and preserves neighboring order", async () => {
+  const { playlistDropPosition, moveVideoOrder, numberedVideos } =
+    await import("../src/videoProjects.js");
+  const rows = ["a", "b", "c", "d"].map((id, i) => ({
+    id,
+    playlist: "Java",
+    createdAt: i,
+  }));
+  for (const [source, target, after, expected] of [
+    ["a", "c", false, ["b", "a", "c", "d"]],
+    ["a", "c", true, ["b", "c", "a", "d"]],
+    ["d", "b", false, ["a", "d", "b", "c"]],
+    ["d", "b", true, ["a", "b", "d", "c"]],
+    ["b", "b", false, ["a", "b", "c", "d"]],
+    ["b", "b", true, ["a", "b", "c", "d"]],
+  ]) {
+    const position = playlistDropPosition(rows, source, target, after),
+      saved = moveVideoOrder(rows, [], source, position);
+    assert.deepEqual(
+      numberedVideos(rows, saved).map((row) => row.id),
+      expected,
+    );
+  }
+  assert.throws(() => playlistDropPosition(rows, "missing", "a"));
+  assert.throws(() => playlistDropPosition(rows, "a", "missing"));
+});
+
+test("backlog status survives editable video bundles", async () => {
+  const { normalizeVideoProject } = await import("../src/videoProjects.js");
+  const project = makeVideoProject("Idée pour plus tard");
+  project.status = "backlog";
+  assert.equal(normalizeVideoProject(project).status, "backlog");
+  assert.equal(
+    importVideoBundle(videoBundle(project, [])).project.status,
+    "backlog",
+  );
 });

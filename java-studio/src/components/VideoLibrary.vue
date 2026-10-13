@@ -31,6 +31,7 @@ import {
   clone,
 } from "../videoProjects.js";
 import LibraryPreview from "./LibraryPreview.vue";
+import PlaylistOrder from "./PlaylistOrder.vue";
 const props = defineProps({ repository: Object, videoId: String }),
   emit = defineEmits(["open-video", "open-creation", "open-app", "home"]);
 function initialSort() {
@@ -58,15 +59,16 @@ const selected = ref(null),
   playlists = ref([]),
   page = ref(1),
   sortMode = ref(initialSort()),
-  orderPosition = ref(1),
   importFiles = ref({}),
   playlistName = ref(""),
   newPlaylist = ref("");
+const visibleStatuses = ref(videoStatuses.map(([id]) => id));
 const filtered = computed(() =>
   sortVideos(
     projects.value.filter(
       (p) =>
         p.archived === archives.value &&
+        visibleStatuses.value.includes(p.status) &&
         (!playlist.value ||
           p.playlist ===
             (playlist.value === "__none__" ? "" : playlist.value)) &&
@@ -81,7 +83,10 @@ const pages = computed(() =>
   paged = computed(() =>
     filtered.value.slice((page.value - 1) * 24, page.value * 24),
   );
-watch([query, playlist, archives, sortMode], () => (page.value = 1));
+watch(
+  [query, playlist, archives, sortMode, visibleStatuses],
+  () => (page.value = 1),
+);
 watch(sortMode, (value) => {
   try {
     localStorage.setItem("frame-video-sort", value);
@@ -122,8 +127,7 @@ async function reload() {
     : null;
   creations.value = selected.value?.creations || [];
   draft.value = selected.value ? clone(selected.value) : null;
-  orderPosition.value =
-    projects.value.find((p) => p.id === props.videoId)?.playlistPosition || 1;
+
   page.value = Math.min(page.value, pages.value);
 }
 async function run(action) {
@@ -183,25 +187,28 @@ async function importCreation(event, kind) {
     await reload();
   });
 }
-function editPlaylist(previous = null) {
+function editPlaylist(previous = null, returnToPlaylist = false) {
   playlistName.value = previous || "";
-  modal.value = { type: "playlist", previous };
+  modal.value = { type: "playlist", previous, returnToPlaylist };
 }
 async function removePlaylist(previous) {
   await run(async () => {
     await props.repository.editPlaylist(previous, null);
     if (playlist.value === previous) playlist.value = "";
     await reload();
+    modal.value = { type: "playlists" };
   });
 }
 async function savePlaylist() {
   await run(async () => {
-    await props.repository.editPlaylist(
-      modal.value.previous,
-      playlistName.value,
-    );
-    modal.value = { type: "playlists" };
+    const previous = modal.value.previous,
+      returnToPlaylist = modal.value.returnToPlaylist;
+    await props.repository.editPlaylist(previous, playlistName.value);
+    if (playlist.value === previous) playlist.value = playlistName.value.trim();
     await reload();
+    modal.value = returnToPlaylist
+      ? { type: "playlist-view", playlist: playlistName.value.trim() }
+      : { type: "playlists" };
   });
 }
 async function submit() {
@@ -219,6 +226,14 @@ async function submit() {
       importFiles.value = {};
       emit("open-video", project.id);
       await reload();
+    } else if (modal.value.type === "video-rename") {
+      const original = modal.value,
+        project = await props.repository.get(original.row.id);
+      project.name = name.value.trim().slice(0, 200);
+      project.updatedAt = Date.now();
+      await props.repository.put(project);
+      await reload();
+      modal.value = { type: "playlist-view", playlist: original.playlist };
     } else if (modal.value.type === "creation") {
       const project = await props.repository.get(props.videoId);
       let source = null;
@@ -269,17 +284,36 @@ async function submit() {
     }
   });
 }
-function positionVideo(project) {
-  orderPosition.value = project.playlistPosition;
-  modal.value = { type: "order", project };
+const playlistRows = computed(() =>
+  sortVideos(
+    projects.value.filter((p) => p.playlist === modal.value?.playlist),
+    "playlist",
+  ),
+);
+function openPlaylist(value) {
+  error.value = "";
+  modal.value = { type: "playlist-view", playlist: value };
 }
-async function saveOrder() {
+async function movePlaylistVideo(id, position) {
   await run(async () => {
-    await props.repository.moveVideo(
-      modal.value.project.id,
-      Number(orderPosition.value),
-    );
-    modal.value = null;
+    await props.repository.moveVideo(id, position);
+    await reload();
+  });
+}
+function openPlaylistVideo(id) {
+  modal.value = null;
+  emit("open-video", id);
+}
+function renamePlaylistVideo(row) {
+  name.value = row.name;
+  modal.value = { type: "video-rename", row, playlist: modal.value.playlist };
+}
+async function removePlaylistVideo(row) {
+  await run(async () => {
+    const project = await props.repository.get(row.id);
+    project.playlist = "";
+    project.updatedAt = Date.now();
+    await props.repository.put(project);
     await reload();
   });
 }
@@ -408,15 +442,34 @@ async function importVideo(event) {
             v-model="query"
             placeholder="Rechercher une vidéo"
             aria-label="Rechercher une vidéo" /></label
-        ><select v-model="playlist" aria-label="Filtrer par playlist">
-          <option value="">Toutes les playlists</option>
-          <option value="__none__">Sans playlist</option>
-          <option v-for="p in playlists" :key="p">{{ p }}</option></select
         ><select v-model="sortMode" aria-label="Trier les vidéos">
           <option value="recent">Dernières modifications</option>
           <option value="process">État du processus</option>
-          <option value="playlist">Ordre dans les playlists</option></select
-        ><button class="btn" @click="modal = { type: 'playlists' }">
+          <option value="playlist">Ordre dans les playlists</option>
+        </select>
+        <details class="video-state-filter">
+          <summary class="btn">
+            États · {{ visibleStatuses.length }}/{{ videoStatuses.length }}
+          </summary>
+          <div class="video-state-options">
+            <div class="video-state-shortcuts">
+              <button
+                class="btn"
+                @click="visibleStatuses = videoStatuses.map(([id]) => id)"
+              >
+                Tout afficher</button
+              ><button class="btn" @click="visibleStatuses = []">
+                Tout masquer
+              </button>
+            </div>
+            <label v-for="[id, title] in videoStatuses" :key="id"
+              ><input type="checkbox" v-model="visibleStatuses" :value="id" />{{
+                title
+              }}</label
+            >
+          </div>
+        </details>
+        <button class="btn" @click="modal = { type: 'playlists' }">
           Gérer les playlists</button
         ><button
           class="btn"
@@ -471,13 +524,6 @@ async function importVideo(event) {
           <div class="video-card-tools">
             <button
               :disabled="busy"
-              :aria-label="'Changer la position de ' + p.name"
-              @click="positionVideo(p)"
-            >
-              Position {{ p.playlistPosition }}
-            </button>
-            <button
-              :disabled="busy"
               @click="duplicate(p)"
               :aria-label="'Dupliquer ' + p.name"
             >
@@ -498,12 +544,21 @@ async function importVideo(event) {
           {{
             archives
               ? "Aucune vidéo archivée"
-              : query || playlist
+              : query ||
+                  playlist ||
+                  visibleStatuses.length !== videoStatuses.length
                 ? "Aucune vidéo correspondante"
                 : "Ta prochaine vidéo commence ici."
           }}
         </h2>
-        <p v-if="!archives && !query && !playlist">
+        <p
+          v-if="
+            !archives &&
+            !query &&
+            !playlist &&
+            visibleStatuses.length === videoStatuses.length
+          "
+        >
           Crée un espace pour réunir tes créations. Tes ateliers actuels restent
           accessibles ci-dessous.
         </p>
@@ -566,9 +621,9 @@ async function importVideo(event) {
           <button
             class="btn"
             :disabled="busy"
-            @click="positionVideo(projects.find((p) => p.id === selected.id))"
+            @click="openPlaylist(selected.playlist)"
           >
-            Ordre dans la playlist</button
+            Ouvrir la playlist</button
           ><button class="btn" :disabled="busy" @click="duplicate(selected)">
             <Copy :size="16" />Dupliquer</button
           ><button class="btn" :disabled="busy" @click="exportVideo(selected)">
@@ -699,7 +754,10 @@ async function importVideo(event) {
       transférer ou la conserver sur ton ordinateur.
     </footer>
     <div
-      v-if="modal && !['playlists', 'playlist', 'order'].includes(modal.type)"
+      v-if="
+        modal &&
+        !['playlists', 'playlist', 'playlist-view'].includes(modal.type)
+      "
       class="modal-backdrop"
       @click.self="modal = null"
     >
@@ -710,9 +768,11 @@ async function importVideo(event) {
         :aria-label="
           modal.type === 'video'
             ? 'Nouvelle vidéo'
-            : modal.type === 'rename'
-              ? 'Renommer la création'
-              : 'Nouvelle création'
+            : modal.type === 'video-rename'
+              ? 'Renommer la vidéo'
+              : modal.type === 'rename'
+                ? 'Renommer la création'
+                : 'Nouvelle création'
         "
         @submit.prevent="submit"
         @keydown.esc="modal = null"
@@ -731,9 +791,11 @@ async function importVideo(event) {
           {{
             modal.type === "video"
               ? "Nouvelle vidéo"
-              : modal.type === "rename"
-                ? "Renommer la création"
-                : "Nouvelle création"
+              : modal.type === "video-rename"
+                ? "Renommer la vidéo"
+                : modal.type === "rename"
+                  ? "Renommer la création"
+                  : "Nouvelle création"
           }}
         </h2>
         <label
@@ -788,7 +850,11 @@ async function importVideo(event) {
           <button type="button" class="btn" @click="modal = null">
             Annuler</button
           ><button class="btn primary" :disabled="busy">
-            {{ modal.type === "rename" ? "Enregistrer" : "Créer" }}
+            {{
+              ["rename", "video-rename"].includes(modal.type)
+                ? "Enregistrer"
+                : "Créer"
+            }}
           </button>
         </div>
       </form>
@@ -824,25 +890,39 @@ async function importVideo(event) {
           ><p>
             Supprimer une playlist conserve ses vidéos dans « Sans playlist ».
           </p>
-          <div class="playlist-list">
-            <div v-for="p in playlists" :key="p">
-              <strong>{{ p }}</strong
-              ><button
-                class="btn"
-                :disabled="busy"
-                :aria-label="'Renommer la playlist ' + p"
-                @click="editPlaylist(p)"
-              >
-                Renommer</button
-              ><button
-                class="btn"
-                :disabled="busy"
-                :aria-label="'Supprimer la playlist ' + p"
-                @click="removePlaylist(p)"
-              >
-                Supprimer
-              </button>
-            </div>
+          <div class="playlist-directory">
+            <button
+              v-for="p in playlists"
+              :key="p"
+              class="playlist-directory-entry"
+              :aria-label="'Ouvrir la playlist ' + p"
+              @click="openPlaylist(p)"
+            >
+              <span
+                ><strong>{{ p }}</strong
+                ><small
+                  >{{
+                    projects.filter((row) => row.playlist === p).length
+                  }}
+                  vidéos</small
+                ></span
+              ><ArrowUpRight :size="18" /></button
+            ><button
+              v-if="projects.some((row) => !row.playlist)"
+              class="playlist-directory-entry"
+              aria-label="Ouvrir Sans playlist"
+              @click="openPlaylist('')"
+            >
+              <span
+                ><strong>Sans playlist</strong
+                ><small
+                  >{{
+                    projects.filter((row) => !row.playlist).length
+                  }}
+                  vidéos</small
+                ></span
+              ><ArrowUpRight :size="18" />
+            </button>
           </div>
           <button class="btn primary" @click="editPlaylist()">
             <Plus :size="16" />Nouvelle playlist
@@ -860,7 +940,11 @@ async function importVideo(event) {
             <button
               type="button"
               class="btn"
-              @click="modal = { type: 'playlists' }"
+              @click="
+                modal = modal.returnToPlaylist
+                  ? { type: 'playlist-view', playlist: modal.previous }
+                  : { type: 'playlists' }
+              "
             >
               Retour</button
             ><button class="btn primary" :disabled="busy">Enregistrer</button>
@@ -870,53 +954,25 @@ async function importVideo(event) {
       </section>
     </div>
     <div
-      v-if="modal?.type === 'order'"
-      class="modal-backdrop"
+      v-if="modal?.type === 'playlist-view'"
+      class="modal-backdrop playlist-order-backdrop"
       @click.self="modal = null"
     >
-      <form
-        class="video-modal"
-        role="dialog"
-        aria-modal="true"
-        aria-label="Ordre dans la playlist"
-        @submit.prevent="saveOrder"
-      >
-        <button
-          type="button"
-          class="icon-btn video-modal-close"
-          aria-label="Fermer"
-          @click="modal = null"
-        >
-          <X :size="19" /></button
-        ><span class="eyebrow">{{
-          modal.project.playlist || "Sans playlist"
-        }}</span>
-        <h2>Ordre dans la playlist</h2>
-        <p>{{ modal.project.name }}</p>
-        <label
-          >Position de la vidéo<input
-            v-model.number="orderPosition"
-            type="number"
-            min="1"
-            :max="
-              projects.filter((p) => p.playlist === modal.project.playlist)
-                .length
-            "
-            step="1"
-            required
-        /></label>
-        <p>
-          Les autres vidéos sont décalées automatiquement. Cet ordre reste
-          indépendant du statut de production. Les vidéos archivées conservent
-          leur position.
-        </p>
-        <div v-if="error" class="video-alert" role="alert">{{ error }}</div>
-        <div class="video-modal-actions">
-          <button type="button" class="btn" @click="modal = null">
-            Annuler</button
-          ><button class="btn primary" :disabled="busy">Enregistrer</button>
-        </div>
-      </form>
+      <PlaylistOrder
+        :name="modal.playlist"
+        :rows="playlistRows"
+        :busy="busy"
+        :error="error"
+        @move="movePlaylistVideo"
+        @open="openPlaylistVideo"
+        @close="modal = null"
+        @back="modal = { type: 'playlists' }"
+        @rename="editPlaylist(modal.playlist, true)"
+        @remove="removePlaylist(modal.playlist)"
+        @archive-video="archive"
+        @remove-video="removePlaylistVideo"
+        @rename-video="renamePlaylistVideo"
+      />
     </div>
   </main>
 </template>
