@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import { makeSlide,normalizeSlide,fragmentOrders } from '../src/model.js';
+import { groupSelection } from '../src/selection.js';
+import { appearanceRows,setAppearance } from '../src/appearances.js';
+const s=makeSlide('split');s.elements.shapeA={type:'shape',shape:'rounded',custom:true};s.positions.shapeA={x:0,y:0,w:100,h:100,size:30};s.fragments.shapeA={order:3,animation:'zoom'};
+groupSelection(s,['title','body','shapeA']);s.fragments.title.order=1;s.fragments.body.order=2;
+let rows=appearanceRows(s);assert.equal(rows.length,2);assert.equal(rows[0].keys.length,3);assert.equal(rows[0].order,undefined);assert.equal(rows[0].animation,undefined);
+setAppearance(s,['body'],'order',4);assert.equal(appearanceRows(s)[0].order,4);assert.equal(s.fragments.shapeA.order,4);assert.equal(s.fragments.code.order,0);assert.deepEqual(fragmentOrders(s),[4]);
+setAppearance(s,rows[0].keys,'animation','fade');assert.equal(appearanceRows(s)[0].animation,'fade');
+const restored=normalizeSlide(JSON.parse(JSON.stringify(s)));assert.equal(appearanceRows(restored)[0].order,4);assert.equal(appearanceRows(restored)[0].keys.length,3);
+setAppearance(s,['title'],'order',0);assert.deepEqual(fragmentOrders(s),[]);setAppearance(s,['title'],'order',99);assert.equal(s.fragments.body.order,20);
+setAppearance(s,['title'],'order','');assert.equal(s.fragments.title.order,20);setAppearance(s,['title'],'animation','invalid');assert.equal(s.fragments.title.animation,'fade');
+s.groups=[];assert.equal(appearanceRows(s).length,4);setAppearance(s,['title'],'order',2);assert.equal(s.fragments.body.order,20);

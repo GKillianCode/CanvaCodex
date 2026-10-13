@@ -1,0 +1,6 @@
+export const animations=[['auto','Automatique · variation sobre'],['fade','Fondu'],['up','Montée douce'],['down','Descente douce'],['left','Glissement depuis la gauche'],['right','Glissement depuis la droite'],['zoom','Zoom léger'],['shrink','Recul léger'],['none','Immédiate']];
+export const exits=[['none','Immédiate'],...animations.filter(([id])=>id!=='none')];
+export function normalizeAnimation(value,fallback='fade'){return animations.some(([id])=>id===value)?value:fallback;}
+// Stable per slide and reveal step: grouped and simultaneous objects move together.
+export function resolvedAnimation(value,slide,order){if(value!=='auto')return normalizeAnimation(value);let hash=0;for(const c of String(slide.id))hash=(hash*31+c.charCodeAt(0))>>>0;return ['fade','up','left','zoom','right','down'][(hash+order)%6];}
+export function motionState(animation,progress,exit=false){const t=Math.max(0,Math.min(1,progress)),ease=1-(1-t)**3,amount=exit?ease:1-ease;return {alpha:animation==='none'?1:1-amount,x:animation==='left'?-32*amount:animation==='right'?32*amount:0,y:animation==='up'?28*amount:animation==='down'?-28*amount:0,scale:animation==='zoom'?1-.06*amount:animation==='shrink'?1+.04*amount:1};}

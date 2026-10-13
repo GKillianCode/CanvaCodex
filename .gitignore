@@ -1,0 +1,22 @@
+# Dépendances et fichiers générés
+**/node_modules/
+**/dist/
+**/.sites-runtime/
+**/.openai/
+*.tar.gz
+
+# Configuration locale et secrets
+.codex/
+.agents/
+.aws/
+.env
+.env.*
+!.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Captures locales de vérification
+java-studio-preview.jpg
+java-studio-recording.jpg
+.DS_Store

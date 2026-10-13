@@ -1,0 +1,3 @@
+import { themeColors,colorFields } from './themes.js';
+export function normalizeProjectColors(raw){return Object.fromEntries(Object.entries(raw&&typeof raw==='object'&&!Array.isArray(raw)?raw:{}).filter(([key,value])=>/^[\w-]{1,100}$/.test(key)&&!['__proto__','constructor','prototype'].includes(key)&&/^#[\da-f]{6}$/i.test(value)).slice(0,30));}
+export function projectTheme(base,raw){const colors=normalizeProjectColors(raw);return {...base,...Object.fromEntries(colorFields.filter(([key])=>colors[key]).map(([key])=>[key,colors[key]])),swatches:themeColors(base).filter(c=>!colorFields.some(([key])=>key===c.id)).map(c=>({...c,color:colors[c.id]||c.color}))};}

@@ -1,0 +1,70 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {enclosingBounds,axisDistance,normalizeGroups,groupSelection,ungroupSelection,selectionFor,translateSelection} from '../src/selection.js';
+import {makeSlide,normalizeSlide,validImageSource} from '../src/model.js';
+import {safeSvg} from '../src/svg.js';
+import {autoTextBounds,wrapLines,prepareImages,drawImageBlock} from '../src/render.js';
+import {ProjectFile} from '../src/projectFile.js';
+test('Alt uses rotated enclosing bounds and edge gaps including overlap',()=>{const a=enclosingBounds([{x:10,y:10,w:100,h:20,rotation:90}]);assert.equal(Math.round(a.x),50);assert.equal(Math.round(a.h),100);assert.equal(axisDistance(a,{x:200,y:100,w:20,h:20},'x').gap,130);assert.equal(axisDistance({x:0,w:100},{x:40,w:90},'x').gap,0);assert.deepEqual(enclosingBounds([{x:10,y:20,w:30,h:40},{x:100,y:150,w:20,h:10}]),{x:10,y:20,w:110,h:140,rotation:0});});
+test('groups migrate, normalize membership and dissociate without deleting content',()=>{const s=makeSlide();groupSelection(s,['title','body']);assert.deepEqual(selectionFor(s,'body'),['title','body']);assert.equal(normalizeSlide(JSON.parse(JSON.stringify(s))).groups.length,1);assert.deepEqual(normalizeGroups([...s.groups,{id:'bad',keys:['title','code','missing']}],['title','body','code']),s.groups);ungroupSelection(s,['body']);assert.equal(s.groups.length,0);assert.equal(s.title,'Une nouvelle idée.');});
+test('group movement clamps once and preserves relative spacing',()=>{const positions={a:{x:10,y:20,w:50,h:30},b:{x:90,y:70,w:20,h:30}},moved=translateSelection(positions,enclosingBounds(Object.values(positions)),-100,-100);assert.equal(moved.a.x,0);assert.equal(moved.b.x-moved.a.x,80);assert.equal(moved.b.y-moved.a.y,50);assert.equal(positions.a.x,10);});
+test('SVG preserves autonomous vectors and rejects executable or external markup',()=>{const good='<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 40"><path fill="none" stroke="#00ffaa" d="M0 0L80 40"/></svg>';assert.ok(safeSvg(good));assert.ok(validImageSource('data:image/svg+xml;base64,'+Buffer.from(good).toString('base64')));for(const bad of ['<script/>','<image href="https://example.com/a.png"/>','<rect onclick="alert(1)"/>','<foreignObject/>','<path style="fill:url(https://example.com/a)"/>'])assert.equal(safeSvg('<svg>'+bad+'</svg>'),false);assert.equal(validImageSource('data:image/svg+xml;base64,'+Buffer.from('<svg><script/></svg>').toString('base64')),false);const s=makeSlide('image-right');s.elements.image1.background=false;assert.equal(normalizeSlide(s).elements.image1.background,false);});
+test('automatic text bounds grow, wrap and shrink without fitting the font down',()=>{const ctx={font:'',measureText:v=>({width:v.length*10,actualBoundingBoxAscent:-3,actualBoundingBoxDescent:19,actualBoundingBoxLeft:0,actualBoundingBoxRight:v.length*10})};const s=makeSlide();s.body='Hi';s.positions.body={x:50,y:50,w:500,h:300,size:20,autoSize:true,wrapWidth:100};let b=autoTextBounds(ctx,s,'body');assert.equal(b.w,22);assert.equal(b.h,18);s.body='ABCDEFGHIJKLMNO';b=autoTextBounds(ctx,s,'body');assert.equal(b.lines.length,2);assert.equal(b.w,102);assert.ok(b.h>18);s.body='X';assert.equal(autoTextBounds(ctx,s,'body').w,12);assert.deepEqual(wrapLines(ctx,'a  b',100),['a  b']);assert.equal(normalizeSlide(s).positions.body.autoSize,true);});
+function fakeFiles(){let disk='old',picks=0,prompts=0,permission='granted',stored=null;const handle={name:'test.json',getFile:async()=>({text:async()=>disk}),queryPermission:async()=>permission,requestPermission:async()=>{prompts++;return permission='granted';},createWritable:async()=>({write:async t=>disk=t,close:async()=>{}})};return {handle,api:{showSaveFilePicker:async()=>{picks++;return handle;}},memory:async(r,w)=>w?(stored=r):stored,get state(){return {disk,picks,prompts};},external:t=>disk=t,revoke:()=>permission='prompt'};}
+test('Ctrl S reuses and restores a file and refuses external changes',async()=>{const f=fakeFiles(),store=new ProjectFile(f.api,f.memory);await store.save('first','p');await store.save('second','p');assert.equal(f.state.picks,1);const resumed=new ProjectFile(f.api,f.memory);await resumed.restore('p');f.revoke();await resumed.save('third','p');assert.equal(f.state.prompts,1);assert.equal(f.state.picks,1);f.external('elsewhere');await assert.rejects(()=>resumed.save('fourth','p'),/conflict/);assert.equal(f.state.disk,'elsewhere');const other=new ProjectFile(f.api,f.memory);await other.restore('other');assert.equal(other.handle,null);await resumed.save('copy','p',true);assert.equal(f.state.picks,2);});
+test('cancelled save-as keeps the linked file and permits retry',async()=>{const f=fakeFiles(),store=new ProjectFile(f.api,f.memory);await store.link(f.handle,'p');store.api.showSaveFilePicker=async()=>{throw new DOMException('Cancel','AbortError');};await assert.rejects(()=>store.save('new','p',true),{name:'AbortError'});assert.equal(store.handle,f.handle);assert.equal(f.state.disk,'old');assert.equal(store.busy,false);await store.save('retry','p');assert.equal(f.state.disk,'retry');});
+
+test('transparent image rendering paints only the asset unless a backdrop is enabled',async()=>{
+ const oldImage=globalThis.Image,oldWindow=globalThis.window;globalThis.window={dispatchEvent(){}};globalThis.Image=class{width=320;height=240;set src(value){queueMicrotask(()=>this.onload());}};
+ try{const s=makeSlide('image-focus');s.elements.image1.src='data:image/png;base64,dGVzdA==';await prepareImages([s]);let fills=0,draws=0;const clips=[];const ctx={save(){},restore(){},beginPath(){},roundRect(...args){clips.push(args);},clip(){},fill(){fills++;},drawImage(){draws++;}};drawImageBlock(ctx,s,'image1',{panel:'#112233'});assert.equal(fills,0);assert.equal(draws,1);s.elements.image1.background=true;drawImageBlock(ctx,s,'image1',{panel:'#112233'});assert.equal(fills,1);s.elements.image1.background=false;s.elements.image1.roundedCorners=true;s.elements.image1.cornerRadius=25;drawImageBlock(ctx,s,'image1',{panel:'#112233'});const last=clips.at(-1);assert.equal(last[3],s.positions.image1.h);assert.ok(last[2]<s.positions.image1.w);assert.equal(last[4],s.positions.image1.h/4);}finally{globalThis.Image=oldImage;globalThis.window=oldWindow;}
+});
+
+test('flat backgrounds bypass gradients and keep the chosen theme color',async()=>{const {background}=await import('../src/render.js'),{normalizeFrame}=await import('../src/model.js');assert.equal(normalizeFrame().gradient,true);assert.equal(normalizeFrame({gradient:false}).gradient,false);const calls=[],ctx={fillRect(...args){calls.push([this.fillStyle,...args]);}};background(ctx,{bg:'#112233'},false);assert.deepEqual(calls,[['#112233',0,0,1920,1080]]);});
+test('line and curve caps can be square and survive import and duplication',async()=>{const {normalizeShape,drawShape}=await import('../src/shapes.js'),{duplicateElement}=await import('../src/editor.js');const beforePath=globalThis.Path2D,beforeMatrix=globalThis.DOMMatrix;globalThis.Path2D=class{addPath(){}};globalThis.DOMMatrix=class{};const caps=[],ctx={globalAlpha:1,save(){},restore(){},setLineDash(){},stroke(){caps.push(this.lineCap);}};try{for(const shape of ['line','curve']){drawShape(ctx,normalizeShape({shape,roundedEnds:false}),{x:0,y:0,w:300,h:40});drawShape(ctx,normalizeShape({shape}),{x:0,y:0,w:300,h:40});}assert.deepEqual(caps,['butt','round','butt','round']);}finally{globalThis.Path2D=beforePath;globalThis.DOMMatrix=beforeMatrix;}const s=makeSlide();s.elements.shapeTest=normalizeShape({shape:'line',roundedEnds:false});s.positions.shapeTest={x:10,y:20,w:300,h:30,size:38};s.fragments.shapeTest={order:0,animation:'fade'};const imported=normalizeSlide(s);assert.equal(imported.elements.shapeTest.roundedEnds,false);assert.equal(imported.elements[duplicateElement(imported,'shapeTest')].roundedEnds,false);});
+
+test('shape paths fill their allocated bounds and straight lines have no empty cross-axis frame',async()=>{
+ const {shapePathBounds,shapeBounds}=await import('../src/shapes.js');for(const shape of ['star','pentagon','hexagon']){const b=shapePathBounds({shape,points:5,innerRatio:.45});assert.ok(b.w>0&&b.h>0);assert.ok(b.w<100||b.h<100);}
+ assert.deepEqual(shapePathBounds({shape:'curve'}),{x:0,y:50,w:100,h:50});const heart=shapePathBounds({shape:'heart'});assert.ok(heart.y>0&&heart.y<10);assert.equal(heart.y+heart.h,100);
+ const p={x:100,y:200,w:520,h:24,rotation:45};assert.deepEqual(shapeBounds({shape:'line',direction:'horizontal',strokeWidth:6},p),{...p,y:209,h:6});assert.deepEqual(shapeBounds({shape:'line',direction:'vertical',strokeWidth:6},p),{...p,x:357,w:6});
+});
+
+
+test('transition tiles meet on backing pixels in every direction and output size',async()=>{
+ const {drawSlideTransition}=await import('../src/slideTransition.js');
+ for(const [width,height] of [[2560,1440],[1920,1080],[640,360],[3840,2160]])for(const direction of [{x:1,y:0},{x:-1,y:0},{x:0,y:1},{x:0,y:-1}])for(const progress of [0,.0001,.1234567,.5,.9999,1]){
+  const calls=[],events=[],ctx={canvas:{width,height},save(){events.push('save');},setTransform(...m){events.push(m);},drawImage(...a){calls.push(a);},restore(){events.push('restore');}};
+  drawSlideTransition(ctx,'from','to',direction,progress);
+  const [a,b]=calls;assert.deepEqual(a.slice(3),[width,height]);assert.deepEqual(b.slice(3),[width,height]);
+  assert.ok([...a.slice(1),...b.slice(1)].every(Number.isInteger));
+  assert.equal(b[1]-a[1],direction.x*width);assert.equal(b[2]-a[2],direction.y*height);
+  if(direction.x)assert.equal(direction.x>0?a[1]+width:b[1]+width,direction.x>0?b[1]:a[1]);
+  else assert.equal(direction.y>0?a[2]+height:b[2]+height,direction.y>0?b[2]:a[2]);
+  assert.deepEqual(events,['save',[1,0,0,1,0,0],'restore']);
+  const visible=progress===0?a:progress===1?b:null;if(visible){assert.equal(Math.abs(visible[1]),0);assert.equal(Math.abs(visible[2]),0);}
+ }
+});
+
+test('saved geometry survives reload for rotated images, thin lines and narrow text',()=>{
+ const s=makeSlide('image-focus');s.elements.image1.src='data:image/png;base64,dGVzdA==';s.positions.image1={x:-37.25,y:-12.75,w:720.125,h:480.75,size:38,rotation:315};
+ s.elements.shapeThin={type:'shape',shape:'line',direction:'horizontal',strokeWidth:2};s.positions.shapeThin={x:88.5,y:1044.75,w:550.5,h:2,size:38,rotation:45};
+ s.elements.textNarrow={type:'text',text:'i',custom:true};s.positions.textNarrow={x:102.125,y:190.875,w:12.25,h:20.5,size:18,rotation:0};s.blockKeys.push('shapeThin','textNarrow');
+ let loaded=JSON.parse(JSON.stringify(s));for(let i=0;i<3;i++){loaded=normalizeSlide(JSON.parse(JSON.stringify(loaded)));for(const key of ['image1','shapeThin','textNarrow'])for(const prop of ['x','y','w','h','size','rotation'])assert.equal(loaded.positions[key][prop],s.positions[key][prop],key+'.'+prop);assert.equal(loaded.elements.image1.src,s.elements.image1.src);assert.equal(loaded.elements.image1.background,false);}
+ delete s.positions.title.h;assert.equal(normalizeSlide(s).positions.title.h,undefined);
+});
+
+
+test('image corners follow the actual contain rectangle and cover crop',async()=>{
+ const {imageDrawingRect}=await import('../src/render.js');const p={x:100,y:200,w:600,h:400};assert.deepEqual(imageDrawingRect(p,{width:100,height:100}),{x:200,y:200,w:400,h:400});assert.deepEqual(imageDrawingRect(p,{width:200,height:100}),{x:100,y:250,w:600,h:300});assert.deepEqual(imageDrawingRect(p,{width:100,height:100},'cover'),{x:100,y:100,w:600,h:600});
+ const s=makeSlide('image-focus');s.elements.image1.roundedCorners=true;s.elements.image1.cornerRadius=25;const loaded=normalizeSlide(JSON.parse(JSON.stringify(s)));assert.equal(loaded.elements.image1.cornerRadius,25);assert.equal(loaded.elements.image1.roundedCorners,true);assert.equal(normalizeSlide(makeSlide('image-focus')).elements.image1.roundedCorners,false);
+});
+test('project undo/redo restores edits, coalesces gestures and discards alternate futures',async()=>{
+ const {ProjectHistory}=await import('../src/history.js');const h=new ProjectHistory({x:0,images:[]});h.record({x:1,images:[]},'arrow');h.record({x:2,images:[]},'arrow');assert.equal(h.states.length,2);h.record({x:2,images:['png']});assert.deepEqual(h.undo(),{x:2,images:[]});assert.deepEqual(h.undo(),{x:0,images:[]});assert.deepEqual(h.redo(),{x:2,images:[]});h.record({x:3,images:[]});assert.equal(h.redo(),null);const limited=new ProjectHistory({x:0},3);for(let x=1;x<10;x++)limited.record({x});assert.equal(limited.states.length,3);assert.deepEqual(limited.undo(),{x:8});
+});
+test('arrow deltas are exactly one output pixel with shared group movement',()=>{
+ const p={a:{x:100,y:100,w:100,h:100},b:{x:300,y:100,w:100,h:100}};for(const width of [640,1920,2560,3840]){const moved=translateSelection(p,enclosingBounds(Object.values(p)),1920/width,0);assert.ok(Math.abs((moved.a.x-p.a.x)*width/1920-1)<1e-10);assert.equal(moved.b.x-moved.a.x,200);}
+});
+
+
+test('dropped image files create independent bounded objects and are undoable together',async()=>{
+ const {insertDroppedImages}=await import('../src/imageDrop.js'),{ProjectHistory}=await import('../src/history.js');const s=makeSlide(),history=new ProjectHistory(s),files=[{name:'first.png'},{name:'bad.png'},{name:'second.svg'}];const result=await insertDroppedImages(s,files,{x:1919,y:1079},async f=>{if(f.name==='bad.png')throw Error();return 'data:image/png;base64,dGVzdA==';});assert.equal(result.keys.length,2);assert.equal(result.failed,1);for(const k of result.keys){assert.equal(s.positions[k].x,1320);assert.equal(s.positions[k].y,680);assert.equal(s.elements[k].roundedCorners,false);assert.equal(s.fragments[k].order,0);}history.record(s);assert.equal(Object.values(history.undo().elements).some(e=>e.name==='first.png'),false);assert.equal(Object.values(history.redo().elements).some(e=>e.name==='first.png'),true);const count=Object.keys(s.elements).length;await insertDroppedImages(s,[files[0]],{x:0,y:0},async()=> 'src',()=>false);assert.equal(Object.keys(s.elements).length,count);
+});
