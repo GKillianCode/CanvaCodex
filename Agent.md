@@ -828,3 +828,10 @@ La taille de police saisie correspond aux pixels du document exporté, même apr
 Validation locale : 228 tests passent, compilation Vite réussie (avertissement de taille de chunk préexistant). Vérifications UI sur catalogue synthétique, responsive 390px, Markdown six niveaux, route parcours et zoom 10%, champ texte 30px et coordonnée -100px. Adaptateurs de dossiers simulés et disque temporaire vérifiés ; sélecteur natif de dossier non automatisé. Dossiers personnels videos/ exclus de Git. Publication en cours via connecteur GitHub, sans fusion autorisée pour ce lot.
 
 Publication confirmée : [PR #115](https://github.com/GKillianCode/CanvaCodex/pull/115), brouillon vers main, commit distant 693803059f33328e4725c8276d8e7ccf7b81edf5. Arbre 3f7d4690e833b15fcf5ed9b08d6f196a64389dce identique au commit local 72721f1. Aucune fusion effectuée. Issue #114 ouverte jusqu’à revue.
+
+
+## Suppression des créations vidéo — issue #116
+
+Branche codex/delete-video-creations basée sur codex/unified-workspaces (PR #115 non fusionnée). Action Supprimer sur chaque carte des trois ateliers, confirmation et annulation de la dernière suppression tant que la fiche reste ouverte. Suppression atomique IndexedDB du document et de sa référence, couverture et résumé actualisés ; restauration conserve ID, contenu et place. Dossier vidéo : manifeste actualisé, exports sur disque conservés. 229 tests passent, build réussi (avertissement Vite préexistant), diff --check propre. UI synthétique : 3→2 créations, autres ateliers conservés, annulation 2→3 et rechargement, console sans erreur. Publication à confirmer, aucune fusion autorisée.
+
+Publication confirmée : [PR #117](https://github.com/GKillianCode/CanvaCodex/pull/117) en brouillon vers codex/unified-workspaces, dépend de #115. Commit distant cf1dd788770bc46a01a427bf36f161dbd3062463 ; arbre d054ae3f7371a02ae487a4ab4fcdaecba19765db identique au commit local 08e9321. Aucune fusion effectuée.

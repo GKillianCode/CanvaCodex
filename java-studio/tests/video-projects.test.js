@@ -383,3 +383,16 @@ test("learning canvas has an independent application route", async () => {
   assert.equal(applicationFromHash("#/parcours"), "canvas");
   assert.equal(applicationHash("canvas"), "#/parcours");
 });
+test('removing one creation preserves other apps and refreshes the video cover',async()=>{
+ const {detachCreation}=await import('../src/videoProjects.js');
+ for(const app of ['slides','banners','thumbnails']){
+  const project=makeVideoProject('Cours'),rows=['slides','banners','thumbnails'].map(kind=>makeCreation(project,kind,kind));
+  rows.forEach(row=>attachCreation(project,row));project.creations.forEach((meta,i)=>{meta.preview='cover'+i;});project.preview='cover0';
+  const target=rows.find(row=>row.app===app),before=structuredClone(project.creations),removed=detachCreation(project,target.id);
+  assert.equal(removed.meta.id,target.id);assert.equal(removed.index,rows.indexOf(target));
+  assert.deepEqual(project.creations,before.filter(row=>row.id!==target.id));assert.equal(project.preview,project.creations[0].preview);
+  assert.throws(()=>detachCreation(project,target.id));
+  project.creations.splice(removed.index,0,removed.meta);assert.deepEqual(project.creations,before);
+ }
+ const project=makeVideoProject(),row=makeCreation(project,'slides','Seul');attachCreation(project,row);detachCreation(project,row.id);assert.equal(project.creations.length,0);assert.equal(project.preview,null);
+});
