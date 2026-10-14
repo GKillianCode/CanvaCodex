@@ -844,3 +844,10 @@ Branche codex/rich-text-selections basée sur codex/delete-video-creations (PR #
 Validation : 235 tests passent, build et diff --check réussis (avertissement chunk Vite préexistant). UI synthétique : premier Java gras/accent, phrase suivante italique/soulignée/secondaire, texte normal entre les deux ; rechargement conserve les styles. Couleur personnalisée et remise au style global sur sélection vérifiées puis annulation sans mutation. PNG 2560×1440 exporté et inspecté : styles corrects. Tests couvrent chevauchement, suppression/remapping, mots répétés, emoji, wrapping/alignement/listes/justification, typewriter, sauvegarde et copie de composants. Publication à confirmer, aucune fusion autorisée.
 
 Publication confirmée : [PR #119](https://github.com/GKillianCode/CanvaCodex/pull/119) en brouillon vers codex/delete-video-creations (dépend de #117 puis #115). Commit applicatif distant f5b68b2d5eee0192b7876653765ecca972a4054b ; arbre 817b0b8ada29dd5367830897336feae9f083c607 identique au commit local 19c533f. Aucune fusion effectuée.
+
+
+## Cartes Projet fil rouge — issue #120, 14 octobre 2026
+
+Branche codex/canvas-thread-projects basée sur codex/rich-text-selections (#119 non fusionnée). Nouveau type project dans le canvas, menu clic droit Ajouter un projet fil rouge. Titre initial Début du projet fil rouge, texte éditable au double-clic/menu, drapeau et contour orangé. Même carte 280×240, outils génériques de connexions/groupes/déplacement/suppression. Normalisation préserve type project, titre par défaut, export/import et groupes/liens ; anciens types inconnus restent adaptés en note. 236 tests passent, build et diff --check réussis (avertissement chunk Vite préexistant). UI isolée localhost:5201 : ajout/édition API Java, liaison depuis étape, rechargement conserve deux types et un lien ; dimensions 280×240 mesurées. Publication à confirmer, aucune fusion autorisée.
+
+Publication confirmée : [PR #121](https://github.com/GKillianCode/CanvaCodex/pull/121) en brouillon vers codex/rich-text-selections. Commit applicatif distant 8a5a8453eb103d0e64aae37130dac2987692a306 ; arbre identique au commit local 40f6d21. Aucune fusion effectuée.

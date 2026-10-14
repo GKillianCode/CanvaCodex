@@ -11,6 +11,7 @@ import {
   X,
   Plus,
   Link2,
+  Flag,
   MousePointer2,
   Trash2,
   Search,
@@ -481,16 +482,16 @@ onBeforeUnmount(() => {
   endDrag();
   cancelConnection();
 });
-function addNote() {
+function addNote(type="note") {
   if (canvas.value.nodes.length >= 500) {
     error.value = "Limite de 500 cartes atteinte.";
     return;
   }
   const node = {
     id: crypto.randomUUID(),
-    type: "note",
+    type,
     videoId: "",
-    title: "Nouvelle étape",
+    title: type === "project" ? "Début du projet fil rouge" : "Nouvelle étape",
     text: "",
     x: Math.min(
       CANVAS_LIMIT,
@@ -1011,6 +1012,7 @@ function selectEdge(value) {
                 selected: selectedIds.includes(node.id),
                 source: source === node.id,
                 note: node.type === 'note',
+                project: node.type === 'project',
               }"
               :style="{
                 left: node.x - world.x + 'px',
@@ -1041,14 +1043,14 @@ function selectEdge(value) {
                 @keydown.enter.prevent="selectNode(node, $event)"
               >
                 <MousePointer2 :size="14" />{{
-                  node.type === "note" ? "ÉTAPE" : "VIDÉO"
+                  node.type === "project" ? "PROJET FIL ROUGE" : node.type === "note" ? "ÉTAPE" : "VIDÉO"
                 }}<span v-if="videoMap.get(node.videoId)?.archived">
                   · ARCHIVÉE</span
                 ></button
               ><button
                 class="canvas-node-content"
                 @click="selectNode(node, $event)"
-                @dblclick="node.type === 'note' && (editingCard = true)"
+                @dblclick="node.type !== 'video' && (editingCard = true)"
               >
                 <LibraryPreview
                   v-if="node.type === 'video' && zoom >= 0.25"
@@ -1062,7 +1064,7 @@ function selectEdge(value) {
                   <ArrowUpRight :size="24" />
                 </div>
                 <div v-else class="canvas-note-visual">
-                  <Link2 :size="28" /><span>POINT DU PARCOURS</span>
+                  <component :is="node.type==='project'?Flag:Link2" :size="28" /><span>{{node.type==='project'?'DÉBUT DU PROJET':'POINT DU PARCOURS'}}</span>
                 </div>
                 <strong>{{ title(node) }}</strong>
                 <span
@@ -1073,8 +1075,8 @@ function selectEdge(value) {
                   "
                   >{{ statusTitle(videoMap.get(node.videoId)?.status) }}</span
                 >
-                <p v-if="node.type === 'note'">
-                  {{ node.text || "Double-clique pour définir cette étape." }}
+                <p v-if="node.type !== 'video'">
+                  {{ node.text || (node.type==='project'?"Double-clique pour présenter le projet.":"Double-clique pour définir cette étape.") }}
                 </p></button
               ><button
                 v-if="node.type === 'video' && videoMap.has(node.videoId)"
@@ -1166,16 +1168,17 @@ function selectEdge(value) {
       >
         Ajouter une étape
       </button>
+      <button role="menuitem" :disabled="loading" @click="addNote('project');menu=null"><Flag :size="16"/>Ajouter un projet fil rouge</button>
       <hr />
       <button
-        v-if="currentGroup || selectedNode?.type === 'note'"
+        v-if="currentGroup || selectedNode && selectedNode.type !== 'video'"
         role="menuitem"
         @click="
           editingCard = true;
           menu = null;
         "
       >
-        {{ currentGroup ? "Renommer le groupe" : "Modifier l’étape" }}
+        {{ currentGroup ? "Renommer le groupe" : selectedNode?.type==='project'?"Modifier le projet fil rouge":"Modifier l’étape" }}
       </button>
       <button
         role="menuitem"
@@ -1241,7 +1244,7 @@ function selectEdge(value) {
       </button>
     </div>
     <div
-      v-if="editingCard && (currentGroup || selectedNode?.type === 'note')"
+      v-if="editingCard && (currentGroup || selectedNode && selectedNode.type !== 'video')"
       class="canvas-picker-backdrop"
       @click.self="editingCard = false"
     >
@@ -1253,7 +1256,7 @@ function selectEdge(value) {
       >
         <header>
           <h3>
-            {{ currentGroup ? "Modifier le groupe" : "Modifier l’étape" }}
+            {{ currentGroup ? "Modifier le groupe" : selectedNode?.type==='project'?"Modifier le projet fil rouge":"Modifier l’étape" }}
           </h3>
           <button
             class="icon-btn"

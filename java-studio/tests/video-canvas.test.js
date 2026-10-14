@@ -216,3 +216,10 @@ test("canvas file roundtrip preserves edited groups and rejects other applicatio
     }),
   );
 });
+test('thread projects preserve their distinct type, links and groups through export/import',async()=>{
+ const {canvasDocument,readCanvasDocument}=await import('../src/videoCanvas.js');
+ const canvas=normalizeVideoCanvas({nodes:[{id:'intro',type:'note'},{id:'project',type:'project',title:'API Java',text:'Début du projet fil rouge',x:-24,y:48},{id:'video',type:'video',videoId:'lesson'}],edges:[{from:'intro',to:'project'},{from:'project',to:'video'}],groups:[{id:'group',title:'Pratique',members:['project','video']}]});
+ assert.equal(canvas.nodes[1].type,'project');assert.equal(canvas.nodes[1].title,'API Java');
+ const restored=readCanvasDocument(JSON.parse(JSON.stringify(canvasDocument(canvas))));assert.deepEqual(restored,canvas);assert.equal(restored.edges.length,2);assert.deepEqual(restored.groups[0].members,['project','video']);
+ assert.equal(normalizeVideoCanvas({nodes:[{id:'p',type:'project'}]}).nodes[0].title,'Projet fil rouge');
+});

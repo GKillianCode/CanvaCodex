@@ -20,14 +20,14 @@ export function normalizeVideoCanvas(raw = {}) {
     const type =
       row.type === "video" && typeof row.videoId === "string"
         ? "video"
-        : "note";
+        : row.type === "project" ? "project" : "note";
     ids.add(row.id.slice(0, 200));
     nodes.push({
       id: row.id.slice(0, 200),
       type,
       videoId: type === "video" ? row.videoId.slice(0, 200) : "",
       title: String(
-        row.title || (type === "note" ? "Étape du parcours" : "Vidéo"),
+        row.title || (type === "project" ? "Projet fil rouge" : type === "note" ? "Étape du parcours" : "Vidéo"),
       ).slice(0, 200),
       text: String(row.text || "").slice(0, 4000),
       x: coordinate(row.x),
