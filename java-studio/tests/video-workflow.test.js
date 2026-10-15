@@ -34,3 +34,32 @@ test('chapter text validates timestamps, ordering and preserves final timing by 
 test('workshop and independent reader routes survive refresh without matching foreign routes',()=>{
  assert.deepEqual(videoRoute('#/videos/a/conductor'),{videoId:'a',app:null,creationId:null,workshop:'conductor',reader:false});assert.equal(videoRoute('#/videos/a/conductor/read').reader,true);assert.equal(videoRoute('#/videos/a/publication').workshop,'publication');assert.equal(videoRoute('#/videos/a/publication/read'),null);assert.equal(videoRoute('#/videos/a/conductor/unexpected'),null);
 });
+
+test('conductor illustrations survive serialization and reject external or oversized sources', async()=>{
+ const {normalizeConductorImages}=await import('../src/videoWorkflow.js');
+ const images=[{src:'data:image/png;base64,YQ==',alt:'Huit bits'}, {src:'https://example.com/private.png'}, {src:'data:image/svg+xml;base64,YQ=='}, {src:'data:image/png;base64,'+'A'.repeat(3000000)}];
+ assert.deepEqual(normalizeConductorImages(images),[{src:'data:image/png;base64,YQ==',alt:'Huit bits'}]);
+ const normalized=normalizeWorkflow({conductor:{sequences:[{id:'part',images}]}});
+ assert.equal(normalized.conductor.sequences[0].images.length,1);
+ assert.deepEqual(normalizeWorkflow(JSON.parse(JSON.stringify(normalized))),normalized);
+});
+test('colored highlighting remains escaped Markdown and leaves code unchanged', async()=>{
+ const {highlightScript}=await import('../src/videoWorkflow.js');
+ const {renderNotebook}=await import('../src/notebookMarkdown.js');
+ assert.equal(highlightScript('une règle',4,9,'yellow'),'une ==yellow|règle==');
+ assert.equal(highlightScript('texte',0,5,'red'),'texte');
+ const html=renderNotebook('==blue|<img src=x onerror=alert(1)>==');
+ assert.match(html,/<mark style="background:#a9d7ff;color:#17231f">&lt;img/);
+ assert.doesNotMatch(html,/<img/);
+ assert.match(renderNotebook('`==yellow|code==`'),/<code>==yellow\|code==<\/code>/);
+});
+
+test('conductor draft updates the existing notes field without becoming a sequence',()=>{
+ const project=makeVideoProject('Java');project.notes='Ancien carnet';
+ const next=updateWorkflowSection(project,'conductor',{...project.workflow.conductor,draft:'Idées en texte simple'},0);
+ assert.equal(next.notes,'Idées en texte simple');
+ assert.deepEqual(next.workflow.conductor.sequences,[]);
+ assert.equal(next.workflow.publication.title,'');
+ assert.equal(project.notes,'Ancien carnet');
+ assert.equal('draft' in next.workflow.conductor,false);
+});

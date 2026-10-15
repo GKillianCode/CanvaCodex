@@ -2,12 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { renderNotebook } from "../src/notebookMarkdown.js";
 import { videoRoute } from "../src/videoProjects.js";
-test("dedicated notebook route preserves video identity on reload", () => {
+test("legacy notebook route opens the conductor without losing video identity", () => {
   assert.deepEqual(videoRoute("#/videos/abc-123/notes"), {
     videoId: "abc-123",
     app: null,
     creationId: null,
-    notes: true,
+    workshop: 'conductor',
+    reader: false,
   });
   assert.equal(videoRoute("#/videos/abc-123/notes/other"), null);
 });

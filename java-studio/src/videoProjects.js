@@ -253,7 +253,7 @@ export function videoRoute(hash) {
   const workflow=String(hash).match(/^#\/videos\/([\w-]+)\/(conductor|publication)(\/read)?$/);
   if(workflow&&(!workflow[3]||workflow[2]==='conductor'))return {videoId:workflow[1],app:null,creationId:null,workshop:workflow[2],reader:!!workflow[3]};
   const notebook=String(hash).match(/^#\/videos\/([\w-]+)\/notes$/);
-  if(notebook)return {videoId:notebook[1],app:null,creationId:null,notes:true};
+  if(notebook)return {videoId:notebook[1],app:null,creationId:null,workshop:'conductor',reader:false};
   const match = String(hash).match(
     /^#\/videos\/([\w-]+)(?:\/(slides|banners|thumbnails)\/([\w-]+))?$/,
   );

@@ -1,3 +1,6 @@
+export const highlightColors={yellow:'#f6d776',mint:'#a5f3cf',blue:'#a9d7ff',pink:'#f5b8d3',orange:'#ffc49b'};
+export function normalizeConductorImages(value){return (Array.isArray(value)?value:[]).slice(0,4).filter(i=>i&&typeof i.src==='string'&&i.src.length<3000000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(i.src)).map(i=>({src:i.src,alt:typeof i.alt==='string'?i.alt.slice(0,300):''}));}
+export function highlightScript(script,start,end,color){if(!Object.hasOwn(highlightColors,color)||end<=start)return script;return script.slice(0,start)+script.slice(start,end).split('\n').map(line=>line?'=='+color+'|'+line+'==':'').join('\n')+script.slice(end);}
 // All production data belongs to one video; supports reference existing creations.
 const text=(v,max)=>typeof v==='string'?v.slice(0,max):'';
 const id=v=>text(v,100);
@@ -6,7 +9,7 @@ const revision=v=>Number.isSafeInteger(v)&&v>=0?v:0;
 export function normalizeConductor(raw={}){
  const seen=new Set();return {revision:revision(raw?.revision),sequences:(Array.isArray(raw?.sequences)?raw.sequences:[]).slice(0,100).flatMap(s=>{
   if(!s||!id(s.id)||seen.has(id(s.id)))return [];seen.add(id(s.id));
-  return [{id:id(s.id),title:text(s.title,200),script:text(s.script,12000),cues:text(s.cues,3000),support:supportKinds.some(([k])=>k===s.support)?s.support:'camera',creationId:id(s.creationId)}];
+  return [{id:id(s.id),title:text(s.title,200),script:text(s.script,12000),cues:text(s.cues,3000),images:normalizeConductorImages(s.images),support:supportKinds.some(([k])=>k===s.support)?s.support:'camera',creationId:id(s.creationId)}];
  })};
 }
 export function normalizePublication(raw={}){
@@ -15,7 +18,7 @@ export function normalizePublication(raw={}){
  })};
 }
 export function normalizeWorkflow(raw={}){return {conductor:normalizeConductor(raw?.conductor),publication:normalizePublication(raw?.publication)};}
-export function newSequence(title='Nouvelle partie'){return {id:crypto.randomUUID(),title,script:'',cues:'',support:'camera',creationId:''};}
+export function newSequence(title='Nouvelle partie'){return {id:crypto.randomUUID(),title,script:'',cues:'',support:'camera',creationId:'',images:[]};}
 export function chapterSeconds(value){
  if(!/^\d{1,3}:\d{2}(?::\d{2})?$/.test(String(value)))return null;
  const parts=value.split(':').map(Number);if(parts.at(-1)>59||parts.length===3&&parts[1]>59)return null;
@@ -30,5 +33,5 @@ export function updateWorkflowSection(project,section,value,expected){
  const workflow=normalizeWorkflow(project.workflow);
  if(workflow[section].revision!==expected)throw Error('Cet atelier a été modifié dans une autre fenêtre. Exporte ton brouillon puis recharge la version enregistrée.');
  workflow[section]=(section==='conductor'?normalizeConductor:normalizePublication)(value);workflow[section].revision=expected+1;
- return {...project,workflow,updatedAt:Date.now()};
+ return {...project,...(section==='conductor'&&typeof value.draft==='string'?{notes:value.draft.slice(0,20000)}:{}),workflow,updatedAt:Date.now()};
 }

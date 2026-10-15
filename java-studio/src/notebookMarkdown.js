@@ -1,3 +1,4 @@
+import {highlightColors} from './videoWorkflow.js';
 import MarkdownIt from "markdown-it";
 import Prism from "prismjs";
 import "prismjs/components/prism-java.js";
@@ -50,6 +51,12 @@ markdown.renderer.rules.link_open = (tokens, index, options, env, self) => {
   tokens[index].attrSet("rel", "noopener noreferrer");
   return linkOpen(tokens, index, options, env, self);
 };
+markdown.inline.ruler.before('emphasis','colored_mark',(state,silent)=>{
+ const match=/^==(yellow|mint|blue|pink|orange)\|([^\n]+?)==/.exec(state.src.slice(state.pos));
+ if(!match)return false;
+ if(!silent){const open=state.push('mark_open','mark',1);open.attrSet('style',`background:${highlightColors[match[1]]};color:#17231f`);const children=[];state.md.inline.parse(match[2],state.md,state.env,children);state.tokens.push(...children);state.push('mark_close','mark',-1);}
+ state.pos+=match[0].length;return true;
+});
 const cache = new Map();
 export function renderNotebook(value) {
   const normalized = normalizeNotes(value);

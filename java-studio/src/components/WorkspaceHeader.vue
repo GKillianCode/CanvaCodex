@@ -33,7 +33,7 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", outside));
         <button v-if="backLabel" class="btn home-return" @click="emit('back')">
           {{ backLabel }}
         </button>
-        <span class="application-name">{{ title }}</span>
+        <span v-if="title" class="application-name">{{ title }}</span>
         <nav class="app-menus" aria-label="Menus de l’application">
           <div v-if="$slots.file" class="app-menu">
             <button

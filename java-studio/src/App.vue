@@ -14,7 +14,6 @@ import VideoLibrary from "./components/VideoLibrary.vue";
 import VideoCanvasApp from "./components/VideoCanvasApp.vue";
 import ConductorApp from "./components/ConductorApp.vue";
 import PublicationApp from "./components/PublicationApp.vue";
-import VideoNotesApp from "./components/VideoNotesApp.vue";
 useGlobalModalScroll();
 const folderState = ref({
   supported: typeof window.showDirectoryPicker === "function",
@@ -32,7 +31,6 @@ const repository = folders.repository,
   video = ref(null),
   context = shallowRef(null),
   studio = ref(null),
-  notesApp = ref(null),
   canvasApp = ref(null),
   workflowApp = ref(null),
   loading = ref(true),
@@ -46,7 +44,6 @@ async function syncRoute() {
   error.value = "";
   try {
     if (studio.value) await studio.value.flush();
-    if (notesApp.value) await notesApp.value.flush();
     if (canvasApp.value) await canvasApp.value.flush();
     if (workflowApp.value) await workflowApp.value.flush();
     const route = videoRoute(window.location.hash),
@@ -155,14 +152,6 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     :application="active"
     :creation-context="context"
     @home="home"
-  /><VideoNotesApp
-    v-else-if="video?.notes"
-    ref="notesApp"
-    :key="video.videoId + ':notes'"
-    :repository="repository"
-    :video-id="video.videoId"
-    @back="navigate(videoHash(video.videoId))"
-    @workshop="name=>navigate(videoHash(video.videoId)+'/'+name)"
   /><component
     :is="video?.workshop==='conductor'?ConductorApp:PublicationApp"
     v-else-if="video?.workshop"
@@ -172,7 +161,6 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     :video-id="video.videoId"
     :reader="video.reader"
     @back="navigate(videoHash(video.videoId))"
-    @open-notes="navigate(videoHash(video.videoId)+'/notes')"
     @workshop="(name)=>navigate(videoHash(video.videoId)+'/'+name)"
     @open-creation="(id,app,key)=>navigate(videoHash(id,app,key))"
   /><VideoLibrary
@@ -186,7 +174,6 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     @open-app="(id) => navigate(applicationHash(id))"
     @open-video="(id) => navigate(videoHash(id))"
     @open-workshop="(id,name)=>navigate(videoHash(id)+'/'+name)"
-    @open-notes="(id) => navigate(videoHash(id) + '/notes')"
     @open-creation="(id, app, key) => navigate(videoHash(id, app, key))"
   />
 </template>

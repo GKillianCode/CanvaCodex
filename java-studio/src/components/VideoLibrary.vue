@@ -45,7 +45,6 @@ const props = defineProps({
   emit = defineEmits([
     "open-video",
     "open-workshop",
-    "open-notes",
     "open-creation",
     "open-app",
     "home",
@@ -893,19 +892,7 @@ async function importVideo(event) {
           </div>
         </section>
       </div>
-      <section class="video-notebook-entry">
-        <div>
-          <span class="eyebrow">ÉCRITURE</span>
-          <h2>Carnet de la vidéo</h2>
-          <p>
-            Prépare ton plan, ton script et tes notes dans l’atelier Markdown
-            dédié.
-          </p>
-        </div>
-        <button class="btn primary" @click="emit('open-notes', selected.id)">
-          Ouvrir le carnet <ArrowUpRight :size="16" />
-        </button>
-      </section>
+
     </template>
     <div v-else-if="!busy" class="video-empty">
       <h2>Vidéo introuvable.</h2>
@@ -991,7 +978,7 @@ async function importVideo(event) {
             }}</strong>
             <p>
               Un dossier portant l’ID de la vidéo accueillera les créations et
-              le carnet.
+              le brouillon du conducteur.
             </p>
             <button
               v-if="folderState?.supported"
