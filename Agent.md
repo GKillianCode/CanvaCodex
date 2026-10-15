@@ -877,3 +877,5 @@ Toujours branche test codex/test-video-production et PR #123, sans fusion. Condu
 Publication : formulaire continu, sans onglets, grands titres répétés ni messages privés/superflus ; simples libellés de champs et icônes de copie avec infobulles, miniature existante à droite. Texte formaté des chapitres replié par défaut pour éviter la répétition. VideoWorkflowNav partagé dans Conducteur, Publication et Carnet ; navigation attend flush pour conserver les textes. Titre Vidéo après Accueil retiré de la fiche.
 
 Validation : 242 tests passent, build et diff --check réussis ; UI isolée sur vidéo synthétique : aperçu initial, édition/support au-dessus, menu ⋯, suppression et annulation, navigation Conducteur→Carnet→Publication, lecture dans la même fenêtre et sortie vérifiées. Captures inspectées hors dépôt. Pas de nouvelle dépendance ni de changement de données. PR #123 mise à jour, publication de ce lot à confirmer.
+
+Révision publiée dans la PR #123 au commit distant 77af644d206447208b2258cec7c96ecc8d3c79b8, arbre identique au commit local 255f3f5. La PR reste en brouillon, aucune fusion effectuée.
