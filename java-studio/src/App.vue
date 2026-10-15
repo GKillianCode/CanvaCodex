@@ -12,6 +12,8 @@ import { videoFolderStorage } from "./videoFolders.js";
 import StudioApp from "./StudioApp.vue";
 import VideoLibrary from "./components/VideoLibrary.vue";
 import VideoCanvasApp from "./components/VideoCanvasApp.vue";
+import ConductorApp from "./components/ConductorApp.vue";
+import PublicationApp from "./components/PublicationApp.vue";
 import VideoNotesApp from "./components/VideoNotesApp.vue";
 useGlobalModalScroll();
 const folderState = ref({
@@ -32,6 +34,7 @@ const repository = folders.repository,
   studio = ref(null),
   notesApp = ref(null),
   canvasApp = ref(null),
+  workflowApp = ref(null),
   loading = ref(true),
   error = ref("");
 let generation = 0;
@@ -45,6 +48,7 @@ async function syncRoute() {
     if (studio.value) await studio.value.flush();
     if (notesApp.value) await notesApp.value.flush();
     if (canvasApp.value) await canvasApp.value.flush();
+    if (workflowApp.value) await workflowApp.value.flush();
     const route = videoRoute(window.location.hash),
       app = applicationFromHash(window.location.hash);
     if (route?.creationId) {
@@ -158,6 +162,18 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     :repository="repository"
     :video-id="video.videoId"
     @back="navigate(videoHash(video.videoId))"
+  /><component
+    :is="video?.workshop==='conductor'?ConductorApp:PublicationApp"
+    v-else-if="video?.workshop"
+    ref="workflowApp"
+    :key="video.videoId+':'+video.workshop+':'+video.reader"
+    :repository="repository"
+    :video-id="video.videoId"
+    :reader="video.reader"
+    @back="navigate(videoHash(video.videoId))"
+    @open-notes="navigate(videoHash(video.videoId)+'/notes')"
+    @workshop="(name)=>navigate(videoHash(video.videoId)+'/'+name)"
+    @open-creation="(id,app,key)=>navigate(videoHash(id,app,key))"
   /><VideoLibrary
     v-else
     :key="video?.videoId || 'home'"
@@ -168,6 +184,7 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     @home="navigate('#/')"
     @open-app="(id) => navigate(applicationHash(id))"
     @open-video="(id) => navigate(videoHash(id))"
+    @open-workshop="(id,name)=>navigate(videoHash(id)+'/'+name)"
     @open-notes="(id) => navigate(videoHash(id) + '/notes')"
     @open-creation="(id, app, key) => navigate(videoHash(id, app, key))"
   />

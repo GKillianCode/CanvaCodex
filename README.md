@@ -182,3 +182,13 @@ Dans les trois ateliers, ouvre **Éditer le contenu** d’un texte, sélectionne
 Les styles locaux suivent le texte lors de l’édition et sont conservés avec les sauvegardes, les copies et les composants. Le style général du bloc reste la base des passages sans mise en forme locale. Les retours à la ligne, les listes, l’alignement et l’écriture progressive utilisent les styles dans le rendu partagé des aperçus, présentations et exports. Limite : 1 000 passages mis en forme par texte. La coloration syntaxique du code et les styles des cellules de tableau gardent leurs outils dédiés.
 
 Dans le **Canvas des parcours**, clic droit → **Ajouter un projet fil rouge** crée un repère de début de projet, avec drapeau et contour orangé. Double-clique pour modifier son titre et sa description. La carte garde les dimensions des étapes et utilise les mêmes connecteurs, déplacements, groupes et suppressions. Son type est conservé en sauvegarde et export/import de parcours.
+
+
+### Prototype Conducteur et Publication
+
+Sur la branche de test `codex/test-video-production`, ouvre une vidéo puis **Conducteur** ou **Publication** dans sa fiche.
+
+- **Conducteur** : organise les parties, rédige le script Markdown, ajoute tes repères privés et lie les créations existantes. **Fenêtre de lecture** ouvre une vue à déplacer sur ton second écran pour le tournage continu ; la taille du texte est réglable et les flèches permettent de parcourir le plan. **Lire ici** fonctionne aussi dans la fenêtre courante.
+- **Publication** : prépare le titre, choisis une miniature existante et copie séparément description, chapitres ou commentaire épinglé. Reprends les titres du conducteur puis renseigne les horaires du montage final. Une description peut servir de modèle local pour la playlist.
+
+Les ateliers se sauvegardent automatiquement dans la vidéo ; Ctrl S force l’enregistrement. Ils suivent son export/import et son dossier de travail (`video.frame.json`). Fichier permet aussi un export Markdown du conducteur ou texte de la publication. Le carnet conserve les recherches et brouillons, sans duplication automatique dans ces ateliers. Aucun contenu n’est publié automatiquement.

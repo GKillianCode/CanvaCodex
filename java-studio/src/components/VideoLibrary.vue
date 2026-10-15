@@ -16,6 +16,8 @@ import {
   Upload,
   MoreHorizontal,
   Film,
+  ListVideo,
+  Send,
   X,
 } from "lucide-vue-next";
 import { applications, applicationStorage } from "../applicationDocuments.js";
@@ -42,6 +44,7 @@ const props = defineProps({
   }),
   emit = defineEmits([
     "open-video",
+    "open-workshop",
     "open-notes",
     "open-creation",
     "open-app",
@@ -815,6 +818,11 @@ async function importVideo(event) {
           </button>
         </form>
       </details>
+      <section class="video-production-entry" aria-label="Préparer et publier cette vidéo">
+        <div><span class="eyebrow">LE FIL DE TA VIDÉO</span><h2>De la préparation à la publication.</h2><p>Deux ateliers reliés à tes créations, sans les dupliquer.</p></div>
+        <button @click="emit('open-workshop',selected.id,'conductor')"><ListVideo :size="21"/><span><strong>Conducteur</strong><small>Script, supports et lecture au tournage</small></span><ArrowUpRight :size="17"/></button>
+        <button @click="emit('open-workshop',selected.id,'publication')"><Send :size="21"/><span><strong>Publication</strong><small>Titre, miniature et blocs prêts à copier</small></span><ArrowUpRight :size="17"/></button>
+      </section>
       <div class="video-assets-grid">
         <section
           v-for="a in applications"

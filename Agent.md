@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 13 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 15 octobre 2026 (Europe/Paris).
 
 Ce fichier est l’unique mémoire et point d’entrée des consignes du projet. Le lire avant de travailler, le tenir à jour et respecter le workflow GitHub ci-dessous, en distinguant travail local et publication confirmée.
 
@@ -851,3 +851,18 @@ Publication confirmée : [PR #119](https://github.com/GKillianCode/CanvaCodex/pu
 Branche codex/canvas-thread-projects basée sur codex/rich-text-selections (#119 non fusionnée). Nouveau type project dans le canvas, menu clic droit Ajouter un projet fil rouge. Titre initial Début du projet fil rouge, texte éditable au double-clic/menu, drapeau et contour orangé. Même carte 280×240, outils génériques de connexions/groupes/déplacement/suppression. Normalisation préserve type project, titre par défaut, export/import et groupes/liens ; anciens types inconnus restent adaptés en note. 236 tests passent, build et diff --check réussis (avertissement chunk Vite préexistant). UI isolée localhost:5201 : ajout/édition API Java, liaison depuis étape, rechargement conserve deux types et un lien ; dimensions 280×240 mesurées. Publication à confirmer, aucune fusion autorisée.
 
 Publication confirmée : [PR #121](https://github.com/GKillianCode/CanvaCodex/pull/121) en brouillon vers codex/rich-text-selections. Commit applicatif distant 8a5a8453eb103d0e64aae37130dac2987692a306 ; arbre identique au commit local 40f6d21. Aucune fusion effectuée.
+
+
+## Conducteur et Publication — V1 de test, issue #122
+
+Demande utilisateur du 15 octobre : développer les deux ateliers sur une branche de test, sans fusion avant validation. Branche `codex/test-video-production`, basée sur `codex/canvas-thread-projects` (#121 non fusionnée). Suivi : https://github.com/GKillianCode/CanvaCodex/issues/122.
+
+La fiche vidéo garde ses trois listes de créations et le carnet ; une entrée compacte ouvre Conducteur ou Publication. Chaque atelier utilise WorkspaceHeader et les routes persistantes `#/videos/ID/conductor`, `/conductor/read` et `/publication`. Aucun nouveau catalogue de vidéos, aucune copie des supports.
+
+Conducteur : jusqu’à 100 parties, ajout/duplication/suppression avec annulation, déplacement par boutons ou glisser, script Markdown partagé avec le carnet, repères privés et support (caméra, IDE, écran, diaporama ou incrustation existante). Lecture sur place ou fenêtre dédiée à déplacer sur le second écran, police réglable, navigation clavier et parties précédente/suivante. La fenêtre de lecture recharge seulement la vidéo ouverte toutes les 1,5 secondes lorsqu’elle est visible, sans écrire. Pensé pour un tournage continu OBS + Audacity, sans gestion de prises ni minuteur imposé. Export Markdown manuel.
+
+Publication : titre YouTube distinct du nom interne, aperçu/lien vers une miniature existante, onglets Description / Chapitres / Commentaire épinglé et copie indépendante. Reprise explicite des titres du conducteur en conservant les horaires déjà associés ; horaires saisis après montage, contrôle du format et de l’ordre, sans prétendre vérifier toutes les règles YouTube. Modèle de description local par playlist, application explicite et annulable. Export texte. Carnet et repères privés ne remplissent jamais automatiquement les blocs publics. Aucun envoi automatique vers YouTube.
+
+Données `workflow.conductor` et `workflow.publication` dans le projet vidéo, absentes des résumés du catalogue. Anciennes vidéos normalisées avec ateliers vides. Export/import vidéo et duplication conservent les contenus et remappent les références de créations. Écriture IndexedDB atomique par section avec révision : conflit sur le même atelier signalé sans écrasement, autre section et carnet préservés. Sauvegarde automatique temporisée, Ctrl S, attente avant navigation, brouillon de secours sessionStorage par onglet, restauration et export de brouillon en cas d’erreur. Le dossier de travail reçoit ces données dans `video.frame.json` via le miroir existant ; modèles locaux hors export vidéo. Aucun schéma de base supplémentaire, dépendance ou IA.
+
+Validation : 242 tests passent, build et diff --check réussis (avertissement de chunk Vite préexistant). UI isolée localhost:5202 sur vidéo synthétique : quatre parties créées, script/repères/support existant sauvegardés, fenêtre de lecture ouverte par route dédiée et mise à jour depuis la préparation vérifiée ; popup système non inspecté directement par l’outil. Publication titre/miniature/description/commentaire enregistrés, quatre chapitres repris puis horaires complétés, copie exacte du chapitrage et rechargement conservant titre/miniature/chapitres vérifiés. Captures inspectées hors dépôt. Pas de contrôle OBS/Audacity ni d’essai sur les données personnelles. Publication GitHub à confirmer ; aucune fusion autorisée.
