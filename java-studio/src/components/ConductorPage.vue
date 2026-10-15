@@ -25,6 +25,7 @@ import {
   pageHeight,
   pageGeometry,
   PAGE_WIDTH,
+  pagePoint,
 } from "../conductorPage.js";
 import { imageSource, imageImportError } from "../imageImport.js";
 const props = defineProps({
@@ -34,6 +35,7 @@ const props = defineProps({
   otherContent: String,
   label: String,
   readonly: Boolean,
+  startExpanded: Boolean,
   maxLength: { type: Number, default: 50000 },
 });
 const emit = defineEmits([
@@ -41,6 +43,7 @@ const emit = defineEmits([
   "update:layout",
   "update:images",
   "error",
+  "close",
 ]);
 // Existing documents keep their text and gain independently movable image blocks.
 function initialBlocks() {
@@ -85,7 +88,7 @@ function initialBlocks() {
 }
 const blocks = ref(initialBlocks());
 const selected = ref(""),
-  expanded = ref(false),
+  expanded = ref(props.startExpanded),
   snap = ref(true),
   viewport = ref(null),
   scale = ref(1),
@@ -99,6 +102,11 @@ let observer,
 const active = computed(() =>
   blocks.value.find((b) => b.id === selected.value),
 );
+const drawer = ref("insert"),
+  sourceMode = ref(false),
+  contextMenu = ref(null),
+  fileInput = ref(null);
+let insertionPoint = null;
 const height = computed(() => pageHeight(blocks.value, !props.readonly));
 const usedContent = computed(
   () =>
@@ -117,6 +125,12 @@ watch(
       blocks.value = JSON.parse(JSON.stringify(value));
   },
   { deep: true },
+);
+watch(
+  () => active.value?.kind,
+  (kind) => {
+    if (kind) drawer.value = kind === "text" ? "text" : "placement";
+  },
 );
 function publish() {
   emit("update:layout", JSON.parse(JSON.stringify(blocks.value)));
@@ -150,6 +164,10 @@ function addText() {
     width: 600,
     height: 180,
   };
+  if (insertionPoint) {
+    Object.assign(row, pageGeometry(row, insertionPoint, snap.value));
+    insertionPoint = null;
+  }
   blocks.value.push(row);
   selected.value = row.id;
   publish();
@@ -195,6 +213,10 @@ async function addImage(event) {
           width: 480,
           height: 300,
         };
+        if (insertionPoint) {
+          Object.assign(row, pageGeometry(row, insertionPoint, snap.value));
+          insertionPoint = null;
+        }
         blocks.value.push(row);
         selected.value = row.id;
         publish();
@@ -309,17 +331,55 @@ function gesture(event, block, handle = "move") {
   window.addEventListener("pointerup", end);
   window.addEventListener("pointercancel", end);
 }
+function canvasContext(event) {
+  if (props.readonly) return;
+  const selection = window.getSelection();
+  if (!selection?.isCollapsed && event.target.closest("[contenteditable]"))
+    return;
+  event.preventDefault();
+  event.stopPropagation();
+  const sheet = viewport.value
+    .querySelector(".page-sheet")
+    .getBoundingClientRect();
+  insertionPoint = pagePoint(event.clientX, event.clientY, sheet, scale.value);
+  contextMenu.value = {
+    x: Math.max(8, Math.min(event.clientX, innerWidth - 235)),
+    y: Math.max(8, Math.min(event.clientY, innerHeight - 165)),
+  };
+}
+function insertAt(type) {
+  contextMenu.value = null;
+  if (type === "image") fileInput.value?.click();
+  else addText();
+}
+function outsideContext(event) {
+  if (!event.target.closest(".page-context")) {
+    contextMenu.value = null;
+    if (!event.target.closest(".page-insert")) insertionPoint = null;
+  }
+}
+async function closeEditor() {
+  await flush();
+  expanded.value = false;
+  if (props.startExpanded) emit("close");
+}
 function measure() {
-  scale.value = Math.min(
-    1,
-    Math.max(0.15, ((viewport.value?.clientWidth || 1000) - 48) / PAGE_WIDTH),
+  const fit = Math.max(
+    0.15,
+    ((viewport.value?.clientWidth || 1000) - (props.readonly ? 0 : 48)) /
+      PAGE_WIDTH,
   );
+  scale.value = props.readonly ? fit : Math.min(1, fit);
 }
 function key(event) {
   if (!expanded.value) return;
   if (event.key === "Escape") {
     event.stopImmediatePropagation();
-    expanded.value = false;
+    if (contextMenu.value) {
+      contextMenu.value = null;
+      return;
+    }
+    closeEditor();
   }
 }
 watch(expanded, (value) => {
@@ -339,6 +399,11 @@ onMounted(() => {
   observer.observe(viewport.value);
   measure();
   window.addEventListener("keydown", key, true);
+  window.addEventListener("pointerdown", outsideContext);
+  if (expanded.value) {
+    oldOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+  }
   if (!props.layout && !props.readonly) publish();
   nextTick(() => {
     for (const block of blocks.value) if (block.kind === "text") fitText(block);
@@ -348,6 +413,7 @@ onBeforeUnmount(() => {
   observer?.disconnect();
   cleanup?.();
   window.removeEventListener("keydown", key, true);
+  window.removeEventListener("pointerdown", outsideContext);
   if (expanded.value) document.body.style.overflow = oldOverflow;
 });
 </script>
@@ -361,7 +427,7 @@ onBeforeUnmount(() => {
         <strong>{{ label }}</strong
         ><small>Page libre · largeur fixe de 1 000 px</small>
       </div>
-      <button class="btn" @click="expanded = false">
+      <button class="btn" @click="closeEditor">
         <Minimize2 :size="16" />Revenir à la partie
       </button>
     </header>
@@ -369,6 +435,7 @@ onBeforeUnmount(() => {
       <div
         ref="viewport"
         class="page-viewport"
+        @contextmenu="canvasContext"
         @pointerdown.self="selected = ''"
       >
         <div
@@ -436,10 +503,12 @@ onBeforeUnmount(() => {
                   "
                   :label="label + ' · ' + block.name"
                   :tools-host="selected === block.id ? tools : null"
+                  :source-mode="selected === block.id && sourceMode"
                   hide-tools
                   block-mode
                   @update:model-value="contentChanged(block, $event)"
                   @update:images="emit('update:images', $event)"
+                  @resize="fitText(block)"
                   @error="emit('error', $event)"
               /></template>
               <img
@@ -472,31 +541,46 @@ onBeforeUnmount(() => {
         </div>
       </div>
       <aside v-if="!readonly" class="page-inspector">
-        <div class="page-insert">
-          <span class="eyebrow">AJOUTER UN BLOC</span
-          ><button
-            class="btn"
-            :disabled="blocks.length >= 100"
-            @click="addText"
+        <details class="property-details" :open="drawer === 'insert'">
+          <summary
+            @click.prevent="drawer = drawer === 'insert' ? '' : 'insert'"
           >
-            <Plus :size="15" />Texte</button
-          ><label class="btn"
-            ><ImagePlus :size="15" />{{ busy ? "Préparation…" : "Image"
-            }}<input
-              type="file"
-              hidden
-              multiple
-              accept="image/png,image/jpeg,image/webp"
-              :disabled="busy || images.length >= 32 || blocks.length >= 100"
-              @change="addImage"
-          /></label>
-        </div>
-        <label class="page-snap"
-          ><input v-model="snap" type="checkbox" />Aligner sur la grille</label
-        >
+            Ajouter et grille
+          </summary>
+          <div class="page-insert">
+            <span class="eyebrow">AJOUTER UN BLOC</span
+            ><button
+              class="btn"
+              :disabled="blocks.length >= 100"
+              @click="addText"
+            >
+              <Plus :size="15" />Texte</button
+            ><label class="btn"
+              ><ImagePlus :size="15" />{{ busy ? "Préparation…" : "Image"
+              }}<input
+                ref="fileInput"
+                type="file"
+                hidden
+                multiple
+                accept="image/png,image/jpeg,image/webp"
+                :disabled="busy || images.length >= 32 || blocks.length >= 100"
+                @change="addImage"
+            /></label>
+          </div>
+          <label class="page-snap"
+            ><input v-model="snap" type="checkbox" />Aligner sur la
+            grille</label
+          >
+        </details>
         <template v-if="active"
-          ><details open class="property-details">
-            <summary>Bloc sélectionné</summary>
+          ><details class="property-details" :open="drawer === 'placement'">
+            <summary
+              @click.prevent="
+                drawer = drawer === 'placement' ? '' : 'placement'
+              "
+            >
+              Placement du bloc
+            </summary>
             <label
               >Nom<input
                 :value="active.name"
@@ -563,7 +647,30 @@ onBeforeUnmount(() => {
           Sélectionne un bloc pour le déplacer, le redimensionner ou modifier
           son contenu.
         </p>
-        <div ref="tools" class="page-format-tools" />
+        <details
+          v-show="active?.kind === 'text'"
+          class="property-details"
+          :open="drawer === 'text'"
+        >
+          <summary @click.prevent="drawer = drawer === 'text' ? '' : 'text'">
+            Texte et Markdown
+          </summary>
+          <div class="workspace-switch page-writing-mode">
+            <button
+              :class="{ active: !sourceMode }"
+              @click="sourceMode = false"
+            >
+              Visuel</button
+            ><button :class="{ active: sourceMode }" @click="sourceMode = true">
+              Markdown
+            </button>
+          </div>
+          <p class="field-help">
+            Titres, listes, séparateurs et code coloré. Le surlignage reste au
+            clic droit.
+          </p>
+          <div ref="tools" class="page-format-tools" />
+        </details>
       </aside>
     </div>
     <footer v-if="!readonly" class="page-status">
@@ -574,10 +681,33 @@ onBeforeUnmount(() => {
         class="icon-btn"
         :aria-label="expanded ? 'Réduire le canevas' : 'Agrandir le canevas'"
         :title="expanded ? 'Réduire · Échap' : 'Ouvrir sur toute la page'"
-        @click="expanded = !expanded"
+        @click="expanded ? closeEditor() : (expanded = true)"
       >
         <Minimize2 v-if="expanded" :size="17" /><Maximize2 v-else :size="17" />
       </button>
     </footer>
+    <Teleport to="body"
+      ><div
+        v-if="contextMenu"
+        class="conductor-context page-context"
+        role="menu"
+        aria-label="Ajouter sur le canevas"
+        :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
+      >
+        <button
+          role="menuitem"
+          :disabled="blocks.length >= 100"
+          @click="insertAt('text')"
+        >
+          Ajouter un texte</button
+        ><button
+          role="menuitem"
+          :disabled="busy || images.length >= 32 || blocks.length >= 100"
+          @click="insertAt('image')"
+        >
+          Ajouter une image…
+        </button>
+      </div></Teleport
+    >
   </section>
 </template>

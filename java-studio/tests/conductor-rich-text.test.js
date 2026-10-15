@@ -98,3 +98,8 @@ test("visual tables retain their cells in Markdown", () => {
   assert.equal(source, "| Type | Octets |\n| --- | --- |\n| long | 8 |");
   assert.match(renderConductor(source), /<td>long<\/td>/);
 });
+
+test('conductor Markdown renders semantic headings, separators and highlighted code languages safely',()=>{
+ const html=renderConductor('## Une règle\n\nUn paragraphe\n\n---\n\n```java\nint n = 151;\n```\n\n```python\nprint(151)\n```\n\n<script>bad()</script>');
+ assert.match(html,/<h2>Une règle<\/h2>/);assert.match(html,/<hr>/);assert.match(html,/language-java/);assert.match(html,/language-python/);assert.match(html,/class="token keyword"/);assert.ok(!html.includes('<script>'));
+});

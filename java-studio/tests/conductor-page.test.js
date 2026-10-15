@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {normalizePage,pageGeometry,pageMarkdown,pageHeight} from '../src/conductorPage.js';
+import {normalizePage,pageGeometry,pageMarkdown,pageHeight,pagePoint} from '../src/conductorPage.js';
 import {normalizeWorkflow,remapWorkflow,updateWorkflowSection} from '../src/videoWorkflow.js';
 const text={id:'text',kind:'text',name:'Accroche',content:'## Une règle\n\n==yellow|À retenir==',imageId:'',x:40,y:40,width:500,height:200};
 const image={id:'image',kind:'image',name:'Illustration',content:'',imageId:'asset',x:600,y:40,width:300,height:200};
@@ -19,4 +19,10 @@ test('layout roundtrips across workflow saves and video duplication, with readab
  assert.deepEqual(remapWorkflow(saved.workflow,new Map()).conductor.sequences[0].scriptLayout,layout);
  assert.equal(normalizeWorkflow({conductor:{sequences:[{id:'old',script:'Ancien texte'}]}}).conductor.sequences[0].scriptLayout,undefined);
  assert.equal(normalizePage([{...text,content:'x'.repeat(100)},{...text,id:'second',content:'y'.repeat(100)}],120)[1].content.length,20);
+});
+
+test('context insertion uses the sheet coordinates after scroll and zoom',()=>{
+ assert.deepEqual(pagePoint(310,240,{left:110,top:-160},.5),{x:400,y:800});
+ assert.deepEqual(pagePoint(-20,-10,{left:10,top:20},1),{x:0,y:0});
+ assert.deepEqual(pagePoint(5000,1e6,{left:0,top:0},1),{x:1000,y:50000});
 });

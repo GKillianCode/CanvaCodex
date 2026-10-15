@@ -13,8 +13,14 @@ const props = defineProps({
   toolsHost: Object,
   hideTools: Boolean,
   blockMode: Boolean,
+  sourceMode: Boolean,
 });
-const emit = defineEmits(["update:modelValue", "update:images", "error"]);
+const emit = defineEmits([
+  "update:modelValue",
+  "update:images",
+  "error",
+  "resize",
+]);
 const colorNames = {
   yellow: "Jaune",
   mint: "Menthe",
@@ -27,7 +33,8 @@ const editor = ref(null),
   picture = ref(null),
   busy = ref(false),
   linkDialog = ref(false),
-  linkUrl = ref("");
+  linkUrl = ref(""),
+  codeLanguage = ref("java");
 let last = "",
   range = null,
   upload = null,
@@ -69,10 +76,24 @@ function changed() {
   remember();
 }
 function draw() {
+  if (!editor.value) return;
   last = props.modelValue;
   editor.value.innerHTML = renderConductor(last, props.images) || "<p><br></p>";
+  for (const node of editor.value.querySelectorAll("pre"))
+    node.spellcheck = false;
   picture.value = null;
   range = null;
+  nextTick(() => emit("resize"));
+}
+watch(
+  () => props.sourceMode,
+  () => nextTick(draw),
+);
+function sourceChanged(event) {
+  const value = event.target.value;
+  if (value.length > props.maxLength) return;
+  last = value;
+  emit("update:modelValue", value);
 }
 watch(
   () => props.modelValue,
@@ -105,11 +126,13 @@ watch(
   { deep: true },
 );
 function command(name, value) {
+  if (props.sourceMode) return;
   restore();
   document.execCommand(name, false, value);
   changed();
 }
 function highlight(color) {
+  if (props.sourceMode) return;
   restore();
   const selection = window.getSelection();
   if (!selection?.rangeCount || selection.isCollapsed) {
@@ -175,6 +198,11 @@ function table() {
   );
   changed();
 }
+function separator() {
+  restore();
+  document.execCommand("insertHTML", false, "<hr><p><br></p>");
+  changed();
+}
 function code() {
   restore();
   const value = window.getSelection()?.toString() || "// Ton code";
@@ -184,7 +212,9 @@ function code() {
   document.execCommand(
     "insertHTML",
     false,
-    renderConductor(fence + "java\n" + value + "\n" + fence + "\n\n"),
+    renderConductor(
+      fence + codeLanguage.value + "\n" + value + "\n" + fence + "\n\n",
+    ),
   );
   changed();
 }
@@ -381,7 +411,12 @@ onBeforeUnmount(() => {
   <section class="conductor-rich-editor">
     <Teleport :to="toolsHost || 'body'" :disabled="!toolsHost"
       ><div v-show="!hideTools || toolsHost" class="rich-control-stack">
-        <div class="rich-tools" aria-label="Mise en forme" @mousedown.prevent>
+        <div
+          v-if="!sourceMode"
+          class="rich-tools"
+          aria-label="Mise en forme"
+          @mousedown.prevent
+        >
           <button
             v-for="[tag, title] in [
               ['p', 'Texte'],
@@ -422,6 +457,30 @@ onBeforeUnmount(() => {
             @click="command('insertOrderedList')"
           >
             1. Liste</button
+          ><button class="btn" @click="separator">Séparateur</button
+          ><select
+            v-model="codeLanguage"
+            aria-label="Langage du code"
+            @mousedown.stop
+          >
+            <option
+              v-for="lang in [
+                'java',
+                'javascript',
+                'typescript',
+                'python',
+                'bash',
+                'json',
+                'sql',
+                'yaml',
+                'html',
+                'css',
+              ]"
+              :key="lang"
+              :value="lang"
+            >
+              {{ lang }}
+            </option></select
           ><button class="btn" @click="code">Code</button
           ><button class="btn" @click="table">Tableau</button
           ><button
@@ -433,7 +492,7 @@ onBeforeUnmount(() => {
           >
             Lien
           </button>
-          <div class="rich-palette" aria-label="Surlignage">
+          <div v-if="!blockMode" class="rich-palette" aria-label="Surlignage">
             <button
               v-for="(color, id) in highlightColors"
               :key="id"
@@ -514,7 +573,17 @@ onBeforeUnmount(() => {
         </div>
       </div></Teleport
     >
+    <textarea
+      v-if="sourceMode"
+      class="rich-markdown-source"
+      :value="modelValue"
+      :maxlength="maxLength"
+      :aria-label="label + ' · Source Markdown'"
+      spellcheck="false"
+      @input="sourceChanged"
+    />
     <div
+      v-else
       ref="editor"
       role="textbox"
       aria-multiline="true"

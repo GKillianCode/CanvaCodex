@@ -203,3 +203,8 @@ Dans le diaporama, **Présenter / F12** n’ouvre plus de fenêtre externe. Le c
 Les images restent intégrées aux sauvegardes de la vidéo ; elles sont référencées par ID dans le texte et leur affichage utilise le chargement différé. Un dossier externe d’images liées n’est pas utilisé dans cette version. Les anciennes illustrations sont conservées au passage à l’éditeur visuel.
 
 Dans **Publication**, une miniature existante est sélectionnée automatiquement si aucun choix valide n’est enregistré. S’il y a plusieurs variantes, les flèches et les petites vignettes permettent de choisir ; ce choix est sauvegardé avec la vidéo.
+
+
+Le **Conducteur** s’ouvre sur **Préparer** : pour la partie sélectionnée, deux cartes **Ce que je dis / Mes repères** donnent une vue d’ensemble non modifiable. Clique sur une carte pour ouvrir son éditeur sur toute la page ; Revenir à la partie ou Échap le ferme. Le défilement sur les cartes fait défiler la page, sans capturer la molette dans un canevas.
+
+Dans l’éditeur, le clic droit sur la scène permet d’ajouter un texte ou une image à cet emplacement (sur un texte sélectionné, il garde le menu de surlignage). Les propriétés sont rangées dans trois tiroirs exclusifs : Ajouter et grille, Placement du bloc, Texte et Markdown. La palette de surlignage n’est plus répétée à droite. Le tiroir de texte propose **Visuel / Markdown**, des titres et sous-titres, listes, séparateurs et code coloré (Java, JavaScript/TypeScript, Python, Bash, JSON, SQL, YAML, HTML, CSS). La mise en page reste commune à l’aperçu et à Présenter, avec une scène qui occupe la largeur disponible et s’agrandit sur les grands écrans.

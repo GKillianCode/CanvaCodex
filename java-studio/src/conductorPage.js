@@ -66,3 +66,12 @@ export function pageGeometry(block, patch, snap = false) {
         next[key] = Math.round(next[key] / 20) * 20;
   return normalizePage([next])[0];
 }
+
+// Pointer coordinates are relative to the transformed sheet, including its scroll offset.
+export function pagePoint(clientX, clientY, rect, scale) {
+  const zoom = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  return {
+    x: Math.max(0, Math.min(PAGE_WIDTH, (clientX - rect.left) / zoom)),
+    y: Math.max(0, Math.min(50000, (clientY - rect.top) / zoom)),
+  };
+}
