@@ -474,7 +474,7 @@ async function importVideo(event) {
 <template>
   <main class="video-library">
     <WorkspaceHeader
-      :title="videoId ? 'Vidéo' : 'Studio'"
+      :title="videoId ? '' : 'Studio'"
       :back-label="videoId ? 'Accueil' : ''"
       @back="emit('home')"
     >

@@ -162,6 +162,7 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     :repository="repository"
     :video-id="video.videoId"
     @back="navigate(videoHash(video.videoId))"
+    @workshop="name=>navigate(videoHash(video.videoId)+'/'+name)"
   /><component
     :is="video?.workshop==='conductor'?ConductorApp:PublicationApp"
     v-else-if="video?.workshop"

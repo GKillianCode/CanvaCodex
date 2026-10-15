@@ -1,9 +1,10 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, computed } from "vue";
+import VideoWorkflowNav from "./VideoWorkflowNav.vue";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import VideoNotebook from "./VideoNotebook.vue";
 const props = defineProps({ repository: Object, videoId: String });
-const emit = defineEmits(["back"]);
+const emit = defineEmits(["back", "workshop"]);
 const project = ref(null),
   notes = ref(""),
   saved = ref(""),
@@ -52,6 +53,7 @@ function exportMarkdown() {
   a.click();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
+async function goWorkshop(name){try{await flush();emit("workshop",name);}catch(e){error.value=e.message;}}
 async function back() {
   if (dirty.value) await save();
   if (!busy.value && !dirty.value) emit("back");
@@ -95,6 +97,7 @@ onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
         }}</span></template
       ></WorkspaceHeader
     >
+    <VideoWorkflowNav active="notes" @navigate="goWorkshop"/>
     <div v-if="error" class="video-alert" role="alert">
       {{ error
       }}<button class="btn" @click="project ? save() : load()">

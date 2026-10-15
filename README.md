@@ -188,7 +188,9 @@ Dans le **Canvas des parcours**, clic droit → **Ajouter un projet fil rouge** 
 
 Sur la branche de test `codex/test-video-production`, ouvre une vidéo puis **Conducteur** ou **Publication** dans sa fiche.
 
-- **Conducteur** : organise les parties, rédige le script Markdown, ajoute tes repères privés et lie les créations existantes. **Fenêtre de lecture** ouvre une vue à déplacer sur ton second écran pour le tournage continu ; la taille du texte est réglable et les flèches permettent de parcourir le plan. **Lire ici** fonctionne aussi dans la fenêtre courante.
-- **Publication** : prépare le titre, choisis une miniature existante et copie séparément description, chapitres ou commentaire épinglé. Reprends les titres du conducteur puis renseigne les horaires du montage final. Une description peut servir de modèle local pour la playlist.
+- **Conducteur** : organise les parties, rédige le script Markdown, ajoute tes repères privés et lie les créations existantes. Le conducteur s’ouvre en **Aperçu** ; **Éditer** permet de modifier le script et le support placé au-dessus. **Présenter** (F12) lance la lecture dans la même fenêtre et demande le plein écran ; Échap permet de revenir. La taille du texte est réglable et les flèches permettent de parcourir le plan. Les actions des parties sont accessibles au clic droit ou au bouton ⋯ de la liste.
+- **Publication** : prépare le titre, choisis une miniature existante et copie séparément description, chapitres ou commentaire épinglé avec les petites icônes placées à côté des champs, tous réunis sur une page. Reprends les titres du conducteur puis renseigne les horaires du montage final. Une description peut servir de modèle local pour la playlist.
 
 Les ateliers se sauvegardent automatiquement dans la vidéo ; Ctrl S force l’enregistrement. Ils suivent son export/import et son dossier de travail (`video.frame.json`). Fichier permet aussi un export Markdown du conducteur ou texte de la publication. Le carnet conserve les recherches et brouillons, sans duplication automatique dans ces ateliers. Aucun contenu n’est publié automatiquement.
+
+La navigation **Conducteur / Publication / Carnet** reste disponible dans les trois ateliers.
