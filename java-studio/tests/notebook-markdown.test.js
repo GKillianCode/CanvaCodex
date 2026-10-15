@@ -2,12 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { renderNotebook } from "../src/notebookMarkdown.js";
 import { videoRoute } from "../src/videoProjects.js";
-test("dedicated notebook route preserves video identity on reload", () => {
+test("legacy notebook route opens the conductor without losing video identity", () => {
   assert.deepEqual(videoRoute("#/videos/abc-123/notes"), {
     videoId: "abc-123",
     app: null,
     creationId: null,
-    notes: true,
+    workshop: 'conductor',
+    reader: false,
   });
   assert.equal(videoRoute("#/videos/abc-123/notes/other"), null);
 });
@@ -39,4 +40,11 @@ test("notebook refuses active HTML, image requests and unsafe links", () => {
     "<script>alert(1)</script>\n\n[bad](javascript:alert(1))\n\n![image](https://example.com/private.png)",
   );
   assert.doesNotMatch(html, /<script|<img|href="javascript/);
+});
+
+test("presentation and notebook use the same secure highlighted Markdown renderer", async () => {
+  const { renderNotes } = await import("../src/presentationNotes.js");
+  const source = "### Titre\n\n```java\nint x = 1;\n```";
+  assert.equal(renderNotes(source), renderNotebook(source));
+  assert.match(renderNotes(source), /token keyword/);
 });

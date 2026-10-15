@@ -27,10 +27,10 @@ test('does not snap outside tolerance and screen-scaled tolerance works across z
  assert.equal(snapTranslation(p,p.a,[target],289,180,12).positions.a.x,400);
  assert.equal(snapTranslation(p,p.a,[target],294,180,3).positions.a.x,394);
 });
-test('clamps bounds, retains rotated visible geometry, and excludes impossible snaps',()=>{
+test('allows negative positions and snapping beyond the slide',()=>{
  const p={a:{x:100,y:100,w:200,h:100,rotation:90}},box=enclosingBounds([p.a]);
  const result=snapTranslation(p,box,[], -1000,-1000,6);
- const moved=enclosingBounds([result.positions.a]);assert.ok(Math.abs(moved.x)<1e-8);assert.ok(Math.abs(moved.y)<1e-8);
+ const moved=enclosingBounds([result.positions.a]);assert.equal(moved.x,box.x-1000);assert.equal(moved.y,box.y-1000);
  const outside=snapTranslation({a:{x:100,y:100,w:100,h:100}},{x:100,y:100,w:100,h:100},[{x:-3,y:500,w:100,h:100}],-100,0,6);
  assert.equal(outside.positions.a.x,0);
  assert.deepEqual(snapTranslation({},box,[],0,0),{positions:{},guides:[]});

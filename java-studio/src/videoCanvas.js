@@ -20,14 +20,14 @@ export function normalizeVideoCanvas(raw = {}) {
     const type =
       row.type === "video" && typeof row.videoId === "string"
         ? "video"
-        : "note";
+        : row.type === "project" ? "project" : "note";
     ids.add(row.id.slice(0, 200));
     nodes.push({
       id: row.id.slice(0, 200),
       type,
       videoId: type === "video" ? row.videoId.slice(0, 200) : "",
       title: String(
-        row.title || (type === "note" ? "Étape du parcours" : "Vidéo"),
+        row.title || (type === "project" ? "Projet fil rouge" : type === "note" ? "Étape du parcours" : "Vidéo"),
       ).slice(0, 200),
       text: String(row.text || "").slice(0, 4000),
       x: coordinate(row.x),
@@ -256,4 +256,20 @@ export function availableCanvasVideos(canvas, videos) {
     canvas.nodes.filter((n) => n.type === "video").map((n) => n.videoId),
   );
   return videos.filter((v) => !v.archived && !present.has(v.id));
+}
+export function canvasDocument(canvas) {
+  return {
+    format: "frame-learning-canvas",
+    version: 1,
+    canvas: normalizeVideoCanvas(canvas),
+  };
+}
+export function readCanvasDocument(raw) {
+  if (
+    raw?.format !== "frame-learning-canvas" ||
+    raw.version !== 1 ||
+    !Array.isArray(raw.canvas?.nodes)
+  )
+    throw Error("Ce fichier n’est pas un parcours Frame.");
+  return normalizeVideoCanvas(raw.canvas);
 }

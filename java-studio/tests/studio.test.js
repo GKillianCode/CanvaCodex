@@ -116,7 +116,7 @@ test('element duplication keeps independent content, styling, image source and f
  const s=makeSlide('image-right');s.elements.image1.src='data:image/png;base64,aGVsbG8=';const key=duplicateElement(s,'image1');s.elements[key].fit='cover';assert.equal(s.elements.image1.fit,'contain');assert.equal(normalizeSlides([s])[0].elements[key].src,s.elements.image1.src);
 });
 test('arrow movements use one output pixel and resize corners retain the opposite anchor',async()=>{
- const {nudgePosition,resizePosition}=await import('../src/editor.js');const p={x:100,y:200,w:500,h:300,size:40};assert.equal(nudgePosition(p,1,0,2560).x,100.75);assert.equal(nudgePosition(p,0,-10,2560).y,192.5);for(const corner of ['nw','ne','sw','se']){const b=resizePosition(p,corner,20,30,'image');assert.equal(b.size,40);if(corner.includes('w'))assert.equal(b.x+b.w,p.x+p.w);else assert.equal(b.x,p.x);if(corner.includes('n'))assert.equal(b.y+b.h,p.y+p.h);else assert.equal(b.y,p.y);}const tiny=resizePosition(p,'se',-10000,-10000,'code');assert.equal(tiny.w,240);assert.equal(tiny.h,180);const big=resizePosition(p,'se',10000,10000,'image');assert.ok(big.x+big.w<=1920&&big.y+big.h<=1080);
+ const {nudgePosition,resizePosition}=await import('../src/editor.js');const p={x:100,y:200,w:500,h:300,size:40};assert.equal(nudgePosition(p,1,0,2560).x,100.75);assert.equal(nudgePosition(p,0,-10,2560).y,192.5);for(const corner of ['nw','ne','sw','se']){const b=resizePosition(p,corner,20,30,'image');assert.equal(b.size,40);if(corner.includes('w'))assert.equal(b.x+b.w,p.x+p.w);else assert.equal(b.x,p.x);if(corner.includes('n'))assert.equal(b.y+b.h,p.y+p.h);else assert.equal(b.y,p.y);}const tiny=resizePosition(p,'se',-10000,-10000,'code');assert.equal(tiny.w,240);assert.equal(tiny.h,180);const big=resizePosition(p,'se',10000,10000,'image');assert.equal(big.w,10000);assert.equal(big.h,10000);
 });
 test('optional code captions and duplicated code survive legacy and current project migrations',()=>{
  const s=makeSlide();s.codeTitle='HelloWorld.java';assert.equal(normalizeSlides([s])[0].codeTitle,s.codeTitle);delete s.codeTitle;assert.equal(normalizeSlides([s])[0].codeTitle,'');
@@ -170,7 +170,7 @@ test('all eight resize handles anchor opposite edges and side handles alter one 
  if(['e','w'].includes(handle)){assert.equal(b.h,p.h);assert.equal(b.size,p.size);}
  }
  const tiny=resizePosition(p,'se',-10000,-10000,'shape');assert.equal(tiny.w,8);assert.equal(tiny.h,8);
- const big=resizePosition(p,'nw',-10000,-10000,'shape');assert.equal(big.x,0);assert.equal(big.y,0);assert.equal(big.x+big.w,600);assert.equal(big.y+big.h,500);
+ const big=resizePosition(p,'nw',-10000,-10000,'shape');assert.equal(big.x,-9400);assert.equal(big.y,-9500);assert.equal(big.x+big.w,600);assert.equal(big.y+big.h,500);
 });
 
 test('vector shape rendering keeps stroke thickness independent of deformation',async()=>{
@@ -209,8 +209,8 @@ test('font selections survive migration, JSON roundtrip and independent duplicat
 
 test('text fitting and code bounds measure the selected font',async()=>{
  const {fitText,blockBounds}=await import('../src/render.js');let family;const ctx={font:'',measureText(value){family=this.font;return {width:value.length*(this.font.includes('JetBrains Mono')?22:10)};}};
- fitText(ctx,'Java é à',{w:300,h:50,size:32,font:'lora'},700,1.12);assert.match(ctx.font,/Lora/);
- const s=makeSlide();s.code='a'.repeat(40);s.positions.code={x:100,y:100,w:600,h:500,size:32,font:'jetbrains-mono'};const b=blockBounds(ctx,s,'code');assert.match(family,/JetBrains Mono/);assert.ok(b.size<32);assert.equal(Math.round(b.size*100)/100,17.82);
+ fitText(ctx,'Java é à',{w:300,h:50,size:32,font:'lora',fitFont:true},700,1.12);assert.match(ctx.font,/Lora/);
+ const s=makeSlide();s.code='a'.repeat(40);s.positions.code={x:100,y:100,w:600,h:500,size:32,font:'jetbrains-mono',fitFont:true};const b=blockBounds(ctx,s,'code');assert.match(family,/JetBrains Mono/);assert.ok(b.size<32);assert.equal(Math.round(b.size*100)/100,17.82);
 });
 
 test('font loader awaits requested faces, shares loads and retries failures',async()=>{

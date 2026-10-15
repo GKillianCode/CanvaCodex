@@ -11,11 +11,13 @@ import {
   X,
   Plus,
   Link2,
+  Flag,
   MousePointer2,
   Trash2,
   Search,
   ArrowUpRight,
 } from "lucide-vue-next";
+import WorkspaceHeader from "./WorkspaceHeader.vue";
 import LibraryPreview from "./LibraryPreview.vue";
 import { videoStatuses } from "../videoProjects.js";
 import {
@@ -35,9 +37,20 @@ import {
   panCanvasScroll,
   assignCanvasGroups,
   availableCanvasVideos,
+  canvasDocument,
+  readCanvasDocument,
 } from "../videoCanvas.js";
 const props = defineProps({ repository: Object, videos: Array });
 const emit = defineEmits(["close", "open"]);
+const importBackup = ref(null);
+
+defineExpose({
+  flush: async () => {
+    await flush();
+    if (dirty.value || writing)
+      throw Error(error.value || "Le parcours n’a pas encore été sauvegardé.");
+  },
+});
 const canvas = ref(normalizeVideoCanvas()),
   loading = ref(true),
   saving = ref(false),
@@ -397,7 +410,7 @@ async function close() {
     return;
   }
   await flush();
-  if (writing || dirty.value || error.value) return;
+  if (writing || dirty.value) return;
   emit("close");
 }
 function trapTab(event) {
@@ -469,16 +482,16 @@ onBeforeUnmount(() => {
   endDrag();
   cancelConnection();
 });
-function addNote() {
+function addNote(type="note") {
   if (canvas.value.nodes.length >= 500) {
     error.value = "Limite de 500 cartes atteinte.";
     return;
   }
   const node = {
     id: crypto.randomUUID(),
-    type: "note",
+    type,
     videoId: "",
-    title: "Nouvelle étape",
+    title: type === "project" ? "Début du projet fil rouge" : "Nouvelle étape",
     text: "",
     x: Math.min(
       CANVAS_LIMIT,
@@ -745,9 +758,41 @@ function keyboardMove(event, node) {
   );
   changed();
 }
+function exportCanvas() {
+  const blob = new Blob(
+    [JSON.stringify(canvasDocument(canvas.value), null, 2)],
+    { type: "application/json" },
+  );
+  const url = URL.createObjectURL(blob),
+    a = document.createElement("a");
+  a.href = url;
+  a.download = "frame-parcours.json";
+  a.click();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+async function importCanvas(event) {
+  const file = event.target.files?.[0];
+  event.target.value = "";
+  if (!file) return;
+  try {
+    if (file.size > 10000000)
+      throw Error("Ce fichier de parcours est trop volumineux.");
+    const raw = JSON.parse(await file.text());
+    const next = readCanvasDocument(raw);
+    importBackup.value = JSON.parse(JSON.stringify(canvas.value));
+    canvas.value = next;
+    clearSelection();
+    changed();
+    await nextTick();
+    center();
+  } catch (e) {
+    error.value = e.message;
+  }
+}
 function setZoom(value, event) {
+  if (!Number.isFinite(value) || !viewport.value) return;
   const old = zoom.value,
-    next = Math.max(0.25, Math.min(1.5, value));
+    next = Math.max(0.03, Math.min(5, value));
   const box = viewport.value.getBoundingClientRect(),
     px = event ? event.clientX - box.left : box.width / 2,
     py = event ? event.clientY - box.top : box.height / 2;
@@ -779,10 +824,11 @@ function selectEdge(value) {
     ref="panel"
     tabindex="-1"
     @keydown.tab="trapTab"
-    class="learning-canvas"
+    @keydown.ctrl.s.prevent="flush"
+    @keydown.meta.s.prevent="flush"
+    class="learning-canvas canvas-workspace-app"
     @pointerdown="menu = null"
-    role="dialog"
-    aria-modal="true"
+    role="region"
     aria-label="Canvas des parcours"
     @keydown.esc="
       menu
@@ -796,19 +842,43 @@ function selectEdge(value) {
               : close()
     "
   >
-    <header class="learning-canvas-header">
-      <div>
-        <span class="eyebrow">PARCOURS PÉDAGOGIQUES</span>
-        <h2>Ton canvas</h2>
-        <p>
-          Clic droit pour ajouter · Espace ou molette pour se déplacer · Tire
-          les flèches depuis les cartes
-        </p>
-      </div>
-      <button class="icon-btn" aria-label="Fermer le canvas" @click="close">
-        <X :size="22" />
-      </button>
-    </header>
+    <WorkspaceHeader title="Canvas des parcours" @back="close">
+      <template #file
+        ><button @click="flush">Enregistrer le parcours</button
+        ><button @click="exportCanvas">Exporter le parcours JSON</button
+        ><label class="menu-file"
+          >Importer un parcours JSON<input
+            type="file"
+            accept="application/json,.json"
+            @change="importCanvas" /></label
+        ><button
+          v-if="importBackup"
+          @click="
+            canvas = importBackup;
+            importBackup = null;
+            changed();
+          "
+        >
+          Annuler l’import
+        </button></template
+      >
+      <template #view
+        ><button @click="center">Recentrer les cartes</button
+        ><button @click="setZoom(1)">Zoom à 100 %</button
+        ><label class="menu-checkbox"
+          ><input
+            type="checkbox"
+            v-model="canvas.snap"
+            @change="changed"
+          />Aimantation à la grille</label
+        ></template
+      >
+      <template #actions
+        ><span class="save-state">{{
+          dirty ? "Sauvegarde…" : "Parcours sauvegardé"
+        }}</span></template
+      >
+    </WorkspaceHeader>
     <div class="canvas-workspace">
       <div
         ref="viewport"
@@ -942,6 +1012,7 @@ function selectEdge(value) {
                 selected: selectedIds.includes(node.id),
                 source: source === node.id,
                 note: node.type === 'note',
+                project: node.type === 'project',
               }"
               :style="{
                 left: node.x - world.x + 'px',
@@ -972,22 +1043,28 @@ function selectEdge(value) {
                 @keydown.enter.prevent="selectNode(node, $event)"
               >
                 <MousePointer2 :size="14" />{{
-                  node.type === "note" ? "ÉTAPE" : "VIDÉO"
+                  node.type === "project" ? "PROJET FIL ROUGE" : node.type === "note" ? "ÉTAPE" : "VIDÉO"
                 }}<span v-if="videoMap.get(node.videoId)?.archived">
                   · ARCHIVÉE</span
                 ></button
               ><button
                 class="canvas-node-content"
                 @click="selectNode(node, $event)"
-                @dblclick="node.type === 'note' && (editingCard = true)"
+                @dblclick="node.type !== 'video' && (editingCard = true)"
               >
                 <LibraryPreview
-                  v-if="node.type === 'video'"
+                  v-if="node.type === 'video' && zoom >= 0.25"
                   :repository="repository"
                   :project-id="node.videoId"
                 />
+                <div
+                  v-else-if="node.type === 'video'"
+                  class="canvas-overview-cover"
+                >
+                  <ArrowUpRight :size="24" />
+                </div>
                 <div v-else class="canvas-note-visual">
-                  <Link2 :size="28" /><span>ÉTAPE DU PARCOURS</span>
+                  <component :is="node.type==='project'?Flag:Link2" :size="28" /><span>{{node.type==='project'?'DÉBUT DU PROJET':'POINT DU PARCOURS'}}</span>
                 </div>
                 <strong>{{ title(node) }}</strong>
                 <span
@@ -998,15 +1075,15 @@ function selectEdge(value) {
                   "
                   >{{ statusTitle(videoMap.get(node.videoId)?.status) }}</span
                 >
-                <p v-if="node.type === 'note'">
-                  {{ node.text || "Double-clique pour définir cette étape." }}
+                <p v-if="node.type !== 'video'">
+                  {{ node.text || (node.type==='project'?"Double-clique pour présenter le projet.":"Double-clique pour définir cette étape.") }}
                 </p></button
               ><button
                 v-if="node.type === 'video' && videoMap.has(node.videoId)"
                 class="canvas-open-video"
                 @click="
                   flush().then(() => {
-                    if (!dirty && !error) emit('open', node.videoId);
+                    if (!dirty && !saving) emit('open', node.videoId);
                   })
                 "
               >
@@ -1044,31 +1121,22 @@ function selectEdge(value) {
         <button
           class="icon-btn"
           aria-label="Dézoomer le canvas"
-          @click="setZoom(zoom - 0.1)"
+          @click="setZoom(zoom / 1.15)"
         >
           −</button
-        ><select
-          :value="zoom"
-          aria-label="Zoom du canvas"
-          @change="setZoom(Number($event.target.value))"
-        >
-          <option
-            v-for="v in [0.25, 0.5, 0.8, 1, 1.25, 1.5]"
-            :key="v"
-            :value="v"
-          >
-            {{ Math.round(v * 100) }} %
-          </option>
-          <option
-            v-if="![0.25, 0.5, 0.8, 1, 1.25, 1.5].includes(zoom)"
-            :value="zoom"
-          >
-            {{ Math.round(zoom * 100) }} %
-          </option></select
+        ><label class="number-unit"
+          ><input
+            type="number"
+            :value="Math.round(zoom * 100)"
+            min="3"
+            max="500"
+            aria-label="Zoom du canvas"
+            @change="setZoom(Number($event.target.value) / 100)"
+          /><span>%</span></label
         ><button
           class="icon-btn"
           aria-label="Zoomer le canvas"
-          @click="setZoom(zoom + 0.1)"
+          @click="setZoom(zoom * 1.15)"
         >
           +
         </button>
@@ -1100,16 +1168,17 @@ function selectEdge(value) {
       >
         Ajouter une étape
       </button>
+      <button role="menuitem" :disabled="loading" @click="addNote('project');menu=null"><Flag :size="16"/>Ajouter un projet fil rouge</button>
       <hr />
       <button
-        v-if="currentGroup || selectedNode?.type === 'note'"
+        v-if="currentGroup || selectedNode && selectedNode.type !== 'video'"
         role="menuitem"
         @click="
           editingCard = true;
           menu = null;
         "
       >
-        {{ currentGroup ? "Renommer le groupe" : "Modifier l’étape" }}
+        {{ currentGroup ? "Renommer le groupe" : selectedNode?.type==='project'?"Modifier le projet fil rouge":"Modifier l’étape" }}
       </button>
       <button
         role="menuitem"
@@ -1159,7 +1228,7 @@ function selectEdge(value) {
       ><button
         role="menuitem"
         @click="
-          setZoom(zoom + 0.1);
+          setZoom(zoom * 1.15);
           menu = null;
         "
       >
@@ -1167,7 +1236,7 @@ function selectEdge(value) {
       ><button
         role="menuitem"
         @click="
-          setZoom(zoom - 0.1);
+          setZoom(zoom / 1.15);
           menu = null;
         "
       >
@@ -1175,7 +1244,7 @@ function selectEdge(value) {
       </button>
     </div>
     <div
-      v-if="editingCard && (currentGroup || selectedNode?.type === 'note')"
+      v-if="editingCard && (currentGroup || selectedNode && selectedNode.type !== 'video')"
       class="canvas-picker-backdrop"
       @click.self="editingCard = false"
     >
@@ -1187,7 +1256,7 @@ function selectEdge(value) {
       >
         <header>
           <h3>
-            {{ currentGroup ? "Modifier le groupe" : "Modifier l’étape" }}
+            {{ currentGroup ? "Modifier le groupe" : selectedNode?.type==='project'?"Modifier le projet fil rouge":"Modifier l’étape" }}
           </h3>
           <button
             class="icon-btn"

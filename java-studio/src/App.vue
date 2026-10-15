@@ -7,15 +7,32 @@ import {
   videoHash,
   creationSession,
 } from "./videoProjects.js";
+import { useGlobalModalScroll } from "./modalScroll.js";
+import { videoFolderStorage } from "./videoFolders.js";
 import StudioApp from "./StudioApp.vue";
 import VideoLibrary from "./components/VideoLibrary.vue";
-import VideoNotesApp from "./components/VideoNotesApp.vue";
-const repository = videoRepository(),
+import VideoCanvasApp from "./components/VideoCanvasApp.vue";
+import ConductorApp from "./components/ConductorApp.vue";
+import PublicationApp from "./components/PublicationApp.vue";
+useGlobalModalScroll();
+const folderState = ref({
+  supported: typeof window.showDirectoryPicker === "function",
+  name: "",
+  status: "browser",
+  error: "",
+});
+const folders = videoFolderStorage(
+  videoRepository(),
+  window,
+  (value) => (folderState.value = value),
+);
+const repository = folders.repository,
   active = ref(null),
   video = ref(null),
   context = shallowRef(null),
   studio = ref(null),
-  notesApp = ref(null),
+  canvasApp = ref(null),
+  workflowApp = ref(null),
   loading = ref(true),
   error = ref("");
 let generation = 0;
@@ -27,7 +44,8 @@ async function syncRoute() {
   error.value = "";
   try {
     if (studio.value) await studio.value.flush();
-    if (notesApp.value) await notesApp.value.flush();
+    if (canvasApp.value) await canvasApp.value.flush();
+    if (workflowApp.value) await workflowApp.value.flush();
     const route = videoRoute(window.location.hash),
       app = applicationFromHash(window.location.hash);
     if (route?.creationId) {
@@ -105,6 +123,14 @@ onMounted(() => {
 onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
 </script>
 <template>
+  <div v-if="folderState.error" class="folder-warning" role="alert">
+    {{ folderState.error }} Ta copie dans le navigateur est conservée.<button
+      class="btn"
+      @click="folders.authorize().catch((e) => (folderState.error = e.message))"
+    >
+      Réautoriser / réessayer
+    </button>
+  </div>
   <div v-if="error" class="video-route-alert" role="alert">
     {{ error }}<button class="btn" @click="retry">Réessayer</button
     ><button v-if="!active" class="btn" @click="navigate('#/')">
@@ -112,6 +138,13 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     </button>
   </div>
   <div v-if="loading" class="video-loading">Ouverture de ton espace…</div>
+  <VideoCanvasApp
+    v-else-if="active === 'canvas'"
+    ref="canvasApp"
+    :repository="repository"
+    @home="navigate('#/')"
+    @open="(id) => navigate(videoHash(id))"
+  />
   <StudioApp
     v-else-if="active"
     ref="studio"
@@ -119,22 +152,28 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     :application="active"
     :creation-context="context"
     @home="home"
-  /><VideoNotesApp
-    v-else-if="video?.notes"
-    ref="notesApp"
-    :key="video.videoId + ':notes'"
+  /><component
+    :is="video?.workshop==='conductor'?ConductorApp:PublicationApp"
+    v-else-if="video?.workshop"
+    ref="workflowApp"
+    :key="video.videoId+':'+video.workshop+':'+video.reader"
     :repository="repository"
     :video-id="video.videoId"
+    :reader="video.reader"
     @back="navigate(videoHash(video.videoId))"
+    @workshop="(name)=>navigate(videoHash(video.videoId)+'/'+name)"
+    @open-creation="(id,app,key)=>navigate(videoHash(id,app,key))"
   /><VideoLibrary
     v-else
     :key="video?.videoId || 'home'"
     :repository="repository"
+    :folders="folders"
+    :folder-state="folderState"
     :video-id="video?.videoId"
     @home="navigate('#/')"
     @open-app="(id) => navigate(applicationHash(id))"
     @open-video="(id) => navigate(videoHash(id))"
-    @open-notes="(id) => navigate(videoHash(id) + '/notes')"
+    @open-workshop="(id,name)=>navigate(videoHash(id)+'/'+name)"
     @open-creation="(id, app, key) => navigate(videoHash(id, app, key))"
   />
 </template>

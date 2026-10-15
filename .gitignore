@@ -20,3 +20,6 @@
 java-studio-preview.jpg
 java-studio-recording.jpg
 .DS_Store
+
+# Dossiers vidéo personnels exportés localement
+/videos/

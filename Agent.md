@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 13 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 15 octobre 2026 (Europe/Paris).
 
 Ce fichier est l’unique mémoire et point d’entrée des consignes du projet. Le lire avant de travailler, le tenir à jour et respecter le workflow GitHub ci-dessous, en distinguant travail local et publication confirmée.
 
@@ -791,3 +791,158 @@ Suite utilisateur groupes du canvas : cadre persistant bounds{x,y,width,height},
 
 
 Validation explicite utilisateur le 13 octobre : prototype espaces vidéo/playlist/carnet/canvas validé, toutes fonctionnalités à conserver dans la branche principale de développement. Autorisation de fusion désormais donnée pour ce prototype. Dernier ajustement : bordures des cartes vidéo passent à 2px avec couleur de statut pleine (au lieu 1px mélangée à 55%), dimensions extérieures restent 280×240 avec box-sizing border-box. Intégration confirmée vers main : PR #107 retargetée depuis codex/text-typewriter puis fusionnée avec autorisation utilisateur le 13 octobre au commit f284d4982ab51f33f6f68c27085a63e3ad7408e2. Main contient tous les éditeurs hérités et le prototype validé, arbre bc95d9ee61a87a5d26631a5cc13448a0d204bdbc identique au lot local 618960a. Badge VERSION TEST retiré. 215 tests passent, compilation réussie et diff --check propre ; navigateur bordure Montage 2px rgb(240,197,134), dimensions280×240 conservées. Checkout local main actualisé ; prochain travail à baser sur main et nouvelles PRs, prototype plus en attente de validation. Les indications historiques « sans fusion » ci-dessus décrivent les phases antérieures et ne sont plus l’état actuel.
+
+
+## Chantier en cours — ateliers unifiés (#114)
+
+Branche codex/unified-workspaces. Travail local, publication à confirmer.
+
+
+Le canvas des parcours est un atelier autonome accessible dans la liste des applications : `#/parcours`. Il utilise le même en-tête que le carnet et les éditeurs, avec Accueil (ou Vidéo lorsque l’atelier appartient à une vidéo) et les menus propres à l’application. Le canvas propose Enregistrer, exporter/importer un JSON de parcours et annuler le dernier import. Son zoom accepte une valeur saisie de **3 % à 500 %**. En vue éloignée, les aperçus lourds ne sont pas chargés. Les cartes restent 280 × 240.
+
+L’accueil place les ateliers en haut ; recherche, Affichage (tri, états, archives) et Playlists structurent le catalogue. Importer une vidéo se trouve dans Fichier. La fiche vidéo regroupe les trois ateliers en colonnes sur grand écran et garde le carnet à la fin ; les actions secondaires sont regroupées. Les dialogues bloquent le défilement du fond. Une nouvelle vidéo peut créer immédiatement ses trois documents ou importer des JSON existants. Un diaporama lié s’ouvre en édition ; Éditer précède Canvas dans l’en-tête.
+
+Carnet et notes de diapo partagent Markdown-it et Prism. Les ligatures sont désactivées dans les zones de saisie pour rendre chaque `#` visible. L’aperçu du carnet attend une courte pause de 100 ms ; les changements de notes privées ne déclenchent plus les rendus du canevas et des miniatures. Les sauvegardes et l’historique restent actifs.
+
+Dans **Fichier → Choisir le dossier de travail**, autorise une fois un répertoire sur ton ordinateur. En navigateur compatible avec File System Access (contexte HTTPS ou localhost), la création et les modifications d’une vidéo y écrivent automatiquement :
+
+```text
+Dossier choisi/
+  ID-de-la-vidéo/
+    video.frame.json
+    carnet.md
+    slides-ID-de-création.json
+    banners-ID-de-création.json
+    thumbnails-ID-de-création.json
+```
+
+Chaque fichier d’atelier est un JSON importable indépendamment dans son application ; son nom reste stable lorsque la création est renommée. Les documents sont conservés dans IndexedDB en parallèle. Un nouvel emplacement de vidéo copie ses créations depuis la bibliothèque ; Fichier → Mettre cette vidéo dans le dossier permet aussi de copier une vidéo existante. Ctrl S d’un éditeur lié enregistre sa création sans demander un fichier individuel ; Enregistrer sous reste disponible pour une copie manuelle.
+
+Le navigateur peut redemander l’autorisation après une fermeture. Le bouton Réautoriser reprend les écritures en attente, même après rechargement. Une erreur disque conserve la copie dans le navigateur et affiche un avertissement ; les projets à reprendre sont mémorisés sans garder toutes leurs images en RAM. Un navigateur sans sélecteur de répertoire conserve la sauvegarde locale et l’export JSON ; « Conserver uniquement dans le navigateur pour le moment » est également disponible avant le premier choix de dossier. Le dossier n’est pas choisi silencieusement, les fichiers externes ne sont pas relus ni fusionnés automatiquement, et l’écriture de plusieurs fichiers n’est pas une transaction de dossier.
+
+
+### Taille des textes et débordement du canevas
+
+La taille de police saisie correspond aux pixels du document exporté, même après mise à l’échelle. La réduction automatique au cadre est désormais une option explicite de Typographie, désactivée par défaut et lorsqu’une nouvelle taille est saisie. Un cadre trop petit peut donc nécessiter un agrandissement. Les coordonnées peuvent être négatives ou dépasser les dimensions de l’écran ; déplacements, groupes, clavier et poignées conservent les parties hors cadre. Les exports gardent les dimensions de la création et coupent naturellement ce qui déborde.
+
+Validation locale : 228 tests passent, compilation Vite réussie (avertissement de taille de chunk préexistant). Vérifications UI sur catalogue synthétique, responsive 390px, Markdown six niveaux, route parcours et zoom 10%, champ texte 30px et coordonnée -100px. Adaptateurs de dossiers simulés et disque temporaire vérifiés ; sélecteur natif de dossier non automatisé. Dossiers personnels videos/ exclus de Git. Publication en cours via connecteur GitHub, sans fusion autorisée pour ce lot.
+
+Publication confirmée : [PR #115](https://github.com/GKillianCode/CanvaCodex/pull/115), brouillon vers main, commit distant 693803059f33328e4725c8276d8e7ccf7b81edf5. Arbre 3f7d4690e833b15fcf5ed9b08d6f196a64389dce identique au commit local 72721f1. Aucune fusion effectuée. Issue #114 ouverte jusqu’à revue.
+
+
+## Suppression des créations vidéo — issue #116
+
+Branche codex/delete-video-creations basée sur codex/unified-workspaces (PR #115 non fusionnée). Action Supprimer sur chaque carte des trois ateliers, confirmation et annulation de la dernière suppression tant que la fiche reste ouverte. Suppression atomique IndexedDB du document et de sa référence, couverture et résumé actualisés ; restauration conserve ID, contenu et place. Dossier vidéo : manifeste actualisé, exports sur disque conservés. 229 tests passent, build réussi (avertissement Vite préexistant), diff --check propre. UI synthétique : 3→2 créations, autres ateliers conservés, annulation 2→3 et rechargement, console sans erreur. Publication à confirmer, aucune fusion autorisée.
+
+Publication confirmée : [PR #117](https://github.com/GKillianCode/CanvaCodex/pull/117) en brouillon vers codex/unified-workspaces, dépend de #115. Commit distant cf1dd788770bc46a01a427bf36f161dbd3062463 ; arbre d054ae3f7371a02ae487a4ab4fcdaecba19765db identique au commit local 08e9321. Aucune fusion effectuée.
+
+
+## Styles par mots — issue #118
+
+Branche codex/rich-text-selections basée sur codex/delete-video-creations (PR #117, dépendant de #115). TextDialog partagé des trois ateliers : sélectionner texte, gras/italique/souligné/barré/surligné, palette du thème ou couleur hex, retirer les styles locaux, aperçu sûr via spans interpolés, raccourcis Ctrl/⌘ B/I/U ; brouillon validé explicitement, Annuler sans mutation. Ranges textRuns dans positions, offsets UTF-16 textarea, styles partiels normalisés, intervalles disjoints/fusionnés, limite 1 000. Éditions remappées par préfixe/suffixe commun et héritage local des insertions ; setBlockText centralise. Sauvegardes, composants/copie, font loader, auto-bounds, wrapping riche, listes, alignements/justification, mesures d’encre et révélation typewriter partagent le rendu Canvas 2D. Pas de HTML riche stocké, pas de dépendance ajoutée. Code et cellules conservent leurs outils dédiés.
+
+Validation : 235 tests passent, build et diff --check réussis (avertissement chunk Vite préexistant). UI synthétique : premier Java gras/accent, phrase suivante italique/soulignée/secondaire, texte normal entre les deux ; rechargement conserve les styles. Couleur personnalisée et remise au style global sur sélection vérifiées puis annulation sans mutation. PNG 2560×1440 exporté et inspecté : styles corrects. Tests couvrent chevauchement, suppression/remapping, mots répétés, emoji, wrapping/alignement/listes/justification, typewriter, sauvegarde et copie de composants. Publication à confirmer, aucune fusion autorisée.
+
+Publication confirmée : [PR #119](https://github.com/GKillianCode/CanvaCodex/pull/119) en brouillon vers codex/delete-video-creations (dépend de #117 puis #115). Commit applicatif distant f5b68b2d5eee0192b7876653765ecca972a4054b ; arbre 817b0b8ada29dd5367830897336feae9f083c607 identique au commit local 19c533f. Aucune fusion effectuée.
+
+
+## Cartes Projet fil rouge — issue #120, 14 octobre 2026
+
+Branche codex/canvas-thread-projects basée sur codex/rich-text-selections (#119 non fusionnée). Nouveau type project dans le canvas, menu clic droit Ajouter un projet fil rouge. Titre initial Début du projet fil rouge, texte éditable au double-clic/menu, drapeau et contour orangé. Même carte 280×240, outils génériques de connexions/groupes/déplacement/suppression. Normalisation préserve type project, titre par défaut, export/import et groupes/liens ; anciens types inconnus restent adaptés en note. 236 tests passent, build et diff --check réussis (avertissement chunk Vite préexistant). UI isolée localhost:5201 : ajout/édition API Java, liaison depuis étape, rechargement conserve deux types et un lien ; dimensions 280×240 mesurées. Publication à confirmer, aucune fusion autorisée.
+
+Publication confirmée : [PR #121](https://github.com/GKillianCode/CanvaCodex/pull/121) en brouillon vers codex/rich-text-selections. Commit applicatif distant 8a5a8453eb103d0e64aae37130dac2987692a306 ; arbre identique au commit local 40f6d21. Aucune fusion effectuée.
+
+
+## Conducteur et Publication — V1 de test, issue #122
+
+Demande utilisateur du 15 octobre : développer les deux ateliers sur une branche de test, sans fusion avant validation. Branche `codex/test-video-production`, basée sur `codex/canvas-thread-projects` (#121 non fusionnée). Suivi : https://github.com/GKillianCode/CanvaCodex/issues/122.
+
+La fiche vidéo garde ses trois listes de créations et le carnet ; une entrée compacte ouvre Conducteur ou Publication. Chaque atelier utilise WorkspaceHeader et les routes persistantes `#/videos/ID/conductor`, `/conductor/read` et `/publication`. Aucun nouveau catalogue de vidéos, aucune copie des supports.
+
+Conducteur : jusqu’à 100 parties, ajout/duplication/suppression avec annulation, déplacement par boutons ou glisser, script Markdown partagé avec le carnet, repères privés et support (caméra, IDE, écran, diaporama ou incrustation existante). Lecture sur place ou fenêtre dédiée à déplacer sur le second écran, police réglable, navigation clavier et parties précédente/suivante. La fenêtre de lecture recharge seulement la vidéo ouverte toutes les 1,5 secondes lorsqu’elle est visible, sans écrire. Pensé pour un tournage continu OBS + Audacity, sans gestion de prises ni minuteur imposé. Export Markdown manuel.
+
+Publication : titre YouTube distinct du nom interne, aperçu/lien vers une miniature existante, onglets Description / Chapitres / Commentaire épinglé et copie indépendante. Reprise explicite des titres du conducteur en conservant les horaires déjà associés ; horaires saisis après montage, contrôle du format et de l’ordre, sans prétendre vérifier toutes les règles YouTube. Modèle de description local par playlist, application explicite et annulable. Export texte. Carnet et repères privés ne remplissent jamais automatiquement les blocs publics. Aucun envoi automatique vers YouTube.
+
+Données `workflow.conductor` et `workflow.publication` dans le projet vidéo, absentes des résumés du catalogue. Anciennes vidéos normalisées avec ateliers vides. Export/import vidéo et duplication conservent les contenus et remappent les références de créations. Écriture IndexedDB atomique par section avec révision : conflit sur le même atelier signalé sans écrasement, autre section et carnet préservés. Sauvegarde automatique temporisée, Ctrl S, attente avant navigation, brouillon de secours sessionStorage par onglet, restauration et export de brouillon en cas d’erreur. Le dossier de travail reçoit ces données dans `video.frame.json` via le miroir existant ; modèles locaux hors export vidéo. Aucun schéma de base supplémentaire, dépendance ou IA.
+
+Validation : 242 tests passent, build et diff --check réussis (avertissement de chunk Vite préexistant). UI isolée localhost:5202 sur vidéo synthétique : quatre parties créées, script/repères/support existant sauvegardés, fenêtre de lecture ouverte par route dédiée et mise à jour depuis la préparation vérifiée ; popup système non inspecté directement par l’outil. Publication titre/miniature/description/commentaire enregistrés, quatre chapitres repris puis horaires complétés, copie exacte du chapitrage et rechargement conservant titre/miniature/chapitres vérifiés. Captures inspectées hors dépôt. Pas de contrôle OBS/Audacity ni d’essai sur les données personnelles. Publication GitHub à confirmer ; aucune fusion autorisée.
+
+Publication confirmée : [PR #123](https://github.com/GKillianCode/CanvaCodex/pull/123), brouillon vers codex/canvas-thread-projects. Commit applicatif distant 2a8cc8129d7eb8116f8413f5e37957fb6f8dba0a ; arbre 85ac67011211a238880b280f9b711280030a7018 identique au commit local a881734. Issue #122 actualisée, aucune fusion effectuée.
+
+
+### Révision de l’interface après retour utilisateur — 15 octobre
+
+Toujours branche test codex/test-video-production et PR #123, sans fusion. Conducteur ouvert en aperçu par défaut, bascule Éditer/Aperçu ; support associé regroupé au-dessus du script (colonne latérale retirée). Dupliquer dans menu explicite de la partie ; suppression directe dans la liste, menu au clic droit et bouton ⋯ (modifier, dupliquer, monter/descendre, supprimer), annulation conservée. Un seul bouton Présenter/F12 demande le plein écran dans la même fenêtre, Échap/Quitter retourne à l’aperçu. Les anciens boutons Lire ici/Fenêtre de lecture et la création de popup sont retirés ; l’ancienne route de lecture reste compatible. Pas de commande synchronisée avec le présentateur du diaporama dans ce lot : les fenêtres additionnelles du conducteur sont supprimées.
+
+Publication : formulaire continu, sans onglets, grands titres répétés ni messages privés/superflus ; simples libellés de champs et icônes de copie avec infobulles, miniature existante à droite. Texte formaté des chapitres replié par défaut pour éviter la répétition. VideoWorkflowNav partagé dans Conducteur, Publication et Carnet ; navigation attend flush pour conserver les textes. Titre Vidéo après Accueil retiré de la fiche.
+
+Validation : 242 tests passent, build et diff --check réussis ; UI isolée sur vidéo synthétique : aperçu initial, édition/support au-dessus, menu ⋯, suppression et annulation, navigation Conducteur→Carnet→Publication, lecture dans la même fenêtre et sortie vérifiées. Captures inspectées hors dépôt. Pas de nouvelle dépendance ni de changement de données. PR #123 mise à jour, publication de ce lot à confirmer.
+
+Révision publiée dans la PR #123 au commit distant 77af644d206447208b2258cec7c96ecc8d3c79b8, arbre identique au commit local 255f3f5. La PR reste en brouillon, aucune fusion effectuée.
+
+
+### Conducteur : illustrations, brouillon et présentation simplifiée — 15 octobre
+
+Suite autorisée sur codex/test-video-production, PR #123 en brouillon. Conducteur agrandi sans largeur maximale, panneaux de lecture/édition défilant indépendamment de la liste. Retrait du scrollIntoView de page ; changement de partie remet uniquement scrollTop du panneau de lecture à zéro. Sélecteur Vue à droite dans l’en-tête (Conducteur/Publication) remplace la seconde barre et noms de pages redondants supprimés.
+
+Ajout de quatre illustrations raster locales par partie (PNG/JPEG/WebP), préparation via imageSource (20Mo en entrée, côté max1600px, source encodée <3M caractères), légendes, suppression, aperçu côte à côte. Normalisation rejette les sources externes/SVG, export/import de la vidéo conserve les images. Navigation attend la préparation d’image avant sauvegarde. Sur sélection du textarea : cinq couleurs de surlignage via syntaxe Markdown `==yellow|texte==` (mint/blue/pink/orange également), rendu mark sécurisé dans Markdown-it, HTML brut désactivé et code littéral préservé ; styles Markdown internes conservés. Les repères restent des instructions privées non prononcées.
+
+Dernière précision utilisateur : application Carnet supprimée (VideoNotesApp/VideoNotebook retirés). Page Brouillon en tête de la liste du Conducteur, présente par défaut et en texte simple, exclue de lecture/chapitres. Réutilise le champ projet.notes existant (aucune migration destructrice ni copie persistée dans les séquences), modification atomique avec la section conducteur, limites20k caractères et récupération du brouillon de secours préservée. Anciens liens /notes ouvrent le Conducteur ; anciens fichiers carnet.md du miroir conservés pour compatibilité. Aucun contenu historique supprimé, les anciens marqueurs Markdown restent visibles comme texte dans le Brouillon.
+
+Diaporama : startPresenter n’appelle plus presenter.open, ni bouton/état de fenêtre Public dans la console. Présentation sur la fenêtre courante uniquement. Compteur affiché basé sur elapsed : zéro avant enregistrement, démarre avec MediaRecorder après les cinq secondes de décompte, figé après Stop, remis à zéro à chaque nouvel enregistrement. Hors Canvas, donc absent de captureStream. Le moteur interne historique de diffusion n’est plus ouvert par l’interface.
+
+Validation : 245 tests passent, build et diff --check réussis (avertissement Vite préexistant). Tests ajoutés : images autorisées/rejet/roundtrip, surlignage échappé/code inchangé, brouillon dans notes sans séquence ni doublon, route legacy. UI synthétique localhost:5202 : notes du Brouillon conservées au rechargement, illustration et surlignage visibles après rechargement, changement de partie pageY0/panneau0, sélecteur unique. Diaporama : un seul onglet, compteur toujours0:00 avant capture ; essai d’enregistrement effectif0:01 puis Stop0:04, WebM2560×1440 de1147Ko généré. Aucune donnée personnelle utilisée. Publication de ce lot à confirmer, aucune fusion autorisée.
+
+Publication confirmée de ce lot dans la PR #123 au commit distant e41259f3eff8f8b03c67f390ab851355233303ac ; arbre identique au commit local 521369f. Toujours brouillon sur branche test, aucune fusion.
+
+
+### Éditeur visuel du Conducteur — 15 octobre, suite utilisateur
+
+Toujours codex/test-video-production / PR #123, aucune fusion autorisée. Navigation transformée en workspace-switch Conducteur/Publication après le statut Enregistré, menu Vue retiré.
+
+ConductorRichEditor partagé entre script et repères : contenteditable rendu depuis Markdown restreint, sans affichage des balises. Barre titres H1–H3/paragraphe/citation, gras/italique, listes, code Java, lien vérifié, tableau2colonnes ; palette cinq couleurs et menu au clic droit sur sélection. Rich DOM sérialisé par conductorRichText vers Markdown, jamais HTML utilisateur stocké. Collage texte/Markdown rendu par parser HTML désactivé, code/Prism conservé ; bornes50k caractères script/20k repères avec refus visible de la dernière modification excessive. Surlignages sérialisés par texte en tenant compte des couleurs imbriquées pour éviter les tags cassés au changement de couleur ; marquage actif affiché en direct et sauvegarde/rechargement vérifiés.
+
+Images insérées au curseur dans le flux du document, légende, largeur10–100%, placement gauche/droite/ligne, bouton étirer horizontalement et déplacement par glisser. Références frame-image:ID dans le Markdown, sources raster validées et métadonnées de placement dans images ; limite portée de4 à32 par partie. Anciennes images sans ID reçoivent un ID stable et leur référence est ajoutée une fois au texte ; retirer une référence ne la réinsère pas. Nettoyage des références non utilisées en tenant compte de l’autre zone script/repères. Sélection de partie/brouillon/vue attend flush des uploads pour éviter d’affecter une autre partie. Export Markdown manuel embarque les sources des images ; export/import vidéo conserve texte et métadonnées.
+
+Limite explicite : les sources restent intégrées aux sauvegardes locales de la vidéo, avec rendu img loading=lazy et décodage async ; pas de système de liens vers un dossier externe implémenté. Cela garde les fichiers portables, sans prétendre supprimer le coût mémoire du document ouvert. Le brouillon reste en texte simple, hors lecture.
+
+Validation : 249 tests passent, build et diff --check réussis (avertissement chunk Vite préexistant). Tests de sérialisation titres/listes/styles/images, couleurs imbriquées, tableaux, migration et rejet d’images externes. UI synthétique : ancien texte/images ouverts en édition sans balises, sélection/clic droit Bleu, titreH2 puis recoloration Rose, image insérée au curseur, légende et largeur35% à droite ; rechargement conserve H2, deux surlignages Rose et image35%/right, texte sans tags. Captures inspectées hors dépôt ; dépôt sans données personnelles ni exports. Publication de ce lot à confirmer.
+
+Publication confirmée : éditeur visuel publié sur `codex/test-video-production` dans la PR brouillon #123, commit distant `3289c57d1610bb99b2abae433ad472a4b73ec794` (commit local `ac57e8d`, arbres identiques). 249 tests et build validés ; contrôle visuel du rendu, du surlignage et des images après rechargement. Aucune fusion.
+
+
+### Conducteur en blocs et miniatures de publication — 15 octobre, suite du test
+
+Suite autorisée sur codex/test-video-production, PR #123 en brouillon, sans fusion. Les zones script et repères utilisent ConductorPage : page de conception large de1000px, hauteur adaptée aux blocs + espace libre, défilement vertical à la molette ; ajustement visuel à la largeur disponible. Bouton bas droite ouvre cette même zone en position fixe sur toute la page (pas de window.open ni requête de fenêtre externe), retour/Échap, scroll du document derrière bloqué/restauré. Outils dans inspecteur droit, mise en forme du bloc actif téléportée dans le panneau. Ancien select natif des styles remplacé par boutons ; liens de l’éditeur ne naviguent pas au clic. Le défaut de fenêtre externe décrit par l’utilisateur n’a pas été reproduit séparément avant refonte ; aucun nouvel onglet ni popup constaté au clic dans le nouvel éditeur.
+
+Blocs texte/images séparés, nommables, déplaçables par poignée de titre (images aussi par leur surface), huit poignées de taille, valeurs X/Y/largeur/hauteur modifiables, aimantation20px activée par défaut, duplication/suppression/superposition. Maximum100 blocs par zone ; images32 partagées par partie. Images object-fit contain pour préserver leurs proportions dans un cadre réglable. Métadonnées inutilisées retirées quand leur dernière référence disparaît des deux zones. Anciens scripts repris sans suppression du texte ; anciennes références d’images extraites en blocs indépendants à la première ouverture de l’éditeur. Les mises en page scriptLayout/cuesLayout sont facultatives, validées et conservées par normalizeConductor, sauvegarde concurrente, import/export et duplication vidéo. Les sources Markdown restent présentes et sont reconstruites en ordre spatial pour les exports texte. Pas de HTML brut stocké, aucune nouvelle dépendance. Chargement externe de disposition réconcilié sans réinitialiser le texte à chaque frappe.
+
+Aperçu/lecture utilisent le même ConductorPage en lecture seule pour les documents composés. Ces pages gardent leur typographie et s’ajustent à la largeur ; la taille de lecture historique concerne les anciens documents en flux. Le placement libre peut provoquer des chevauchements, sans réorganisation automatique. Brouillon inchangé, hors présentation. Pas de dossier externe lié : images toujours embarquées.
+
+Publication : première miniature existante proposée automatiquement si la sélection est vide ou a disparu ; sélection valide conservée. Flèches de carrousel, compteur/nom et rangée de vignettes remplaçant le select Choisir une miniature. Choix sauvegardé dans thumbnailId, sans copie du document source.
+
+Validation : 251 tests passent (lancement avec accès aux outils vidéo locaux pour les tests FFprobe/FFmpeg préexistants ; sandbox seul donnait EPERM), build et diff --check réussis, avertissement chunk préexistant. Nouveaux tests de limites/snap/ordre Markdown et conservation de disposition à travers normalisation, sauvegarde et duplication. UI synthétique localhost5202 : migration image en bloc, ouverture agrandie/Échap, saisie dimensions, déplacement x600/y200 vers520/160, poignée SE largeur360/hauteur220 vers400/260, ajout d’un bloc Explication et surlignage Bleu au clic droit ; aperçu et rechargement conservent coordonnées, texte et couleurs. Publication : duplication d’une miniature synthétique, carrousel2/2 et choix conservé au rechargement. Aucune erreur console constatée ; captures hors dépôt, aucune donnée personnelle utilisée. Issue122 et PR123 actualisées ; publication des sources à confirmer.
+
+Publication confirmée : lot canevas du Conducteur et carrousel publié sur `codex/test-video-production`, PR brouillon #123, commit distant `9fd9e184ae186fd0eb8233959b386725efc7af53`, arbre `f291baccbd020dbf7ecefea0c351e4e01a8280e6` identique au commit local `e135c0c`. Blocage temporaire du service de validation Git résolu à la reprise demandée par l’utilisateur. Aucune fusion effectuée.
+
+
+### Conducteur : vue d’ensemble, tiroirs et Markdown — 15 octobre
+
+Demande utilisateur : cartes de vue d’ensemble non modifiables ouvrant le grand éditeur uniquement au clic ; menus contextuels d’insertion, tiroirs exclusifs, Markdown et code coloré, lecture plus large ; nouveau signalement de fenêtre parasite avec capture. Toujours branche test codex/test-video-production / PR123 sans fusion.
+
+ConductorDocumentCard remplace les deux éditeurs embarqués par des cartes côte à côte (une colonne sur écrans étroits), aperçus sans contenteditable ni capture de molette. L’éditeur ConductorPage est monté uniquement dans un dialogue interne téléporté au body, ouvert au clic explicite ; fermeture attend les imports, restaure le scroll derrière. La page arrive sur Préparer, première partie sélectionnée ; Brouillon reste accessible. Vue Préparer/Aperçu conservée. Pas de nouvelle fenêtre navigateur créée. Ajout au clic droit sur canevas : texte/image placés en coordonnées de la feuille avec correction du zoom et du défilement ; la sélection de texte conserve son menu de surlignage.
+
+Inspecteur avec état unique de tiroir (Ajouter et grille / Placement / Texte et Markdown). Surlignage retiré du panneau droit pour les blocs, conservé au clic droit. Éditeur de bloc Visuel/Source Markdown : source bornée, rendu via Markdown-it/Prism existant sans HTML brut, bascule conservant le contenu. Séparateurs et langage de code proposés. Après changement de mode, la hauteur du bloc texte s’adapte pour conserver tout le code ; correction orthographique désactivée dans les extraits. Rendu du dialogue hérite des styles production-app malgré Teleport. Les pages en lecture seule occupent la largeur du contenu et peuvent être agrandies au-delà de100% sur grand écran ; la limite100% ne concerne que l’édition. Taille de lecture historique masquée pour les pages composées.
+
+Fenêtre intempestive : capture examinée, recherche des appels window.open et des événements globaux. Le seul appel restant dans le dépôt est le mécanisme historique de fenêtre Public du diaporama, non appelé par le Conducteur. Aucun appel trouvé dans les vues Conducteur ; aucune fenêtre supplémentaire observée en test. Cause non identifiée, bug non annoncé corrigé. Question envoyée sur le navigateur utilisé et persistance après actualisation complète ; pas de réponse à ce stade. Ne pas masquer le problème en redéfinissant window.open globalement.
+
+Validation en cours : tests de calcul de point après zoom/défilement et rendu Markdown titres/séparateur/code Java/Python ajoutés. UI synthétique localhost5202 : insertion au clic droit, source Markdown vers H2/hr/code Java avec11tokens Prism, un seul tiroir ouvert à la fois, aperçu de973px sur978px disponibles, Présenter et retour avec un seul onglet, ouverture des repères, aucun contenteditable dans la vue d’ensemble, scroll de document936px pour720px disponibles et cartes pointer-events none ; aucune erreur console. Publication finale à confirmer, aucune fusion.
+
+Validation finale de ce lot : 253 tests réussis, build réussi (avertissement chunk préexistant), conservation H2/hr/11tokens Java et hauteur237px après rechargement ; deux cartes488px côte à côte sur viewport1280px, aucune erreur console. Fenêtre parasite toujours non reproduite, cause ouverte dans issue122 et PR123.
+
+Publication confirmée : vue d’ensemble, tiroirs et Markdown publiés sur `codex/test-video-production`, PR brouillon #123, commit distant `f5b0cc5973dfa6802bca55d154af9c4021ca034f` (commit local `7abeba9`, arbres identiques). 253 tests et build validés. Signalement de fenêtre parasite conservé ouvert et non annoncé résolu ; aucune fusion.
+
+
+### Validation du Conducteur et nouvelle refonte globale — 15 octobre
+
+Utilisateur confirme que la fenêtre parasite était une fenêtre de test Codex cachée, pas un défaut applicatif. Aucun contournement navigateur requis ; fermer les onglets de test créés après vérification. Demande de deux illustrations pour les cartes du Conducteur, puis validation explicite de la branche test et intégration dans la branche habituelle, suivie d’une nouvelle branche de test pour une refonte UI/UX transversale du workflow. Les illustrations sont des SVG locaux créés en code, sans génération IA ni dépendance distante. Intégration et nouveau prototype à confirmer.

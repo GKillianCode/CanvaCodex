@@ -1,3 +1,4 @@
+import { normalizeWorkflow,remapWorkflow,updateWorkflowSection } from './videoWorkflow.js';
 import { normalizeVideoCanvas } from "./videoCanvas.js";
 import {
   applications,
@@ -46,6 +47,7 @@ export function makeVideoProject(name = "Nouvelle vidéo") {
     playlist: "Java",
     status: "preparation",
     notes: "",
+    workflow: normalizeWorkflow(),
     archived: false,
     createdAt: now,
     updatedAt: now,
@@ -69,6 +71,7 @@ export function normalizeVideoProject(raw) {
       ? raw.status
       : "preparation",
     notes: typeof raw.notes === "string" ? raw.notes.slice(0, 20000) : "",
+    workflow: normalizeWorkflow(raw.workflow),
     archived: raw.archived === true,
     preview: preview(raw.preview),
     createdAt: Number.isFinite(raw.createdAt) ? raw.createdAt : Date.now(),
@@ -127,6 +130,14 @@ export function documentFromStorage(values, app) {
   const doc = applicationFile(raw, app);
   readApplicationFile(doc, app);
   return doc;
+}
+export function detachCreation(project, id) {
+  const index=project.creations.findIndex(row=>row.id===id);
+  if(index<0)throw Error("Cette création n’existe plus dans la vidéo.");
+  const [meta]=project.creations.splice(index,1);
+  project.preview=project.creations[0]?.preview||null;
+  project.updatedAt=Date.now();
+  return {meta,index};
 }
 export function makeCreation(project, app, name, source = null) {
   if (!applications.some((a) => a.id === app)) throw Error("Atelier inconnu.");
@@ -217,6 +228,7 @@ export function importVideoBundle(raw, { duplicate = false } = {}) {
       creations: [],
     },
     creations = [];
+  const creationMap=new Map();
   for (const meta of old.creations) {
     const row = raw.creations.find((c) => c.id === meta.id);
     if (!row || row.app !== meta.app)
@@ -232,12 +244,16 @@ export function importVideoBundle(raw, { duplicate = false } = {}) {
       );
     attachCreation(project, creation);
     creations.push(creation);
+    creationMap.set(meta.id,creation.id);
   }
+  project.workflow=remapWorkflow(old.workflow,creationMap);
   return { project, creations };
 }
 export function videoRoute(hash) {
+  const workflow=String(hash).match(/^#\/videos\/([\w-]+)\/(conductor|publication)(\/read)?$/);
+  if(workflow&&(!workflow[3]||workflow[2]==='conductor'))return {videoId:workflow[1],app:null,creationId:null,workshop:workflow[2],reader:!!workflow[3]};
   const notebook=String(hash).match(/^#\/videos\/([\w-]+)\/notes$/);
-  if(notebook)return {videoId:notebook[1],app:null,creationId:null,notes:true};
+  if(notebook)return {videoId:notebook[1],app:null,creationId:null,workshop:'conductor',reader:false};
   const match = String(hash).match(
     /^#\/videos\/([\w-]+)(?:\/(slides|banners|thumbnails)\/([\w-]+))?$/,
   );
@@ -459,6 +475,8 @@ export function videoRepository(api = globalThis.indexedDB) {
       };
   }
   return {
+    getSetting: key => transaction("readonly",(p,c,set,tx,s,settings)=>{settings.get(key).onsuccess=e=>set(e.target.result);}),
+    setSetting: (key,value) => transaction("readwrite",(p,c,set,tx,s,settings)=>{settings.put(value,key);}),
     canvas: () =>
       transaction("readonly", (p, c, set, tx, s, settings) => {
         settings.get("learning-canvas").onsuccess = (e) =>
@@ -578,6 +596,25 @@ export function videoRepository(api = globalThis.indexedDB) {
       transaction("readwrite", (p, c, set, tx, s, settings) => {
         storeProject(p, s, settings, project);
         for (const row of creations) c.put(clone(row));
+      }),
+    saveWorkflow: (videoId,section,value,expected) =>
+      transaction("readwrite",(p,c,set,tx,s,settings)=>{
+        p.get(videoId).onsuccess=e=>{
+          try{if(!e.target.result)throw Error("Vidéo introuvable.");const project=updateWorkflowSection(e.target.result,section,value,expected);storeProject(p,s,settings,project);set(project);}
+          catch(error){set(error);tx.abort();}
+        };
+      }),
+    removeCreation: (videoId, id) =>
+      transaction("readwrite",(p,c,set,tx,s,settings)=>{
+        p.get(videoId).onsuccess=e=>{
+          const project=e.target.result;
+          c.get(id).onsuccess=event=>{
+            const row=event.target.result;
+            if(!project||!row||row.videoId!==videoId){set(Error("Création introuvable."));tx.abort();return;}
+            try{const removed=detachCreation(project,id);c.delete(id);storeProject(p,s,settings,project);set({...removed,row,videoId});}
+            catch(error){set(error);tx.abort();}
+          };
+        };
       }),
     saveCreation: (row) =>
       transaction("readwrite", (p, c, set, tx, s, settings) => {

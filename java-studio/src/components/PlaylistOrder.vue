@@ -11,10 +11,12 @@ import {
   Trash2,
   MoreHorizontal,
 } from "lucide-vue-next";
+import WorkspaceHeader from "./WorkspaceHeader.vue";
 import LibraryPreview from "./LibraryPreview.vue";
 import { videoStatuses, playlistDropPosition } from "../videoProjects.js";
 const props = defineProps({
     name: String,
+    returnLabel: { type: String, default: "Accueil" },
     repository: Object,
     playlists: Array,
     rows: Array,
@@ -204,15 +206,16 @@ onBeforeUnmount(clearDrag);
     :aria-label="'Playlist ' + (name || 'Sans playlist')"
     @keydown.esc="emit('close')"
   >
-    <div class="playlist-order-navigation">
-      <button
-        class="icon-btn"
-        aria-label="Fermer la playlist"
-        @click="emit('close')"
-      >
-        <X :size="21" />
-      </button>
-    </div>
+    <WorkspaceHeader
+      title="Playlists"
+      :back-label="returnLabel"
+      @back="emit('close')"
+      ><template #actions
+        ><button class="btn" @click="emit('back')">
+          Gérer les playlists
+        </button></template
+      ></WorkspaceHeader
+    >
     <header class="playlist-order-header">
       <div>
         <span class="eyebrow"
@@ -289,11 +292,8 @@ onBeforeUnmount(clearDrag);
               :repository="repository"
               :project-id="row.id"
             /><strong>{{ row.name }}</strong
-            ><small
-              >{{ row.total }} création{{ row.total > 1 ? "s" : ""
-              }}<span v-if="row.archived">
-                · <Archive :size="12" />Archivée</span
-              ></small
+            ><small v-if="row.archived"
+              ><Archive :size="12" />Archivée</small
             ></button
           ><span class="video-status" :data-status="row.status">{{
             status(row.status)

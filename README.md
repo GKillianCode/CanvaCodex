@@ -115,11 +115,11 @@ Test navigateur reproductible en développement : ouvrir `/tests/video-library.b
 
 ### Trier et ordonner les vidéos
 
-À l’accueil, « Trier les vidéos » propose Dernières modifications, État du processus et Ordre dans les playlists. Le dernier tri choisi est mémorisé dans ce navigateur. Le processus suit : Idées / Backlog → Création → Prêt à tourner → Tournage → Montage → Terminé → À publier → Publié. Modifie le statut dans la fiche de la vidéo puis enregistre-la. Les anciens statuts restent compatibles (Préparation est désormais nommé Création).
+À l’accueil, « Affichage → Trier les vidéos » propose Dernières modifications, État du processus et Ordre dans les playlists. Le dernier tri choisi est mémorisé dans ce navigateur. Le processus suit : Idées / Backlog → Création → Prêt à tourner → Tournage → Montage → Terminé → À publier → Publié. Modifie le statut dans la fiche de la vidéo puis enregistre-la. Les anciens statuts restent compatibles (Préparation est désormais nommé Création).
 
 Chaque carte affiche son numéro dans la playlist. « Gérer les playlists » ouvre la liste ; ouvre une playlist pour la renommer, la supprimer ou gérer ses vidéos. Glisse les vidéos verticalement avec leur poignée ou saisis directement une position : les autres vidéos sont décalées automatiquement. Les menus des vidéos permettent d’ouvrir, renommer, archiver/restaurer ou retirer une vidéo de la playlist. Supprimer une playlist conserve les vidéos. L’accueil n’affiche plus de liste de playlists ni de sélecteur « Toutes les playlists ».
 
-Le bouton « États » propose des cases à cocher et Tout afficher / Tout masquer pour filtrer rapidement le catalogue. Le statut « Idées / Backlog » conserve les idées sans échéance : sélectionne-le dans la fiche vidéo, puis enregistre. Les états restent prédéfinis dans cette version.
+Dans « Affichage », la rubrique « États » propose des cases à cocher et Tout afficher / Tout masquer pour filtrer rapidement le catalogue. Le statut « Idées / Backlog » conserve les idées sans échéance : sélectionne-le dans la fiche vidéo, puis enregistre. Les états restent prédéfinis dans cette version.
 
 Le parcours est indépendant du statut de production, des changements de nom et de la date de modification. Il est conservé localement dans IndexedDB ; renommer une playlist préserve son parcours. Les nouvelles vidéos sont ajoutées après les identifiants déjà enregistrés ; un changement de playlist renumérote les deux groupes selon l’ordre local existant, puis tu peux fixer la nouvelle position. Les archives gardent leur place : leurs numéros peuvent donc être absents de la vue active. Supprimer une playlist conserve les vidéos dans Sans playlist et renumérote ce groupe. Les ordres de catalogue sont propres à cette bibliothèque ; un import/une copie crée une nouvelle vidéo et ne remplace pas les positions des vidéos existantes. Le paquet JSON individuel ne transporte pas l’organisation complète du catalogue.
 
@@ -132,12 +132,79 @@ Après les trois ateliers de la fiche vidéo, **Ouvrir le carnet** ouvre une app
 
 À l’accueil, **Canvas des parcours** ouvre un espace indépendant des playlists. Fais un clic droit pour ajouter des vidéos de ta bibliothèque (sélecteur illustré et paginé) ou des étapes. Toutes les cartes mesurent 280 × 240. Tire depuis le point de sortie à droite d’une carte et relâche sur une autre pour créer une flèche. Au clavier : Entrée sur le point de sortie puis sélection de la carte cible. Une carte peut avoir plusieurs suites et plusieurs prérequis ; déplacer les cartes conserve les connecteurs.
 
-Maj + clic sélectionne plusieurs cartes ; clic droit → Grouper la sélection. Le nom du groupe se modifie dans le panneau latéral, son titre déplace toutes ses cartes, Dégrouper conserve les cartes. Aimantation à la grille de 24 unités activée par défaut, désactivable au clic droit. Le canvas s’étend au fil du déplacement, y compris dans les coordonnées négatives. Molette enfoncée ou Espace + glisser déplace la vue ; un rectangle tracé dans le vide sélectionne les cartes entièrement contenues, Ctrl/Cmd A sélectionne tout, un clic vide désélectionne. Le zoom est en bas et Ctrl/Cmd + molette zoome autour du pointeur. Clic droit → Recentrer les cartes. Sélectionner un lien permet de le supprimer ; retirer une carte du canvas ne supprime pas sa vidéo.
+Maj + clic sélectionne plusieurs cartes ; clic droit → Grouper la sélection. Le nom du groupe se modifie par double-clic ou clic droit, son titre déplace toutes ses cartes, Dégrouper conserve les cartes. Aimantation à la grille de 24 unités activée par défaut, désactivable au clic droit. Le canvas s’étend au fil du déplacement, y compris dans les coordonnées négatives. Molette enfoncée ou Espace + glisser déplace la vue ; un rectangle tracé dans le vide sélectionne les cartes entièrement contenues, Ctrl/Cmd A sélectionne tout, un clic vide désélectionne. Le zoom est en bas et Ctrl/Cmd + molette zoome autour du pointeur. Clic droit → Recentrer les cartes. Sélectionner un lien permet de le supprimer ; retirer une carte du canvas ne supprime pas sa vidéo.
 
 Canvas sauvegardé automatiquement dans IndexedDB, avec indication d’erreur et réessai ; fermeture attend la sauvegarde, rechargement avertit en cas d’écriture non terminée. Limites : 500 cartes et 2 000 liens. Les cartes contiennent seulement des références vidéo et des positions. Ce canvas global est propre au navigateur et n’est **pas inclus dans les exports JSON individuels de vidéos**. Aucun parcours n’est imposé et aucune playlist n’est réordonnée par le canvas.
 
-Les groupes du canvas disposent de quatre poignées pour redimensionner leur cadre. Glisse une carte entièrement à l’intérieur pour l’ajouter, ou à l’extérieur pour la retirer ; déplace tout le groupe par son titre. Les cadres restent enregistrés, même lorsqu’ils sont vides.
+Les groupes du canvas disposent de huit poignées pour redimensionner leur cadre. Glisse une carte entièrement à l’intérieur pour l’ajouter, ou à l’extérieur pour la retirer ; déplace tout le groupe par son titre. Les cadres restent enregistrés, même lorsqu’ils sont vides.
 
 Le canvas affiche l’état de production sur les cartes vidéo avec un liseré discret. Toutes les cartes ont les mêmes dimensions. Les poignées apparaissent au survol ou à la sélection ; les groupes possèdent huit poignées (coins et côtés). Le panneau latéral a été retiré : double-clique une étape ou un groupe pour le modifier, ou passe par le clic droit. Les vidéos déjà placées sont exclues du sélecteur d’ajout.
 
 Le prototype des espaces vidéo, playlists, carnet et canvas a été validé le 13 octobre 2026 pour intégration dans `main`. Les cartes vidéo utilisent une bordure de 2 px dans la couleur du statut pour faciliter la lecture de leur avancement.
+
+
+### Ateliers unifiés et dossiers vidéo
+
+Le canvas des parcours est un atelier autonome accessible dans la liste des applications : `#/parcours`. Il utilise le même en-tête que le carnet et les éditeurs, avec Accueil (ou Vidéo lorsque l’atelier appartient à une vidéo) et les menus propres à l’application. Le canvas propose Enregistrer, exporter/importer un JSON de parcours et annuler le dernier import. Son zoom accepte une valeur saisie de **3 % à 500 %**. En vue éloignée, les aperçus lourds ne sont pas chargés. Les cartes restent 280 × 240.
+
+L’accueil place les ateliers en haut ; recherche, Affichage (tri, états, archives) et Playlists structurent le catalogue. Importer une vidéo se trouve dans Fichier. La fiche vidéo regroupe les trois ateliers en colonnes sur grand écran et garde le carnet à la fin ; les actions secondaires sont regroupées. Les dialogues bloquent le défilement du fond. Une nouvelle vidéo peut créer immédiatement ses trois documents ou importer des JSON existants. Un diaporama lié s’ouvre en édition ; Éditer précède Canvas dans l’en-tête.
+
+Carnet et notes de diapo partagent Markdown-it et Prism. Les ligatures sont désactivées dans les zones de saisie pour rendre chaque `#` visible. L’aperçu du carnet attend une courte pause de 100 ms ; les changements de notes privées ne déclenchent plus les rendus du canevas et des miniatures. Les sauvegardes et l’historique restent actifs.
+
+Dans **Fichier → Choisir le dossier de travail**, autorise une fois un répertoire sur ton ordinateur. En navigateur compatible avec File System Access (contexte HTTPS ou localhost), la création et les modifications d’une vidéo y écrivent automatiquement :
+
+```text
+Dossier choisi/
+  ID-de-la-vidéo/
+    video.frame.json
+    carnet.md
+    slides-ID-de-création.json
+    banners-ID-de-création.json
+    thumbnails-ID-de-création.json
+```
+
+Chaque fichier d’atelier est un JSON importable indépendamment dans son application ; son nom reste stable lorsque la création est renommée. Les documents sont conservés dans IndexedDB en parallèle. Un nouvel emplacement de vidéo copie ses créations depuis la bibliothèque ; Fichier → Mettre cette vidéo dans le dossier permet aussi de copier une vidéo existante. Ctrl S d’un éditeur lié enregistre sa création sans demander un fichier individuel ; Enregistrer sous reste disponible pour une copie manuelle.
+
+Le navigateur peut redemander l’autorisation après une fermeture. Le bouton Réautoriser reprend les écritures en attente, même après rechargement. Une erreur disque conserve la copie dans le navigateur et affiche un avertissement ; les projets à reprendre sont mémorisés sans garder toutes leurs images en RAM. Un navigateur sans sélecteur de répertoire conserve la sauvegarde locale et l’export JSON ; « Conserver uniquement dans le navigateur pour le moment » est également disponible avant le premier choix de dossier. Le dossier n’est pas choisi silencieusement, les fichiers externes ne sont pas relus ni fusionnés automatiquement, et l’écriture de plusieurs fichiers n’est pas une transaction de dossier.
+
+
+### Taille des textes et débordement du canevas
+
+La taille de police saisie correspond aux pixels du document exporté, même après mise à l’échelle. La réduction automatique au cadre est désormais une option explicite de Typographie, désactivée par défaut et lorsqu’une nouvelle taille est saisie. Un cadre trop petit peut donc nécessiter un agrandissement. Les coordonnées peuvent être négatives ou dépasser les dimensions de l’écran ; déplacements, groupes, clavier et poignées conservent les parties hors cadre. Les exports gardent les dimensions de la création et coupent naturellement ce qui déborde.
+
+Dans la fiche vidéo, chaque création dispose de **Supprimer**, avec confirmation. **Annuler la suppression** restaure la dernière création retirée tant que la fiche reste ouverte. Les autres créations et fichiers déjà exportés sont conservés ; le manifeste du dossier vidéo est mis à jour.
+
+
+### Mettre en forme un mot ou un passage
+
+Dans les trois ateliers, ouvre **Éditer le contenu** d’un texte, sélectionne un mot ou un groupe de mots dans la zone de saisie puis utilise la barre de styles : gras, italique, souligné, barré, surlignage, couleur du thème ou couleur personnalisée. Un aperçu montre les styles avant **Appliquer** ; Annuler laisse le texte original intact. **Retirer le style de la sélection** revient aux propriétés du bloc uniquement sur le passage sélectionné. Ctrl/⌘ B, I et U sont disponibles dans la saisie.
+
+Les styles locaux suivent le texte lors de l’édition et sont conservés avec les sauvegardes, les copies et les composants. Le style général du bloc reste la base des passages sans mise en forme locale. Les retours à la ligne, les listes, l’alignement et l’écriture progressive utilisent les styles dans le rendu partagé des aperçus, présentations et exports. Limite : 1 000 passages mis en forme par texte. La coloration syntaxique du code et les styles des cellules de tableau gardent leurs outils dédiés.
+
+Dans le **Canvas des parcours**, clic droit → **Ajouter un projet fil rouge** crée un repère de début de projet, avec drapeau et contour orangé. Double-clique pour modifier son titre et sa description. La carte garde les dimensions des étapes et utilise les mêmes connecteurs, déplacements, groupes et suppressions. Son type est conservé en sauvegarde et export/import de parcours.
+
+
+### Prototype Conducteur et Publication
+
+Sur la branche de test `codex/test-video-production`, ouvre une vidéo puis **Conducteur** ou **Publication** dans sa fiche.
+
+- **Conducteur** : organise les parties, rédige le script Markdown, ajoute tes repères privés et lie les créations existantes. Le conducteur s’ouvre en **Aperçu** ; **Éditer** permet de modifier le script et le support placé au-dessus. **Présenter** (F12) lance la lecture dans la même fenêtre et demande le plein écran ; Échap permet de revenir. La taille du texte des anciens documents en flux est réglable ; les pages composées gardent leur mise en page et s’adaptent à la largeur. Les flèches permettent de parcourir le plan. Les actions des parties sont accessibles au clic droit ou au bouton ⋯ de la liste.
+- **Publication** : prépare le titre, choisis une miniature existante et copie séparément description, chapitres ou commentaire épinglé avec les petites icônes placées à côté des champs, tous réunis sur une page. Reprends les titres du conducteur puis renseigne les horaires du montage final. Une description peut servir de modèle local pour la playlist.
+
+Les ateliers se sauvegardent automatiquement dans la vidéo ; Ctrl S force l’enregistrement. Ils suivent son export/import et son dossier de travail (`video.frame.json`). Fichier permet aussi un export Markdown du conducteur ou texte de la publication. Le Brouillon en tête du Conducteur conserve les notes en texte simple ; il est exclu de la présentation et du chapitrage. Les notes des anciens carnets y sont conservées. Aucun contenu n’est publié automatiquement.
+
+Les boutons **Conducteur / Publication**, après l’état d’enregistrement dans l’en-tête, permettent de changer de vue. L’application Carnet a été remplacée par la page Brouillon du Conducteur ; les anciens liens restent compatibles.
+
+
+Le Conducteur occupe la largeur disponible avec un défilement interne, sans déplacement de la page au changement de partie. **Ce que je dis** et **Mes repères** disposent chacun d’un canevas de largeur fixe (1 000 px), qui s’allonge vers le bas. Le bouton en bas à droite ouvre la zone sur toute la page ; **Revenir à la partie** ou Échap la réduit. Ajoute des blocs texte et images, déplace-les par leur poignée de titre et redimensionne-les avec les huit poignées. À droite : grille aimantée activée par défaut, nom, X/Y, largeur/hauteur, duplication, suppression et superposition. Les outils de texte apparaissent dans le panneau quand un bloc texte est sélectionné : titres, styles, listes, citations, code, liens, tableaux et surlignage, sans balises affichées. Le clic droit sur une sélection propose les couleurs de surlignage. Chaque zone accepte jusqu’à 100 blocs ; les 32 images PNG/JPEG/WebP sont partagées par la partie. Les images conservent leurs proportions dans leur cadre. Les anciennes illustrations deviennent des blocs indépendants. La disposition est conservée en aperçu, en lecture et dans le fichier vidéo ; l’export Markdown restitue le contenu dans l’ordre haut/bas puis gauche/droite. Les repères restent des consignes privées de tournage, distinctes du texte à prononcer.
+
+Dans le diaporama, **Présenter / F12** n’ouvre plus de fenêtre externe. Le compteur reste à zéro avant l’enregistrement et commence avec la capture effective après le décompte. Il reste figé à l’arrêt et repart de zéro au prochain enregistrement. La capture intégrée utilise uniquement le Canvas : compteur, notes et interface restent hors du fichier vidéo.
+
+Les images restent intégrées aux sauvegardes de la vidéo ; elles sont référencées par ID dans le texte et leur affichage utilise le chargement différé. Un dossier externe d’images liées n’est pas utilisé dans cette version. Les anciennes illustrations sont conservées au passage à l’éditeur visuel.
+
+Dans **Publication**, une miniature existante est sélectionnée automatiquement si aucun choix valide n’est enregistré. S’il y a plusieurs variantes, les flèches et les petites vignettes permettent de choisir ; ce choix est sauvegardé avec la vidéo.
+
+
+Le **Conducteur** s’ouvre sur **Préparer** : pour la partie sélectionnée, deux cartes **Ce que je dis / Mes repères** donnent une vue d’ensemble non modifiable. Clique sur une carte pour ouvrir son éditeur sur toute la page ; Revenir à la partie ou Échap le ferme. Le défilement sur les cartes fait défiler la page, sans capturer la molette dans un canevas.
+
+Dans l’éditeur, le clic droit sur la scène permet d’ajouter un texte ou une image à cet emplacement (sur un texte sélectionné, il garde le menu de surlignage). Les propriétés sont rangées dans trois tiroirs exclusifs : Ajouter et grille, Placement du bloc, Texte et Markdown. La palette de surlignage n’est plus répétée à droite. Le tiroir de texte propose **Visuel / Markdown**, des titres et sous-titres, listes, séparateurs et code coloré (Java, JavaScript/TypeScript, Python, Bash, JSON, SQL, YAML, HTML, CSS). La mise en page reste commune à l’aperçu et à Présenter, avec une scène qui occupe la largeur disponible et s’agrandit sur les grands écrans.
