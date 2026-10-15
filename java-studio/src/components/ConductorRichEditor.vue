@@ -10,6 +10,9 @@ const props = defineProps({
   otherContent: { type: String, default: "" },
   maxLength: { type: Number, default: 50000 },
   label: String,
+  toolsHost: Object,
+  hideTools: Boolean,
+  blockMode: Boolean,
 });
 const emit = defineEmits(["update:modelValue", "update:images", "error"]);
 const colorNames = {
@@ -49,7 +52,10 @@ function restore() {
 function changed() {
   const value = richMarkdown(editor.value);
   if (value.length > props.maxLength) {
-    emit("error", `Cette zone accepte ${props.maxLength.toLocaleString("fr-FR")} caractères. La dernière modification a été annulée.`);
+    emit(
+      "error",
+      `Cette zone accepte ${props.maxLength.toLocaleString("fr-FR")} caractères. La dernière modification a été annulée.`,
+    );
     draw();
     return;
   }
@@ -270,6 +276,7 @@ function dropImage(event) {
   }
 }
 function choosePicture(event) {
+  if (event.target.closest("a")) event.preventDefault();
   const node = event.target.closest("img[data-frame-image]");
   picture.value = node
     ? props.images.find((i) => i.id === node.dataset.frameImage)
@@ -372,138 +379,141 @@ onBeforeUnmount(() => {
 </script>
 <template>
   <section class="conductor-rich-editor">
-    <div class="rich-tools" aria-label="Mise en forme" @mousedown.prevent>
-      <select
-        aria-label="Style du paragraphe"
-        @change="
-          command('formatBlock', $event.target.value);
-          $event.target.value = '';
-        "
-        @mousedown.stop
-      >
-        <option value="">Texte / titre…</option>
-        <option value="p">Texte</option>
-        <option value="h1">Titre</option>
-        <option value="h2">Sous-titre</option>
-        <option value="h3">Intertitre</option>
-        <option value="blockquote">Citation</option>
-      </select>
-      <button
-        class="btn"
-        title="Gras · Ctrl B"
-        aria-label="Gras"
-        @click="command('bold')"
-      >
-        <b>B</b></button
-      ><button
-        class="btn"
-        title="Italique · Ctrl I"
-        aria-label="Italique"
-        @click="command('italic')"
-      >
-        <i>I</i></button
-      ><button
-        class="btn"
-        aria-label="Liste à puces"
-        @click="command('insertUnorderedList')"
-      >
-        • Liste</button
-      ><button
-        class="btn"
-        aria-label="Liste numérotée"
-        @click="command('insertOrderedList')"
-      >
-        1. Liste</button
-      ><button class="btn" @click="code">Code</button
-      ><button class="btn" @click="table">Tableau</button
-      ><button
-        class="btn"
-        @click="
-          remember();
-          linkDialog = true;
-        "
-      >
-        Lien
-      </button>
-      <div class="rich-palette" aria-label="Surlignage">
-        <button
-          v-for="(color, id) in highlightColors"
-          :key="id"
-          :style="{ background: color }"
-          :aria-label="'Surligner en ' + colorNames[id]"
-          :title="'Surligner · ' + colorNames[id]"
-          @click="highlight(id)"
-        /><button
-          class="btn"
-          title="Retirer le surlignage de la sélection"
-          aria-label="Retirer le surlignage"
-          @click="removeHighlight"
-        >
-          ×
-        </button>
-      </div>
-      <label class="btn rich-image-upload" @mousedown.stop
-        >{{ busy ? "Préparation…" : "Image"
-        }}<input
-          type="file"
-          accept="image/png,image/jpeg,image/webp"
-          multiple
-          hidden
-          :disabled="busy || images.length >= 32"
-          @change="insertImages"
-      /></label>
-    </div>
-    <div v-if="linkDialog" class="rich-link-form">
-      <input
-        v-model="linkUrl"
-        aria-label="Adresse du lien"
-        placeholder="https://…"
-        @keydown.enter.prevent="addLink"
-      /><button class="btn" @click="addLink">Appliquer</button
-      ><button class="btn" @click="linkDialog = false">Annuler</button>
-    </div>
-    <div v-if="picture" class="rich-picture-tools">
-      <span>Image sélectionnée</span
-      ><input
-        :value="picture.alt"
-        placeholder="Légende"
-        aria-label="Légende de l’image"
-        @input="updatePicture({ alt: $event.target.value.slice(0, 300) })"
-      /><label
-        >Largeur
-        <input
-          type="number"
-          min="10"
-          max="100"
-          :value="picture.width"
-          aria-label="Largeur de l’image en pourcentage"
-          @input="
-            updatePicture({
-              width: Math.max(
-                10,
-                Math.min(100, Number($event.target.value) || 50),
-              ),
-            })
-          "
-        />
-        %</label
-      ><select
-        aria-label="Placement de l’image"
-        :value="picture.align"
-        @change="updatePicture({ align: $event.target.value })"
-      >
-        <option value="left">À gauche du texte</option>
-        <option value="right">À droite du texte</option>
-        <option value="center">Centrée sur sa ligne</option>
-        <option value="block">Sur sa propre ligne</option></select
-      ><button
-        class="btn"
-        @pointerdown="resize"
-        title="Maintenir et glisser horizontalement"
-      >
-        ↔ Étirer</button
-      ><button class="btn" @click="removePicture">Retirer l’image</button>
-    </div>
+    <Teleport :to="toolsHost || 'body'" :disabled="!toolsHost"
+      ><div v-show="!hideTools || toolsHost" class="rich-control-stack">
+        <div class="rich-tools" aria-label="Mise en forme" @mousedown.prevent>
+          <button
+            v-for="[tag, title] in [
+              ['p', 'Texte'],
+              ['h1', 'Titre'],
+              ['h2', 'Sous-titre'],
+              ['h3', 'Intertitre'],
+              ['blockquote', 'Citation'],
+            ]"
+            :key="tag"
+            class="btn"
+            @click="command('formatBlock', tag)"
+          >
+            {{ title }}
+          </button>
+          <button
+            class="btn"
+            title="Gras · Ctrl B"
+            aria-label="Gras"
+            @click="command('bold')"
+          >
+            <b>B</b></button
+          ><button
+            class="btn"
+            title="Italique · Ctrl I"
+            aria-label="Italique"
+            @click="command('italic')"
+          >
+            <i>I</i></button
+          ><button
+            class="btn"
+            aria-label="Liste à puces"
+            @click="command('insertUnorderedList')"
+          >
+            • Liste</button
+          ><button
+            class="btn"
+            aria-label="Liste numérotée"
+            @click="command('insertOrderedList')"
+          >
+            1. Liste</button
+          ><button class="btn" @click="code">Code</button
+          ><button class="btn" @click="table">Tableau</button
+          ><button
+            class="btn"
+            @click="
+              remember();
+              linkDialog = true;
+            "
+          >
+            Lien
+          </button>
+          <div class="rich-palette" aria-label="Surlignage">
+            <button
+              v-for="(color, id) in highlightColors"
+              :key="id"
+              :style="{ background: color }"
+              :aria-label="'Surligner en ' + colorNames[id]"
+              :title="'Surligner · ' + colorNames[id]"
+              @click="highlight(id)"
+            /><button
+              class="btn"
+              title="Retirer le surlignage de la sélection"
+              aria-label="Retirer le surlignage"
+              @click="removeHighlight"
+            >
+              ×
+            </button>
+          </div>
+          <label v-if="!blockMode" class="btn rich-image-upload" @mousedown.stop
+            >{{ busy ? "Préparation…" : "Image"
+            }}<input
+              type="file"
+              accept="image/png,image/jpeg,image/webp"
+              multiple
+              hidden
+              :disabled="busy || images.length >= 32"
+              @change="insertImages"
+          /></label>
+        </div>
+        <div v-if="linkDialog" class="rich-link-form">
+          <input
+            v-model="linkUrl"
+            aria-label="Adresse du lien"
+            placeholder="https://…"
+            @keydown.enter.prevent="addLink"
+          /><button class="btn" @click="addLink">Appliquer</button
+          ><button class="btn" @click="linkDialog = false">Annuler</button>
+        </div>
+        <div v-if="picture" class="rich-picture-tools">
+          <span>Image sélectionnée</span
+          ><input
+            :value="picture.alt"
+            placeholder="Légende"
+            aria-label="Légende de l’image"
+            @input="updatePicture({ alt: $event.target.value.slice(0, 300) })"
+          /><label
+            >Largeur
+            <input
+              type="number"
+              min="10"
+              max="100"
+              :value="picture.width"
+              aria-label="Largeur de l’image en pourcentage"
+              @input="
+                updatePicture({
+                  width: Math.max(
+                    10,
+                    Math.min(100, Number($event.target.value) || 50),
+                  ),
+                })
+              "
+            />
+            %</label
+          ><select
+            aria-label="Placement de l’image"
+            :value="picture.align"
+            @change="updatePicture({ align: $event.target.value })"
+          >
+            <option value="left">À gauche du texte</option>
+            <option value="right">À droite du texte</option>
+            <option value="center">Centrée sur sa ligne</option>
+            <option value="block">Sur sa propre ligne</option></select
+          ><button
+            class="btn"
+            @pointerdown="resize"
+            title="Maintenir et glisser horizontalement"
+          >
+            ↔ Étirer</button
+          ><button class="btn" @click="removePicture">Retirer l’image</button>
+        </div>
+      </div></Teleport
+    >
     <div
       ref="editor"
       role="textbox"

@@ -1,3 +1,4 @@
+import { normalizePage } from './conductorPage.js';
 export const highlightColors={yellow:'#f6d776',mint:'#a5f3cf',blue:'#a9d7ff',pink:'#f5b8d3',orange:'#ffc49b'};
 export function normalizeConductorImages(value){return (Array.isArray(value)?value:[]).slice(0,32).flatMap((i,index)=>i&&typeof i.src==='string'&&i.src.length<3000000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(i.src)?[{id:typeof i.id==='string'&&/^[\w-]{1,100}$/.test(i.id)?i.id:'legacy-'+index,src:i.src,alt:typeof i.alt==='string'?i.alt.slice(0,300):'',width:Math.max(10,Math.min(100,Number(i.width)||50)),align:['left','right','center','block'].includes(i.align)?i.align:'center'}]:[]);}
 
@@ -11,7 +12,8 @@ export function normalizeConductor(raw={}){
  const seen=new Set();return {revision:revision(raw?.revision),sequences:(Array.isArray(raw?.sequences)?raw.sequences:[]).slice(0,100).flatMap(s=>{
   if(!s||!id(s.id)||seen.has(id(s.id)))return [];seen.add(id(s.id));
   const images=normalizeConductorImages(s.images);let script=text(s.script,50000);const cues=text(s.cues,20000);for(const image of images)if(!s.images.some(raw=>raw?.id===image.id)&&!(script+'\n'+cues).includes('(frame-image:'+image.id+')'))script+='\n\n!['+image.alt.replace(/[\[\]\n]/g,'')+'](frame-image:'+image.id+')';
-  return [{id:id(s.id),title:text(s.title,200),script,cues,images,support:supportKinds.some(([k])=>k===s.support)?s.support:'camera',creationId:id(s.creationId)}];
+  const scriptLayout=normalizePage(s.scriptLayout),cuesLayout=normalizePage(s.cuesLayout,20000);
+  return [{...(scriptLayout?{scriptLayout}:{}),...(cuesLayout?{cuesLayout}:{}),id:id(s.id),title:text(s.title,200),script,cues,images,support:supportKinds.some(([k])=>k===s.support)?s.support:'camera',creationId:id(s.creationId)}];
  })};
 }
 export function normalizePublication(raw={}){

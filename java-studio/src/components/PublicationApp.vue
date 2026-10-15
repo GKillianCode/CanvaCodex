@@ -1,6 +1,6 @@
 <script setup>
-import {ref,computed} from 'vue';
-import {Copy,Plus,Trash2,ArrowUp,ArrowDown,Image,ExternalLink} from 'lucide-vue-next';
+import {ref,computed,watch} from 'vue';
+import {Copy,Plus,Trash2,ArrowUp,ArrowDown,Image,ExternalLink,ChevronLeft,ChevronRight} from 'lucide-vue-next';
 import VideoWorkflowNav from './VideoWorkflowNav.vue';
 import WorkspaceHeader from './WorkspaceHeader.vue';
 import WorkflowAlerts from './WorkflowAlerts.vue';
@@ -11,6 +11,8 @@ const props=defineProps({repository:Object,videoId:String});const emit=defineEmi
 const {project,data,error,loading,saving,dirty,recovery,storageError,load,save,flush,recover,exportDraft}=useVideoWorkflow(props,'publication');defineExpose({flush});
 const notice=ref(''),templateUndo=ref(null),chapterUndo=ref(null),templateBusy=ref(false);
 const thumbnails=computed(()=>project.value?.creations.filter(c=>c.app==='thumbnails')||[]),thumbnail=computed(()=>thumbnails.value.find(c=>c.id===data.value?.thumbnailId));
+watch([thumbnails,data],()=>{if(data.value&&thumbnails.value.length&&!thumbnails.value.some(row=>row.id===data.value.thumbnailId))data.value.thumbnailId=thumbnails.value[0].id;},{immediate:true});
+function cycleThumbnail(delta){const rows=thumbnails.value;if(!rows.length)return;const i=rows.findIndex(row=>row.id===data.value.thumbnailId);data.value.thumbnailId=rows[(i+delta+rows.length)%rows.length].id;}
 const issues=computed(()=>chapterErrors(data.value?.chapters||[])),formatted=computed(()=>chaptersText(data.value?.chapters||[]));
 async function go(action){try{await flush();action();}catch{}}
 async function copy(value,name){try{if(!navigator.clipboard?.writeText)throw Error();await navigator.clipboard.writeText(value);notice.value=name+' copié.';}catch{notice.value='La copie n’est pas disponible ici. Sélectionne le texte du champ puis utilise Ctrl/⌘ C.';}}
@@ -39,7 +41,7 @@ function exportPublication(){downloadText('publication.txt',`TITRE\n${data.value
       <section><div class="publication-field-label"><label for="publication-comment">Commentaire épinglé</label><button class="icon-btn" :disabled="!data.comment.trim()" title="Copier : Commentaire épinglé" aria-label="Copier : Commentaire épinglé" @click="copy(data.comment,'Commentaire')"><Copy :size="16"/></button></div><textarea id="publication-comment" v-model="data.comment" aria-label="Commentaire épinglé" rows="6" maxlength="20000" placeholder="Les exemples et ressources de la vidéo…"/></section>
      </article>
     </section>
-    <aside class="publication-visual"><article class="production-card"><div class="publication-field-label"><span>Miniature</span><Image :size="18"/></div><label class="production-field">Variante existante<select v-model="data.thumbnailId" aria-label="Miniature de publication"><option value="">Choisir une miniature</option><option v-for="row in thumbnails" :key="row.id" :value="row.id">{{row.name}}</option></select></label><div v-if="thumbnail" :key="thumbnail.id" class="publication-thumbnail"><LibraryPreview :repository="repository" :creation="thumbnail"/><h3>{{data.title||project.name}}</h3><button class="btn" @click="go(()=>emit('open-creation',videoId,thumbnail.app,thumbnail.id))">Ouvrir dans Miniatures<ExternalLink :size="14"/></button></div><div v-else class="production-inline-empty"><Image :size="30"/><p>{{data.thumbnailId?'Cette miniature a été retirée de la vidéo.':'Retrouve ici les miniatures de cette vidéo.'}}</p><button v-if="!thumbnails.length" class="btn" @click="go(()=>emit('back'))">Créer depuis la fiche vidéo</button></div></article></aside>
+    <aside class="publication-visual"><article class="production-card"><div class="publication-field-label"><span>Miniature</span><Image :size="18"/></div><div v-if="thumbnails.length" class="publication-carousel"><button class="icon-btn" aria-label="Miniature précédente" :disabled="thumbnails.length<2" @click="cycleThumbnail(-1)"><ChevronLeft :size="18"/></button><span>{{thumbnails.findIndex(row=>row.id===data.thumbnailId)+1}} / {{thumbnails.length}}<small>{{thumbnail?.name}}</small></span><button class="icon-btn" aria-label="Miniature suivante" :disabled="thumbnails.length<2" @click="cycleThumbnail(1)"><ChevronRight :size="18"/></button></div><div v-if="thumbnail" :key="thumbnail.id" class="publication-thumbnail"><LibraryPreview :repository="repository" :creation="thumbnail"/><h3>{{data.title||project.name}}</h3><button class="btn" @click="go(()=>emit('open-creation',videoId,thumbnail.app,thumbnail.id))">Ouvrir dans Miniatures<ExternalLink :size="14"/></button></div><div v-else class="production-inline-empty"><Image :size="30"/><p>{{data.thumbnailId?'Cette miniature a été retirée de la vidéo.':'Retrouve ici les miniatures de cette vidéo.'}}</p><button v-if="!thumbnails.length" class="btn" @click="go(()=>emit('back'))">Créer depuis la fiche vidéo</button></div><div v-if="thumbnails.length>1" class="publication-variants"><button v-for="row in thumbnails" :key="row.id" :class="{active:row.id===data.thumbnailId}" :aria-label="'Choisir '+row.name" :aria-pressed="row.id===data.thumbnailId" @click="data.thumbnailId=row.id"><LibraryPreview :repository="repository" :creation="row"/><span>{{row.name}}</span></button></div></article></aside>
    </div>
   </template>
  </main>
