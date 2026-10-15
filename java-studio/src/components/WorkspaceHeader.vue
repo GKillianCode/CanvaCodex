@@ -1,5 +1,6 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
+import WorkspaceLauncher from "./WorkspaceLauncher.vue";
 const props = defineProps({
   title: String,
   backLabel: { type: String, default: "Accueil" },
@@ -69,5 +70,6 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", outside));
       </div>
       <div class="app-header-right"><slot name="actions" /></div>
     </slot>
+    <WorkspaceLauncher/>
   </header>
 </template>

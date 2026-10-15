@@ -36,6 +36,7 @@ import {
 import LibraryPreview from "./LibraryPreview.vue";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import PlaylistOrder from "./PlaylistOrder.vue";
+import VideoWorkflowOverview from "./VideoWorkflowOverview.vue";
 const props = defineProps({
     repository: Object,
     videoId: String,
@@ -70,7 +71,7 @@ const projects = ref([]),
   copyCurrent = ref(false),
   draft = ref(null),
   icons = { slides: PanelsTopLeft, banners: Clapperboard, thumbnails: Image };
-const deletedCreation = ref(null);
+const deletedCreation = ref(null),assetArea=ref(null),creationFilter=ref('all');
 watch(() => props.videoId,()=>{deletedCreation.value=null;});
 const starterApps = ref(["slides", "banners", "thumbnails"]);
 const browserOnly = ref(false);
@@ -536,10 +537,9 @@ async function importVideo(event) {
       ><section class="video-heading">
         <div>
           <span class="eyebrow">DE L’IDÉE À LA VIDÉO</span>
-          <h1>Tes vidéos, au même endroit.</h1>
+          <h1>Tes vidéos. Ton espace de création.</h1>
           <p>
-            Prépare un cours et retrouve ses diaporamas, ses incrustations et
-            ses miniatures.
+            Prépare, crée et publie depuis un projet unique pour chaque vidéo.
           </p>
         </div>
         <div class="video-actions">
@@ -550,8 +550,8 @@ async function importVideo(event) {
       </section>
       <section class="video-workshops">
         <div>
-          <h2>Les ateliers</h2>
-          <p>Ouvre ta création autonome, ou copie-la ensuite dans une vidéo.</p>
+          <h2>Les ateliers autonomes</h2>
+          <p>Pour un support indépendant. Les supports d’une vidéo se créent directement dans sa fiche.</p>
         </div>
         <div class="video-workshop-grid">
           <button
@@ -817,14 +817,11 @@ async function importVideo(event) {
           </button>
         </form>
       </details>
-      <section class="video-production-entry" aria-label="Préparer et publier cette vidéo">
-        <div><span class="eyebrow">LE FIL DE TA VIDÉO</span><h2>De la préparation à la publication.</h2><p>Deux ateliers reliés à tes créations, sans les dupliquer.</p></div>
-        <button @click="emit('open-workshop',selected.id,'conductor')"><ListVideo :size="21"/><span><strong>Conducteur</strong><small>Script, supports et lecture au tournage</small></span><ArrowUpRight :size="17"/></button>
-        <button @click="emit('open-workshop',selected.id,'publication')"><Send :size="21"/><span><strong>Publication</strong><small>Titre, miniature et blocs prêts à copier</small></span><ArrowUpRight :size="17"/></button>
-      </section>
+      <VideoWorkflowOverview :project="selected" @workshop="emit('open-workshop',selected.id,$event)" @assets="assetArea?.scrollIntoView({behavior:'smooth',block:'start'})"/>
+      <section ref="assetArea" class="video-assets-heading"><div><span class="eyebrow">SUPPORTS DE LA VIDÉO</span><h2>Toutes tes créations</h2></div><div class="workspace-switch" aria-label="Filtrer les supports"><button v-for="[id,label] in [['all','Tous'],['slides','Diaporamas'],['banners','Incrustations'],['thumbnails','Miniatures']]" :key="id" :class="{active:creationFilter===id}" @click="creationFilter=id">{{label}}</button></div></section>
       <div class="video-assets-grid">
         <section
-          v-for="a in applications"
+          v-for="a in applications.filter(a=>creationFilter==='all'||a.id===creationFilter)"
           :key="a.id"
           class="video-creation-section"
         >

@@ -208,3 +208,10 @@ Dans **Publication**, une miniature existante est sélectionnée automatiquement
 Le **Conducteur** s’ouvre sur **Préparer** : pour la partie sélectionnée, deux cartes **Ce que je dis / Mes repères** donnent une vue d’ensemble non modifiable. Clique sur une carte pour ouvrir son éditeur sur toute la page ; Revenir à la partie ou Échap le ferme. Le défilement sur les cartes fait défiler la page, sans capturer la molette dans un canevas.
 
 Dans l’éditeur, le clic droit sur la scène permet d’ajouter un texte ou une image à cet emplacement (sur un texte sélectionné, il garde le menu de surlignage). Les propriétés sont rangées dans trois tiroirs exclusifs : Ajouter et grille, Placement du bloc, Texte et Markdown. La palette de surlignage n’est plus répétée à droite. Le tiroir de texte propose **Visuel / Markdown**, des titres et sous-titres, listes, séparateurs et code coloré (Java, JavaScript/TypeScript, Python, Bash, JSON, SQL, YAML, HTML, CSS). La mise en page reste commune à l’aperçu et à Présenter, avec une scène qui occupe la largeur disponible et s’agrandit sur les grands écrans.
+
+
+### Prototype du workflow global
+
+Le Conducteur et Publication ont été validés et intégrés à `main` via la PR #123. Les deux cartes du Conducteur utilisent maintenant des illustrations SVG locales.
+
+La nouvelle branche de test `codex/test-global-workflow` propose une navigation commune **Ateliers / Ctrl K** depuis tous les espaces : recherche d’un atelier, d’une vidéo ou d’un support lié à la vidéo courante. La fiche vidéo présente **Préparer → Créer les supports → Publier**, avec un filtre des créations par type. L’accueil distingue les projets vidéo des ateliers autonomes. Les changements de vue attendent les sauvegardes ; le studio bloque la sortie pendant un enregistrement, export ou opération de fichier. Les moteurs d’édition et les formats de sauvegarde sont conservés. Le périmètre et l’audit des différentes surfaces figurent dans `docs/UX-workflow.md`. Cette nouvelle branche reste un prototype à valider.
