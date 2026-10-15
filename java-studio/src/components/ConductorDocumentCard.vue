@@ -40,13 +40,7 @@ defineExpose({ flush });
         ><ArrowUpRight :size="19" />
       </header>
       <div class="document-card-preview" aria-hidden="true">
-        <ConductorPage
-          :key="label"
-          :model-value="modelValue"
-          :layout="layout"
-          :images="images"
-          readonly
-        />
+        <img class="document-card-art" :src="privateNotes?'/illustrations/conductor-cues.svg':'/illustrations/conductor-script.svg'" alt="" loading="lazy"/>
       </div>
       <footer>
         <span>{{

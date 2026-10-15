@@ -941,3 +941,8 @@ Validation en cours : tests de calcul de point après zoom/défilement et rendu 
 Validation finale de ce lot : 253 tests réussis, build réussi (avertissement chunk préexistant), conservation H2/hr/11tokens Java et hauteur237px après rechargement ; deux cartes488px côte à côte sur viewport1280px, aucune erreur console. Fenêtre parasite toujours non reproduite, cause ouverte dans issue122 et PR123.
 
 Publication confirmée : vue d’ensemble, tiroirs et Markdown publiés sur `codex/test-video-production`, PR brouillon #123, commit distant `f5b0cc5973dfa6802bca55d154af9c4021ca034f` (commit local `7abeba9`, arbres identiques). 253 tests et build validés. Signalement de fenêtre parasite conservé ouvert et non annoncé résolu ; aucune fusion.
+
+
+### Validation du Conducteur et nouvelle refonte globale — 15 octobre
+
+Utilisateur confirme que la fenêtre parasite était une fenêtre de test Codex cachée, pas un défaut applicatif. Aucun contournement navigateur requis ; fermer les onglets de test créés après vérification. Demande de deux illustrations pour les cartes du Conducteur, puis validation explicite de la branche test et intégration dans la branche habituelle, suivie d’une nouvelle branche de test pour une refonte UI/UX transversale du workflow. Les illustrations sont des SVG locaux créés en code, sans génération IA ni dépendance distante. Intégration et nouveau prototype à confirmer.
