@@ -8,8 +8,8 @@ test('existing video projects gain empty workshops without changing notes or ass
  assert.equal('workflow' in videoSummary(p),false);
 });
 test('normalization bounds production data and rejects duplicate ids and invalid kinds',()=>{
- const sequence=newSequence('A'),raw={revision:Infinity,sequences:[{...sequence,script:'x'.repeat(13000),support:'bad',creationId:123},sequence,null]};
- const value=normalizeConductor(raw);assert.equal(value.revision,0);assert.equal(value.sequences.length,1);assert.equal(value.sequences[0].script.length,12000);assert.equal(value.sequences[0].support,'camera');assert.equal(value.sequences[0].creationId,'');
+ const sequence=newSequence('A'),raw={revision:Infinity,sequences:[{...sequence,script:'x'.repeat(60000),support:'bad',creationId:123},sequence,null]};
+ const value=normalizeConductor(raw);assert.equal(value.revision,0);assert.equal(value.sequences.length,1);assert.equal(value.sequences[0].script.length,50000);assert.equal(value.sequences[0].support,'camera');assert.equal(value.sequences[0].creationId,'');
  assert.equal(normalizeConductor({sequences:Array.from({length:110},(_,i)=>({...sequence,id:String(i)}))}).sequences.length,100);
  assert.equal(normalizePublication({title:'a'.repeat(300),chapters:[{id:'a',time:'12:99'},null,{id:'a'}]}).title.length,200);
  assert.equal(normalizePublication({chapters:[{id:'a'},{id:'a'}]}).chapters.length,1);
@@ -38,7 +38,7 @@ test('workshop and independent reader routes survive refresh without matching fo
 test('conductor illustrations survive serialization and reject external or oversized sources', async()=>{
  const {normalizeConductorImages}=await import('../src/videoWorkflow.js');
  const images=[{src:'data:image/png;base64,YQ==',alt:'Huit bits'}, {src:'https://example.com/private.png'}, {src:'data:image/svg+xml;base64,YQ=='}, {src:'data:image/png;base64,'+'A'.repeat(3000000)}];
- assert.deepEqual(normalizeConductorImages(images),[{src:'data:image/png;base64,YQ==',alt:'Huit bits'}]);
+ assert.deepEqual(normalizeConductorImages(images),[{id:'legacy-0',src:'data:image/png;base64,YQ==',alt:'Huit bits',width:50,align:'center'}]);
  const normalized=normalizeWorkflow({conductor:{sequences:[{id:'part',images}]}});
  assert.equal(normalized.conductor.sequences[0].images.length,1);
  assert.deepEqual(normalizeWorkflow(JSON.parse(JSON.stringify(normalized))),normalized);
@@ -49,7 +49,7 @@ test('colored highlighting remains escaped Markdown and leaves code unchanged', 
  assert.equal(highlightScript('une règle',4,9,'yellow'),'une ==yellow|règle==');
  assert.equal(highlightScript('texte',0,5,'red'),'texte');
  const html=renderNotebook('==blue|<img src=x onerror=alert(1)>==');
- assert.match(html,/<mark style="background:#a9d7ff;color:#17231f">&lt;img/);
+ assert.match(html,/<mark style="background:#a9d7ff;color:#17231f" data-highlight="blue">&lt;img/);
  assert.doesNotMatch(html,/<img/);
  assert.match(renderNotebook('`==yellow|code==`'),/<code>==yellow\|code==<\/code>/);
 });
