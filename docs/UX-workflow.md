@@ -16,7 +16,7 @@ Un accès Ateliers / Ctrl K est partagé par tous les en-têtes : accueil, fiche
 | Fiche vidéo | Trois étapes explicites, accès aux ateliers liés, supports regroupés et filtre par type, création/import/suppression/restauration conservés. |
 | Playlists | Gestion existante conservée dans la bibliothèque : nom, ordre, pagination, vignettes et vidéos. Accès par la bibliothèque commune, aucune seconde taxonomie introduite. |
 | Parcours | Application autonome toujours disponible dans le même lanceur ; canvas, groupes, connexions et projets fil rouge conservés. |
-| Conducteur | Deux cartes illustrées ouvrent des éditeurs dédiés. Brouillon privé, script et repères restent distincts. Navigation vers les supports et Publication sans repasser par l’accueil. |
+| Conducteur | Une carte Texte et instructions ouvre l’éditeur sous l’en-tête commun, puis vient le support et la navigation précédente/suivante. Les anciens repères sont regroupés sans perte dans le texte, avec export de secours si les limites empêchent leur regroupement. Brouillon privé. Navigation vers les supports et Publication sans repasser par l’accueil. |
 | Publication | Formulaire continu, miniature liée/carrousel, copie des textes, modèles et chapitres conservés. Accès direct aux créations de la vidéo. |
 | Diaporamas | Outils et rendu conservés ; navigation commune, sauvegarde avant sortie, blocage pendant la capture/export. |
 | Incrustations | Même accès commun ; paramètres et export animé conservés, sortie bloquée pendant un export. |

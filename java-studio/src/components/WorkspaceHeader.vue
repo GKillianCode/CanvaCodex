@@ -14,8 +14,21 @@ function fileAction(event) {
 function outside(event) {
   if (!root.value?.contains(event.target)) active.value = null;
 }
-onMounted(() => document.addEventListener("pointerdown", outside));
-onBeforeUnmount(() => document.removeEventListener("pointerdown", outside));
+let headerObserver;
+onMounted(() => {
+  document.addEventListener("pointerdown", outside);
+  headerObserver = new ResizeObserver(() =>
+    document.documentElement.style.setProperty(
+      "--frame-header-height",
+      root.value.getBoundingClientRect().height + "px",
+    ),
+  );
+  headerObserver.observe(root.value);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener("pointerdown", outside);
+  headerObserver?.disconnect();
+});
 </script>
 <template>
   <header
@@ -70,6 +83,6 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", outside));
       </div>
       <div class="app-header-right"><slot name="actions" /></div>
     </slot>
-    <WorkspaceLauncher/>
+    <WorkspaceLauncher />
   </header>
 </template>
