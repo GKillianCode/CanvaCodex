@@ -21,6 +21,8 @@ import WorkspaceHeader from "./WorkspaceHeader.vue";
 import LibraryPreview from "./LibraryPreview.vue";
 import { videoStatuses } from "../videoProjects.js";
 import {
+  CANVAS_GROUP_COLORS,
+  canvasGroupColorStyle,
   normalizeVideoCanvas,
   connectVideoCanvas,
   removeCanvasNode,
@@ -915,6 +917,7 @@ function selectEdge(value) {
               "
               :class="{ selected: selectedGroup === group.id }"
               :style="{
+                ...canvasGroupColorStyle(group.color),
                 left: group.x - world.x + 'px',
                 top: group.y - world.y + 'px',
                 width: group.width + 'px',
@@ -1266,12 +1269,18 @@ function selectEdge(value) {
             <X :size="20" />
           </button>
         </header>
-        <label v-if="currentGroup"
+        <template v-if="currentGroup"><label
           >Nom du groupe<input
             v-model="currentGroup.title"
             maxlength="200"
             @input="changed"
         /></label>
+        <fieldset class="canvas-group-palette"><legend>Couleur du groupe</legend>
+          <button v-for="color in CANVAS_GROUP_COLORS" :key="color.id" type="button"
+            :aria-label="color.label" :aria-pressed="(currentGroup.color || 'sage') === color.id"
+            :style="canvasGroupColorStyle(color.id)"
+            @click="currentGroup.color = color.id; changed()"><span />{{ color.label }}</button>
+        </fieldset></template>
         <template v-else
           ><label
             >Titre<input

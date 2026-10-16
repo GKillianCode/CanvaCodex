@@ -1042,3 +1042,12 @@ Sur codex/test-global-workflow / PR125, sans fusion : palette claire dédiée au
 
 Complément demandé dans le même lot : couleurs claires explicites aussi pour les cartes Étape (vert sauge léger) et Projet fil rouge (pêche légère, bordure terre cuite), avec icônes/libellés contrastés et contour de sélection conservé. Les couleurs sombres restent intactes.
 Validation complémentaire : cartes synthétiques avec vraies feuilles CSS inspectées en navigateur, fonds vert sauge/pêche et libellés/bordures distincts confirmés. Capture /tmp/frame-cartes-parcours-clair.png hors dépôt, onglet fermé et page temporaire retirée.
+
+### 16 octobre — couleurs franches du parcours et groupes personnalisables
+
+Retour utilisateur : palette claire précédente trop sombre/semblable, étapes confondues avec les groupes, couleur fil rouge non souhaitée. États clairs : bordures saturées distinctes (gris, bleu, turquoise, rose, orange, violet, jaune, vert), encres séparées pour lisibilité et fonds teintés, liseré dans les badges. Couleurs des états sombres conservées. Étapes bleues et projets fil rouge violets, fonds/icônes/bordures adaptés aux deux apparences, sélection conservée.
+
+Groupes : sept choix nommés Sauge/Bleu/Violet/Rose/Ambre/Turquoise/Gris dans Modifier le groupe (double-clic ou menu contextuel). Palette avec sélection explicite et variantes light/dark ; fond translucide, bordure, titre, poignées et sélection utilisent la même teinte. Identifiant couleur persistant dans les sauvegardes/imports/exports du parcours, anciens groupes ou couleur invalide ramenés à Sauge. Test de roundtrip pour les sept couleurs et migration ajouté.
+
+Validation : build réussi, avertissement chunk existant. Suite initiale bloquée sur ffprobe EPERM dans le bac à sable ; relancée avec autorisation système. UI isolée avec vrai composant VideoCanvas et repository synthétique : dialogue palette, choix Rose, fond/bordure rose confirmés en clair/sombre, persistance après rechargement ; étapes bleues/projets violets confirmés dans les deux modes. Spécificité CSS de la carte Étape corrigée pour la vue application entière. Captures /tmp/frame-parcours-palette-clair.png et /tmp/frame-parcours-palette-sombre.png hors dépôt, fixture retirée, onglet fermé explicitement. Toujours branche test codex/test-global-workflow / PR125, aucune fusion.
+Résultat final : 275 tests réussis, build et diff --check réussis. Publication à confirmer.
