@@ -1,0 +1,5 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {effectScope,ref} from 'vue';import {useExpiringUndo} from '../src/useExpiringUndo.js';
+function setup(){let id=0;const pending=new Map(),scope=effectScope(),state=ref(null);scope.run(()=>useExpiringUndo(state,{schedule:(fn,ms)=>{assert.equal(ms,15000);pending.set(++id,fn);return id;},cancel:key=>pending.delete(key)}));return {state,pending,scope};}
+test('undo expires after its current delay and a newer deletion replaces the timer',()=>{const {state,pending,scope}=setup();state.value={id:1};const stale=[...pending.values()][0];state.value={id:2};assert.equal(pending.size,1);stale();assert.equal(state.value.id,2);[...pending.values()][0]();assert.equal(state.value,null);scope.stop();});
+test('restoring an item or leaving the scope cancels the notification timer',()=>{const {state,pending,scope}=setup();state.value={id:1};state.value=null;assert.equal(pending.size,0);state.value={id:2};scope.stop();assert.equal(pending.size,0);assert.equal(state.value.id,2);});

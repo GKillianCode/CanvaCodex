@@ -1,3 +1,4 @@
+import {useExpiringUndo} from './useExpiringUndo.js';
 import { normalizeRuns } from './richText.js';
 import {normalizeTypewriter,typewriterDuration} from './typewriter.js';
 import {STEP_INTERPOLATION_MS} from './stepInterpolation.js';
@@ -69,6 +70,7 @@ export function useStudio(application='slides',creationContext=null) {
   const sharing=useComponentSharing(notify);
   const libraryComponents=computed(()=>sharing.libraryScope.value==='shared'?sharing.sharedComponents.value:components.value);
   const palette=ref(normalizeThemes(initial?.themes||library)),themeEditor=ref(null),themeUndo=ref(null);
+  useExpiringUndo(themeUndo);
   let preferences;try{preferences=JSON.parse(localStorage.getItem('frame-workspace'));}catch{}
   const panels=ref({rail:true,collapsed:false,properties:true,slides:true,toolbar:true,inspectorWidth:286,slidesWidth:185,snapping:true,...preferences}),displayMenu=ref(false),selectedKeys=ref([]),selectedSlides=ref([]),selectionScope=ref('elements'),countdown=ref(0),previewVisible=ref(true);
   watch(panels,()=>{try{localStorage.setItem('frame-workspace',JSON.stringify(panels.value));}catch{}},{deep:true});

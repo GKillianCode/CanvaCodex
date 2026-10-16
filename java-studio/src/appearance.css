@@ -19,3 +19,22 @@
 :root[data-appearance="light"] .btn.primary{background:#24794f!important;border-color:#24794f!important;color:#fff!important}
 :root[data-appearance="light"] .brand-icon{background:#24794f;color:#fff}
 :root[data-appearance="light"] .btn.danger{background:#ad3e44;border-color:#ad3e44;color:#fff}
+:root[data-appearance="light"] .conductor-outline .outline-move .icon-btn{border-color:#17271f14;background:#17271f03}
+:root[data-appearance="light"] .conductor-outline .outline-move .icon-btn:hover{background:#17271f09;border-color:#17271f2b}
+:root[data-appearance="light"] .document-editor{--conductor-paper:#fff;--conductor-margin:#fafafa}
+:root[data-appearance="light"] .document-editor .document-block-shell{background:linear-gradient(to right,var(--conductor-margin) 0,var(--conductor-margin) 44px,var(--conductor-paper) 44px,var(--conductor-paper) 100%);border-color:#00000009}
+:root[data-appearance="light"] .document-editor .document-block-shell:before{background:#00000005}
+:root[data-appearance="light"] .document-editor .rich-document>*:not(hr){border-bottom-color:#00000009}
+:root[data-appearance="light"] .document-editor .rich-document>pre{background:var(--conductor-margin);border:1px solid #0000000c;border-left-width:1px}
+:root[data-appearance="light"] .document-code-tools{color:#526269}
+:root[data-appearance="light"] .conductor-reader .notebook-preview pre,:root[data-appearance="light"] .page-reading-text pre{background:#fafafa;border-color:#00000016}
+:root[data-appearance="light"] .token.keyword{color:#7931a8}
+:root[data-appearance="light"] .token.string,:root[data-appearance="light"] .token.char{color:#176538}
+:root[data-appearance="light"] .token.number,:root[data-appearance="light"] .token.boolean{color:#9c4613}
+:root[data-appearance="light"] .token.class-name{color:#006c80}
+:root[data-appearance="light"] .token.function{color:#2457ad}
+:root[data-appearance="light"] .token.operator{color:#a82d60}
+:root[data-appearance="light"] .token.annotation{color:#876010}
+:root[data-appearance="light"] .token.punctuation{color:#42535e}
+:root[data-appearance="light"] .token.comment{color:#68766f}
+@media(max-width:760px){:root[data-appearance="light"] .document-editor .document-block-shell{background:linear-gradient(to right,var(--conductor-margin) 0,var(--conductor-margin) 38px,var(--conductor-paper) 38px,var(--conductor-paper) 100%)}}

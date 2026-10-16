@@ -1,4 +1,5 @@
 <script setup>
+import {useExpiringUndo} from "../useExpiringUndo.js";
 import {
   ref,
   computed,
@@ -100,6 +101,7 @@ const selected = ref(""),
 let observer, cleanup, upload;
 useModalScroll(() => expanded.value);
 const removedBlock = ref(null);
+useExpiringUndo(removedBlock);
 const active = computed(() =>
   blocks.value.find((b) => b.id === selected.value),
 );

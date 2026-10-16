@@ -8,7 +8,13 @@ import {
   nextTick,
 } from "vue";
 import { codeExitDirection } from "../conductorNavigation.js";
-import { GripVertical, Plus } from "lucide-vue-next";
+import { useExpiringUndo } from "../useExpiringUndo.js";
+import {
+  conductorCodeLanguages,
+  codeLanguageOf,
+  fencedCode,
+} from "../conductorCode.js";
+import { GripVertical, Plus, Copy, Check } from "lucide-vue-next";
 import { renderConductor } from "../notebookMarkdown.js";
 import { richMarkdown } from "../conductorRichText.js";
 import { highlightColors } from "../videoWorkflow.js";
@@ -60,6 +66,9 @@ const documentShell = ref(null),
   dropMarker = ref(null),
   submenu = ref(""),
   blockUndo = ref(null);
+const copiedCode = ref(null);
+useExpiringUndo(blockUndo);
+useExpiringUndo(copiedCode, { duration: 2000 });
 let contextBlock = null,
   draggedBlock = null,
   blockObserver,
@@ -79,6 +88,7 @@ function measureBlocks() {
     index,
     top: node.getBoundingClientRect().top - rect.top,
     bottom: node.getBoundingClientRect().bottom - rect.top,
+    language: node.tagName === "PRE" ? codeLanguageOf(node) : null,
   }));
 }
 function scheduleBlocks() {
@@ -164,23 +174,41 @@ function contextPicture() {
   picture.value =
     props.images.find((image) => image.id === img?.dataset.frameImage) || null;
 }
+function setBlockLanguage(node, lang) {
+  if (!node || !editor.value.contains(node)) return;
+  const holder = document.createElement("div");
+  holder.innerHTML = renderConductor(
+    fencedCode(node.innerText ?? node.textContent ?? "", lang),
+    props.images,
+  );
+  node.replaceWith(...holder.childNodes);
+  changed();
+  menu.value = null;
+  measureBlocks();
+}
+async function copyCode(node, index) {
+  node =
+    editor.value.children[index]?.tagName === "PRE"
+      ? editor.value.children[index]
+      : node;
+  try {
+    await navigator.clipboard.writeText(
+      node.innerText || node.textContent || "",
+    );
+    copiedCode.value = node;
+  } catch {
+    emit(
+      "error",
+      "La copie n’est pas disponible dans ce navigateur. Sélectionne le code puis utilise Ctrl C.",
+    );
+  }
+}
 function changeCodeLanguage(lang) {
   codeLanguage.value = lang;
-  if (contextBlock?.tagName === "PRE") {
-    const value = contextBlock.textContent || "";
-    const fence = "`".repeat(
-      Math.max(3, ...Array.from(value.matchAll(/`+/g), (m) => m[0].length + 1)),
-    );
-    const holder = document.createElement("div");
-    holder.innerHTML = renderConductor(
-      fence + lang + "\n" + value + "\n" + fence,
-      props.images,
-    );
-    contextBlock.replaceWith(...holder.childNodes);
-    changed();
-    menu.value = null;
-  } else contextCommand("code");
+  if (contextBlock?.tagName === "PRE") setBlockLanguage(contextBlock, lang);
+  else contextCommand("code");
 }
+
 function blockAction(action) {
   const node = contextBlock;
   if (!node || !editor.value.contains(node)) return;
@@ -930,22 +958,11 @@ onBeforeUnmount(() => {
             @mousedown.stop
           >
             <option
-              v-for="lang in [
-                'java',
-                'javascript',
-                'typescript',
-                'python',
-                'bash',
-                'json',
-                'sql',
-                'yaml',
-                'html',
-                'css',
-              ]"
+              v-for="[lang, label] in conductorCodeLanguages"
               :key="lang"
               :value="lang"
             >
-              {{ lang }}
+              {{ label }}
             </option></select
           ><button class="btn" @click="code">Code</button
           ><button class="btn" @click="table">Tableau</button
@@ -1077,6 +1094,48 @@ onBeforeUnmount(() => {
         "
         @keydown="keys"
       />
+      <template v-if="documentMode"
+        ><div
+          v-for="row in blockRows.filter((row) => row.node.tagName === 'PRE')"
+          :key="'code-' + row.index"
+          class="document-code-tools"
+          :style="{ top: row.top + 8 + 'px' }"
+          @mousedown.stop
+        >
+          <select
+            :value="row.language"
+            :aria-label="'Langage du bloc de code ' + (row.index + 1)"
+            @change="setBlockLanguage(row.node, $event.target.value)"
+          >
+            <option
+              v-if="
+                row.language &&
+                !conductorCodeLanguages.some(([id]) => id === row.language)
+              "
+              :value="row.language"
+            >
+              {{ row.language }}
+            </option>
+            <option
+              v-for="[id, label] in conductorCodeLanguages"
+              :key="id"
+              :value="id"
+            >
+              {{ label }}
+            </option></select
+          ><button
+            class="icon-btn"
+            :aria-label="'Copier le code du bloc ' + (row.index + 1)"
+            :title="copiedCode === row.node ? 'Code copié' : 'Copier le code'"
+            @click="copyCode(row.node, row.index)"
+          >
+            <Check v-if="copiedCode === row.node" :size="14" /><Copy
+              v-else
+              :size="14"
+            /></button
+          ><span v-if="copiedCode === row.node" role="status">Copié</span>
+        </div></template
+      >
       <template v-if="documentMode"
         ><button
           v-for="slot in insertionRows"
@@ -1288,23 +1347,12 @@ onBeforeUnmount(() => {
             aria-label="Langage du code"
           >
             <button
-              v-for="lang in [
-                'java',
-                'javascript',
-                'typescript',
-                'python',
-                'bash',
-                'json',
-                'sql',
-                'yaml',
-                'html',
-                'css',
-              ]"
+              v-for="[lang, label] in conductorCodeLanguages"
               :key="lang"
               role="menuitem"
               @click="changeCodeLanguage(lang)"
             >
-              {{ lang }}
+              {{ label }}
             </button>
           </div>
         </div>

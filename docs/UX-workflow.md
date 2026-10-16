@@ -31,3 +31,5 @@ Les formats JSON, identifiants, thèmes, bibliothèque de composants et stockage
 Le prototype réorganise le parcours et les commandes transversales ; il ne réécrit pas chaque contrôle de dessin ou chaque dialogue spécialisé. La validation visuelle et fonctionnelle doit inclure les parcours entre applications, les sauvegardes et les petits écrans. Les essais de présentation ne doivent laisser aucune fenêtre de test ouverte. Pas d’IA, de backend ni d’automatisation OBS/Audacity/YouTube ajoutés.
 
 L’apparence claire/sombre est une préférence globale de l’interface, distincte du thème de chaque création. Le bouton soleil/lune est commun aux ateliers ; les documents et exports restent inchangés. Le Conducteur propose des insertions entre blocs, une sortie du code par flèches aux limites et Ctrl/Cmd Entrée avant/après.
+
+Le sommaire du Conducteur est commun au brouillon et aux parties, avec actions et hauteur complète. L’annulation temporaire après suppression expire au bout de15secondes. Les contrôles de langage/copie du code appartiennent uniquement à l’édition, avec un cadre de lecture sans ces commandes.

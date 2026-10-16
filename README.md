@@ -231,3 +231,6 @@ La préparation du Conducteur affiche les limites latérales du document, une ma
 Un bouton soleil/lune dans l’en-tête change l’apparence de toute l’application. Le choix clair/sombre est mémorisé localement, sans modifier les thèmes des créations ni leurs exports. Les styles clairs sont régénérés par `npm run theme:build` (également au lancement et au build).
 
 Dans le Conducteur, clique entre les blocs ou dans la zone vide pour ajouter du texte. Aux limites du code, les flèches permettent de sortir ; `Ctrl+Entrée` ajoute un paragraphe après, `Ctrl+Maj+Entrée` avant (Cmd sur Mac). Les repères du document sont plus discrets.
+
+
+Le Conducteur conserve le même sommaire dans le brouillon et les parties, sur toute la hauteur disponible. Les blocs de code proposent une copie et un sélecteur de langage directement en édition ; ces contrôles restent absents de l’aperçu et de la présentation. Les repères du document sont très légers et le code garde un cadre discret en lecture. Les messages de suppression avec annulation disparaissent après15secondes.

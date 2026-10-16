@@ -1,4 +1,5 @@
 <script setup>
+import {useExpiringUndo} from "../useExpiringUndo.js";
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import {
   Plus,
@@ -72,6 +73,7 @@ const projects = ref([]),
   draft = ref(null),
   icons = { slides: PanelsTopLeft, banners: Clapperboard, thumbnails: Image };
 const deletedCreation = ref(null),assetArea=ref(null),creationFilter=ref('all');
+useExpiringUndo(deletedCreation);
 watch(() => props.videoId,()=>{deletedCreation.value=null;});
 const starterApps = ref(["slides", "banners", "thumbnails"]);
 const browserOnly = ref(false);
