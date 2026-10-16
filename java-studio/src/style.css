@@ -275,9 +275,11 @@
 .canvas-group-palette button{display:flex;align-items:center;gap:7px;border:1px solid var(--border);background:transparent;color:inherit;border-radius:7px;padding:9px 11px;cursor:pointer;font:inherit;font-size:12px}
 .canvas-group-palette button span{width:13px;height:13px;border-radius:50%;background:var(--group-accent)}
 .canvas-group-palette button[aria-pressed=true]{border-color:var(--group-accent);box-shadow:0 0 0 1px var(--group-accent)}
-.canvas-workspace-app .canvas-node.note{background:#1c2c45;border:2px solid #78aafa}
-.canvas-workspace-app .canvas-node.note .canvas-note-visual,.canvas-workspace-app .canvas-node.note .canvas-node-handle{color:#a7c9ff}
-.canvas-node.project{background:#30213f;border-color:#c197ee}
-.canvas-node.project .canvas-note-visual{color:#dab7ff;background:#c197ee12;border-color:#c197ee40}
-.canvas-node.project .canvas-node-handle{color:#dab7ff}
+.canvas-workspace-app .canvas-node.note{background:#253040;border:2px solid #91a9c8}
+.canvas-workspace-app .canvas-node.note .canvas-note-visual,.canvas-workspace-app .canvas-node.note .canvas-node-handle{color:#b1c4dd}
+.canvas-node.project{background:#322c3c;border-color:#b3a0c5}
+.canvas-node.project .canvas-note-visual{color:#cdbbdc;background:#b3a0c512;border-color:#b3a0c540}
+.canvas-node.project .canvas-node-handle{color:#cdbbdc}
 .canvas-workspace-app .canvas-node.note.selected,.canvas-node.project.selected{border-color:var(--mint)}
+
+.record-format,.record-alpha{display:flex;align-items:center;gap:6px;font-size:11px}.record-format select{font:inherit;background:transparent;color:inherit;border:1px solid var(--border);border-radius:5px;padding:7px}.record-alpha input{accent-color:var(--mint)}

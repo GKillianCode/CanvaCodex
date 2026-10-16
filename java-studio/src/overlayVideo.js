@@ -12,7 +12,7 @@ const check=signal=>{if(signal?.aborted)throw aborted();};
 const png=canvas=>new Promise((resolve,reject)=>canvas.toBlob(blob=>blob?resolve(blob):reject(Error('Impossible de créer une image vidéo.')),'image/png'));
 export async function exportTransparentMovie({canvas,slide,theme,clip,signal,onProgress=()=>{}}){
  const fps=30,count=Math.round(clip.duration*fps),frames=[];let bytes=0;const ctx=canvas.getContext('2d');
- for(let i=0;i<count;i++){check(signal);renderOverlayFrame(ctx,slide,theme,{...clip,background:'transparent'},i*clip.duration/(count-1),canvas.width,canvas.height);const frame=await png(canvas);check(signal);bytes+=frame.size;if(bytes>256*1024*1024)throw Error('La vidéo dépasse 256 Mo. Réduis sa durée ou sa résolution.');frames.push(frame);onProgress((i+1)/count);if(i%6===0)await new Promise(resolve=>setTimeout(resolve,0));}
+ for(let i=0;i<count;i++){check(signal);renderOverlayFrame(ctx,slide,theme,clip,i*clip.duration/(count-1),canvas.width,canvas.height);const frame=await png(canvas);check(signal);bytes+=frame.size;if(bytes>256*1024*1024)throw Error('La vidéo dépasse 256 Mo. Réduis sa durée ou sa résolution.');frames.push(frame);onProgress((i+1)/count);if(i%6===0)await new Promise(resolve=>setTimeout(resolve,0));}
  check(signal);return pngMovie(frames,{width:canvas.width,height:canvas.height,fps});
 }
 export function exportChromaMovie({canvas,slide,theme,clip,signal,onProgress=()=>{}}){

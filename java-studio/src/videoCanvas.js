@@ -1,11 +1,11 @@
 export const CANVAS_GROUP_COLORS = [
-  { id: "sage", label: "Sauge", dark: "#a3c78c", light: "#507d32" },
-  { id: "blue", label: "Bleu", dark: "#86b9ff", light: "#2873cc" },
-  { id: "violet", label: "Violet", dark: "#bea0f5", light: "#8150c9" },
-  { id: "rose", label: "Rose", dark: "#ed9bbd", light: "#bc3976" },
-  { id: "amber", label: "Ambre", dark: "#e9c373", light: "#a66b0a" },
-  { id: "cyan", label: "Turquoise", dark: "#75cbd0", light: "#087d87" },
-  { id: "slate", label: "Gris", dark: "#adb8cb", light: "#627189" },
+  { id: "sage", label: "Sauge", dark: "#adc0a4", light: "#7c9171" },
+  { id: "blue", label: "Bleu", dark: "#a1b9d3", light: "#718da9" },
+  { id: "violet", label: "Violet", dark: "#baaccd", light: "#9480aa" },
+  { id: "rose", label: "Rose", dark: "#c9a5b5", light: "#aa7e91" },
+  { id: "amber", label: "Ambre", dark: "#caba91", light: "#a28c60" },
+  { id: "cyan", label: "Turquoise", dark: "#9bbfc0", light: "#709798" },
+  { id: "slate", label: "Gris", dark: "#adb8c6", light: "#7c899b" },
 ];
 export function canvasGroupColorStyle(color) {
   const palette = CANVAS_GROUP_COLORS.find((item) => item.id === color) || CANVAS_GROUP_COLORS[0];

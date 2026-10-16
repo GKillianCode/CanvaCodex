@@ -240,3 +240,7 @@ La fiche vidéo propose deux cartes illustrées, Préparer et Publier ; les supp
 
 Les états des vidéos disposent d’une palette dédiée au mode clair : badges et bordures du canvas restent contrastés, sans modifier les couleurs du mode sombre.
 Les groupes du canvas des parcours proposent sept couleurs (double-clic sur leur titre pour les modifier), conservées dans les sauvegardes et adaptées aux deux apparences. Les étapes sont bleues, les projets fil rouge violets.
+
+Les enregistrements de diaporamas proposent désormais MOV par défaut (PNG RGBA sans perte, fond transparent optionnel) et WebM en alternative. Les incrustations séparent le format MOV/WebM du choix de fond ; MOV conserve le canal alpha, WebM utilise un fond de chrominance. Les MOV sont limités à 256 Mo par prise et peuvent être volumineux : l’enregistrement s’arrête et finalise la prise à cette limite. Le lecteur intégré reste disponible pour WebM ; les MOV se téléchargent pour le montage. Aucun audio n’est enregistré.
+
+La palette du parcours est atténuée : Création bleu grisé, Prêt à tourner olive, groupes très légers en clair et flèches gris bleuté contrastées.

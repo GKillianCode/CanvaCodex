@@ -1739,15 +1739,17 @@
 }
 :root[data-appearance="light"] .canvas-group-palette button[aria-pressed=true] {border-color:var(--group-accent)
 }
-:root[data-appearance="light"] .canvas-workspace-app .canvas-node.note {background:#eaedec;border:2px solid #3c557d
+:root[data-appearance="light"] .canvas-workspace-app .canvas-node.note {background:#e9eceb;border:2px solid #c9d7cf
 }
-:root[data-appearance="light"] .canvas-workspace-app .canvas-node.note .canvas-note-visual,:root[data-appearance="light"] .canvas-workspace-app .canvas-node.note .canvas-node-handle {color:#495870
+:root[data-appearance="light"] .canvas-workspace-app .canvas-node.note .canvas-note-visual,:root[data-appearance="light"] .canvas-workspace-app .canvas-node.note .canvas-node-handle {color:#25382e
 }
-:root[data-appearance="light"] .canvas-node.project {background:#eaedec;border-color:#614c77
+:root[data-appearance="light"] .canvas-node.project {background:#e9eceb;border-color:#c9d7cf
 }
-:root[data-appearance="light"] .canvas-node.project .canvas-note-visual {color:#605170;background:#c197ee12;border-color:#614c7740
+:root[data-appearance="light"] .canvas-node.project .canvas-note-visual {color:#25382e;background:#b3a0c512;border-color:#c9d7cf40
 }
-:root[data-appearance="light"] .canvas-node.project .canvas-node-handle {color:#605170
+:root[data-appearance="light"] .canvas-node.project .canvas-node-handle {color:#25382e
 }
 :root[data-appearance="light"] .canvas-workspace-app .canvas-node.note.selected,:root[data-appearance="light"] .canvas-node.project.selected {border-color:var(--mint)
+}
+:root[data-appearance="light"] .record-format select {background:transparent;color:inherit;border:1px solid var(--border);border-radius:5px
 }
