@@ -70,8 +70,10 @@ export function richMarkdown(root) {
             ")"
         : inside();
     }
-    if (/^h[1-6]$/.test(tag))
-      return "\n\n" + "#".repeat(Number(tag[1])) + " " + inside() + "\n\n";
+    if (/^h[1-6]$/.test(tag)) {
+      const value = inside();
+      return value.trim() ? "\n\n" + "#".repeat(Number(tag[1])) + " " + value + "\n\n" : "\n\n";
+    }
     if (tag === "blockquote")
       return (
         "\n\n" +

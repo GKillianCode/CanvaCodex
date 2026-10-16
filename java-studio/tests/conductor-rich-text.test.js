@@ -103,3 +103,8 @@ test('conductor Markdown renders semantic headings, separators and highlighted c
  const html=renderConductor('## Une règle\n\nUn paragraphe\n\n---\n\n```java\nint n = 151;\n```\n\n```python\nprint(151)\n```\n\n<script>bad()</script>');
  assert.match(html,/<h2>Une règle<\/h2>/);assert.match(html,/<hr>/);assert.match(html,/language-java/);assert.match(html,/language-python/);assert.match(html,/class="token keyword"/);assert.ok(!html.includes('<script>'));
 });
+
+test("empty heading placeholders do not create phantom headings in reading", () => {
+ const source=richMarkdown(node("div",[node("h2",[node("br")]),node("h2",[text("Titre réel")])]));
+ assert.equal(source,"## Titre réel");
+});

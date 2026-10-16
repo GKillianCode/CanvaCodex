@@ -218,3 +218,5 @@ La nouvelle branche de test `codex/test-global-workflow` propose une navigation 
 
 
 Le Conducteur propose une préparation linéaire : texte et instructions (consignes en italique), support associé, puis partie suivante. Les anciens repères sont repris sans perte ; les documents dépassant les limites restent exportables depuis Fichier. L’éditeur conserve l’en-tête et un retour à gauche ; suppression au clic droit/Suppr, annulation disponible. Aperçu et présentation laissent défiler toute la hauteur des pages composées. Prototype sur `codex/test-global-workflow`, PR #125, à valider.
+
+Le Conducteur s’édite désormais comme un document continu directement dans chaque partie, sous son support : `/h1`, `/h2`, listes, citations, code, séparateurs, tableaux et images. Menu filtrable avec flèches/Entrée/Échap, barre de mise en forme et surlignages conservés. Les anciens blocs sont repris dans l’ordre de lecture ; leurs positions libres deviennent un flux de document. Brouillon et parties restent disponibles.

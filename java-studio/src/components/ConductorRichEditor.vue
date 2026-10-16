@@ -1,10 +1,12 @@
 <script setup>
-import { ref, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import { renderConductor } from "../notebookMarkdown.js";
 import { richMarkdown } from "../conductorRichText.js";
 import { highlightColors } from "../videoWorkflow.js";
 import { imageSource, imageImportError } from "../imageImport.js";
+import {findConductorCommands} from "../conductorCommands.js";
 const props = defineProps({
+  documentMode: Boolean,
   modelValue: { type: String, default: "" },
   images: { type: Array, default: () => [] },
   otherContent: { type: String, default: "" },
@@ -35,6 +37,9 @@ const editor = ref(null),
   linkDialog = ref(false),
   linkUrl = ref(""),
   codeLanguage = ref("java");
+const slash = ref(null), slashIndex = ref(0), imageInput = ref(null);
+const slashItems = computed(() => findConductorCommands(slash.value?.query || ""));
+let slashRange = null;
 let last = "",
   range = null,
   upload = null,
@@ -56,6 +61,27 @@ function restore() {
     selection.addRange(range);
   }
 }
+function trackSlash() {
+  if (!props.documentMode) return;
+  const selection = window.getSelection();
+  if (!selection?.isCollapsed || !editor.value?.contains(selection.anchorNode) || selection.anchorNode.nodeType !== 3 || selection.anchorNode.parentElement.closest('pre')) { slash.value=null; return; }
+  const node=selection.anchorNode, offset=selection.anchorOffset;
+  const match=node.textContent.slice(0,offset).match(/(?:^|\s)\/([^/\n]{0,32})$/);
+  if (!match) {slash.value=null;return;}
+  const r=document.createRange();r.setStart(node,offset-match[1].length-1);r.setEnd(node,offset);slashRange=r;
+  const rect=r.getBoundingClientRect();
+  slash.value={query:match[1],x:Math.max(8,Math.min(rect.left,innerWidth-290)),y:Math.max(8,Math.min(rect.bottom+8,innerHeight-350))};slashIndex.value=0;
+}
+function runSlash(id) {
+  if(!slashRange || !editor.value.contains(slashRange.commonAncestorContainer))return;
+  editor.value.focus({preventScroll:true});const selection=window.getSelection();selection.removeAllRanges();selection.addRange(slashRange);
+  document.execCommand('delete');remember();slash.value=null;slashRange=null;
+  if(id==='image'){changed();imageInput.value?.click();return;}
+  if(id==='code')code();else if(id==='hr')separator();else if(id==='table')table();
+  else if(id==='ul'||id==='ol')command(id==='ul'?'insertUnorderedList':'insertOrderedList');
+  else command('formatBlock',id);
+}
+function inputChanged(){changed();trackSlash();}
 function changed() {
   const value = richMarkdown(editor.value);
   if (value.length > props.maxLength) {
@@ -366,8 +392,14 @@ function resize(event) {
 }
 function outside(event) {
   if (!event.target.closest(".rich-highlight-menu")) menu.value = null;
+  if (!event.target.closest(".conductor-slash-menu,.rich-document")) slash.value=null;
 }
 function keys(event) {
+  if(slash.value){
+    if(event.key==='Escape'){event.preventDefault();slash.value=null;return;}
+    if(['ArrowDown','ArrowUp'].includes(event.key)){event.preventDefault();const n=slashItems.value.length;if(n)slashIndex.value=(slashIndex.value+(event.key==='ArrowDown'?1:-1)+n)%n;return;}
+    if(event.key==='Enter'){event.preventDefault();const row=slashItems.value[slashIndex.value];if(row)runSlash(row[0]);return;}
+  }
   const block = window
     .getSelection()
     ?.anchorNode?.parentElement?.closest("pre");
@@ -408,7 +440,7 @@ onBeforeUnmount(() => {
 });
 </script>
 <template>
-  <section class="conductor-rich-editor">
+  <section class="conductor-rich-editor" :class="{'document-editor':documentMode}">
     <Teleport :to="toolsHost || 'body'" :disabled="!toolsHost"
       ><div v-show="!hideTools || toolsHost" class="rich-control-stack">
         <div
@@ -512,6 +544,7 @@ onBeforeUnmount(() => {
           <label v-if="!blockMode" class="btn rich-image-upload" @mousedown.stop
             >{{ busy ? "Préparation…" : "Image"
             }}<input
+              ref="imageInput"
               type="file"
               accept="image/png,image/jpeg,image/webp"
               multiple
@@ -591,7 +624,7 @@ onBeforeUnmount(() => {
       class="rich-document notebook-preview"
       contenteditable="true"
       spellcheck="true"
-      @input="changed"
+      @input="inputChanged"
       @dragstart="dragImage"
       @dragover.prevent
       @drop="dropImage"
@@ -600,6 +633,7 @@ onBeforeUnmount(() => {
       @click="choosePicture"
       @keydown="keys"
     />
+    <Teleport to="body"><div v-if="slash" class="conductor-slash-menu" role="menu" aria-label="Insérer dans le document" :style="{left:slash.x+'px',top:slash.y+'px'}" @mousedown.prevent><small>INSÉRER UN BLOC · ↑ ↓ Entrée</small><button v-for="(row,i) in slashItems" :key="row[0]" role="menuitem" :class="{active:i===slashIndex}" @click="runSlash(row[0])"><strong>{{row[1]}}</strong><span>/{{row[0]}}</span></button><p v-if="!slashItems.length">Aucune commande</p></div></Teleport>
     <Teleport to="body"
       ><div
         v-if="menu"
