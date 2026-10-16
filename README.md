@@ -237,3 +237,5 @@ Le Conducteur conserve le même sommaire dans le brouillon et les parties, sur t
 
 
 La fiche vidéo propose deux cartes illustrées, Préparer et Publier ; les supports restent accessibles juste en dessous. En lecture du Conducteur, le support associé est affiché en haut à côté de la taille du texte. La sélection remontante conserve le curseur et le contenu ; le dépôt des blocs est indiqué par un emplacement entre blocs avec « Déposer ici ».
+
+Les états des vidéos disposent d’une palette dédiée au mode clair : badges et bordures du canvas restent contrastés, sans modifier les couleurs du mode sombre.

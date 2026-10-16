@@ -41,3 +41,21 @@
 :root[data-appearance="light"] .reader-progress .reader-support-top{border-color:#00000016;color:#325c44;background:#f4f7f5}
 :root[data-appearance="light"] .document-block-drop{background:#2d8b5912;border-color:#4a9365;color:#275e3c}
 :root[data-appearance="light"] .document-block-drop span{background:#e5f1e9}
+/* Process colors need their own light palette, including inherited canvas borders. */
+:root[data-appearance="light"] :is(.video-status,.canvas-node[data-status]){--process-color:#4b586a;--process-surface:#edf0f4}
+:root[data-appearance="light"] :is(.video-status,.canvas-node)[data-status=ready]{--process-color:#176342;--process-surface:#e4f3eb}
+:root[data-appearance="light"] :is(.video-status,.canvas-node)[data-status=recording]{--process-color:#71409a;--process-surface:#f0e9f7}
+:root[data-appearance="light"] :is(.video-status,.canvas-node)[data-status=editing]{--process-color:#854b15;--process-surface:#fff0df}
+:root[data-appearance="light"] :is(.video-status,.canvas-node)[data-status=done]{--process-color:#285ba0;--process-surface:#e8effb}
+:root[data-appearance="light"] :is(.video-status,.canvas-node)[data-status=publishing]{--process-color:#735810;--process-surface:#f9f0d9}
+:root[data-appearance="light"] :is(.video-status,.canvas-node)[data-status=published]{--process-color:#146344;--process-surface:#dff2e7}
+:root[data-appearance="light"] .video-status[data-status],
+:root[data-appearance="light"] .canvas-node .canvas-video-status{color:var(--process-color);background:var(--process-surface)}
+/* Keep learning milestones distinct from video cards on a light canvas. */
+:root[data-appearance="light"] .canvas-node.note{background:#edf5ef;border-color:#56816a}
+:root[data-appearance="light"] .canvas-node.note .canvas-note-visual,
+:root[data-appearance="light"] .canvas-node.note .canvas-node-handle{color:#326347}
+:root[data-appearance="light"] .canvas-node.project{background:#fff1e7;border-color:#ad6034}
+:root[data-appearance="light"] .canvas-node.project .canvas-note-visual{color:#91481f;background:#ad603410;border-color:#ad603440}
+:root[data-appearance="light"] .canvas-node.project .canvas-node-handle{color:#91481f}
+:root[data-appearance="light"] :is(.canvas-node.note,.canvas-node.project).selected{border-color:var(--mint);outline:2px solid var(--mint);outline-offset:3px}
