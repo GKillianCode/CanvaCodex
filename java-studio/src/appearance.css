@@ -38,3 +38,6 @@
 :root[data-appearance="light"] .token.punctuation{color:#42535e}
 :root[data-appearance="light"] .token.comment{color:#68766f}
 @media(max-width:760px){:root[data-appearance="light"] .document-editor .document-block-shell{background:linear-gradient(to right,var(--conductor-margin) 0,var(--conductor-margin) 38px,var(--conductor-paper) 38px,var(--conductor-paper) 100%)}}
+:root[data-appearance="light"] .reader-progress .reader-support-top{border-color:#00000016;color:#325c44;background:#f4f7f5}
+:root[data-appearance="light"] .document-block-drop{background:#2d8b5912;border-color:#4a9365;color:#275e3c}
+:root[data-appearance="light"] .document-block-drop span{background:#e5f1e9}

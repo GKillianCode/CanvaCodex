@@ -33,3 +33,5 @@ Le prototype réorganise le parcours et les commandes transversales ; il ne ré�
 L’apparence claire/sombre est une préférence globale de l’interface, distincte du thème de chaque création. Le bouton soleil/lune est commun aux ateliers ; les documents et exports restent inchangés. Le Conducteur propose des insertions entre blocs, une sortie du code par flèches aux limites et Ctrl/Cmd Entrée avant/après.
 
 Le sommaire du Conducteur est commun au brouillon et aux parties, avec actions et hauteur complète. L’annulation temporaire après suppression expire au bout de15secondes. Les contrôles de langage/copie du code appartiennent uniquement à l’édition, avec un cadre de lecture sans ces commandes.
+
+Fiche vidéo : accès Préparer/Publier par deux cartes illustrées, sans carte de défilement vers les supports. Lecture du Conducteur : support dans l’en-tête. Édition : sélection remontante protégée contre une insertion involontaire, et dépôt indiqué entre blocs complets.

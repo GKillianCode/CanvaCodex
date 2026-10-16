@@ -466,6 +466,15 @@ onBeforeUnmount(() => {
                 aria-label="Taille du texte en lecture"
               />px</label
             >
+            <div class="reader-support reader-support-top">
+              <Monitor :size="17" /><span
+                >{{ supportKinds.find(([k]) => k === current.support)?.[1]
+                }}<strong v-if="support"> · {{ support.name }}</strong
+                ><small v-else-if="current.creationId">
+                  · Support retiré de la vidéo</small
+                ></span
+              >
+            </div>
           </div>
           <h1>{{ current.title || "Sans titre" }}</h1>
           <div class="reader-content">
@@ -503,15 +512,7 @@ onBeforeUnmount(() => {
               v-html="renderConductor(current.cues, current.images)"
             />
           </aside>
-          <div class="reader-support">
-            <Monitor :size="17" /><span
-              >{{ supportKinds.find(([k]) => k === current.support)?.[1]
-              }}<strong v-if="support"> · {{ support.name }}</strong
-              ><small v-else-if="current.creationId">
-                · Support retiré de la vidéo</small
-              ></span
-            >
-          </div>
+
           <footer>
             <button class="btn" :disabled="index === 0" @click="step(-1)">
               <ChevronLeft :size="16" />Précédente</button

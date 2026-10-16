@@ -1705,3 +1705,19 @@
 :root[data-appearance="light"] .document-editor .document-block-shell {background:linear-gradient(to right,var(--conductor-margin) 0,var(--conductor-margin) 38px,var(--conductor-paper) 38px,var(--conductor-paper) 100%)
 }
 }
+:root[data-appearance="light"] .reader-progress .reader-support-top {border:1px solid #c9d7cf18;border-radius:6px;color:#25382e
+}
+:root[data-appearance="light"] .video-production-cards>button {border:1px solid #c9d7cf;border-radius:12px;background:#eef1f0;color:#25382e
+}
+:root[data-appearance="light"] .production-card-art {background:#eef1f0
+}
+:root[data-appearance="light"] .video-production-cards>button:hover {border-color:#c9d7cf
+}
+:root[data-appearance="light"] .production-card-description p {color:#4e6457
+}
+:root[data-appearance="light"] .production-card-description>span {color:var(--mint)
+}
+:root[data-appearance="light"] .document-block-drop {background:#a5f3cf14;border:1px dashed #c9d7cf;border-radius:5px;color:#51675c
+}
+:root[data-appearance="light"] .document-block-drop span {background:#edf0ef;border-radius:3px
+}

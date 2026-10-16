@@ -234,3 +234,6 @@ Dans le Conducteur, clique entre les blocs ou dans la zone vide pour ajouter du 
 
 
 Le Conducteur conserve le même sommaire dans le brouillon et les parties, sur toute la hauteur disponible. Les blocs de code proposent une copie et un sélecteur de langage directement en édition ; ces contrôles restent absents de l’aperçu et de la présentation. Les repères du document sont très légers et le code garde un cadre discret en lecture. Les messages de suppression avec annulation disparaissent après15secondes.
+
+
+La fiche vidéo propose deux cartes illustrées, Préparer et Publier ; les supports restent accessibles juste en dessous. En lecture du Conducteur, le support associé est affiché en haut à côté de la taille du texte. La sélection remontante conserve le curseur et le contenu ; le dépôt des blocs est indiqué par un emplacement entre blocs avec « Déposer ici ».

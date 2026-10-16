@@ -7,6 +7,7 @@ import {
   onBeforeUnmount,
   nextTick,
 } from "vue";
+import { documentDropSlot } from "../conductorDrop.js";
 import { codeExitDirection } from "../conductorNavigation.js";
 import { useExpiringUndo } from "../useExpiringUndo.js";
 import {
@@ -237,11 +238,13 @@ async function undoBlock() {
 }
 function startBlockDrag(event, node) {
   draggedBlock = node;
+  node.classList.add("document-drag-source");
   menu.value = null;
   event.dataTransfer.effectAllowed = "move";
   event.dataTransfer.setData("application/x-frame-document-block", "move");
 }
 function endBlockDrag() {
+  draggedBlock?.classList.remove("document-drag-source");
   draggedBlock = null;
   dropMarker.value = null;
 }
@@ -249,19 +252,25 @@ function dragOverBlock(event) {
   if (!draggedBlock) return;
   event.preventDefault();
   event.dataTransfer.dropEffect = "move";
-  const node = topBlock(event.target) || editor.value.lastElementChild;
-  if (!node || node === draggedBlock) {
+  const nodes = Array.from(editor.value.children).filter(
+    (node) => node !== draggedBlock,
+  );
+  const slot = documentDropSlot(
+    nodes.map((node) => node.getBoundingClientRect()),
+    event.clientY,
+  );
+  if (!slot) {
     dropMarker.value = null;
     return;
   }
-  const rect = node.getBoundingClientRect(),
-    after = event.clientY > rect.top + rect.height / 2;
+  const anchor = nodes[slot.index] || null;
+  if (anchor === draggedBlock.nextElementSibling) {
+    dropMarker.value = null;
+    return;
+  }
   dropMarker.value = {
-    node,
-    after,
-    top:
-      (after ? rect.bottom : rect.top) -
-      documentShell.value.getBoundingClientRect().top,
+    anchor,
+    top: slot.top - documentShell.value.getBoundingClientRect().top,
   };
 }
 function dropBlock(event) {
@@ -271,8 +280,7 @@ function dropBlock(event) {
   if (dropMarker.value) {
     const before = richMarkdown(editor.value),
       images = [...props.images];
-    const { node, after } = dropMarker.value;
-    node[after ? "after" : "before"](draggedBlock);
+    editor.value.insertBefore(draggedBlock, dropMarker.value.anchor);
     changed();
     const value = richMarkdown(editor.value);
     if (value !== before) blockUndo.value = { before, after: value, images };
@@ -281,6 +289,7 @@ function dropBlock(event) {
   scheduleBlocks();
   return true;
 }
+
 function contextCommand(id) {
   if (range?.collapsed && contextBlock) selectBlock(contextBlock);
   if (id === "image") imageInput.value?.click();
@@ -361,8 +370,31 @@ function insertParagraph(index) {
   changed();
   scheduleBlocks();
 }
+let pointerOrigin = null,
+  selectionDragged = false;
+function beginSelectionPointer(event) {
+  pointerOrigin = { x: event.clientX, y: event.clientY };
+  selectionDragged = false;
+}
+function finishSelectionPointer(event) {
+  if (pointerOrigin)
+    selectionDragged =
+      Math.hypot(
+        event.clientX - pointerOrigin.x,
+        event.clientY - pointerOrigin.y,
+      ) > 4;
+}
+function insertFromPointer(index, event) {
+  if (!event.detail || !selectionDragged) insertParagraph(index);
+}
 function blankDocumentClick(event) {
-  if (!props.documentMode || event.target !== editor.value) return;
+  if (
+    !props.documentMode ||
+    event.target !== editor.value ||
+    selectionDragged ||
+    !window.getSelection()?.isCollapsed
+  )
+    return;
   const rows = Array.from(editor.value.children);
   let index = rows.findIndex(
     (node) => node.getBoundingClientRect().top > event.clientY,
@@ -1071,6 +1103,10 @@ onBeforeUnmount(() => {
       ref="documentShell"
       class="document-block-shell"
       @dragend="endBlockDrag"
+      @dragover.prevent="dragOverBlock"
+      @drop="dropImage"
+      @pointerdown.capture="beginSelectionPointer"
+      @pointerup.capture="finishSelectionPointer"
     >
       <div
         ref="editor"
@@ -1082,8 +1118,6 @@ onBeforeUnmount(() => {
         spellcheck="true"
         @input="inputChanged"
         @dragstart="dragImage"
-        @dragover.prevent="dragOverBlock"
-        @drop="dropImage"
         @paste="paste"
         @contextmenu="context"
         @pointermove="hoveredBlock = topBlock($event.target)"
@@ -1149,7 +1183,7 @@ onBeforeUnmount(() => {
           "
           title="Ajouter du texte ici"
           @mousedown.prevent
-          @click="insertParagraph(slot.index)"
+          @click="insertFromPointer(slot.index, $event)"
         >
           <Plus :size="13" aria-hidden="true" /></button
       ></template>
@@ -1176,7 +1210,10 @@ onBeforeUnmount(() => {
           v-if="dropMarker"
           class="document-block-drop"
           :style="{ top: dropMarker.top + 'px' }"
-      /></template>
+        >
+          <span>Déposer ici</span>
+        </div></template
+      >
     </div>
     <input
       v-if="documentMode"

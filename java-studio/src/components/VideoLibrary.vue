@@ -72,7 +72,7 @@ const projects = ref([]),
   copyCurrent = ref(false),
   draft = ref(null),
   icons = { slides: PanelsTopLeft, banners: Clapperboard, thumbnails: Image };
-const deletedCreation = ref(null),assetArea=ref(null),creationFilter=ref('all');
+const deletedCreation = ref(null),creationFilter=ref('all');
 useExpiringUndo(deletedCreation);
 watch(() => props.videoId,()=>{deletedCreation.value=null;});
 const starterApps = ref(["slides", "banners", "thumbnails"]);
@@ -819,8 +819,8 @@ async function importVideo(event) {
           </button>
         </form>
       </details>
-      <VideoWorkflowOverview :project="selected" @workshop="emit('open-workshop',selected.id,$event)" @assets="assetArea?.scrollIntoView({behavior:'smooth',block:'start'})"/>
-      <section ref="assetArea" class="video-assets-heading"><div><span class="eyebrow">SUPPORTS DE LA VIDÉO</span><h2>Toutes tes créations</h2></div><div class="workspace-switch" aria-label="Filtrer les supports"><button v-for="[id,label] in [['all','Tous'],['slides','Diaporamas'],['banners','Incrustations'],['thumbnails','Miniatures']]" :key="id" :class="{active:creationFilter===id}" @click="creationFilter=id">{{label}}</button></div></section>
+      <VideoWorkflowOverview @workshop="emit('open-workshop',selected.id,$event)"/>
+      <section class="video-assets-heading"><div><span class="eyebrow">SUPPORTS DE LA VIDÉO</span><h2>Toutes tes créations</h2></div><div class="workspace-switch" aria-label="Filtrer les supports"><button v-for="[id,label] in [['all','Tous'],['slides','Diaporamas'],['banners','Incrustations'],['thumbnails','Miniatures']]" :key="id" :class="{active:creationFilter===id}" @click="creationFilter=id">{{label}}</button></div></section>
       <div class="video-assets-grid">
         <section
           v-for="a in applications.filter(a=>creationFilter==='all'||a.id===creationFilter)"
