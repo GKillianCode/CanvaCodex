@@ -226,3 +226,8 @@ Le document du Conducteur n’affiche plus de barre d’outils permanente. Les c
 
 
 La préparation du Conducteur affiche les limites latérales du document, une marge distincte pour les poignées et des repères discrets entre les blocs. Le code conserve un cadre complet qui grandit avec son contenu ; toutes les lignes, y compris les lignes vides, sont sauvegardées. Ces repères d’édition ne s’ajoutent pas à la présentation.
+
+
+Un bouton soleil/lune dans l’en-tête change l’apparence de toute l’application. Le choix clair/sombre est mémorisé localement, sans modifier les thèmes des créations ni leurs exports. Les styles clairs sont régénérés par `npm run theme:build` (également au lancement et au build).
+
+Dans le Conducteur, clique entre les blocs ou dans la zone vide pour ajouter du texte. Aux limites du code, les flèches permettent de sortir ; `Ctrl+Entrée` ajoute un paragraphe après, `Ctrl+Maj+Entrée` avant (Cmd sur Mac). Les repères du document sont plus discrets.

@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 15 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 16 octobre 2026 (Europe/Paris).
 
 Ce fichier est l’unique mémoire et point d’entrée des consignes du projet. Le lire avant de travailler, le tenir à jour et respecter le workflow GitHub ci-dessous, en distinguant travail local et publication confirmée.
 
@@ -996,3 +996,16 @@ Vérification navigateur sur vidéo synthétique : barre absente ; paragraphe d�
 Complément du retour utilisateur à chaud : limites latérales du document visibles, couloir des poignées teinté et séparé par un filet, icône GripVertical Lucide à six points dans une petite poignée arrondie. Séparations horizontales entre blocs avec une amorce accentuée ; styles limités à la préparation (hors aperçu et exports). Les paragraphes d’images flottantes utilisent flow-root pour conserver une hauteur et une poignée cohérentes. Blocs PRE avec fond distinct, bordure complète et liseré gauche, hauteur naturelle sans maximum.
 
 Le test de lignes multiples a révélé deux pertes préexistantes à la sérialisation : lignes saisies en dehors du CODE initial non lues, et réduction globale des retours à la ligne. richMarkdown lit désormais tout le PRE et protège le texte des blocs de code pendant la normalisation des espacements du document. Deux tests de non-régression ajoutés. UI synthétique : même contenu de code avec six retours successifs avant/après passage aperçu→préparer ; cadre adapté à la hauteur. Capture /tmp/frame-conducteur-reperes-code.png hors dépôt. Aucun message console erreur, onglet final fermé explicitement.
+
+
+### Navigation autour des blocs, repères atténués et apparence claire — 16 octobre
+
+Toujours codex/test-global-workflow, issue124 / PR125, sans autorisation de fusion. Demande : ne plus être coincé dans le code, pouvoir écrire avant/après les blocs au clic et aux flèches ; atténuer les repères ; ajouter un mode clair à toute l’application.
+
+Conducteur : points d’insertion discrets entre tous les blocs et aux extrémités, clic dans la zone vide pour créer un paragraphe, réutilisation d’un paragraphe vide adjacent. Les flèches Haut/Gauche en début de code et Bas/Droite à la fin permettent de sortir ; sélection et raccourcis de navigation restent natifs. Ctrl/Cmd Entrée crée un paragraphe après, avec Maj avant, sans concaténer le texte à un titre adjacent. Le code normal conserve Entrée pour les retours et Tab pour l’indentation. Repères latéraux, séparations et marge moins contrastés. Pas de changement du format Markdown.
+
+Apparence : bouton soleil/lune dans WorkspaceHeader, partagé avec le slot des studios ; préférence locale indépendante frame-ui-appearance, lecture protégée en cas de stockage inaccessible, synchronisation entre onglets par événement storage, initialisation avant montage et choix sombre par défaut. Les couleurs du moteur Canvas, des créations, de leurs palettes et des exports ne sont pas modifiées. Mode clair CSS réel, sans filtre/inversion des images. Palette des surfaces/textes/bordures adaptée, contrôles natifs color-scheme, menus, propriétés et documents. Accent vert suffisamment foncé et actions primaires blanches sur vert. En-têtes repliables sans superposition ; commandes communes regroupées, lanceur compact entre761 et1450px.
+
+Styles clairs générés par scripts/build-light-theme.mjs depuis style.css et appearancePalette.js, puis complétés dans appearance.css ; fichier light.generated.css versionné. Le générateur garde aussi les valeurs de reset et les règles média pour respecter la cascade. Ne pas éditer le fichier généré ; npm run theme:build ou prebuild/predev le régénère. PostCSS8.5.28, déjà présent transitivement via Vite, est déclaré explicitement comme dépendance de développement. Aucune dépendance d’exécution ni service ajouté.
+
+Vérifications : 268 tests passent, build final et diff --check réussis (avertissement chunk préexistant). Tests ajoutés navigation aux limites/modificateurs, choix d’apparence/stockage indisponible, conversion des rôles de couleurs et préservation des fonds de prévisualisation. UI sur vidéo synthétique : insertion avant code, CtrlEntrée après en paragraphe indépendant ; partie ne contenant que PRE, sortie par Haut puis Droite et saisie Avant/Après ; clic dans le vide et ajout d’un quatrième bloc, conservation après aperçu. Mode clair conservé après rechargement ; contrôle visuel accueil, Conducteur, Publication, Diaporamas, Incrustations, Miniatures et Parcours vide. Les visuels des créations conservent leurs couleurs. Aucune erreur console constatée. Capture /tmp/frame-mode-clair-conducteur.png hors dépôt ; préférence de test remise en sombre et onglet de test explicitement fermé. Pas de nouvel export vidéo long.

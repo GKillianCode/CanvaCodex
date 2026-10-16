@@ -1,5 +1,7 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
+import { Sun, Moon } from "lucide-vue-next";
+import { appearance, setAppearance } from "../appearance.js";
 import WorkspaceLauncher from "./WorkspaceLauncher.vue";
 const props = defineProps({
   title: String,
@@ -83,6 +85,24 @@ onBeforeUnmount(() => {
       </div>
       <div class="app-header-right"><slot name="actions" /></div>
     </slot>
-    <WorkspaceLauncher />
+    <div class="workspace-utilities">
+      <button
+        class="icon-btn appearance-toggle"
+        :aria-label="
+          appearance === 'dark'
+            ? 'Activer le mode clair'
+            : 'Activer le mode sombre'
+        "
+        :title="appearance === 'dark' ? 'Mode clair' : 'Mode sombre'"
+        :aria-pressed="appearance === 'light'"
+        @click="setAppearance(appearance === 'dark' ? 'light' : 'dark')"
+      >
+        <Sun v-if="appearance === 'dark'" :size="18" /><Moon
+          v-else
+          :size="18"
+        />
+      </button>
+      <WorkspaceLauncher />
+    </div>
   </header>
 </template>

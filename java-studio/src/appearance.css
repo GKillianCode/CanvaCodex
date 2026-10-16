@@ -1,0 +1,21 @@
+:root{color-scheme:dark}
+:root[data-appearance="light"]{color-scheme:light;--mint:#24794f;--muted:#607165;--border:#d3dfd7;background:#f6f8f6;color:#25382e}
+:root[data-appearance="light"] body{background:#f6f8f6;color:#25382e}
+.appearance-toggle{flex-shrink:0;border:1px solid var(--border);width:34px;height:34px;margin-left:4px}
+:root[data-appearance="light"] .btn.primary,:root[data-appearance="light"] .brand-icon{color:#fff}
+:root[data-appearance="light"] .document-editor .document-block-shell{background:linear-gradient(to right,#f1f5f2 0,#f1f5f2 44px,#fff 44px,#fff 100%);border-color:#d9e3dc;box-shadow:none}
+:root[data-appearance="light"] .document-editor .document-block-shell:before{background:#d8e3db}
+:root[data-appearance="light"] .document-editor .rich-document{color:#25382e}
+:root[data-appearance="light"] .document-editor .rich-document>*:not(hr){border-bottom-color:#dbe5de}
+:root[data-appearance="light"] .document-editor .rich-document>*:not(hr):after{background:#c2d6c8}
+:root[data-appearance="light"] .document-editor .rich-document>pre{background:#f5f8f6;border-color:#d1ddd4;border-left-color:#8cb49a;color:#263c30}
+:root[data-appearance="light"] .document-block-grip{background:#e5eee8;border-color:#ceddd3;color:#52765f;box-shadow:none}
+:root[data-appearance="light"] .document-block-grip:hover{background:#d7e8dd;color:#235d39}
+:root[data-appearance="light"] .document-block-drop{background:#36835a}
+:root[data-appearance="light"] .workspace-launcher-backdrop{background:#12291c66}
+:root[data-appearance="light"] input::placeholder,:root[data-appearance="light"] textarea::placeholder{color:#6a7d70}
+:root[data-appearance="light"] .document-insert-line{color:#458260}
+@media(max-width:600px){:root[data-appearance="light"] .document-editor .document-block-shell{background:linear-gradient(to right,#f1f5f2 0,#f1f5f2 38px,#fff 38px,#fff 100%)}}
+:root[data-appearance="light"] .btn.primary{background:#24794f!important;border-color:#24794f!important;color:#fff!important}
+:root[data-appearance="light"] .brand-icon{background:#24794f;color:#fff}
+:root[data-appearance="light"] .btn.danger{background:#ad3e44;border-color:#ad3e44;color:#fff}

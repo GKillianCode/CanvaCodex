@@ -7,7 +7,8 @@ import {
   onBeforeUnmount,
   nextTick,
 } from "vue";
-import { GripVertical } from "lucide-vue-next";
+import { codeExitDirection } from "../conductorNavigation.js";
+import { GripVertical, Plus } from "lucide-vue-next";
 import { renderConductor } from "../notebookMarkdown.js";
 import { richMarkdown } from "../conductorRichText.js";
 import { highlightColors } from "../videoWorkflow.js";
@@ -77,6 +78,7 @@ function measureBlocks() {
     node,
     index,
     top: node.getBoundingClientRect().top - rect.top,
+    bottom: node.getBoundingClientRect().bottom - rect.top,
   }));
 }
 function scheduleBlocks() {
@@ -288,6 +290,98 @@ function restore() {
     selection.removeAllRanges();
     selection.addRange(range);
   }
+}
+const insertionRows = computed(() => {
+  const rows = blockRows.value;
+  if (!rows.length) return [{ index: 0, top: 18 }];
+  return [
+    { index: 0, top: Math.max(4, rows[0].top - 14) },
+    ...rows.map((row, i) => ({
+      index: i + 1,
+      top: rows[i + 1] ? (row.bottom + rows[i + 1].top) / 2 : row.bottom + 14,
+    })),
+  ];
+});
+function focusParagraph(node, atEnd = false) {
+  editor.value.focus({ preventScroll: true });
+  const caret = document.createRange();
+  caret.selectNodeContents(node);
+  caret.collapse(!atEnd);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(caret);
+  remember();
+  node.scrollIntoView({ block: "nearest" });
+}
+function insertParagraph(index) {
+  const rows = Array.from(editor.value.children),
+    previous = rows[index - 1],
+    next = rows[index];
+  const blank = (node) =>
+    node?.tagName === "P" &&
+    !node.textContent.trim() &&
+    !node.querySelector("img");
+  let target = blank(next) ? next : blank(previous) ? previous : null;
+  if (!target) {
+    target = document.createElement("p");
+    target.append(document.createElement("br"));
+    editor.value.insertBefore(target, next || null);
+  }
+  menu.value = null;
+  slash.value = null;
+  focusParagraph(target);
+  changed();
+  scheduleBlocks();
+}
+function blankDocumentClick(event) {
+  if (!props.documentMode || event.target !== editor.value) return;
+  const rows = Array.from(editor.value.children);
+  let index = rows.findIndex(
+    (node) => node.getBoundingClientRect().top > event.clientY,
+  );
+  if (index < 0) index = rows.length;
+  insertParagraph(index);
+}
+function exitCode(event, block) {
+  if (!props.documentMode || !block) return false;
+  const selection = window.getSelection();
+  if (!selection?.rangeCount) return false;
+  const selected = selection.getRangeAt(0),
+    before = document.createRange(),
+    after = document.createRange();
+  before.selectNodeContents(block);
+  before.setEnd(selected.startContainer, selected.startOffset);
+  after.selectNodeContents(block);
+  after.setStart(selected.endContainer, selected.endOffset);
+  const direction = codeExitDirection(event.key, {
+    collapsed: selection.isCollapsed,
+    atStart: before.toString().length === 0,
+    atEnd: after.toString().replace(/\n$/, "").length === 0,
+    ctrl: event.ctrlKey,
+    meta: event.metaKey,
+    alt: event.altKey,
+    shift: event.shiftKey,
+  });
+  if (!direction) return false;
+  event.preventDefault();
+  if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+    const index = Array.from(editor.value.children).indexOf(block);
+    insertParagraph(index + (direction > 0 ? 1 : 0));
+    return true;
+  }
+  const adjacent =
+    direction < 0 ? block.previousElementSibling : block.nextElementSibling;
+  if (
+    adjacent &&
+    /^(P|H[1-6]|BLOCKQUOTE)$/.test(adjacent.tagName) &&
+    !adjacent.querySelector("img")
+  )
+    focusParagraph(adjacent, direction < 0);
+  else {
+    const index = Array.from(editor.value.children).indexOf(block);
+    insertParagraph(index + (direction > 0 ? 1 : 0));
+  }
+  return true;
 }
 function trackSlash() {
   if (!props.documentMode) return;
@@ -717,9 +811,11 @@ function keys(event) {
       return;
     }
   }
-  const block = window
-    .getSelection()
-    ?.anchorNode?.parentElement?.closest("pre");
+  const anchor = window.getSelection()?.anchorNode;
+  const block = (
+    anchor?.nodeType === 3 ? anchor.parentElement : anchor
+  )?.closest?.("pre");
+  if (exitCode(event, block)) return;
   if (block && event.key === "Enter") {
     event.preventDefault();
     document.execCommand("insertText", false, "\n");
@@ -977,9 +1073,27 @@ onBeforeUnmount(() => {
         @click="
           choosePicture($event);
           trackSlash();
+          blankDocumentClick($event);
         "
         @keydown="keys"
       />
+      <template v-if="documentMode"
+        ><button
+          v-for="slot in insertionRows"
+          :key="'insert-' + slot.index"
+          class="document-insert-line"
+          :style="{ top: slot.top + 'px' }"
+          :aria-label="
+            slot.index === blockRows.length
+              ? 'Ajouter du texte après le dernier bloc'
+              : 'Ajouter du texte avant le bloc ' + (slot.index + 1)
+          "
+          title="Ajouter du texte ici"
+          @mousedown.prevent
+          @click="insertParagraph(slot.index)"
+        >
+          <Plus :size="13" aria-hidden="true" /></button
+      ></template>
       <template v-if="documentMode"
         ><button
           v-for="row in blockRows"
