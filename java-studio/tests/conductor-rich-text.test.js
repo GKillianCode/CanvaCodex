@@ -108,3 +108,25 @@ test("empty heading placeholders do not create phantom headings in reading", () 
  const source=richMarkdown(node("div",[node("h2",[node("br")]),node("h2",[text("Titre réel")])]));
  assert.equal(source,"## Titre réel");
 });
+
+test("code serialization includes lines entered next to the original code node", () => {
+ const code=node("code",[text("int valeur = 151;")]);
+ code.className="language-java";
+ const pre=node("pre",[code]);
+ pre.querySelector=()=>code;
+ code.innerText="int valeur = 151;";
+ pre.innerText="int valeur = 151;\n\n// Suite saisie dans le même bloc\nSystem.out.println(valeur);\n";
+ const source=richMarkdown(node("div",[pre]));
+ assert.equal(source,"```java\nint valeur = 151;\n\n// Suite saisie dans le même bloc\nSystem.out.println(valeur);\n```");
+ assert.match(renderConductor(source),/Suite saisie/);
+});
+
+test("multiple blank lines inside code survive document spacing normalization", () => {
+ const code=node("code",[]);code.className="language-java";
+ const pre=node("pre",[code]);pre.querySelector=()=>code;
+ pre.innerText="int a = 1;\n\n\n\nSystem.out.println(a);\n";
+ const source=richMarkdown(node("div",[node("p",[text("Avant")]),pre,node("p",[text("Après")])]));
+ assert.ok(source.includes("int a = 1;\n\n\n\nSystem.out.println(a);"));
+ assert.equal((source.match(/```java/g)||[]).length,1);
+ assert.ok(source.endsWith("Après"));
+});

@@ -16,7 +16,7 @@ Un accès Ateliers / Ctrl K est partagé par tous les en-têtes : accueil, fiche
 | Fiche vidéo | Trois étapes explicites, accès aux ateliers liés, supports regroupés et filtre par type, création/import/suppression/restauration conservés. |
 | Playlists | Gestion existante conservée dans la bibliothèque : nom, ordre, pagination, vignettes et vidéos. Accès par la bibliothèque commune, aucune seconde taxonomie introduite. |
 | Parcours | Application autonome toujours disponible dans le même lanceur ; canvas, groupes, connexions et projets fil rouge conservés. |
-| Conducteur | Document continu intégré sous le support : commandes slash, mise en forme et surlignages. Brouillon et navigation par parties conservés. Anciennes pages reprises dans leur ordre de lecture. |
+| Conducteur | Document continu intégré sous le support, sans barre permanente : commandes slash, clic droit avec sous-menus, poignées de déplacement dans la marge, duplication/suppression et annulation. Brouillon et navigation par parties conservés. Anciennes pages reprises dans leur ordre de lecture. |
 | Publication | Formulaire continu, miniature liée/carrousel, copie des textes, modèles et chapitres conservés. Accès direct aux créations de la vidéo. |
 | Diaporamas | Outils et rendu conservés ; navigation commune, sauvegarde avant sortie, blocage pendant la capture/export. |
 | Incrustations | Même accès commun ; paramètres et export animé conservés, sortie bloquée pendant un export. |

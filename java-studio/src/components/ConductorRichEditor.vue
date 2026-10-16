@@ -1,10 +1,18 @@
 <script setup>
-import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+} from "vue";
+import { GripVertical } from "lucide-vue-next";
 import { renderConductor } from "../notebookMarkdown.js";
 import { richMarkdown } from "../conductorRichText.js";
 import { highlightColors } from "../videoWorkflow.js";
 import { imageSource, imageImportError } from "../imageImport.js";
-import {findConductorCommands} from "../conductorCommands.js";
+import { findConductorCommands } from "../conductorCommands.js";
 const props = defineProps({
   documentMode: Boolean,
   modelValue: { type: String, default: "" },
@@ -37,8 +45,228 @@ const editor = ref(null),
   linkDialog = ref(false),
   linkUrl = ref(""),
   codeLanguage = ref("java");
-const slash = ref(null), slashIndex = ref(0), imageInput = ref(null);
-const slashItems = computed(() => findConductorCommands(slash.value?.query || ""));
+const slash = ref(null),
+  slashIndex = ref(0),
+  imageInput = ref(null);
+const slashItems = computed(() =>
+  findConductorCommands(slash.value?.query || ""),
+);
+const windowWidth = ref(window.innerWidth);
+const documentMenu = ref(null);
+const documentShell = ref(null),
+  blockRows = ref([]),
+  hoveredBlock = ref(null),
+  dropMarker = ref(null),
+  submenu = ref(""),
+  blockUndo = ref(null);
+let contextBlock = null,
+  draggedBlock = null,
+  blockObserver,
+  blockResizeObserver,
+  blockFrame;
+function topBlock(node) {
+  let element = node?.nodeType === 3 ? node.parentElement : node;
+  while (element && element.parentElement !== editor.value)
+    element = element.parentElement;
+  return element?.parentElement === editor.value ? element : null;
+}
+function measureBlocks() {
+  if (!props.documentMode || !editor.value || !documentShell.value) return;
+  const rect = documentShell.value.getBoundingClientRect();
+  blockRows.value = Array.from(editor.value.children).map((node, index) => ({
+    node,
+    index,
+    top: node.getBoundingClientRect().top - rect.top,
+  }));
+}
+function scheduleBlocks() {
+  windowWidth.value = window.innerWidth;
+  cancelAnimationFrame(blockFrame);
+  blockFrame = requestAnimationFrame(measureBlocks);
+}
+function selectBlock(node) {
+  if (!node || !editor.value.contains(node)) return;
+  const r = document.createRange();
+  r.selectNodeContents(node);
+  editor.value.focus({ preventScroll: true });
+  const sel = window.getSelection();
+  sel.removeAllRanges();
+  sel.addRange(r);
+  remember();
+}
+function focusDocumentMenu() {
+  nextTick(() =>
+    documentMenu.value?.querySelector("button")?.focus({ preventScroll: true }),
+  );
+}
+function menuKeys(event) {
+  if (event.key === "Escape") {
+    event.preventDefault();
+    event.stopPropagation();
+    menu.value = null;
+    restore();
+    return;
+  }
+  if (event.target.matches("input,select,textarea")) return;
+  if (
+    event.key === "ArrowRight" &&
+    event.target.getAttribute("aria-haspopup") === "menu"
+  ) {
+    event.preventDefault();
+    event.target.click();
+    nextTick(() =>
+      documentMenu.value?.querySelector(".document-submenu button")?.focus(),
+    );
+    return;
+  }
+  if (event.key === "ArrowLeft" && event.target.closest(".document-submenu")) {
+    event.preventDefault();
+    const parent = event.target
+      .closest(".document-submenu-row")
+      ?.querySelector("button");
+    submenu.value = "";
+    parent?.focus();
+    return;
+  }
+  if (["ArrowDown", "ArrowUp"].includes(event.key)) {
+    event.preventDefault();
+    const scope =
+      event.target.closest(".document-submenu") || documentMenu.value;
+    const buttons = Array.from(scope.querySelectorAll("button")).filter(
+      (b) =>
+        !b.disabled &&
+        b.getBoundingClientRect().height > 0 &&
+        (scope !== documentMenu.value || !b.closest(".document-submenu")),
+    );
+    const index = buttons.indexOf(event.target),
+      delta = event.key === "ArrowDown" ? 1 : -1;
+    buttons[(index + delta + buttons.length) % buttons.length]?.focus();
+  }
+}
+function blockMenu(event, node) {
+  selectBlock(node);
+  contextBlock = node;
+  contextPicture();
+  submenu.value = "";
+  slash.value = null;
+  menu.value = {
+    x: Math.max(8, Math.min(event.clientX, innerWidth - 265)),
+    y: Math.max(8, Math.min(event.clientY, innerHeight - 390)),
+  };
+  focusDocumentMenu();
+}
+function contextPicture() {
+  const img = contextBlock?.matches("img")
+    ? contextBlock
+    : contextBlock?.querySelector("img[data-frame-image]");
+  picture.value =
+    props.images.find((image) => image.id === img?.dataset.frameImage) || null;
+}
+function changeCodeLanguage(lang) {
+  codeLanguage.value = lang;
+  if (contextBlock?.tagName === "PRE") {
+    const value = contextBlock.textContent || "";
+    const fence = "`".repeat(
+      Math.max(3, ...Array.from(value.matchAll(/`+/g), (m) => m[0].length + 1)),
+    );
+    const holder = document.createElement("div");
+    holder.innerHTML = renderConductor(
+      fence + lang + "\n" + value + "\n" + fence,
+      props.images,
+    );
+    contextBlock.replaceWith(...holder.childNodes);
+    changed();
+    menu.value = null;
+  } else contextCommand("code");
+}
+function blockAction(action) {
+  const node = contextBlock;
+  if (!node || !editor.value.contains(node)) return;
+  const before = richMarkdown(editor.value),
+    images = [...props.images];
+  if (action === "duplicate") node.after(node.cloneNode(true));
+  else node.remove();
+  if (!editor.value.children.length) editor.value.innerHTML = "<p><br></p>";
+  changed();
+  const after = richMarkdown(editor.value);
+  if (before !== after) blockUndo.value = { before, after, images };
+  menu.value = null;
+  contextBlock = null;
+  scheduleBlocks();
+}
+async function undoBlock() {
+  const state = blockUndo.value;
+  if (!state) return;
+  emit("update:images", state.images);
+  emit("update:modelValue", state.before);
+  last = state.before;
+  await nextTick();
+  draw();
+  blockUndo.value = null;
+  menu.value = null;
+}
+function startBlockDrag(event, node) {
+  draggedBlock = node;
+  menu.value = null;
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("application/x-frame-document-block", "move");
+}
+function endBlockDrag() {
+  draggedBlock = null;
+  dropMarker.value = null;
+}
+function dragOverBlock(event) {
+  if (!draggedBlock) return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+  const node = topBlock(event.target) || editor.value.lastElementChild;
+  if (!node || node === draggedBlock) {
+    dropMarker.value = null;
+    return;
+  }
+  const rect = node.getBoundingClientRect(),
+    after = event.clientY > rect.top + rect.height / 2;
+  dropMarker.value = {
+    node,
+    after,
+    top:
+      (after ? rect.bottom : rect.top) -
+      documentShell.value.getBoundingClientRect().top,
+  };
+}
+function dropBlock(event) {
+  if (!draggedBlock) return false;
+  event.preventDefault();
+  event.stopPropagation();
+  if (dropMarker.value) {
+    const before = richMarkdown(editor.value),
+      images = [...props.images];
+    const { node, after } = dropMarker.value;
+    node[after ? "after" : "before"](draggedBlock);
+    changed();
+    const value = richMarkdown(editor.value);
+    if (value !== before) blockUndo.value = { before, after: value, images };
+  }
+  endBlockDrag();
+  scheduleBlocks();
+  return true;
+}
+function contextCommand(id) {
+  if (range?.collapsed && contextBlock) selectBlock(contextBlock);
+  if (id === "image") imageInput.value?.click();
+  else if (id === "code") code();
+  else if (id === "hr") separator();
+  else if (id === "table") table();
+  else if (id === "ul" || id === "ol")
+    command(id === "ul" ? "insertUnorderedList" : "insertOrderedList");
+  else command("formatBlock", id);
+  menu.value = null;
+}
+function formatSelection(name) {
+  if (range?.collapsed && contextBlock) selectBlock(contextBlock);
+  command(name);
+  menu.value = null;
+}
 let slashRange = null;
 let last = "",
   range = null,
@@ -64,24 +292,63 @@ function restore() {
 function trackSlash() {
   if (!props.documentMode) return;
   const selection = window.getSelection();
-  if (!selection?.isCollapsed || !editor.value?.contains(selection.anchorNode) || selection.anchorNode.nodeType !== 3 || selection.anchorNode.parentElement.closest('pre')) { slash.value=null; return; }
-  const node=selection.anchorNode, offset=selection.anchorOffset;
-  const match=node.textContent.slice(0,offset).match(/(?:^|\s)\/([^/\n]{0,32})$/);
-  if (!match) {slash.value=null;return;}
-  const r=document.createRange();r.setStart(node,offset-match[1].length-1);r.setEnd(node,offset);slashRange=r;
-  const rect=r.getBoundingClientRect();
-  slash.value={query:match[1],x:Math.max(8,Math.min(rect.left,innerWidth-290)),y:Math.max(8,Math.min(rect.bottom+8,innerHeight-350))};slashIndex.value=0;
+  if (
+    !selection?.isCollapsed ||
+    !editor.value?.contains(selection.anchorNode) ||
+    selection.anchorNode.nodeType !== 3 ||
+    selection.anchorNode.parentElement.closest("pre")
+  ) {
+    slash.value = null;
+    return;
+  }
+  const node = selection.anchorNode,
+    offset = selection.anchorOffset;
+  const match = node.textContent
+    .slice(0, offset)
+    .match(/(?:^|\s)\/([^/\n]{0,32})$/);
+  if (!match) {
+    slash.value = null;
+    return;
+  }
+  const r = document.createRange();
+  r.setStart(node, offset - match[1].length - 1);
+  r.setEnd(node, offset);
+  slashRange = r;
+  const rect = r.getBoundingClientRect();
+  slash.value = {
+    query: match[1],
+    x: Math.max(8, Math.min(rect.left, innerWidth - 290)),
+    y: Math.max(8, Math.min(rect.bottom + 8, innerHeight - 350)),
+  };
+  slashIndex.value = 0;
 }
 function runSlash(id) {
-  if(!slashRange || !editor.value.contains(slashRange.commonAncestorContainer))return;
-  editor.value.focus({preventScroll:true});const selection=window.getSelection();selection.removeAllRanges();selection.addRange(slashRange);
-  document.execCommand('delete');remember();slash.value=null;slashRange=null;
-  if(id==='image'){changed();imageInput.value?.click();return;}
-  if(id==='code')code();else if(id==='hr')separator();else if(id==='table')table();
-  else if(id==='ul'||id==='ol')command(id==='ul'?'insertUnorderedList':'insertOrderedList');
-  else command('formatBlock',id);
+  if (!slashRange || !editor.value.contains(slashRange.commonAncestorContainer))
+    return;
+  editor.value.focus({ preventScroll: true });
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(slashRange);
+  document.execCommand("delete");
+  remember();
+  slash.value = null;
+  slashRange = null;
+  if (id === "image") {
+    changed();
+    imageInput.value?.click();
+    return;
+  }
+  if (id === "code") code();
+  else if (id === "hr") separator();
+  else if (id === "table") table();
+  else if (id === "ul" || id === "ol")
+    command(id === "ul" ? "insertUnorderedList" : "insertOrderedList");
+  else command("formatBlock", id);
 }
-function inputChanged(){changed();trackSlash();}
+function inputChanged() {
+  changed();
+  trackSlash();
+}
 function changed() {
   const value = richMarkdown(editor.value);
   if (value.length > props.maxLength) {
@@ -100,6 +367,7 @@ function changed() {
   );
   if (images.length !== props.images.length) emit("update:images", images);
   remember();
+  scheduleBlocks();
 }
 function draw() {
   if (!editor.value) return;
@@ -109,6 +377,7 @@ function draw() {
     node.spellcheck = false;
   picture.value = null;
   range = null;
+  scheduleBlocks();
   nextTick(() => emit("resize"));
 }
 watch(
@@ -193,6 +462,21 @@ function removeHighlight() {
 }
 function context(event) {
   remember();
+  if (props.documentMode) {
+    event.preventDefault();
+    contextBlock = topBlock(event.target);
+    contextPicture();
+    submenu.value = "";
+    slash.value = null;
+    if (window.getSelection()?.isCollapsed && contextBlock)
+      selectBlock(contextBlock);
+    menu.value = {
+      x: Math.max(8, Math.min(event.clientX, innerWidth - 265)),
+      y: Math.max(8, Math.min(event.clientY, innerHeight - 390)),
+    };
+    focusDocumentMenu();
+    return;
+  }
   const selection = window.getSelection();
   if (selection?.isCollapsed || !editor.value.contains(selection?.anchorNode))
     return;
@@ -305,6 +589,7 @@ function dragImage(event) {
     );
 }
 function dropImage(event) {
+  if (dropBlock(event)) return;
   const id = event.dataTransfer.getData("application/x-frame-image");
   if (!id) return;
   event.preventDefault();
@@ -392,13 +677,45 @@ function resize(event) {
 }
 function outside(event) {
   if (!event.target.closest(".rich-highlight-menu")) menu.value = null;
-  if (!event.target.closest(".conductor-slash-menu,.rich-document")) slash.value=null;
+  if (!event.target.closest(".conductor-slash-menu,.rich-document"))
+    slash.value = null;
 }
 function keys(event) {
-  if(slash.value){
-    if(event.key==='Escape'){event.preventDefault();slash.value=null;return;}
-    if(['ArrowDown','ArrowUp'].includes(event.key)){event.preventDefault();const n=slashItems.value.length;if(n)slashIndex.value=(slashIndex.value+(event.key==='ArrowDown'?1:-1)+n)%n;return;}
-    if(event.key==='Enter'){event.preventDefault();const row=slashItems.value[slashIndex.value];if(row)runSlash(row[0]);return;}
+  if (
+    props.documentMode &&
+    (event.ctrlKey || event.metaKey) &&
+    event.key.toLowerCase() === "z" &&
+    !event.shiftKey &&
+    blockUndo.value?.after === richMarkdown(editor.value)
+  ) {
+    event.preventDefault();
+    undoBlock();
+    return;
+  }
+  if (event.key === "Escape") {
+    menu.value = null;
+    submenu.value = "";
+  }
+  if (slash.value) {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      slash.value = null;
+      return;
+    }
+    if (["ArrowDown", "ArrowUp"].includes(event.key)) {
+      event.preventDefault();
+      const n = slashItems.value.length;
+      if (n)
+        slashIndex.value =
+          (slashIndex.value + (event.key === "ArrowDown" ? 1 : -1) + n) % n;
+      return;
+    }
+    if (event.key === "Enter") {
+      event.preventDefault();
+      const row = slashItems.value[slashIndex.value];
+      if (row) runSlash(row[0]);
+      return;
+    }
   }
   const block = window
     .getSelection()
@@ -430,21 +747,42 @@ async function flush() {
 defineExpose({ flush });
 onMounted(() => {
   draw();
+  if (props.documentMode) {
+    blockObserver = new MutationObserver(scheduleBlocks);
+    blockObserver.observe(editor.value, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+    blockResizeObserver = new ResizeObserver(scheduleBlocks);
+    blockResizeObserver.observe(editor.value);
+    window.addEventListener("resize", scheduleBlocks);
+  }
   document.addEventListener("selectionchange", remember);
   window.addEventListener("pointerdown", outside);
 });
 onBeforeUnmount(() => {
+  blockObserver?.disconnect();
+  blockResizeObserver?.disconnect();
+  cancelAnimationFrame(blockFrame);
+  window.removeEventListener("resize", scheduleBlocks);
   document.removeEventListener("selectionchange", remember);
   window.removeEventListener("pointerdown", outside);
   resizeCleanup?.();
 });
 </script>
 <template>
-  <section class="conductor-rich-editor" :class="{'document-editor':documentMode}">
+  <section
+    class="conductor-rich-editor"
+    :class="{ 'document-editor': documentMode }"
+  >
     <Teleport :to="toolsHost || 'body'" :disabled="!toolsHost"
-      ><div v-show="!hideTools || toolsHost" class="rich-control-stack">
+      ><div
+        v-show="documentMode ? linkDialog : !hideTools || toolsHost"
+        class="rich-control-stack"
+      >
         <div
-          v-if="!sourceMode"
+          v-if="!sourceMode && !documentMode"
           class="rich-tools"
           aria-label="Mise en forme"
           @mousedown.prevent
@@ -562,7 +900,7 @@ onBeforeUnmount(() => {
           /><button class="btn" @click="addLink">Appliquer</button
           ><button class="btn" @click="linkDialog = false">Annuler</button>
         </div>
-        <div v-if="picture" class="rich-picture-tools">
+        <div v-if="picture && !documentMode" class="rich-picture-tools">
           <span>Image sélectionnée</span
           ><input
             :value="picture.alt"
@@ -617,26 +955,92 @@ onBeforeUnmount(() => {
     />
     <div
       v-else
-      ref="editor"
-      role="textbox"
-      aria-multiline="true"
-      :aria-label="label"
-      class="rich-document notebook-preview"
-      contenteditable="true"
-      spellcheck="true"
-      @input="inputChanged"
-      @dragstart="dragImage"
-      @dragover.prevent
-      @drop="dropImage"
-      @paste="paste"
-      @contextmenu="context"
-      @click="choosePicture"
-      @keydown="keys"
+      ref="documentShell"
+      class="document-block-shell"
+      @dragend="endBlockDrag"
+    >
+      <div
+        ref="editor"
+        role="textbox"
+        aria-multiline="true"
+        :aria-label="label"
+        class="rich-document notebook-preview"
+        contenteditable="true"
+        spellcheck="true"
+        @input="inputChanged"
+        @dragstart="dragImage"
+        @dragover.prevent="dragOverBlock"
+        @drop="dropImage"
+        @paste="paste"
+        @contextmenu="context"
+        @pointermove="hoveredBlock = topBlock($event.target)"
+        @click="
+          choosePicture($event);
+          trackSlash();
+        "
+        @keydown="keys"
+      />
+      <template v-if="documentMode"
+        ><button
+          v-for="row in blockRows"
+          :key="row.index"
+          class="document-block-grip"
+          :class="{ visible: hoveredBlock === row.node }"
+          :style="{ top: row.top + 'px' }"
+          contenteditable="false"
+          draggable="true"
+          :aria-label="'Options et déplacement du bloc ' + (row.index + 1)"
+          title="Déplacer le bloc · cliquer pour les options"
+          @mouseenter="hoveredBlock = row.node"
+          @mousedown.stop
+          @click="blockMenu($event, row.node)"
+          @contextmenu.prevent="blockMenu($event, row.node)"
+          @dragstart.stop="startBlockDrag($event, row.node)"
+        >
+          <GripVertical :size="16" :stroke-width="1.8" aria-hidden="true" />
+        </button>
+        <div
+          v-if="dropMarker"
+          class="document-block-drop"
+          :style="{ top: dropMarker.top + 'px' }"
+      /></template>
+    </div>
+    <input
+      v-if="documentMode"
+      ref="imageInput"
+      type="file"
+      accept="image/png,image/jpeg,image/webp"
+      multiple
+      hidden
+      :disabled="busy || images.length >= 32"
+      @change="insertImages"
     />
-    <Teleport to="body"><div v-if="slash" class="conductor-slash-menu" role="menu" aria-label="Insérer dans le document" :style="{left:slash.x+'px',top:slash.y+'px'}" @mousedown.prevent><small>INSÉRER UN BLOC · ↑ ↓ Entrée</small><button v-for="(row,i) in slashItems" :key="row[0]" role="menuitem" :class="{active:i===slashIndex}" @click="runSlash(row[0])"><strong>{{row[1]}}</strong><span>/{{row[0]}}</span></button><p v-if="!slashItems.length">Aucune commande</p></div></Teleport>
     <Teleport to="body"
       ><div
-        v-if="menu"
+        v-if="slash"
+        class="conductor-slash-menu"
+        role="menu"
+        aria-label="Insérer dans le document"
+        :style="{ left: slash.x + 'px', top: slash.y + 'px' }"
+        @mousedown.prevent
+      >
+        <small>INSÉRER UN BLOC · ↑ ↓ Entrée</small
+        ><button
+          v-for="(row, i) in slashItems"
+          :key="row[0]"
+          role="menuitem"
+          :class="{ active: i === slashIndex }"
+          @click="runSlash(row[0])"
+        >
+          <strong>{{ row[1] }}</strong
+          ><span>/{{ row[0] }}</span>
+        </button>
+        <p v-if="!slashItems.length">Aucune commande</p>
+      </div></Teleport
+    >
+    <Teleport to="body"
+      ><div
+        v-if="menu && !documentMode"
         class="conductor-context rich-highlight-menu"
         role="menu"
         aria-label="Surligner la sélection"
@@ -661,6 +1065,215 @@ onBeforeUnmount(() => {
           }}</button
         ><button role="menuitem" @click="removeHighlight">
           Retirer le surlignage
+        </button>
+      </div></Teleport
+    >
+    <Teleport to="body"
+      ><div
+        v-if="menu && documentMode"
+        ref="documentMenu"
+        @keydown="menuKeys"
+        class="document-context rich-highlight-menu"
+        :class="{ 'opens-left': menu.x > windowWidth - 550 }"
+        role="menu"
+        aria-label="Actions du document"
+        :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
+        @mousedown.prevent
+      >
+        <div class="document-submenu-row" @mouseenter="submenu = 'format'">
+          <button
+            role="menuitem"
+            aria-haspopup="menu"
+            :aria-expanded="submenu === 'format'"
+            @click="submenu = 'format'"
+          >
+            Mise en forme <span>›</span>
+          </button>
+          <div
+            v-if="submenu === 'format'"
+            class="document-submenu"
+            role="menu"
+            aria-label="Mise en forme"
+          >
+            <button role="menuitem" @click="formatSelection('bold')">
+              <b>Gras</b><small>Ctrl B</small></button
+            ><button role="menuitem" @click="formatSelection('italic')">
+              <em>Italique</em><small>Ctrl I</small></button
+            ><button role="menuitem" @click="formatSelection('strikeThrough')">
+              <s>Barré</s></button
+            ><button role="menuitem" @click="formatSelection('removeFormat')">
+              Retirer la mise en forme
+            </button>
+          </div>
+        </div>
+        <div class="document-submenu-row" @mouseenter="submenu = 'highlight'">
+          <button
+            role="menuitem"
+            aria-haspopup="menu"
+            :aria-expanded="submenu === 'highlight'"
+            @click="submenu = 'highlight'"
+          >
+            Surligner <span>›</span>
+          </button>
+          <div
+            v-if="submenu === 'highlight'"
+            class="document-submenu"
+            role="menu"
+            aria-label="Couleurs du surlignage"
+          >
+            <button
+              v-for="(color, id) in highlightColors"
+              :key="id"
+              role="menuitem"
+              @click="highlight(id)"
+            >
+              <i :style="{ background: color }" />{{ colorNames[id] }}</button
+            ><button role="menuitem" @click="removeHighlight">
+              Retirer le surlignage
+            </button>
+          </div>
+        </div>
+        <div class="document-submenu-row" @mouseenter="submenu = 'block'">
+          <button
+            role="menuitem"
+            aria-haspopup="menu"
+            :aria-expanded="submenu === 'block'"
+            @click="submenu = 'block'"
+          >
+            Transformer / insérer <span>›</span>
+          </button>
+          <div
+            v-if="submenu === 'block'"
+            class="document-submenu"
+            role="menu"
+            aria-label="Types de blocs"
+          >
+            <button
+              v-for="row in findConductorCommands()"
+              :key="row[0]"
+              role="menuitem"
+              @click="contextCommand(row[0])"
+            >
+              {{ row[1] }}
+            </button>
+          </div>
+        </div>
+        <div class="document-submenu-row" @mouseenter="submenu = 'code'">
+          <button
+            role="menuitem"
+            aria-haspopup="menu"
+            :aria-expanded="submenu === 'code'"
+            @click="submenu = 'code'"
+          >
+            Langage du code <span>›</span>
+          </button>
+          <div
+            v-if="submenu === 'code'"
+            class="document-submenu"
+            role="menu"
+            aria-label="Langage du code"
+          >
+            <button
+              v-for="lang in [
+                'java',
+                'javascript',
+                'typescript',
+                'python',
+                'bash',
+                'json',
+                'sql',
+                'yaml',
+                'html',
+                'css',
+              ]"
+              :key="lang"
+              role="menuitem"
+              @click="changeCodeLanguage(lang)"
+            >
+              {{ lang }}
+            </button>
+          </div>
+        </div>
+        <div
+          v-if="picture"
+          class="document-submenu-row"
+          @mouseenter="submenu = 'image'"
+        >
+          <button
+            role="menuitem"
+            aria-haspopup="menu"
+            :aria-expanded="submenu === 'image'"
+            @click="submenu = 'image'"
+          >
+            Image <span>›</span>
+          </button>
+          <div
+            v-if="submenu === 'image'"
+            class="document-submenu document-image-settings"
+            role="group"
+            aria-label="Options de l’image"
+            @mousedown.stop
+          >
+            <label
+              >Description<input
+                :value="picture.alt"
+                @input="
+                  updatePicture({ alt: $event.target.value.slice(0, 300) })
+                " /></label
+            ><label
+              >Largeur (%)<input
+                type="number"
+                min="10"
+                max="100"
+                :value="picture.width"
+                @input="
+                  updatePicture({
+                    width: Math.max(
+                      10,
+                      Math.min(100, Number($event.target.value) || 50),
+                    ),
+                  })
+                " /></label
+            ><label
+              >Alignement<select
+                :value="picture.align"
+                @change="updatePicture({ align: $event.target.value })"
+              >
+                <option value="left">Gauche</option>
+                <option value="center">Centré</option>
+                <option value="right">Droite</option>
+              </select></label
+            >
+          </div>
+        </div>
+        <button
+          role="menuitem"
+          @mouseenter="submenu = ''"
+          @click="
+            linkDialog = true;
+            menu = null;
+          "
+        >
+          Ajouter un lien
+        </button>
+        <hr />
+        <button
+          role="menuitem"
+          :disabled="!contextBlock"
+          @mouseenter="submenu = ''"
+          @click="blockAction('duplicate')"
+        >
+          Dupliquer le bloc</button
+        ><button
+          role="menuitem"
+          class="danger"
+          :disabled="!contextBlock"
+          @mouseenter="submenu = ''"
+          @click="blockAction('remove')"
+        >
+          Supprimer le bloc</button
+        ><button v-if="blockUndo" role="menuitem" @click="undoBlock">
+          Annuler l’action sur le bloc
         </button>
       </div></Teleport
     >
