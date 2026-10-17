@@ -1767,3 +1767,21 @@
 }
 :root[data-appearance="light"] .conductor-private-note:before {color:#817242
 }
+:root[data-appearance="light"] .workspace-nav-cluster {border:1px solid #c9d7cf;border-radius:9px;background:#ffffff04
+}
+:root[data-appearance="light"] .workspace-nav-cluster .navigation-return {border:0;border-radius:6px
+}
+:root[data-appearance="light"] .workspace-nav-cluster .app-menu-trigger {border:0;border-radius:6px;background:none
+}
+:root[data-appearance="light"] .workspace-nav-cluster .navigation-return:hover,:root[data-appearance="light"] .workspace-nav-cluster .app-menu-trigger:hover,:root[data-appearance="light"] .workspace-nav-cluster .app-menu-trigger[aria-expanded=true] {background:#ffffff0b
+}
+:root[data-appearance="light"] .app-header .creation-context-name {color:#25382e;background:#a5f3cf08;border:1px solid #537a681c;border-radius:5px
+}
+:root[data-appearance="light"] .document-editor .rich-document>aside.conductor-private-note {border:1px solid #6d5d2b60
+}
+:root[data-appearance="light"] .undo-notification {border:1px solid #c9d7cf;border-radius:10px;background:#ecefee;color:#25382e
+}
+:root[data-appearance="light"] .undo-notification small {color:#694e49
+}
+:root[data-appearance="light"] .undo-notification .text-action {color:#51675b
+}

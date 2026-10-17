@@ -9,6 +9,7 @@ import {
 } from "vue";
 import { documentDropSlot } from "../conductorDrop.js";
 import { codeExitDirection } from "../conductorNavigation.js";
+import {useUndoNotifications} from "../undoNotifications.js";
 import { useExpiringUndo } from "../useExpiringUndo.js";
 import {
   conductorCodeLanguages,
@@ -70,6 +71,7 @@ const documentShell = ref(null),
   blockUndo = ref(null);
 const copiedCode = ref(null);
 useExpiringUndo(blockUndo);
+const notices=useUndoNotifications();
 useExpiringUndo(copiedCode, { duration: 2000 });
 let contextBlock = null,
   draggedBlock = null,
@@ -221,21 +223,27 @@ function blockAction(action) {
   if (!editor.value.children.length) editor.value.innerHTML = "<p><br></p>";
   changed();
   const after = richMarkdown(editor.value);
-  if (before !== after) blockUndo.value = { before, after, images };
+  if (before !== after) {
+    const state={before,after,images};blockUndo.value=state;
+    if(action !== 'duplicate')state.noticeId=notices.push('Bloc supprimé.',()=>undoBlock(state),()=>!!editor.value&&richMarkdown(editor.value)===state.after);
+  }
   menu.value = null;
   contextBlock = null;
   scheduleBlocks();
 }
-async function undoBlock() {
-  const state = blockUndo.value;
-  if (!state) return;
+async function undoBlock(state=blockUndo.value) {
+  // Vue passes a MouseEvent for @click; keep the current snapshot in that case.
+  if(!state?.before)state=blockUndo.value;
+  if (!state || !editor.value || richMarkdown(editor.value)!==state.after) return false;
   emit("update:images", state.images);
   emit("update:modelValue", state.before);
   last = state.before;
   await nextTick();
   draw();
-  blockUndo.value = null;
+  if(blockUndo.value?.after===state.after)blockUndo.value = null;
+  if(state.noticeId)notices.dismiss(state.noticeId);
   menu.value = null;
+  return true;
 }
 function startBlockDrag(event, node) {
   draggedBlock = node;

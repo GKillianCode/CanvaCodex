@@ -46,11 +46,10 @@ onBeforeUnmount(() => {
             >frame<span class="brand-dot">.</span></span
           ></a
         >
-        <button v-if="backLabel === 'Vidéo'" class="icon-btn navigation-return" aria-label="Accueil" title="Accueil" @click="emit('home')"><Home :size="18"/></button>
+        <div class="workspace-nav-cluster"><button v-if="backLabel === 'Vidéo'" class="icon-btn navigation-return" aria-label="Accueil" title="Accueil" @click="emit('home')"><Home :size="18"/></button>
         <button v-if="backLabel" class="icon-btn navigation-return" :aria-label="backLabel" :title="backLabel" @click="emit('back')">
           <Clapperboard v-if="backLabel === 'Vidéo'" :size="18"/><Home v-else-if="backLabel === 'Accueil'" :size="18"/><ArrowLeft v-else :size="18"/>
         </button>
-        <span v-if="title" class="application-name">{{ title }}</span>
         <nav class="app-menus" aria-label="Menus de l’application">
           <div v-if="$slots.file" class="app-menu">
             <button
@@ -81,7 +80,8 @@ onBeforeUnmount(() => {
               <slot name="view" />
             </div>
           </div>
-        </nav>
+        </nav></div>
+        <span v-if="title" class="application-name">{{ title }}</span>
         <slot name="context" />
       </div>
       <div class="app-header-right"><slot name="actions" /></div>

@@ -309,3 +309,18 @@
 .conductor-private-note{background:#d9b95512;border:1px solid #d9b95545;border-radius:7px;padding:12px 16px;margin:14px 0;color:#e4d39a}
 .conductor-private-note:before{content:"COMMENTAIRE PRIVÉ · hors aperçu";display:block;font-size:9px;font-weight:600;letter-spacing:.05em;line-height:1.5;color:#c7af65;margin-bottom:7px;pointer-events:none;user-select:none}
 .conductor-private-note>:first-child{margin-top:0}.conductor-private-note>:last-child{margin-bottom:0}
+
+.workspace-nav-cluster{display:flex;align-items:center;gap:2px;padding:3px;border:1px solid #41514b;border-radius:9px;background:#ffffff04;flex-shrink:0}
+.workspace-nav-cluster .navigation-return{border:0;border-radius:6px;width:32px;height:32px}
+.workspace-nav-cluster .app-menus{gap:2px}
+.workspace-nav-cluster .app-menu-trigger{border:0;border-radius:6px;padding:8px 10px;min-height:32px;background:none}
+.workspace-nav-cluster .navigation-return:hover,.workspace-nav-cluster .app-menu-trigger:hover,.workspace-nav-cluster .app-menu-trigger[aria-expanded=true]{background:#ffffff0b}
+.app-header .creation-context-name{color:#b8d7c7;font-weight:500;background:#a5f3cf08;border:1px solid #a5f3cf1c;border-radius:5px;padding:5px 9px}
+.document-editor .rich-document>aside.conductor-private-note{border:1px solid #d9b95560;padding:12px 16px;box-sizing:border-box}
+.undo-notifications{position:fixed;right:20px;bottom:20px;z-index:1700;display:flex;flex-direction:column;gap:9px;width:min(390px,calc(100vw - 32px));max-height:60vh;overflow:auto;pointer-events:none;font-family:'DM Sans',sans-serif}
+.undo-notification{display:flex;align-items:center;gap:12px;border:1px solid #486553;border-radius:10px;padding:13px 15px;background:#20302b;color:#dcece3;box-shadow:0 8px 30px #0003;pointer-events:auto;font-size:12px;line-height:1.5}
+.undo-notification>span{flex:1;min-width:0;overflow-wrap:anywhere}.undo-notification small{display:block;color:#efb2a7;margin-top:4px}
+.undo-notification .text-action{flex-shrink:0;color:#b9ebcf;font-size:12px}.undo-notification .icon-btn{width:24px;height:24px;flex-shrink:0}
+.undo-notice-enter-active,.undo-notice-leave-active{transition:opacity .16s,transform .16s}.undo-notice-enter-from,.undo-notice-leave-to{opacity:0;transform:translateX(18px)}
+@media(prefers-reduced-motion:reduce){.undo-notice-enter-active,.undo-notice-leave-active{transition:none}}
+@media(max-width:600px){.undo-notifications{right:16px;bottom:16px}}

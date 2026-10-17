@@ -1,5 +1,5 @@
 <script setup>
-import {useExpiringUndo} from "../useExpiringUndo.js";
+import {useUndoNotifications} from "../undoNotifications.js";
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import {
   Plus,
@@ -74,9 +74,8 @@ const projects = ref([]),
   copyCurrent = ref(false),
   draft = ref(null),
   icons = { slides: PanelsTopLeft, banners: Clapperboard, thumbnails: Image };
-const deletedCreation = ref(null),creationFilter=ref('all');
-useExpiringUndo(deletedCreation);
-watch(() => props.videoId,()=>{deletedCreation.value=null;});
+const creationFilter=ref('all'),notices=useUndoNotifications();
+watch(() => props.videoId,()=>notices.clear());
 const newVideoType = ref("");
 const starterApps = ref(["slides", "banners", "thumbnails"]);
 const browserOnly = ref(false);
@@ -415,20 +414,25 @@ async function duplicate(project) {
 async function removeCreation(row) {
   if(busy.value||!window.confirm(`Supprimer « ${row.name} » de cette vidéo ? Les fichiers déjà exportés sont conservés.`))return;
   await run(async()=>{
-    deletedCreation.value=await props.repository.removeCreation(props.videoId,row.id);
+    const index=selected.value.creations.findIndex(item=>item.id===row.id),before=selected.value.creations[index-1]?.id,after=selected.value.creations[index+1]?.id;
+    const removed=await props.repository.removeCreation(props.videoId,row.id);
     await reload();
+    if(removed)notices.push('« '+removed.meta.name+' » supprimée.',()=>restoreCreation(removed,before,after),()=>!busy.value);
   });
 }
-async function restoreCreation() {
+async function restoreCreation(removed,before,after) {
+  let restored=false;
   await run(async()=>{
-    const removed=deletedCreation.value;if(!removed||removed.videoId!==props.videoId)return;
+    if(!removed||removed.videoId!==props.videoId)return;
     const project=await props.repository.get(props.videoId);
     if(project.creations.length>=100)throw Error("Limite de 100 créations par vidéo.");
-    if(!project.creations.some(row=>row.id===removed.row.id))project.creations.splice(removed.index,0,removed.meta);
+    const next=project.creations.findIndex(item=>item.id===after),previous=project.creations.findIndex(item=>item.id===before);
+    if(!project.creations.some(row=>row.id===removed.row.id))project.creations.splice(next>=0?next:previous>=0?previous+1:removed.index,0,removed.meta);
     project.preview=project.creations[0]?.preview||null;project.updatedAt=Date.now();
-    await props.repository.put(project,[removed.row]);deletedCreation.value=null;
-    await reload();
+    await props.repository.put(project,[removed.row]);
+    await reload();restored=true;
   });
+  return restored;
 }
 async function duplicateCreation(row) {
   await run(async () => {
@@ -531,10 +535,6 @@ async function importVideo(event) {
         }}</span></template
       >
     </WorkspaceHeader>
-    <div v-if="deletedCreation" class="video-alert" role="status">
-      « {{ deletedCreation.meta.name }} » supprimé.
-      <button class="btn" :disabled="busy" @click="restoreCreation">Annuler la suppression</button>
-    </div>
     <div v-if="error" class="video-alert" role="alert">
       {{ error }}
       <button class="btn" :disabled="busy" @click="run(retryAction || reload)">

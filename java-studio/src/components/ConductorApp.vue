@@ -29,7 +29,7 @@ import LibraryPreview from "./LibraryPreview.vue";
 import { useVideoWorkflow, downloadText } from "../useVideoWorkflow.js";
 import { newSequence, supportKinds } from "../videoWorkflow.js";
 import { renderConductor } from "../notebookMarkdown.js";
-import { useExpiringUndo } from "../useExpiringUndo.js";
+import { useUndoNotifications } from "../undoNotifications.js";
 import { mergeConductorNotes } from "../conductorNotes.js";
 const props = defineProps({
   repository: Object,
@@ -59,8 +59,7 @@ const selected = ref(""),
   fontSize = ref(28),
   list = ref(null),
   dragged = ref(null),
-  dropTarget = ref(null),
-  removed = ref(null);
+  dropTarget = ref(null);
 const sequences = computed(() => data.value?.sequences || []),
   index = computed(() =>
     Math.max(
@@ -70,7 +69,7 @@ const sequences = computed(() => data.value?.sequences || []),
   ),
   current = computed(() => sequences.value[index.value]),
   next = computed(() => sequences.value[index.value + 1]);
-useExpiringUndo(removed);
+const notices=useUndoNotifications();
 const scriptEditor = ref(null);
 const pendingCues = computed(() =>
   sequences.value.filter((s) => s.cues?.trim() || s.cuesLayout?.length),
@@ -215,17 +214,16 @@ function duplicate() {
   selected.value = row.id;
 }
 function remove() {
-  const at = index.value;
-  removed.value = { row: current.value, index: at };
-  sequences.value.splice(at, 1);
-  selected.value =
-    sequences.value[Math.min(at, sequences.value.length - 1)]?.id || "";
-}
-function undoRemove() {
-  if (!removed.value || sequences.value.length >= 100) return;
-  sequences.value.splice(removed.value.index, 0, removed.value.row);
-  selected.value = removed.value.row.id;
-  removed.value = null;
+  const at=index.value,row=current.value;if(!row)return;
+  const before=sequences.value[at-1]?.id,after=sequences.value[at+1]?.id;
+  sequences.value.splice(at,1);
+  selected.value=sequences.value[Math.min(at,sequences.value.length-1)]?.id||'';
+  notices.push('« '+(row.title||'Sans titre')+' » supprimée.',()=>{
+    if(sequences.value.some(item=>item.id===row.id))return;
+    const next=sequences.value.findIndex(item=>item.id===after),previous=sequences.value.findIndex(item=>item.id===before);
+    const target=next>=0?next:previous>=0?previous+1:Math.min(at,sequences.value.length);
+    sequences.value.splice(target,0,row);selected.value=row.id;
+  },()=>sequences.value.length<100);
 }
 async function selectPart(id) {
   try {
@@ -777,19 +775,6 @@ onBeforeUnmount(() => {
             </div></template
           >
         </section>
-      </div>
-      <div
-        v-if="removed && !reader"
-        class="production-undo conductor-undo"
-        role="status"
-      >
-        Partie supprimée.<button
-          class="btn"
-          :disabled="sequences.length >= 100"
-          @click="undoRemove"
-        >
-          Annuler
-        </button>
       </div>
     </template>
     <div

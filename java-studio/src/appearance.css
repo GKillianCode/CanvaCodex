@@ -73,3 +73,11 @@
 :root[data-appearance="light"] .conductor-private-note{background:#fbf6e7;border-color:#c0a15350;color:#715c29}
 :root[data-appearance="light"] .conductor-private-note:before{color:#8a6c26}
 :root[data-appearance="light"] .conductor-outline li.part-drop-before:before,:root[data-appearance="light"] .conductor-outline li.part-drop-after:after{box-shadow:0 0 0 2px #f6f8f6}
+
+:root[data-appearance="light"] .workspace-nav-cluster{border-color:#d1dcd6;background:#ffffff66}
+:root[data-appearance="light"] .workspace-nav-cluster .navigation-return:hover,:root[data-appearance="light"] .workspace-nav-cluster .app-menu-trigger:hover,:root[data-appearance="light"] .workspace-nav-cluster .app-menu-trigger[aria-expanded=true]{background:#20382b0a}
+:root[data-appearance="light"] .app-header .creation-context-name{color:#386b52;background:#eaf3ed;border-color:#cbded2}
+:root[data-appearance="light"] .document-editor .rich-document>aside.conductor-private-note{border:1px solid #c0a15380}
+:root[data-appearance="light"] .undo-notification{color:#294435;background:#f5faf6;border-color:#c0d6c7;box-shadow:0 8px 30px #18332416}
+:root[data-appearance="light"] .undo-notification .text-action{color:#286644}
+:root[data-appearance="light"] .undo-notification small{color:#9b3c35}

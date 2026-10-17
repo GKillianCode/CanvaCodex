@@ -1,4 +1,5 @@
 <script setup>
+import {useUndoNotifications} from "../undoNotifications.js";
 import {useExpiringUndo} from "../useExpiringUndo.js";
 import {
   ref,
@@ -102,6 +103,7 @@ let observer, cleanup, upload;
 useModalScroll(() => expanded.value);
 const removedBlock = ref(null);
 useExpiringUndo(removedBlock);
+const notices=useUndoNotifications();
 const active = computed(() =>
   blocks.value.find((b) => b.id === selected.value),
 );
@@ -269,16 +271,19 @@ function remove() {
     index,
     asset: props.images.find((image) => image.id === active.value.imageId),
   };
+  const saved=removedBlock.value;
+  saved.noticeId=notices.push('Bloc supprimé.',()=>undoRemoveBlock(saved),()=>blocks.value.length<100);
   blocks.value = blocks.value.filter((b) => b.id !== selected.value);
   selected.value = "";
   contextMenu.value = null;
   publish();
 }
-async function undoRemoveBlock() {
-  if (!removedBlock.value || blocks.value.length >= 100) return;
-  const saved = removedBlock.value;
+async function undoRemoveBlock(saved=removedBlock.value) {
+  if(!saved?.block)saved=removedBlock.value;
+  if (!saved || blocks.value.length >= 100) return false;
+  if(blocks.value.some(block=>block.id===saved.block.id))return true;
   if (saved.asset && !props.images.some((i) => i.id === saved.asset.id)) {
-    if (props.images.length >= 32) return;
+    if (props.images.length >= 32) return false;
     emit("update:images", [...props.images, saved.asset]);
     await nextTick();
   }
@@ -288,8 +293,9 @@ async function undoRemoveBlock() {
     saved.block,
   );
   selected.value = saved.block.id;
-  removedBlock.value = null;
-  publish();
+  if(removedBlock.value?.block.id===saved.block.id)removedBlock.value = null;
+  notices.dismiss(saved.noticeId);
+  publish();return true;
 }
 function duplicate() {
   if (!active.value || blocks.value.length >= 100) return;
@@ -723,15 +729,6 @@ onBeforeUnmount(() => {
           <div ref="tools" class="page-format-tools" />
         </details>
       </aside>
-    </div>
-    <div
-      v-if="removedBlock && !readonly"
-      class="page-delete-feedback"
-      role="status"
-    >
-      Bloc supprimé.<button class="text-action" @click="undoRemoveBlock">
-        Annuler la suppression
-      </button>
     </div>
     <footer v-if="!readonly" class="page-status">
       <span

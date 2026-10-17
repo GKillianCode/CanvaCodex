@@ -252,3 +252,5 @@ Les nouvelles vidéos ont le type **Non défini** par défaut. Tous les types ut
 Si le dossier de sauvegarde automatique a été déplacé, le bandeau permet de **Choisir le nouvel emplacement…** (ou **Choisir un autre dossier…**). Sélectionne le dossier qui contient les sous-dossiers portant les ID des vidéos : les sauvegardes en attente sont rejouées après la nouvelle liaison. Les copies du navigateur sont conservées si l’accès au disque échoue.
 
 Dans le Conducteur, **`/comment`** insère une note de travail jaune directement dans le document. Elle reste dans la sauvegarde, mais ne s’affiche ni en Aperçu ni en Présenter. Les parties disposent d’un trait de destination avant/après pendant leur déplacement. Les ateliers liés proposent deux icônes distinctes : retour direct à l’Accueil et retour à la fiche Vidéo.
+
+La navigation Accueil/Vidéo et les menus sont regroupés dans un bloc compact. Les suppressions de parties, blocs du Conducteur et créations affichent des notifications empilées en bas à droite, avec annulation indépendante pendant 15 secondes. Les commentaires privés gardent un contour complet dans les deux thèmes.

@@ -9,6 +9,7 @@ import {
 } from "./videoProjects.js";
 import { useGlobalModalScroll } from "./modalScroll.js";
 import { videoFolderStorage } from "./videoFolders.js";
+import UndoNotifications from "./components/UndoNotifications.vue";
 import StudioApp from "./StudioApp.vue";
 import { workflowNavigation, navigateAfterSave } from "./workflowNavigation.js";
 import VideoLibrary from "./components/VideoLibrary.vue";
@@ -150,6 +151,7 @@ onMounted(() => {
 onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
 </script>
 <template>
+  <UndoNotifications/>
   <div v-if="folderState.error" class="folder-warning" role="alert">
     {{ folderState.error }} Ta copie dans le navigateur est conservée.<button
       class="btn"
