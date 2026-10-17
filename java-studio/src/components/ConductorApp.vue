@@ -1,78 +1,811 @@
 <script setup>
-import {ref,computed,watch,onMounted,onBeforeUnmount,nextTick} from 'vue';
-import {Plus,Play,ArrowUp,ArrowDown,Trash2,Monitor,ChevronLeft,ChevronRight,ExternalLink} from 'lucide-vue-next';
-import ConductorPage from './ConductorPage.vue';
-import ConductorDocumentCard from './ConductorDocumentCard.vue';
-import VideoWorkflowNav from './VideoWorkflowNav.vue';
-import WorkspaceHeader from './WorkspaceHeader.vue';
-import WorkflowAlerts from './WorkflowAlerts.vue';
-import LibraryPreview from './LibraryPreview.vue';
-import {useVideoWorkflow,downloadText} from '../useVideoWorkflow.js';
-import {newSequence,supportKinds} from '../videoWorkflow.js';
-import {renderConductor} from '../notebookMarkdown.js';
-const props=defineProps({repository:Object,videoId:String,reader:Boolean});const emit=defineEmits(['back','open-creation','workshop']);
-const {project,data,error,loading,saving,dirty,recovery,storageError,load,save,flush:flushWorkflow,recover,exportDraft}=useVideoWorkflow(props,'conductor',props.reader);
-defineExpose({flush});
-const draftSelected=ref(false);
-const selected=ref(''),reading=ref(!!props.reader),fontSize=ref(28),list=ref(null),dragged=ref(null),removed=ref(null);
-const sequences=computed(()=>data.value?.sequences||[]),index=computed(()=>Math.max(0,sequences.value.findIndex(s=>s.id===selected.value))),current=computed(()=>sequences.value[index.value]),next=computed(()=>sequences.value[index.value+1]);
-const scriptEditor=ref(null),cuesEditor=ref(null);
-async function flush(){await scriptEditor.value?.flush();await cuesEditor.value?.flush();await flushWorkflow();}
-const readerStage=ref(null),menu=ref(null),presenting=ref(false);
-async function openMenu(event,id){if(!await selectPart(id))return;if(presenting.value)return;selected.value=id;menu.value={x:Math.min(event.clientX,window.innerWidth-210),y:Math.min(event.clientY,window.innerHeight-190)};}
-async function present(){try{await flush();}catch{return;}draftSelected.value=false;reading.value=true;presenting.value=true;try{await document.documentElement.requestFullscreen();}catch{}}
-function fullscreenChanged(){if(!document.fullscreenElement)presenting.value=false;}
-function closeMenu(){menu.value=null;}
-function stopPresenting(){presenting.value=false;if(document.fullscreenElement)document.exitFullscreen().catch(()=>{});}
-watch(()=>current.value?.id,()=>{menu.value=null;nextTick(()=>{if(readerStage.value)readerStage.value.scrollTop=0;});});
-const support=computed(()=>project.value?.creations.find(c=>c.id===current.value?.creationId)),matchingSupports=computed(()=>project.value?.creations.filter(c=>c.app===current.value?.support)||[]);
-watch(sequences,rows=>{if(rows.length&&!rows.some(s=>s.id===selected.value))selected.value=rows[0].id;},{deep:false});
-async function go(action){try{await flush();action();}catch{}}
-async function add(title){try{await flush();}catch{return;}draftSelected.value=false;if(sequences.value.length>=100)return;const row=newSequence(typeof title==='string'?title:'Nouvelle partie');sequences.value.push(row);selected.value=row.id;}
-async function starter(){for(const title of ['Accroche et objectif','Explication','Démonstration','Ce qu’il faut retenir'])await add(title);selected.value=sequences.value[0].id;}
-function move(from,to){if(to<0||to>=sequences.value.length||from===to)return;const [row]=sequences.value.splice(from,1);sequences.value.splice(to,0,row);}
-function drop(target){const from=sequences.value.findIndex(s=>s.id===dragged.value),to=sequences.value.findIndex(s=>s.id===target);if(from>=0&&to>=0)move(from,to);dragged.value=null;}
-function duplicate(){if(!current.value||sequences.value.length>=100)return;const row={...JSON.parse(JSON.stringify(current.value)),id:crypto.randomUUID(),title:current.value.title+' · copie'};sequences.value.splice(index.value+1,0,row);selected.value=row.id;}
-function remove(){const at=index.value;removed.value={row:current.value,index:at};sequences.value.splice(at,1);selected.value=sequences.value[Math.min(at,sequences.value.length-1)]?.id||'';}
-function undoRemove(){if(!removed.value||sequences.value.length>=100)return;sequences.value.splice(removed.value.index,0,removed.value.row);selected.value=removed.value.row.id;removed.value=null;}
-async function selectPart(id){try{await flush();draftSelected.value=false;selected.value=id;return true;}catch{return false;}}
-async function openDraft(){try{await flush();draftSelected.value=true;}catch{}}
-async function removePart(id){if(await selectPart(id))remove();}
-function step(delta){const row=sequences.value[index.value+delta];if(row)selected.value=row.id;}
-function supportChanged(){current.value.creationId='';}
-function openSupport(){if(support.value)go(()=>emit('open-creation',props.videoId,support.value.app,support.value.id));}
-function portableMarkdown(value,sequence){return value.replace(/frame-image:([\w-]+)/g,(match,id)=>sequence.images?.find(image=>image.id===id)?.src||match);}
-function exportMarkdown(){downloadText('conducteur.md',`# ${project.value.name}\n\n`+sequences.value.map((s,i)=>`## ${i+1}. ${s.title}\n\n${portableMarkdown(s.script,s)}\n\n**À montrer :** ${supportKinds.find(([k])=>k===s.support)?.[1]||''}${s.creationId?' · '+(project.value.creations.find(c=>c.id===s.creationId)?.name||'support retiré'):''}\n\n**Repères :**\n${portableMarkdown(s.cues,s)}`).join('\n\n---\n\n'),'text/markdown;charset=utf-8');}
-function keyboard(e){if(document.querySelector('.page-expanded')){if(e.key==='s'&&(e.ctrlKey||e.metaKey)){e.preventDefault();flush().catch(()=>{});}return;}if(e.key==='Escape'){menu.value=null;stopPresenting();return;}if(e.key==='F12'&&!props.reader){e.preventDefault();present();return;}if(e.key==='s'&&(e.ctrlKey||e.metaKey)){e.preventDefault();save().catch(()=>{});return;}if(!reading.value||e.target.closest('input,textarea,select,[contenteditable=true]'))return;if(e.key===' '&&e.target.closest('button'))return;if(['ArrowRight','ArrowDown','PageDown',' '].includes(e.key)){e.preventDefault();step(1);}if(['ArrowLeft','ArrowUp','PageUp'].includes(e.key)){e.preventDefault();step(-1);}}
-onMounted(()=>{window.addEventListener('keydown',keyboard);window.addEventListener('click',closeMenu);document.addEventListener('fullscreenchange',fullscreenChanged);});onBeforeUnmount(()=>{window.removeEventListener('keydown',keyboard);window.removeEventListener('click',closeMenu);document.removeEventListener('fullscreenchange',fullscreenChanged);if(presenting.value&&document.fullscreenElement)document.exitFullscreen().catch(()=>{});});
+import {
+  ref,
+  computed,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  nextTick,
+} from "vue";
+import {
+  Plus,
+  Play,
+  ArrowUp,
+  ArrowDown,
+  Trash2,
+  Monitor,
+  ChevronLeft,
+  ChevronRight,
+  ExternalLink,
+} from "lucide-vue-next";
+import {sequenceDropIndex} from "../conductorDrop.js";
+import ConductorPage from "./ConductorPage.vue";
+import ConductorRichEditor from "./ConductorRichEditor.vue";
+import { pageMarkdown } from "../conductorPage.js";
+import VideoWorkflowNav from "./VideoWorkflowNav.vue";
+import WorkspaceHeader from "./WorkspaceHeader.vue";
+import WorkflowAlerts from "./WorkflowAlerts.vue";
+import LibraryPreview from "./LibraryPreview.vue";
+import { useVideoWorkflow, downloadText } from "../useVideoWorkflow.js";
+import { newSequence, supportKinds } from "../videoWorkflow.js";
+import { renderConductor } from "../notebookMarkdown.js";
+import { useUndoNotifications } from "../undoNotifications.js";
+import { mergeConductorNotes } from "../conductorNotes.js";
+const props = defineProps({
+  repository: Object,
+  videoId: String,
+  reader: Boolean,
+});
+const emit = defineEmits(["home", "back", "open-creation", "workshop"]);
+const {
+  project,
+  data,
+  error,
+  loading,
+  saving,
+  dirty,
+  recovery,
+  storageError,
+  load,
+  save,
+  flush: flushWorkflow,
+  recover,
+  exportDraft,
+} = useVideoWorkflow(props, "conductor", props.reader);
+defineExpose({ flush });
+const draftSelected = ref(false);
+const selected = ref(""),
+  reading = ref(!!props.reader),
+  fontSize = ref(28),
+  list = ref(null),
+  dragged = ref(null),
+  dropTarget = ref(null);
+const sequences = computed(() => data.value?.sequences || []),
+  index = computed(() =>
+    Math.max(
+      0,
+      sequences.value.findIndex((s) => s.id === selected.value),
+    ),
+  ),
+  current = computed(() => sequences.value[index.value]),
+  next = computed(() => sequences.value[index.value + 1]);
+const notices=useUndoNotifications();
+const scriptEditor = ref(null);
+const pendingCues = computed(() =>
+  sequences.value.filter((s) => s.cues?.trim() || s.cuesLayout?.length),
+);
+async function flush() {
+  await scriptEditor.value?.flush();
+  await flushWorkflow();
+}
+const readerStage = ref(null),
+  menu = ref(null),
+  presenting = ref(false);
+async function openMenu(event, id) {
+  if (!(await selectPart(id))) return;
+  if (presenting.value) return;
+  selected.value = id;
+  menu.value = {
+    x: Math.min(event.clientX, window.innerWidth - 210),
+    y: Math.min(event.clientY, window.innerHeight - 190),
+  };
+}
+async function present() {
+  try {
+    await flush();
+  } catch {
+    return;
+  }
+  draftSelected.value = false;
+  reading.value = true;
+  presenting.value = true;
+  try {
+    await document.documentElement.requestFullscreen();
+  } catch {}
+}
+function fullscreenChanged() {
+  if (!document.fullscreenElement) presenting.value = false;
+}
+function closeMenu() {
+  menu.value = null;
+}
+function stopPresenting() {
+  presenting.value = false;
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+}
+watch(
+  () => current.value?.id,
+  () => {
+    menu.value = null;
+    nextTick(() => {
+      if (readerStage.value) readerStage.value.scrollTop = 0;
+    });
+  },
+);
+const support = computed(() =>
+    project.value?.creations.find((c) => c.id === current.value?.creationId),
+  ),
+  matchingSupports = computed(
+    () =>
+      project.value?.creations.filter(
+        (c) => c.app === current.value?.support,
+      ) || [],
+  );
+watch(
+  sequences,
+  (rows) => {
+    if (!props.reader)
+      for (const row of rows) {
+        const result = mergeConductorNotes(row);
+        if (result.merged) Object.assign(row, result.sequence);
+        if (row.scriptLayout) {
+          const text = row.scriptLayout.length
+            ? pageMarkdown(row.scriptLayout, row.images)
+            : row.script;
+          if (text.length <= 50000) {
+            row.script = text;
+            row.scriptLayout = null;
+          } else
+            error.value =
+              "Cette ancienne page dépasse la limite du document. Son contenu et sa mise en page sont conservés.";
+        }
+      }
+    if (rows.length && !rows.some((s) => s.id === selected.value))
+      selected.value = rows[0].id;
+  },
+  { deep: false },
+);
+async function go(action) {
+  try {
+    await flush();
+    action();
+  } catch {}
+}
+async function add(title) {
+  try {
+    await flush();
+  } catch {
+    return;
+  }
+  draftSelected.value = false;
+  if (sequences.value.length >= 100) return;
+  const row = newSequence(
+    typeof title === "string" ? title : "Nouvelle partie",
+  );
+  sequences.value.push(row);
+  selected.value = row.id;
+}
+async function starter() {
+  for (const title of [
+    "Accroche et objectif",
+    "Explication",
+    "Démonstration",
+    "Ce qu’il faut retenir",
+  ])
+    await add(title);
+  selected.value = sequences.value[0].id;
+}
+function move(from, to) {
+  if (to < 0 || to >= sequences.value.length || from === to) return;
+  const [row] = sequences.value.splice(from, 1);
+  sequences.value.splice(to, 0, row);
+}
+function dragOverPart(event, id){
+  if(!dragged.value)return;
+  const rect=event.currentTarget.getBoundingClientRect();
+  dropTarget.value={id,after:event.clientY>rect.top+rect.height/2};
+  event.dataTransfer.dropEffect='move';
+}
+function endPartDrag(){dragged.value=null;dropTarget.value=null;}
+function drop(target) {
+  const from=sequences.value.findIndex(row=>row.id===dragged.value);
+  const to=sequenceDropIndex(sequences.value.map(row=>row.id),dragged.value,target,dropTarget.value?.id===target&&dropTarget.value.after);
+  if(from>=0&&to>=0)move(from,to);
+  endPartDrag();
+}
+function duplicate() {
+  if (!current.value || sequences.value.length >= 100) return;
+  const row = {
+    ...JSON.parse(JSON.stringify(current.value)),
+    id: crypto.randomUUID(),
+    title: current.value.title + " · copie",
+  };
+  sequences.value.splice(index.value + 1, 0, row);
+  selected.value = row.id;
+}
+function remove() {
+  const at=index.value,row=current.value;if(!row)return;
+  const before=sequences.value[at-1]?.id,after=sequences.value[at+1]?.id;
+  sequences.value.splice(at,1);
+  selected.value=sequences.value[Math.min(at,sequences.value.length-1)]?.id||'';
+  notices.push('« '+(row.title||'Sans titre')+' » supprimée.',()=>{
+    if(sequences.value.some(item=>item.id===row.id))return;
+    const next=sequences.value.findIndex(item=>item.id===after),previous=sequences.value.findIndex(item=>item.id===before);
+    const target=next>=0?next:previous>=0?previous+1:Math.min(at,sequences.value.length);
+    sequences.value.splice(target,0,row);selected.value=row.id;
+  },()=>sequences.value.length<100);
+}
+async function selectPart(id) {
+  try {
+    await flush();
+    draftSelected.value = false;
+    selected.value = id;
+    return true;
+  } catch {
+    return false;
+  }
+}
+async function openDraft() {
+  try {
+    await flush();
+    draftSelected.value = true;
+  } catch {}
+}
+async function removePart(id) {
+  if (await selectPart(id)) remove();
+}
+function step(delta) {
+  const row = sequences.value[index.value + delta];
+  if (row) selected.value = row.id;
+}
+function supportChanged() {
+  current.value.creationId = "";
+}
+function openSupport() {
+  if (support.value)
+    go(() =>
+      emit("open-creation", props.videoId, support.value.app, support.value.id),
+    );
+}
+function portableMarkdown(value, sequence) {
+  return value.replace(
+    /frame-image:([\w-]+)/g,
+    (match, id) =>
+      sequence.images?.find((image) => image.id === id)?.src || match,
+  );
+}
+function exportMarkdown() {
+  downloadText(
+    "conducteur.md",
+    `# ${project.value.name}\n\n` +
+      sequences.value
+        .map(
+          (s, i) =>
+            `## ${i + 1}. ${s.title}\n\n${portableMarkdown(s.script, s)}\n\n**À montrer :** ${supportKinds.find(([k]) => k === s.support)?.[1] || ""}${s.creationId ? " · " + (project.value.creations.find((c) => c.id === s.creationId)?.name || "support retiré") : ""}${s.cues ? "\n\n**Instructions conservées :**\n" + portableMarkdown(s.cues, s) : ""}`,
+        )
+        .join("\n\n---\n\n"),
+    "text/markdown;charset=utf-8",
+  );
+}
+function keyboard(e) {
+  if (document.querySelector(".page-expanded")) {
+    if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
+      e.preventDefault();
+      flush().catch(() => {});
+    }
+    return;
+  }
+  if (e.key === "Escape") {
+    menu.value = null;
+    stopPresenting();
+    return;
+  }
+  if (e.key === "F12" && !props.reader) {
+    e.preventDefault();
+    present();
+    return;
+  }
+  if (e.key === "s" && (e.ctrlKey || e.metaKey)) {
+    e.preventDefault();
+    save().catch(() => {});
+    return;
+  }
+  if (
+    !reading.value ||
+    e.target.closest("input,textarea,select,[contenteditable=true]")
+  )
+    return;
+  if (e.key === " " && e.target.closest("button")) return;
+  if (["ArrowRight", "ArrowDown", "PageDown", " "].includes(e.key)) {
+    e.preventDefault();
+    step(1);
+  }
+  if (["ArrowLeft", "ArrowUp", "PageUp"].includes(e.key)) {
+    e.preventDefault();
+    step(-1);
+  }
+}
+onMounted(() => {
+  window.addEventListener("keydown", keyboard);
+  window.addEventListener("click", closeMenu);
+  document.addEventListener("fullscreenchange", fullscreenChanged);
+});
+onBeforeUnmount(() => {
+  window.removeEventListener("keydown", keyboard);
+  window.removeEventListener("click", closeMenu);
+  document.removeEventListener("fullscreenchange", fullscreenChanged);
+  if (presenting.value && document.fullscreenElement)
+    document.exitFullscreen().catch(() => {});
+});
 </script>
 <template>
- <main class="production-app conductor-app" :class="{'is-reading':reading,'is-presenting':presenting}">
-  <WorkspaceHeader title="" back-label="Vidéo" @back="go(()=>emit('back'))">
-   <template #context><span class="creation-context-name">{{project?.name}}</span><span class="production-test">TEST</span></template>
-   <template #file><button v-if="!reader" @click="save().catch(()=>{})">Enregistrer · Ctrl S</button><button :disabled="!project" @click="exportMarkdown">Exporter le conducteur en Markdown</button></template>
-   <template #actions><span class="save-state" role="status">{{reader?'Lecture synchronisée':saving?'Sauvegarde…':dirty?'Modifications en attente':'Enregistré'}}</span><VideoWorkflowNav v-if="!reader&&!presenting" active="conductor" @navigate="name=>go(()=>emit('workshop',name))"/><div v-if="!reader&&!draftSelected" class="workspace-switch"><button :class="{active:!reading}" @click="reading=false">Préparer</button><button :class="{active:reading}" @click="go(()=>{draftSelected=false;reading=true})">Aperçu</button></div><button v-if="!reader&&!presenting" class="btn primary" @click="present" title="Lancer la présentation · F12"><Play :size="16"/>Présenter</button><button v-if="presenting" class="btn" @click="stopPresenting">Quitter la lecture</button></template>
-  </WorkspaceHeader>
-  <WorkflowAlerts :error="error" :storage-error="storageError" :recovery="!!recovery" @retry="save().catch(()=>{})" @reload="load" @export="exportDraft" @recover="recover"/>
-  <p v-if="loading" class="production-loading">Ouverture du conducteur…</p>
-  <template v-else-if="project&&data">
+  <main
+    class="production-app conductor-app"
+    :class="{ 'is-reading': reading, 'is-presenting': presenting }"
+  >
+    <WorkspaceHeader title="" back-label="Vidéo" @home="go(() => emit('home'))" @back="go(() => emit('back'))">
+      <template #context
+        ><span class="creation-context-name">{{ project?.name }}</span
+        ><span class="production-test">TEST</span></template
+      >
+      <template #file
+        ><button
+          v-if="pendingCues.length"
+          @click="
+            downloadText(
+              'anciens-reperes.md',
+              pendingCues
+                .map(
+                  (s) => '## ' + s.title + '\n\n' + portableMarkdown(s.cues, s),
+                )
+                .join('\n\n'),
+            )
+          "
+        >
+          Exporter les anciens repères conservés</button
+        ><button v-if="!reader" @click="save().catch(() => {})">
+          Enregistrer · Ctrl S</button
+        ><button :disabled="!project" @click="exportMarkdown">
+          Exporter le conducteur en Markdown
+        </button></template
+      >
+      <template #actions
+        ><span class="save-state" role="status">{{
+          reader
+            ? "Lecture synchronisée"
+            : saving
+              ? "Sauvegarde…"
+              : dirty
+                ? "Modifications en attente"
+                : "Enregistré"
+        }}</span
+        ><VideoWorkflowNav
+          v-if="!reader && !presenting"
+          active="conductor"
+          @navigate="(name) => go(() => emit('workshop', name))"
+        />
+        <div v-if="!reader && !draftSelected" class="workspace-switch">
+          <button :class="{ active: !reading }" @click="reading = false">
+            Préparer</button
+          ><button
+            :class="{ active: reading }"
+            @click="
+              go(() => {
+                draftSelected = false;
+                reading = true;
+              })
+            "
+          >
+            Aperçu
+          </button>
+        </div>
+        <button
+          v-if="!reader && !presenting"
+          class="btn primary"
+          @click="present"
+          title="Lancer la présentation · F12"
+        >
+          <Play :size="16" />Présenter</button
+        ><button v-if="presenting" class="btn" @click="stopPresenting">
+          Quitter la lecture
+        </button></template
+      >
+    </WorkspaceHeader>
+    <WorkflowAlerts
+      :error="error"
+      :storage-error="storageError"
+      :recovery="!!recovery"
+      @retry="save().catch(() => {})"
+      @reload="load"
+      @export="exportDraft"
+      @recover="recover"
+    />
+    <p v-if="loading" class="production-loading">Ouverture du conducteur…</p>
+    <template v-else-if="project && data">
+      <div v-if="!sequences.length && reader" class="production-empty">
+        <span class="eyebrow">DU PLAN À L’ÉCRAN</span>
+        <h1>Garde le fil de ta vidéo.</h1>
+        <p v-if="reader">
+          Le conducteur est encore vide. Ajoute des parties dans la fenêtre de
+          préparation.
+        </p>
+        <template v-else
+          ><p>
+            Prépare ce que tu dis, ce que tu montres et tes repères. Puis garde
+            ce déroulé sous les yeux pendant ton tournage continu.
+          </p>
+          <div class="production-actions">
+            <button class="btn primary" @click="add">
+              Créer ma première partie</button
+            ><button class="btn" @click="starter">
+              Commencer avec un plan simple
+            </button>
+          </div></template
+        >
+      </div>
+      <div v-else-if="reading && !draftSelected" class="conductor-reader">
+        <aside class="reader-outline">
+          <button
+            v-if="!reader && !presenting"
+            class="draft-link"
+            @click="openDraft"
+          >
+            Brouillon</button
+          ><span class="eyebrow">LE FIL DE LA VIDÉO</span
+          ><button
+            v-for="(row, i) in sequences"
+            :key="row.id"
+            @contextmenu.prevent="!reader && openMenu($event, row.id)"
+            :class="{ active: row.id === current?.id }"
+            @click="selectPart(row.id)"
+          >
+            <span>{{ String(i + 1).padStart(2, "0") }}</span
+            >{{ row.title || "Sans titre" }}
+          </button>
+        </aside>
+        <section
+          ref="readerStage"
+          v-if="current"
+          class="reader-stage"
+          :style="{
+            '--reader-size':
+              Math.max(18, Math.min(60, Number(fontSize) || 28)) + 'px',
+          }"
+        >
+          <div class="reader-progress">
+            <span>PARTIE {{ index + 1 }} / {{ sequences.length }}</span
+            ><label v-if="!current.scriptLayout"
+              >Taille de lecture<input
+                v-model.number="fontSize"
+                type="number"
+                min="18"
+                max="60"
+                aria-label="Taille du texte en lecture"
+              />px</label
+            >
+            <div class="reader-support reader-support-top">
+              <Monitor :size="17" /><span
+                >{{ supportKinds.find(([k]) => k === current.support)?.[1]
+                }}<strong v-if="support"> · {{ support.name }}</strong
+                ><small v-else-if="current.creationId">
+                  · Support retiré de la vidéo</small
+                ></span
+              >
+            </div>
+          </div>
+          <h1>{{ current.title || "Sans titre" }}</h1>
+          <div class="reader-content">
+            <ConductorPage
+              v-if="current.scriptLayout"
+              :key="current.id + ':page'"
+              :layout="current.scriptLayout"
+              :images="current.images"
+              readonly
+            />
+            <div
+              v-else
+              :key="current.id"
+              class="reader-script notebook-preview"
+              v-html="
+                renderConductor(
+                  current.script || '*Aucun script pour cette partie.*',
+                  current.images,
+                )
+              "
+            />
+          </div>
+          <aside v-if="current.cues" class="reader-cues">
+            <span class="eyebrow">INSTRUCTIONS CONSERVÉES</span
+            ><ConductorPage
+              v-if="current.cuesLayout"
+              :key="current.id + ':repères-page'"
+              :layout="current.cuesLayout"
+              :images="current.images"
+              readonly
+            />
+            <div
+              v-else
+              class="notebook-preview"
+              v-html="renderConductor(current.cues, current.images)"
+            />
+          </aside>
 
-   <div v-if="draftSelected&&!reader&&!presenting" class="conductor-draft-layout"><aside class="conductor-outline"><button class="draft-link active" aria-current="page">Brouillon</button><ol><li v-for="(row,i) in sequences" :key="row.id"><button @click="selectPart(row.id)"><span>{{i+1}}</span><strong>{{row.title||'Sans titre'}}</strong></button></li></ol><button class="btn" @click="add">Ajouter une partie</button></aside><section class="conductor-editor conductor-draft"><h1>Brouillon</h1><p>Tes idées et notes de préparation. Cette page reste hors présentation.</p><textarea v-model="data.draft" aria-label="Brouillon de la vidéo" maxlength="20000" placeholder="Une idée, une question à creuser, un plan provisoire…"/></section></div>
-   <div v-else-if="!sequences.length" class="production-empty"><span class="eyebrow">DU PLAN À L’ÉCRAN</span><h1>Garde le fil de ta vidéo.</h1><p v-if="reader">Le conducteur est encore vide. Ajoute des parties dans la fenêtre de préparation.</p><template v-else><p>Prépare ce que tu dis, ce que tu montres et tes repères. Puis garde ce déroulé sous les yeux pendant ton tournage continu.</p><div class="production-actions"><button class="btn primary" @click="add">Créer ma première partie</button><button class="btn" @click="starter">Commencer avec un plan simple</button></div></template></div>
-   <div v-else-if="reading" class="conductor-reader">
-    <aside class="reader-outline"><button v-if="!reader&&!presenting" class="draft-link" @click="openDraft">Brouillon</button><span class="eyebrow">LE FIL DE LA VIDÉO</span><button v-for="(row,i) in sequences" :key="row.id" @contextmenu.prevent="!reader&&openMenu($event,row.id)" :class="{active:row.id===current?.id}" @click="selectPart(row.id)"><span>{{String(i+1).padStart(2,'0')}}</span>{{row.title||'Sans titre'}}</button></aside>
-    <section ref="readerStage" v-if="current" class="reader-stage" :style="{'--reader-size':Math.max(18,Math.min(60,Number(fontSize)||28))+'px'}"><div class="reader-progress"><span>PARTIE {{index+1}} / {{sequences.length}}</span><label v-if="!current.scriptLayout">Taille de lecture<input v-model.number="fontSize" type="number" min="18" max="60" aria-label="Taille du texte en lecture">px</label></div><h1>{{current.title||'Sans titre'}}</h1><div class="reader-content"><ConductorPage v-if="current.scriptLayout" :key="current.id+':page'" :layout="current.scriptLayout" :images="current.images" readonly/><div v-else :key="current.id" class="reader-script notebook-preview" v-html="renderConductor(current.script||'*Aucun script pour cette partie.*',current.images)"/></div><aside v-if="current.cues" class="reader-cues"><span class="eyebrow">MES REPÈRES</span><ConductorPage v-if="current.cuesLayout" :key="current.id+':repères-page'" :layout="current.cuesLayout" :images="current.images" readonly/><div v-else class="notebook-preview" v-html="renderConductor(current.cues,current.images)"/></aside><div class="reader-support"><Monitor :size="17"/><span>{{supportKinds.find(([k])=>k===current.support)?.[1]}}<strong v-if="support"> · {{support.name}}</strong><small v-else-if="current.creationId"> · Support retiré de la vidéo</small></span></div><footer><button class="btn" :disabled="index===0" @click="step(-1)"><ChevronLeft :size="16"/>Précédente</button><span>{{next?'Ensuite : '+(next.title||'Sans titre'):'Fin du conducteur'}}<small>← → · Espace pour avancer · aucun minutage imposé</small></span><button class="btn primary" :disabled="index===sequences.length-1" @click="step(1)">Suivante<ChevronRight :size="16"/></button></footer></section>
-   </div>
-   <div v-else class="conductor-layout">
-    <aside class="conductor-outline"><button class="draft-link" @click="openDraft">Brouillon</button><header><div><span class="eyebrow">DÉROULÉ</span><strong>{{sequences.length}} parties</strong></div><button class="icon-btn" :disabled="sequences.length>=100" aria-label="Ajouter une partie" @click="add"><Plus :size="19"/></button></header><ol ref="list"><li v-for="(row,i) in sequences" :key="row.id" @contextmenu.prevent="openMenu($event,row.id)" :class="{active:row.id===current?.id}" @dragover.prevent @drop.prevent="drop(row.id)"><button draggable="true" @dragstart="dragged=row.id;$event.dataTransfer.setData('text/plain',row.id)" @dragend="dragged=null" @click="selectPart(row.id)"><span>{{String(i+1).padStart(2,'0')}}</span><div><strong>{{row.title||'Sans titre'}}</strong><small>{{supportKinds.find(([k])=>k===row.support)?.[1]}}</small></div></button><div class="outline-move"><button class="icon-btn" :aria-label="'Options de la partie '+(i+1)" @click.stop="openMenu($event,row.id)">⋯</button><button class="icon-btn" :aria-label="'Supprimer la partie '+(i+1)" @click="removePart(row.id)"><Trash2 :size="13"/></button><button class="icon-btn" :disabled="i===0" :aria-label="'Monter la partie '+(i+1)" @click="move(i,i-1)"><ArrowUp :size="13"/></button><button class="icon-btn" :disabled="i===sequences.length-1" :aria-label="'Descendre la partie '+(i+1)" @click="move(i,i+1)"><ArrowDown :size="13"/></button></div></li></ol><button class="btn" :disabled="sequences.length>=100" @click="add"><Plus :size="15"/>Ajouter une partie</button></aside>
-    <section v-if="current" class="conductor-editor"><div v-if="removed" class="production-undo" role="status">Partie supprimée.<button class="btn" :disabled="sequences.length>=100" @click="undoRemove">Annuler</button></div><header class="production-editor-heading"><span class="eyebrow">PARTIE {{index+1}}</span></header><input v-model="current.title" class="sequence-title" aria-label="Titre de la partie" placeholder="Le titre de cette partie" maxlength="200">    <aside v-if="current" class="conductor-support"><span class="eyebrow">CE QUE JE MONTRE</span><label class="production-field">Support<select v-model="current.support" aria-label="Type de support" @change="supportChanged"><option v-for="[id,label] in supportKinds" :key="id" :value="id">{{label}}</option></select></label><template v-if="['slides','banners'].includes(current.support)"><label class="production-field">Création existante<select v-model="current.creationId" aria-label="Création associée"><option value="">Choisir plus tard</option><option v-for="row in matchingSupports" :key="row.id" :value="row.id">{{row.name}}</option></select></label><p v-if="current.creationId&&!support" class="field-help">Cette création a été retirée de la vidéo.</p><button v-if="support" :key="support.id" class="support-preview" @click="openSupport"><LibraryPreview :repository="repository" :creation="support"/><span>Ouvrir {{support.name}}<ExternalLink :size="14"/></span></button><p v-else class="field-help">Les créations de la fiche vidéo sont proposées ici. Aucun document n’est dupliqué.</p></template><p v-else class="field-help">Ce repère t’indique où porter ton attention pendant l’enregistrement.</p></aside><div class="conductor-documents"><div><ConductorDocumentCard :key="current.id+':script'" v-model:layout="current.scriptLayout" ref="scriptEditor" v-model="current.script" :other-content="current.cues" v-model:images="current.images" label="Ce que je dis" @error="error=$event"/></div><div><ConductorDocumentCard private-notes :key="current.id+':cues'" v-model:layout="current.cuesLayout" ref="cuesEditor" :max-length="20000" v-model="current.cues" :other-content="current.script" v-model:images="current.images" label="Mes repères" @error="error=$event"/></div></div></section>
-
-   </div>
-   <div v-if="removed&&!reader&&reading" class="production-undo">Partie supprimée.<button class="btn" @click="undoRemove">Annuler</button></div>
-   <div v-if="!sequences.length&&removed&&!reader" class="production-undo">Dernière partie supprimée.<button class="btn" @click="undoRemove">Annuler</button></div>
-  </template>
-  <div v-if="menu" role="menu" aria-label="Actions de la partie" class="conductor-context" :style="{left:menu.x+'px',top:menu.y+'px'}" @click="menu=null">
-   <button role="menuitem" @click="reading=false">Modifier la partie</button><button role="menuitem" :disabled="sequences.length>=100" @click="duplicate">Dupliquer la partie</button><button role="menuitem" :disabled="index===0" @click="move(index,index-1)">Monter</button><button role="menuitem" :disabled="index===sequences.length-1" @click="move(index,index+1)">Descendre</button><button role="menuitem" @click="remove">Supprimer la partie</button>
-  </div>
- </main>
+          <footer>
+            <button class="btn" :disabled="index === 0" @click="step(-1)">
+              <ChevronLeft :size="16" />Précédente</button
+            ><span
+              >{{
+                next
+                  ? "Ensuite : " + (next.title || "Sans titre")
+                  : "Fin du conducteur"
+              }}<small
+                >← → · Espace pour avancer · aucun minutage imposé</small
+              ></span
+            ><button
+              class="btn primary"
+              :disabled="index === sequences.length - 1"
+              @click="step(1)"
+            >
+              Suivante<ChevronRight :size="16" />
+            </button>
+          </footer>
+        </section>
+      </div>
+      <div v-else class="conductor-layout">
+        <aside class="conductor-outline">
+          <button
+            class="draft-link"
+            :class="{ active: draftSelected }"
+            @click="openDraft"
+          >
+            Brouillon
+          </button>
+          <header>
+            <div>
+              <span class="eyebrow">DÉROULÉ</span
+              ><strong>{{ sequences.length }} parties</strong>
+            </div>
+            <button
+              class="icon-btn"
+              :disabled="sequences.length >= 100"
+              aria-label="Ajouter une partie"
+              @click="add"
+            >
+              <Plus :size="19" />
+            </button>
+          </header>
+          <ol ref="list">
+            <li
+              v-for="(row, i) in sequences"
+              :key="row.id"
+              @contextmenu.prevent="openMenu($event, row.id)"
+              :class="{ active: !draftSelected && row.id === current?.id, 'part-drop-before': dropTarget?.id===row.id&&!dropTarget.after, 'part-drop-after': dropTarget?.id===row.id&&dropTarget.after, 'part-dragging':dragged===row.id }"
+              @dragover.prevent="dragOverPart($event,row.id)"
+              @drop.prevent.stop="drop(row.id)"
+            >
+              <button
+                draggable="true"
+                @dragstart="
+                  dragged = row.id;
+                  $event.dataTransfer.setData('text/plain', row.id);
+                "
+                @dragend="endPartDrag"
+                @click="selectPart(row.id)"
+              >
+                <span>{{ String(i + 1).padStart(2, "0") }}</span>
+                <div>
+                  <strong>{{ row.title || "Sans titre" }}</strong
+                  ><small>{{
+                    supportKinds.find(([k]) => k === row.support)?.[1]
+                  }}</small>
+                </div>
+              </button>
+              <div class="outline-move">
+                <button
+                  class="icon-btn"
+                  :aria-label="'Options de la partie ' + (i + 1)"
+                  @click.stop="openMenu($event, row.id)"
+                >
+                  ⋯</button
+                ><button
+                  class="icon-btn"
+                  :aria-label="'Supprimer la partie ' + (i + 1)"
+                  @click="removePart(row.id)"
+                >
+                  <Trash2 :size="13" /></button
+                ><button
+                  class="icon-btn"
+                  :disabled="i === 0"
+                  :aria-label="'Monter la partie ' + (i + 1)"
+                  @click="move(i, i - 1)"
+                >
+                  <ArrowUp :size="13" /></button
+                ><button
+                  class="icon-btn"
+                  :disabled="i === sequences.length - 1"
+                  :aria-label="'Descendre la partie ' + (i + 1)"
+                  @click="move(i, i + 1)"
+                >
+                  <ArrowDown :size="13" />
+                </button>
+              </div>
+            </li>
+          </ol>
+          <button class="btn" :disabled="sequences.length >= 100" @click="add">
+            <Plus :size="15" />Ajouter une partie
+          </button>
+        </aside>
+        <section v-if="draftSelected" class="conductor-editor conductor-draft">
+          <h1>Brouillon</h1>
+          <p>
+            Tes idées et notes de préparation. Cette page reste hors
+            présentation.
+          </p>
+          <textarea
+            v-model="data.draft"
+            aria-label="Brouillon de la vidéo"
+            maxlength="20000"
+            placeholder="Une idée, une question à creuser, un plan provisoire…"
+          />
+        </section>
+        <section v-else-if="current" class="conductor-editor">
+          <p v-if="current.cues" class="preparation-legacy-notice">
+            Les anciens repères de cette partie sont conservés. Leur volume
+            empêche le regroupement automatique ; ils restent exportables depuis
+            Fichier.
+          </p>
+          <header class="production-editor-heading">
+            <span class="eyebrow">PARTIE {{ index + 1 }}</span>
+          </header>
+          <input
+            v-model="current.title"
+            class="sequence-title"
+            aria-label="Titre de la partie"
+            placeholder="Le titre de cette partie"
+            maxlength="200"
+          />
+          <div class="conductor-document-flow">
+            <section class="document-support">
+              <aside v-if="current" class="conductor-support">
+                <span class="eyebrow">CE QUE JE MONTRE</span
+                ><label class="production-field"
+                  >Support<select
+                    v-model="current.support"
+                    aria-label="Type de support"
+                    @change="supportChanged"
+                  >
+                    <option
+                      v-for="[id, label] in supportKinds"
+                      :key="id"
+                      :value="id"
+                    >
+                      {{ label }}
+                    </option>
+                  </select></label
+                ><template
+                  v-if="['slides', 'banners'].includes(current.support)"
+                  ><label class="production-field"
+                    >Création existante<select
+                      v-model="current.creationId"
+                      aria-label="Création associée"
+                    >
+                      <option value="">Choisir plus tard</option>
+                      <option
+                        v-for="row in matchingSupports"
+                        :key="row.id"
+                        :value="row.id"
+                      >
+                        {{ row.name }}
+                      </option>
+                    </select></label
+                  >
+                  <p v-if="current.creationId && !support" class="field-help">
+                    Cette création a été retirée de la vidéo.
+                  </p>
+                  <button
+                    v-if="support"
+                    :key="support.id"
+                    class="support-preview"
+                    @click="openSupport"
+                  >
+                    <LibraryPreview
+                      :repository="repository"
+                      :creation="support"
+                    /><span
+                      >Ouvrir {{ support.name }}<ExternalLink :size="14"
+                    /></span>
+                  </button>
+                  <p v-else class="field-help">
+                    Les créations de la fiche vidéo sont proposées ici. Aucun
+                    document n’est dupliqué.
+                  </p></template
+                >
+                <p v-else class="field-help">
+                  Ce repère t’indique où porter ton attention pendant
+                  l’enregistrement.
+                </p>
+              </aside>
+            </section>
+            <ConductorRichEditor
+              :key="current.id"
+              ref="scriptEditor"
+              v-model="current.script"
+              v-model:images="current.images"
+              :other-content="current.cues"
+              label="Texte et instructions"
+              document-mode
+              @error="error = $event"
+              @update:model-value="current.scriptLayout = null"
+            />
+          </div>
+          <footer class="preparation-navigation">
+            <button
+              class="btn"
+              :disabled="index === 0"
+              @click="go(() => step(-1))"
+            >
+              <ChevronLeft :size="16" />Partie précédente</button
+            ><span
+              >{{ index + 1 }} / {{ sequences.length
+              }}<small>{{
+                next
+                  ? "Ensuite : " + (next.title || "Sans titre")
+                  : "Fin du conducteur"
+              }}</small></span
+            ><button class="btn" v-if="next" @click="go(() => step(1))">
+              Partie suivante<ChevronRight :size="16" /></button
+            ><button
+              v-else
+              class="btn"
+              :disabled="sequences.length >= 100"
+              @click="add"
+            >
+              <Plus :size="16" />Ajouter une partie
+            </button>
+          </footer>
+        </section>
+        <section v-else class="conductor-editor production-empty">
+          <span class="eyebrow">DU PLAN À L’ÉCRAN</span>
+          <h1>Garde le fil de ta vidéo.</h1>
+          <p v-if="reader">
+            Le conducteur est encore vide. Ajoute des parties dans la fenêtre de
+            préparation.
+          </p>
+          <template v-else
+            ><p>
+              Prépare ce que tu dis, ce que tu montres et tes repères. Puis
+              garde ce déroulé sous les yeux pendant ton tournage continu.
+            </p>
+            <div class="production-actions">
+              <button class="btn primary" @click="add">
+                Créer ma première partie</button
+              ><button class="btn" @click="starter">
+                Commencer avec un plan simple
+              </button>
+            </div></template
+          >
+        </section>
+      </div>
+    </template>
+    <div
+      v-if="menu"
+      role="menu"
+      aria-label="Actions de la partie"
+      class="conductor-context"
+      :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
+      @click="menu = null"
+    >
+      <button role="menuitem" @click="reading = false">
+        Modifier la partie</button
+      ><button
+        role="menuitem"
+        :disabled="sequences.length >= 100"
+        @click="duplicate"
+      >
+        Dupliquer la partie</button
+      ><button
+        role="menuitem"
+        :disabled="index === 0"
+        @click="move(index, index - 1)"
+      >
+        Monter</button
+      ><button
+        role="menuitem"
+        :disabled="index === sequences.length - 1"
+        @click="move(index, index + 1)"
+      >
+        Descendre</button
+      ><button role="menuitem" @click="remove">Supprimer la partie</button>
+    </div>
+  </main>
 </template>

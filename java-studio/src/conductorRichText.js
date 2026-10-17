@@ -1,6 +1,8 @@
 // Serialize the visual editor to a restricted Markdown vocabulary, never stored HTML.
 const escapeText = (value) => value.replace(/([\\`*_[\]<>])/g, "\\$1");
 export function richMarkdown(root) {
+  const codeBlocks = [],
+    codePrefix = "\u0000" + crypto.randomUUID() + "\u0000";
   function inline(node, color = null) {
     if (node.nodeType === 3) {
       const value = escapeText(node.textContent || "");
@@ -31,23 +33,21 @@ export function richMarkdown(root) {
       const code = node.querySelector("code"),
         language = code?.className?.match(/language-([\w-]+)/)?.[1] || "";
       const value =
-        (code || node).innerText ?? (code || node).textContent ?? "";
+        node.innerText ??
+        node.textContent ??
+        code?.innerText ??
+        code?.textContent ??
+        "";
       const fence = "`".repeat(
         Math.max(
           3,
           ...Array.from(value.matchAll(/`+/g), (m) => m[0].length + 1),
         ),
       );
-      return (
-        "\n\n" +
-        fence +
-        language +
-        "\n" +
-        value.replace(/\n$/, "") +
-        "\n" +
-        fence +
-        "\n\n"
-      );
+      const fenced =
+        fence + language + "\n" + value.replace(/\n$/, "") + "\n" + fence;
+      const index = codeBlocks.push(fenced) - 1;
+      return "\n\n" + codePrefix + index + "\u0000\n\n";
     }
     if (tag === "code")
       return "`" + (node.textContent || "").replace(/`/g, "\\`") + "`";
@@ -70,8 +70,17 @@ export function richMarkdown(root) {
             ")"
         : inside();
     }
-    if (/^h[1-6]$/.test(tag))
-      return "\n\n" + "#".repeat(Number(tag[1])) + " " + inside() + "\n\n";
+    if (/^h[1-6]$/.test(tag)) {
+      const value = inside();
+      return value.trim()
+        ? "\n\n" + "#".repeat(Number(tag[1])) + " " + value + "\n\n"
+        : "\n\n";
+    }
+    if (tag === "aside" && node.getAttribute("data-private-note")) {
+      const body=inside().trim();
+      const fence=":".repeat(Math.max(3,...Array.from(body.matchAll(/^(:{3,})/gm),match=>match[1].length+1)));
+      return "\n\n"+fence+"comment\n"+body+"\n"+fence+"\n\n";
+    }
     if (tag === "blockquote")
       return (
         "\n\n" +
@@ -119,9 +128,14 @@ export function richMarkdown(root) {
     if (tag === "p" || tag === "div") return "\n\n" + inside() + "\n\n";
     return inside();
   }
-  return Array.from(root.childNodes || [])
+  const source = Array.from(root.childNodes || [])
     .map((child) => inline(child))
     .join("")
     .replace(/\n{3,}/g, "\n\n")
     .trim();
+  return codeBlocks.reduce(
+    (result, code, index) =>
+      result.replaceAll(codePrefix + index + "\u0000", code),
+    source,
+  );
 }

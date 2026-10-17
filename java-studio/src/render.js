@@ -1,3 +1,4 @@
+import {svgImageSource} from './svgColors.js';
 import { layoutRichText } from './richTextLayout.js';
 import { textSegments } from './richText.js';
 import {graphemes,typewriterState} from './typewriter.js';
@@ -31,7 +32,7 @@ function imageAsset(src) {
   }
   return images.get(src);
 }
-export async function prepareImages(slides) { await Promise.all(slides.flatMap(s=>Object.values(s.elements||{}).filter(e=>e.type==='image'&&e.src).map(e=>imageAsset(e.src).promise))); }
+export async function prepareImages(slides,theme={}) { await Promise.all(slides.flatMap(s=>Object.values(s.elements||{}).filter(e=>e.type==='image'&&e.src).map(e=>imageAsset(svgImageSource(e,theme)).promise))); }
 export function imageDrawingRect(p,img,fit='contain') {
   const h=p.h||360, scale=fit==='cover'?Math.max(p.w/img.width,h/img.height):Math.min(p.w/img.width,h/img.height);
   const w=img.width*scale, height=img.height*scale;
@@ -40,7 +41,7 @@ export function imageDrawingRect(p,img,fit='contain') {
 export function drawImageBlock(ctx,s,key,theme) {
   const p=s.positions[key], e=s.elements[key], h=p.h||360;
   if(!e.src||e.background)round(ctx,p.x,p.y,p.w,h,18,theme.panel);
-  const asset=e.src?imageAsset(e.src):null;
+  const asset=e.src?imageAsset(svgImageSource(e,theme)):null;
   if (!asset?.ready) {
     const glow=ctx.createRadialGradient(p.x+p.w/2,p.y+h/2,0,p.x+p.w/2,p.y+h/2,p.w/2);glow.addColorStop(0,theme.accent+'28');glow.addColorStop(1,theme.panel);ctx.fillStyle=glow;ctx.fillRect(p.x+16,p.y+16,p.w-32,h-32);
     const cx=p.x+p.w/2, cy=p.y+h/2;
@@ -210,7 +211,7 @@ export function renderStepTransition(ctx,from,to,theme,progress,options={}){
   const a=from.positions[key],b=to.positions[key];positions[key]=interpolatePosition({...a,h:a.h||blockBounds(ctx,from,key).h},{...b,h:b.h||blockBounds(ctx,to,key).h},progress);if(blockType(to,key)==='text')positions[key].autoSize=false;interpolated.add(key);
  }
  if(!options.transparent)background(ctx,theme,options.gradient!==false);
- const state=(alpha,visible=true)=>({alpha,visible,x:0,y:0,scale:1});
- renderSlide(ctx,from,theme,{...options,transparent:true,order:fromOrder,objectMotion:Object.fromEntries(sourceKeys.map(k=>[k,state(1-ease,!interpolated.has(k))]))});
- renderSlide(ctx,{...to,positions},theme,{...options,transparent:true,objectMotion:Object.fromEntries(targetKeys.map(k=>[k,state(interpolated.has(k)?1:ease)]))});
+ const state=(alpha,visible=true,motion)=>({...motion,alpha:alpha*(motion?.alpha??1),visible:visible&&motion?.visible!==false,x:motion?.x||0,y:motion?.y||0,scale:motion?.scale??1});
+ renderSlide(ctx,from,theme,{...options,transparent:true,order:fromOrder,objectMotion:Object.fromEntries(sourceKeys.map(k=>[k,state(1-ease,!interpolated.has(k),options.fromObjectMotion?.[k])]))});
+ renderSlide(ctx,{...to,positions},theme,{...options,transparent:true,objectMotion:Object.fromEntries(targetKeys.map(k=>[k,state(interpolated.has(k)?1:ease,true,options.objectMotion?.[k])]))});
 }

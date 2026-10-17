@@ -1,3 +1,4 @@
+import {overlayKeys} from './overlayTimeline.js';
 import {normalizeClip} from './overlayAnimation.js';
 import {normalizeBits} from './bits.js';
 import {setPrimitive} from './javaPrimitives.js';
@@ -5,7 +6,7 @@ import { makeSlide, normalizeSlide } from './model.js';
 import { normalizeShape } from './shapes.js';
 export const overlayFormats = [
  ['lower','Bandeau de titre','Titres'],['chapter','Titre de chapitre','Titres'],['tip','À retenir','Informations'],['video','Voir une autre vidéo','Vidéo'],
- ['video-thumbnail','Vidéo avec miniature','Vidéo'],['speaker','Portrait intervenant','Titres'],['nameplate','Cartouche compact','Titres'],['headline','Titre panoramique','Titres'],['section','Numéro de chapitre','Titres'],['quote','Citation','Informations'],['definition','Définition','Informations'],['warning','Attention','Informations'],['success','Validation','Informations'],['checklist','Liste de contrôle','Informations'],['steps','Trois étapes','Informations'],['stat','Chiffre clé','Informations'],['compare','Avant / après','Informations'],['subscribe','Abonnement','Social'],['social','Profil social','Social'],['website','Lien du site','Social'],['podcast','Épisode podcast','Social'],['credits','Crédits','Titres'],['endcard','Écran de fin','Vidéo'],['product','Fiche produit','Vidéo'],['java-primitive','Fiche de type Java','Java'],['java-bits','Octets et bits','Java'],
+ ['video-thumbnail','Vidéo avec miniature','Vidéo'],['speaker','Portrait intervenant','Titres'],['nameplate','Cartouche compact','Titres'],['headline','Titre panoramique','Titres'],['section','Numéro de chapitre','Titres'],['quote','Citation','Informations'],['definition','Définition','Informations'],['warning','Attention','Informations'],['success','Validation','Informations'],['checklist','Liste de contrôle','Informations'],['steps','Trois étapes','Informations'],['stat','Chiffre clé','Informations'],['compare','Avant / après','Informations'],['subscribe','Abonnement','Social'],['like-subscribe','J’aime et abonnement · animé','Social'],['social','Profil social','Social'],['website','Lien du site','Social'],['podcast','Épisode podcast','Social'],['credits','Crédits','Titres'],['endcard','Écran de fin','Vidéo'],['youtube-outro','Outro YouTube · vidéo et playlist','Vidéo'],['product','Fiche produit','Vidéo'],['java-primitive','Fiche de type Java','Java'],['java-bits','Octets et bits','Java'],
 ].map(([id,name,category])=>({id,name,category}));
 export function makeOverlay(id='lower',legacy={}){
  const format=overlayFormats.find(f=>f.id===id)||overlayFormats[0];
@@ -41,11 +42,37 @@ export function makeOverlay(id='lower',legacy={}){
  case 'steps':for(let i=0;i<3;i++){box('Carte'+i,100+i*580,810,550,190);txt('Étape'+i,String(i+1).padStart(2,'0'),125+i*580,835,80,70,48,'accent',true);txt('Texte'+i,['Préparer','Créer','Partager'][i],230+i*580,860,380,90,38,'ink',true);}break;
  case 'stat':box('Carte',1200,670,580,330);txt('Valeur','98 %',1250,705,480,150,108,'accent',true);txt('Label','Votre indicateur clé',1250,895,480,60,30);break;
  case 'compare':for(let i=0;i<2;i++){box('Carte'+i,120+i*860,770,820,240);txt('Label'+i,i?'APRÈS':'AVANT',165+i*860,805,720,40,26,i?'accent':'secondary',true);txt('Texte'+i,i?'Le résultat amélioré':'Le point de départ',165+i*860,875,720,90,42,'ink',true);}break;
+ case 'like-subscribe':
+  box('Carte',350,750,1220,260,'bg',9);
+  box('Accent',350,750,1220,6,'accent',0);
+  txt('Invitation','Cette vidéo vous aide ?',390,783,1140,52,34,'ink',true);
+  box('Like',390,865,270,100,'panel',16);
+  add('shapeCoeur',normalizeShape({shape:'heart',name:'J’aime · cœur',fillRole:'accent',filled:true}),413,895,40,38);
+  txt('Like','J’aime',468,885,170,60,32,'ink',true);
+  box('Abonnement',690,865,440,100,'accent',16);
+  txt('Abonnement','Abonnez-vous',720,885,380,60,34,'bg',true);
+  txt('Merci','Merci du soutien !',1160,879,370,72,28,'ink');
+  s.groups=[{id:'cta-intro',keys:['shapeCarte','shapeAccent','textInvitation']},{id:'cta-like',keys:['shapeLike','shapeCoeur','textLike']},{id:'cta-subscribe',keys:['shapeAbonnement','textAbonnement']}];
+  break;
  case 'subscribe':box('Bouton',610,830,700,160,'accent',30);txt('Action','Abonnez-vous',660,873,600,80,52,'bg',true);break;
  case 'social':box('Carte',100,825,860,175);box('Badge',130,855,115,115,'accent',45);txt('Symbole','@',153,869,75,90,60,'bg',true);txt('Profil','@votreprofil',280,875,630,75,48,'ink',true);break;
  case 'website':box('Carte',440,890,1040,120);txt('Lien','votre-site.fr',490,915,940,70,44,'accent',true);break;
  case 'podcast':box('Carte',110,730,1100,270);img('Couverture',140,760,210,210);txt('Épisode','ÉPISODE 12',390,765,765,45,26,'accent',true);txt('Titre','Le titre de votre épisode',390,830,765,115,48,'ink',true);break;
  case 'credits':box('Carte',1240,490,570,520);txt('Label','CRÉDITS',1280,530,480,45,26,'accent',true);txt('Crédits','Réalisation · Prénom Nom\nImages · Votre source\nMusique · Votre artiste',1280,625,480,335,30);break;
+ case 'youtube-outro':{
+  const solid=(key,shape,x,y,w,h,fill,outlined=false)=>add(key,normalizeShape({shape,name:key==='shapeChaine'?'Chaîne · cercle':key==='shapeFondVert'?'Fond vert':key==='shapeVideo'?'Zone vidéo · 16:9':'Zone playlist · 16:9',fill,stroke:'#f7f5f0',outlined,strokeWidth:3,radius:0}),x,y,w,h);
+  const label=(key,text,x,y,w,h,size,bold=false)=>{txt(key,text,x,y,w,h,size,'ink',bold);const p=s.positions['text'+key];p.textStyle={...p.textStyle,color:'#f7f5f0',colorRole:null,align:'center',verticalAlign:'middle'};};
+  solid('shapeFondVert','rect',0,0,1920,1080,'#00ff00');s.positions.shapeFondVert.locked=true;
+  label('Titre','On se retrouve dans la prochaine vidéo.',96,160,1728,100,54,true);
+  solid('shapeVideo','rect',96,380,640,360,'#232a32',true);
+  solid('shapePlaylist','rect',1184,380,640,360,'#232a32',true);
+  solid('shapeChaine','circle',813,413,294,294,'#232a32',true);
+  label('Video','UNE VIDÉO À DÉCOUVRIR',96,774,640,94,28,true);
+  label('Playlist',legacy.playlist||'LA PLAYLIST DE CETTE VIDÉO',1184,774,640,94,28,true);
+  label('Chaine','ABONNEZ-VOUS',768,774,384,94,25,true);
+  s.groups=[{id:'outro-video',keys:['shapeVideo','textVideo']},{id:'outro-playlist',keys:['shapePlaylist','textPlaylist']},{id:'outro-channel',keys:['shapeChaine','textChaine']}];
+  break;
+ }
  case 'endcard':box('Carte',110,500,1700,500);img('Vidéo1',150,540,720,405);img('Vidéo2',1020,540,720,405);txt('Titre','À suivre sur la chaîne',110,370,1700,90,62,'ink',true);break;
  case 'product':box('Carte',1040,470,770,540);img('Produit',1080,510,690,260);txt('Nom','Votre produit',1080,815,690,70,48,'ink',true);txt('Prix','Dès 49 € · En savoir plus',1080,915,690,55,32,'accent');break;
  }
@@ -53,7 +80,23 @@ export function makeOverlay(id='lower',legacy={}){
  if(format.id==='success')for(const p of Object.values(s.positions)){p.x-=960;p.y+=320;}
  return s;
 }
+// Explicit tracks keep each visual group together in both preview and export.
+export function makeOverlayClip(id,keys=[]){
+ if(id==='youtube-outro'){
+  const tracks={};for(const key of keys){const start=key==='shapeFondVert'?0:['shapeVideo','textVideo'].includes(key)?.5:['shapePlaylist','textPlaylist'].includes(key)?1:['shapeChaine','textChaine'].includes(key)?1.5:0;tracks[key]={start,end:15,entry:.45,exit:.5,animation:key==='shapeFondVert'?'none':'fade',exitAnimation:key==='shapeFondVert'?'none':'fade'};}
+  return normalizeClip({duration:15,stagger:0,format:'mov',background:'chroma',chroma:'#00ff00',tracks},keys);
+ }
+ if(id!=='like-subscribe')return normalizeClip({},keys);
+ const tracks={};
+ for(const [members,start,animation] of [
+  [['shapeCarte','shapeAccent','textInvitation'],0,'up'],
+  [['shapeLike','shapeCoeur','textLike'],.9,'zoom'],
+  [['shapeAbonnement','textAbonnement'],2.7,'up'],
+  [['textMerci'],4.8,'fade'],
+ ])for(const key of members)tracks[key]={start,end:8,entry:.55,exit:.6,animation,exitAnimation:'fade'};
+ return normalizeClip({duration:8,entry:.55,exit:.6,stagger:0,format:'mov',background:'transparent',tracks},keys);
+}
 export function normalizeOverlay(raw){
- if(raw?.slide){try{const slide=normalizeSlide(raw.slide);slide.overlayFormat=overlayFormats.some(f=>f.id===raw.type)?raw.type:'lower';slide.overlayName=String(raw.slide.overlayName||overlayFormats.find(f=>f.id===slide.overlayFormat).name).slice(0,100);return {type:slide.overlayFormat,slide,clip:normalizeClip(raw.clip,slide.blockKeys)};}catch{}}
- const type=overlayFormats.some(f=>f.id===raw?.type)?raw.type:'lower';const slide=makeOverlay(type,raw||{});return {type,slide,clip:normalizeClip(raw?.clip,slide.blockKeys)};
+ if(raw?.slide){try{const slide=normalizeSlide(raw.slide);slide.overlayFormat=overlayFormats.some(f=>f.id===raw.type)?raw.type:'lower';slide.overlayName=String(raw.slide.overlayName||overlayFormats.find(f=>f.id===slide.overlayFormat).name).slice(0,100);return {type:slide.overlayFormat,slide,clip:normalizeClip(raw.clip??makeOverlayClip(slide.overlayFormat,overlayKeys(slide)),overlayKeys(slide))};}catch{}}
+ const type=overlayFormats.some(f=>f.id===raw?.type)?raw.type:'lower';const slide=makeOverlay(type,raw||{});return {type,slide,clip:normalizeClip(raw?.clip??makeOverlayClip(type,overlayKeys(slide)),overlayKeys(slide))};
 }

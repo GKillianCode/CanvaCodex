@@ -1,0 +1,4 @@
+import test from 'node:test';import assert from 'node:assert/strict';
+import {fencedCode,codeLanguageOf} from '../src/conductorCode.js';import {renderConductor} from '../src/notebookMarkdown.js';
+test('changing the language keeps multiline code and embedded fences intact',()=>{const text='int n = 1;\n\n// ``` littéral\n';const source=fencedCode(text,'cpp');assert.ok(source.startsWith('````cpp\n'));assert.ok(source.includes('int n = 1;\n\n// ``` littéral'));assert.ok(source.endsWith('\n````'));assert.match(renderConductor(source),/token keyword/);});
+test('code without a language remains unspecified and language classes are detected',()=>{assert.equal(codeLanguageOf({querySelector:()=>({className:'language-java'})}),'java');assert.equal(codeLanguageOf({querySelector:()=>null}),'');assert.equal(fencedCode('plain'),'```\nplain\n```');});

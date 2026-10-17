@@ -1,5 +1,5 @@
 <script setup>
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { ArrowUpRight, FileText, NotebookPen } from "lucide-vue-next";
 import ConductorPage from "./ConductorPage.vue";
 const props = defineProps({
@@ -17,6 +17,7 @@ const emit = defineEmits([
   "update:images",
   "error",
 ]);
+const count = computed(() => props.layout?.length || 0);
 const opened = ref(false),
   page = ref(null);
 async function flush() {
@@ -40,8 +41,32 @@ defineExpose({ flush });
         ><ArrowUpRight :size="19" />
       </header>
       <div class="document-card-preview" aria-hidden="true">
-        <img class="document-card-art" :src="privateNotes?'/illustrations/conductor-cues.svg':'/illustrations/conductor-script.svg'" alt="" loading="lazy"/>
+        <img
+          class="document-card-art"
+          :src="
+            privateNotes
+              ? '/illustrations/conductor-cues.svg'
+              : '/illustrations/conductor-script.svg'
+          "
+          alt=""
+          loading="lazy"
+        />
       </div>
+      <p class="document-card-summary">
+        {{
+          count
+            ? count +
+              " bloc" +
+              (count > 1 ? "s" : "") +
+              " préparé" +
+              (count > 1 ? "s" : "")
+            : modelValue?.trim()
+              ? "Contenu préparé"
+              : privateNotes
+                ? "Ajoute tes consignes de tournage, pauses et points d’attention."
+                : "Construis le fil de ton explication avec tes textes et illustrations."
+        }}
+      </p>
       <footer>
         <span>{{
           privateNotes
@@ -55,8 +80,7 @@ defineExpose({ flush });
       ><div
         v-if="opened"
         class="conductor-editor-dialog production-app"
-        role="dialog"
-        aria-modal="true"
+        role="region"
         :aria-label="'Éditeur · ' + label"
       >
         <ConductorPage

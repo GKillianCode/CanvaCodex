@@ -1,5 +1,5 @@
 // Each state owns its editable scene; changing it never mutates an earlier step.
-const sceneFields=['id','grid','exitDirection','title','body','code','label','codeTitle','notes','layout','designVersion','positions','fragments','elements','blockKeys','blockNames','groups','hiddenKeys','emphasisKeys'];
+const sceneFields=['id','grid','exitDirection','title','body','code','label','codeTitle','notes','layout','designVersion','positions','fragments','elements','blockKeys','blockNames','groups','hiddenKeys','emphasisKeys','primitiveType','overlayName','overlayFormat'];
 export const MAX_PEDAGOGICAL_STEPS=20;
 export function captureScene(slide){return JSON.parse(JSON.stringify(Object.fromEntries(sceneFields.filter(k=>slide[k]!==undefined).map(k=>[k,slide[k]]))));}
 export function sceneAt(slide,n=0){const scene=n>0?slide.pedagogicalSteps?.[n-1]?.scene:null;return scene?{...slide,...scene,pedagogicalSteps:undefined}:slide;}

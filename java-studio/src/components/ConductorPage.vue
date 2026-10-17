@@ -1,4 +1,6 @@
 <script setup>
+import {useUndoNotifications} from "../undoNotifications.js";
+import {useExpiringUndo} from "../useExpiringUndo.js";
 import {
   ref,
   computed,
@@ -17,8 +19,10 @@ import {
   Copy,
   ChevronUp,
   ChevronDown,
+  ArrowLeft,
 } from "lucide-vue-next";
 import ConductorRichEditor from "./ConductorRichEditor.vue";
+import { useModalScroll } from "../modalScroll.js";
 import { renderConductor } from "../notebookMarkdown.js";
 import {
   pageMarkdown,
@@ -95,10 +99,11 @@ const selected = ref(""),
   tools = ref(null),
   busy = ref(false),
   editors = ref({});
-let observer,
-  cleanup,
-  upload,
-  oldOverflow = "";
+let observer, cleanup, upload;
+useModalScroll(() => expanded.value);
+const removedBlock = ref(null);
+useExpiringUndo(removedBlock);
+const notices=useUndoNotifications();
 const active = computed(() =>
   blocks.value.find((b) => b.id === selected.value),
 );
@@ -260,9 +265,37 @@ function fitText(block) {
 }
 function remove() {
   if (!active.value) return;
+  const index = blocks.value.findIndex((b) => b.id === selected.value);
+  removedBlock.value = {
+    block: JSON.parse(JSON.stringify(active.value)),
+    index,
+    asset: props.images.find((image) => image.id === active.value.imageId),
+  };
+  const saved=removedBlock.value;
+  saved.noticeId=notices.push('Bloc supprimé.',()=>undoRemoveBlock(saved),()=>blocks.value.length<100);
   blocks.value = blocks.value.filter((b) => b.id !== selected.value);
   selected.value = "";
+  contextMenu.value = null;
   publish();
+}
+async function undoRemoveBlock(saved=removedBlock.value) {
+  if(!saved?.block)saved=removedBlock.value;
+  if (!saved || blocks.value.length >= 100) return false;
+  if(blocks.value.some(block=>block.id===saved.block.id))return true;
+  if (saved.asset && !props.images.some((i) => i.id === saved.asset.id)) {
+    if (props.images.length >= 32) return false;
+    emit("update:images", [...props.images, saved.asset]);
+    await nextTick();
+  }
+  blocks.value.splice(
+    Math.min(saved.index, blocks.value.length),
+    0,
+    saved.block,
+  );
+  selected.value = saved.block.id;
+  if(removedBlock.value?.block.id===saved.block.id)removedBlock.value = null;
+  notices.dismiss(saved.noticeId);
+  publish();return true;
 }
 function duplicate() {
   if (!active.value || blocks.value.length >= 100) return;
@@ -289,6 +322,7 @@ function gesture(event, block, handle = "move") {
   event.preventDefault();
   event.stopPropagation();
   selected.value = block.id;
+  viewport.value?.focus({ preventScroll: true });
   cleanup?.();
   const initial = { ...block },
     startX = event.clientX,
@@ -338,13 +372,17 @@ function canvasContext(event) {
     return;
   event.preventDefault();
   event.stopPropagation();
+  const block = event.target.closest("[data-block-id]");
+  if (block) selected.value = block.dataset.blockId;
+  else selected.value = "";
   const sheet = viewport.value
     .querySelector(".page-sheet")
     .getBoundingClientRect();
   insertionPoint = pagePoint(event.clientX, event.clientY, sheet, scale.value);
   contextMenu.value = {
     x: Math.max(8, Math.min(event.clientX, innerWidth - 235)),
-    y: Math.max(8, Math.min(event.clientY, innerHeight - 165)),
+    y: Math.max(8, Math.min(event.clientY, innerHeight - (block ? 260 : 165))),
+    blockId: block?.dataset.blockId || null,
   };
 }
 function insertAt(type) {
@@ -372,7 +410,27 @@ function measure() {
   scale.value = props.readonly ? fit : Math.min(1, fit);
 }
 function key(event) {
-  if (!expanded.value) return;
+  if (!expanded.value || document.querySelector(".workspace-launcher")) return;
+  const typing = event.target.closest?.(
+    'input,textarea,select,[contenteditable="true"]',
+  );
+  if (!typing && active.value && ["Delete", "Backspace"].includes(event.key)) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    remove();
+    return;
+  }
+  if (
+    !typing &&
+    removedBlock.value &&
+    (event.ctrlKey || event.metaKey) &&
+    event.key.toLowerCase() === "z"
+  ) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    undoRemoveBlock();
+    return;
+  }
   if (event.key === "Escape") {
     event.stopImmediatePropagation();
     if (contextMenu.value) {
@@ -383,10 +441,6 @@ function key(event) {
   }
 }
 watch(expanded, (value) => {
-  if (value) {
-    oldOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-  } else document.body.style.overflow = oldOverflow;
   nextTick(measure);
 });
 async function flush() {
@@ -400,10 +454,6 @@ onMounted(() => {
   measure();
   window.addEventListener("keydown", key, true);
   window.addEventListener("pointerdown", outsideContext);
-  if (expanded.value) {
-    oldOverflow = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
-  }
   if (!props.layout && !props.readonly) publish();
   nextTick(() => {
     for (const block of blocks.value) if (block.kind === "text") fitText(block);
@@ -414,7 +464,6 @@ onBeforeUnmount(() => {
   cleanup?.();
   window.removeEventListener("keydown", key, true);
   window.removeEventListener("pointerdown", outsideContext);
-  if (expanded.value) document.body.style.overflow = oldOverflow;
 });
 </script>
 <template>
@@ -423,17 +472,19 @@ onBeforeUnmount(() => {
     :class="{ 'page-expanded': expanded, 'page-readonly': readonly }"
   >
     <header v-if="expanded" class="page-topbar">
+      <button class="btn page-return" @click="closeEditor">
+        <ArrowLeft :size="16" />Revenir à la partie
+      </button>
       <div>
         <strong>{{ label }}</strong
         ><small>Page libre · largeur fixe de 1 000 px</small>
       </div>
-      <button class="btn" @click="closeEditor">
-        <Minimize2 :size="16" />Revenir à la partie
-      </button>
     </header>
     <div class="page-workspace">
       <div
         ref="viewport"
+        tabindex="0"
+        aria-label="Canevas de la partie"
         class="page-viewport"
         @contextmenu="canvasContext"
         @pointerdown.self="selected = ''"
@@ -472,7 +523,13 @@ onBeforeUnmount(() => {
                 height:
                   block.kind === 'image' ? block.height + 'px' : undefined,
               }"
-              @pointerdown.stop="selected = block.id"
+              tabindex="0"
+              @pointerdown.stop="
+                selected = block.id;
+                !$event.target.closest(
+                  'input,textarea,select,[contenteditable=true]',
+                ) && $event.currentTarget.focus({ preventScroll: true });
+              "
             >
               <template v-if="block.kind === 'text'"
                 ><div
@@ -694,6 +751,20 @@ onBeforeUnmount(() => {
         aria-label="Ajouter sur le canevas"
         :style="{ left: contextMenu.x + 'px', top: contextMenu.y + 'px' }"
       >
+        <template v-if="contextMenu.blockId"
+          ><button
+            role="menuitem"
+            @click="
+              duplicate();
+              contextMenu = null;
+            "
+          >
+            Dupliquer le bloc</button
+          ><button role="menuitem" @click="remove">
+            Supprimer le bloc <span>Suppr</span>
+          </button>
+          <hr
+        /></template>
         <button
           role="menuitem"
           :disabled="blocks.length >= 100"

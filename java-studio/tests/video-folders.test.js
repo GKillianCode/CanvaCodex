@@ -225,3 +225,39 @@ test("first save in a newly linked folder copies existing creations without load
   assert.ok(files.has(`${project.id}/slides-${row.id}.json`));
   assert.equal(files.get(project.id + "/carnet.md"), "Notes");
 });
+
+
+test("moved directory with granted permission can be replaced and replays pending creations", async () => {
+  const old = directory("Ancien"), files = new Map(), next = directory("Nouveau", files);
+  const missing = () => Object.assign(Error("Gone"), {name:"NotFoundError"});
+  old.entries = () => ({next:async()=>{throw missing();}});
+  old.getDirectoryHandle = async()=>{throw missing();};
+  const settings = {"video-folder-root":old}, base = repository(settings), states=[];
+  let picks=0;
+  const controller=videoFolderStorage(base,{showDirectoryPicker:async()=>{picks++;return next;}},s=>states.push(s));
+  await controller.ready;
+  const project=makeVideoProject("Déplacé"), row=makeCreation(project,"slides","Diapo");attachCreation(project,row);
+  await controller.repository.put(project,[row]);
+  assert.equal(states.at(-1).needsRelink,true);
+  await controller.authorize();
+  assert.equal(picks,1);assert.equal(settings["video-folder-root"],next);
+  assert.ok(files.has(`${project.id}/slides-${row.id}.json`));
+  assert.deepEqual(settings["video-folder-pending"],[]);
+  assert.equal(states.at(-1).status,"saved");assert.equal(states.at(-1).needsRelink,false);
+});
+test("reauthorization probes a stale directory even without pending writes; cancelling replacement preserves it",async()=>{
+ const old=directory("Ancien"),settings={"video-folder-root":old},states=[];
+ old.entries=()=>({next:async()=>{throw Object.assign(Error("Gone"),{name:"NotFoundError"});}});
+ const c=videoFolderStorage(repository(settings),{showDirectoryPicker:async()=>{throw Object.assign(Error("Cancelled"),{name:"AbortError"});}},s=>states.push(s));
+ await c.ready;await assert.rejects(c.authorize(),/déplacé/);assert.equal(states.at(-1).needsRelink,true);
+ await assert.rejects(c.authorize(),{name:"AbortError"});assert.equal(settings["video-folder-root"],old);
+});
+test("changing destination retries pending writes and reports failure rather than silently succeeding",async()=>{
+ const old=directory("Ancien"),next=directory("Nouveau"),settings={"video-folder-root":old},base=repository(settings),states=[];
+ old.permission="denied";
+ const c=videoFolderStorage(base,{showDirectoryPicker:async()=>next},s=>states.push(s));await c.ready;
+ const p=makeVideoProject();await c.repository.put(p);
+ next.getDirectoryHandle=async()=>{throw Error("Disque plein");};
+ await assert.rejects(c.changeFolder(),/Disque plein/);
+ assert.equal(states.at(-1).status,"error");assert.deepEqual(settings["video-folder-pending"],[p.id]);assert.ok(await base.get(p.id));
+});

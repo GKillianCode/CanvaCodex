@@ -1,4 +1,5 @@
 <script setup>
+import {useUndoNotifications} from "../undoNotifications.js";
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import {
   Plus,
@@ -24,6 +25,8 @@ import { applications, applicationStorage } from "../applicationDocuments.js";
 import { workspaceKeys } from "../workspaceStorage.js";
 import {
   makeVideoProject,
+  videoTypes,
+  videoTypeTitle,
   makeCreation,
   attachCreation,
   videoBundle,
@@ -36,6 +39,7 @@ import {
 import LibraryPreview from "./LibraryPreview.vue";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import PlaylistOrder from "./PlaylistOrder.vue";
+import VideoWorkflowOverview from "./VideoWorkflowOverview.vue";
 const props = defineProps({
     repository: Object,
     videoId: String,
@@ -70,8 +74,9 @@ const projects = ref([]),
   copyCurrent = ref(false),
   draft = ref(null),
   icons = { slides: PanelsTopLeft, banners: Clapperboard, thumbnails: Image };
-const deletedCreation = ref(null);
-watch(() => props.videoId,()=>{deletedCreation.value=null;});
+const creationFilter=ref('all'),notices=useUndoNotifications();
+watch(() => props.videoId,()=>notices.clear());
+const newVideoType = ref("");
 const starterApps = ref(["slides", "banners", "thumbnails"]);
 const browserOnly = ref(false);
 const selected = ref(null),
@@ -179,6 +184,7 @@ function newVideo() {
   starterApps.value = ["slides", "banners", "thumbnails"];
   browserOnly.value = false;
   newPlaylist.value = playlists.value[0] || "";
+  newVideoType.value = "";
   modal.value = { type: "video" };
 }
 function newCreation(kind) {
@@ -253,6 +259,7 @@ async function submit() {
     if (modal.value.type === "video") {
       const project = makeVideoProject(name.value);
       project.playlist = newPlaylist.value;
+      project.videoType = newVideoType.value;
       const rows = [];
       for (const a of applications) {
         if (importFiles.value[a.id])
@@ -377,6 +384,7 @@ async function saveDetails() {
       name: draft.value.name.trim() || project.name,
       playlist: draft.value.playlist,
       status: draft.value.status,
+      videoType: draft.value.videoType,
       notes: draft.value.notes,
       updatedAt: Date.now(),
     });
@@ -406,20 +414,25 @@ async function duplicate(project) {
 async function removeCreation(row) {
   if(busy.value||!window.confirm(`Supprimer « ${row.name} » de cette vidéo ? Les fichiers déjà exportés sont conservés.`))return;
   await run(async()=>{
-    deletedCreation.value=await props.repository.removeCreation(props.videoId,row.id);
+    const index=selected.value.creations.findIndex(item=>item.id===row.id),before=selected.value.creations[index-1]?.id,after=selected.value.creations[index+1]?.id;
+    const removed=await props.repository.removeCreation(props.videoId,row.id);
     await reload();
+    if(removed)notices.push('« '+removed.meta.name+' » supprimée.',()=>restoreCreation(removed,before,after),()=>!busy.value);
   });
 }
-async function restoreCreation() {
+async function restoreCreation(removed,before,after) {
+  let restored=false;
   await run(async()=>{
-    const removed=deletedCreation.value;if(!removed||removed.videoId!==props.videoId)return;
+    if(!removed||removed.videoId!==props.videoId)return;
     const project=await props.repository.get(props.videoId);
     if(project.creations.length>=100)throw Error("Limite de 100 créations par vidéo.");
-    if(!project.creations.some(row=>row.id===removed.row.id))project.creations.splice(removed.index,0,removed.meta);
+    const next=project.creations.findIndex(item=>item.id===after),previous=project.creations.findIndex(item=>item.id===before);
+    if(!project.creations.some(row=>row.id===removed.row.id))project.creations.splice(next>=0?next:previous>=0?previous+1:removed.index,0,removed.meta);
     project.preview=project.creations[0]?.preview||null;project.updatedAt=Date.now();
-    await props.repository.put(project,[removed.row]);deletedCreation.value=null;
-    await reload();
+    await props.repository.put(project,[removed.row]);
+    await reload();restored=true;
   });
+  return restored;
 }
 async function duplicateCreation(row) {
   await run(async () => {
@@ -522,10 +535,6 @@ async function importVideo(event) {
         }}</span></template
       >
     </WorkspaceHeader>
-    <div v-if="deletedCreation" class="video-alert" role="status">
-      « {{ deletedCreation.meta.name }} » supprimé.
-      <button class="btn" :disabled="busy" @click="restoreCreation">Annuler la suppression</button>
-    </div>
     <div v-if="error" class="video-alert" role="alert">
       {{ error }}
       <button class="btn" :disabled="busy" @click="run(retryAction || reload)">
@@ -536,10 +545,9 @@ async function importVideo(event) {
       ><section class="video-heading">
         <div>
           <span class="eyebrow">DE L’IDÉE À LA VIDÉO</span>
-          <h1>Tes vidéos, au même endroit.</h1>
+          <h1>Tes vidéos. Ton espace de création.</h1>
           <p>
-            Prépare un cours et retrouve ses diaporamas, ses incrustations et
-            ses miniatures.
+            Prépare, crée et publie depuis un projet unique pour chaque vidéo.
           </p>
         </div>
         <div class="video-actions">
@@ -550,8 +558,8 @@ async function importVideo(event) {
       </section>
       <section class="video-workshops">
         <div>
-          <h2>Les ateliers</h2>
-          <p>Ouvre ta création autonome, ou copie-la ensuite dans une vidéo.</p>
+          <h2>Les ateliers autonomes</h2>
+          <p>Pour un support indépendant. Les supports d’une vidéo se créent directement dans sa fiche.</p>
         </div>
         <div class="video-workshop-grid">
           <button
@@ -662,6 +670,7 @@ async function importVideo(event) {
               <span class="video-status" :data-status="p.status">{{
                 status(p.status)
               }}</span>
+              <span class="video-type" :data-video-type="p.videoType">{{videoTypeTitle(p.videoType)}}</span>
               <span class="video-order-number"
                 >N° {{ p.playlistPosition }} dans
                 {{ p.playlist || "Sans playlist" }}</span
@@ -743,6 +752,7 @@ async function importVideo(event) {
             >{{ selected.playlist || "Sans playlist" }} ·
             {{ status(selected.status) }}</span
           >
+          <span class="video-type" :data-video-type="selected.videoType">{{videoTypeTitle(selected.videoType)}}</span>
           <h1>{{ selected.name }}</h1>
           <p>
             {{ selected.creations.length }} création{{
@@ -786,7 +796,7 @@ async function importVideo(event) {
       </section>
       <details class="video-details">
         <summary>
-          Fiche de la vidéo <span>Nom, playlist et statut</span>
+          Fiche de la vidéo <span>Nom, playlist, type et statut</span>
         </summary>
         <form @submit.prevent="saveDetails">
           <div class="video-details-grid">
@@ -801,6 +811,7 @@ async function importVideo(event) {
                 <option v-for="p in playlists" :key="p">{{ p }}</option>
               </select></label
             ><label
+              >Type de vidéo<select v-model="draft.videoType"><option value="">Non défini</option><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label><label
               >Statut<select v-model="draft.status">
                 <option
                   v-for="[id, title] in videoStatuses"
@@ -817,14 +828,11 @@ async function importVideo(event) {
           </button>
         </form>
       </details>
-      <section class="video-production-entry" aria-label="Préparer et publier cette vidéo">
-        <div><span class="eyebrow">LE FIL DE TA VIDÉO</span><h2>De la préparation à la publication.</h2><p>Deux ateliers reliés à tes créations, sans les dupliquer.</p></div>
-        <button @click="emit('open-workshop',selected.id,'conductor')"><ListVideo :size="21"/><span><strong>Conducteur</strong><small>Script, supports et lecture au tournage</small></span><ArrowUpRight :size="17"/></button>
-        <button @click="emit('open-workshop',selected.id,'publication')"><Send :size="21"/><span><strong>Publication</strong><small>Titre, miniature et blocs prêts à copier</small></span><ArrowUpRight :size="17"/></button>
-      </section>
+      <VideoWorkflowOverview @workshop="emit('open-workshop',selected.id,$event)"/>
+      <section class="video-assets-heading"><div><span class="eyebrow">SUPPORTS DE LA VIDÉO</span><h2>Toutes tes créations</h2></div><div class="workspace-switch" aria-label="Filtrer les supports"><button v-for="[id,label] in [['all','Tous'],['slides','Diaporamas'],['banners','Incrustations'],['thumbnails','Miniatures']]" :key="id" :class="{active:creationFilter===id}" @click="creationFilter=id">{{label}}</button></div></section>
       <div class="video-assets-grid">
         <section
-          v-for="a in applications"
+          v-for="a in applications.filter(a=>creationFilter==='all'||a.id===creationFilter)"
           :key="a.id"
           class="video-creation-section"
         >
@@ -970,6 +978,7 @@ async function importVideo(event) {
               <option v-for="p in playlists" :key="p">{{ p }}</option>
             </select></label
           >
+          <label>Type de vidéo<select v-model="newVideoType"><option value="">Non défini</option><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label>
           <div class="video-folder-setup">
             <strong>{{
               folderState?.name

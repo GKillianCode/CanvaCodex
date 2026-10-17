@@ -10,6 +10,9 @@ import { normalizeWorkspace, workspaceKeys } from "./workspaceStorage.js";
 import { makeSlide } from "./model.js";
 import { makeThumbnail, thumbnailPalette } from "./thumbnails.js";
 import { makeOverlay } from "./overlays.js";
+export const videoTypes = [["course", "Cours"], ["exercise", "Exercice"], ["demo", "Démonstration"]];
+export const normalizeVideoType = value => videoTypes.some(([id]) => id === value) ? value : "";
+export const videoTypeTitle = value => videoTypes.find(([id]) => id === value)?.[1] || "Non défini";
 export const videoStatuses = [
   ["backlog", "Idées / Backlog"],
   ["preparation", "Création"],
@@ -46,6 +49,7 @@ export function makeVideoProject(name = "Nouvelle vidéo") {
     name: label(name, "Nouvelle vidéo"),
     playlist: "Java",
     status: "preparation",
+    videoType: "",
     notes: "",
     workflow: normalizeWorkflow(),
     archived: false,
@@ -70,6 +74,7 @@ export function normalizeVideoProject(raw) {
     status: videoStatuses.some(([id]) => id === raw.status)
       ? raw.status
       : "preparation",
+    videoType: normalizeVideoType(raw.videoType),
     notes: typeof raw.notes === "string" ? raw.notes.slice(0, 20000) : "",
     workflow: normalizeWorkflow(raw.workflow),
     archived: raw.archived === true,
@@ -270,6 +275,7 @@ export function videoSummary(project) {
     name: project.name,
     playlist: project.playlist || "",
     status: project.status,
+    videoType: normalizeVideoType(project.videoType),
     archived: project.archived === true,
     updatedAt: project.updatedAt,
     createdAt: project.createdAt,

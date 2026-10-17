@@ -1,10 +1,13 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
+import { Sun, Moon, Home, Clapperboard, ArrowLeft } from "lucide-vue-next";
+import { appearance, setAppearance } from "../appearance.js";
+import WorkspaceLauncher from "./WorkspaceLauncher.vue";
 const props = defineProps({
   title: String,
   backLabel: { type: String, default: "Accueil" },
 });
-const emit = defineEmits(["back"]);
+const emit = defineEmits(["back", "home"]);
 const root = ref(null),
   active = ref(null);
 function fileAction(event) {
@@ -13,8 +16,21 @@ function fileAction(event) {
 function outside(event) {
   if (!root.value?.contains(event.target)) active.value = null;
 }
-onMounted(() => document.addEventListener("pointerdown", outside));
-onBeforeUnmount(() => document.removeEventListener("pointerdown", outside));
+let headerObserver;
+onMounted(() => {
+  document.addEventListener("pointerdown", outside);
+  headerObserver = new ResizeObserver(() =>
+    document.documentElement.style.setProperty(
+      "--frame-header-height",
+      root.value.getBoundingClientRect().height + "px",
+    ),
+  );
+  headerObserver.observe(root.value);
+});
+onBeforeUnmount(() => {
+  document.removeEventListener("pointerdown", outside);
+  headerObserver?.disconnect();
+});
 </script>
 <template>
   <header
@@ -24,16 +40,16 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", outside));
   >
     <slot>
       <div class="app-header-left">
-        <a href="#/" class="brand header-brand" @click.prevent="emit('back')"
+        <a href="#/" class="brand header-brand" @click.prevent="backLabel === 'Vidéo' ? emit('home') : emit('back')"
           ><span class="brand-icon">f</span
           ><span class="brand-name"
             >frame<span class="brand-dot">.</span></span
           ></a
         >
-        <button v-if="backLabel" class="btn home-return" @click="emit('back')">
-          {{ backLabel }}
+        <div class="workspace-nav-cluster"><button v-if="backLabel === 'Vidéo'" class="icon-btn navigation-return" aria-label="Accueil" title="Accueil" @click="emit('home')"><Home :size="18"/></button>
+        <button v-if="backLabel" class="icon-btn navigation-return" :aria-label="backLabel" :title="backLabel" @click="emit('back')">
+          <Clapperboard v-if="backLabel === 'Vidéo'" :size="18"/><Home v-else-if="backLabel === 'Accueil'" :size="18"/><ArrowLeft v-else :size="18"/>
         </button>
-        <span v-if="title" class="application-name">{{ title }}</span>
         <nav class="app-menus" aria-label="Menus de l’application">
           <div v-if="$slots.file" class="app-menu">
             <button
@@ -64,10 +80,30 @@ onBeforeUnmount(() => document.removeEventListener("pointerdown", outside));
               <slot name="view" />
             </div>
           </div>
-        </nav>
+        </nav></div>
+        <span v-if="title" class="application-name">{{ title }}</span>
         <slot name="context" />
       </div>
       <div class="app-header-right"><slot name="actions" /></div>
     </slot>
+    <div class="workspace-utilities">
+      <button
+        class="icon-btn appearance-toggle"
+        :aria-label="
+          appearance === 'dark'
+            ? 'Activer le mode clair'
+            : 'Activer le mode sombre'
+        "
+        :title="appearance === 'dark' ? 'Mode clair' : 'Mode sombre'"
+        :aria-pressed="appearance === 'light'"
+        @click="setAppearance(appearance === 'dark' ? 'light' : 'dark')"
+      >
+        <Sun v-if="appearance === 'dark'" :size="18" /><Moon
+          v-else
+          :size="18"
+        />
+      </button>
+      <WorkspaceLauncher />
+    </div>
   </header>
 </template>
