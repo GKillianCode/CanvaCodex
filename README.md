@@ -246,3 +246,4 @@ Les enregistrements de diaporamas proposent désormais MOV par défaut (PNG RGBA
 La palette du parcours est atténuée : Création bleu grisé, Prêt à tourner olive, groupes très légers en clair et flèches gris bleuté contrastées.
 
 Chaque vidéo peut porter un type **Cours**, **Exercice** ou **Démonstration**, indépendant de son état d’avancement. Le choix se fait à la création ou dans la fiche vidéo et apparaît dans la bibliothèque, les playlists et le canvas. Les anciennes vidéos restent sans type jusqu’à leur classement.
+Les étiquettes d’état et de type partagent un contour fin et des dimensions communes, sans liseré latéral ; elles sont alignées sur les cartes du canvas dans les deux thèmes.

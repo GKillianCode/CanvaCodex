@@ -1759,3 +1759,7 @@
 }
 :root[data-appearance="light"] .video-type[data-video-type=demo] {color:#25382e;border-color:#c9d7cf40;background:#aa9bbb12
 }
+:root[data-appearance="light"] .video-status[data-status] {color:var(--status-ink);background:color-mix(in srgb,var(--status-ink) 7%,transparent)
+}
+:root[data-appearance="light"] .video-status[data-status],:root[data-appearance="light"] .canvas-video-status {border:1px solid color-mix(in srgb,currentColor 25%,transparent);border-radius:4px
+}

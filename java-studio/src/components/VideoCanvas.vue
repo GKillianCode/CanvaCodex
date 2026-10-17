@@ -1070,15 +1070,14 @@ function selectEdge(value) {
                   <component :is="node.type==='project'?Flag:Link2" :size="28" /><span>{{node.type==='project'?'DÉBUT DU PROJET':'POINT DU PARCOURS'}}</span>
                 </div>
                 <strong>{{ title(node) }}</strong>
-                <span
-                  v-if="node.type === 'video'"
+                <span v-if="node.type === 'video'" class="canvas-video-badges"><span
                   class="canvas-video-status"
                   :data-status="
                     videoMap.get(node.videoId)?.status || 'preparation'
                   "
                   >{{ statusTitle(videoMap.get(node.videoId)?.status) }}</span
                 >
-                <span v-if="node.type==='video' && videoMap.get(node.videoId)?.videoType" class="video-type" :data-video-type="videoMap.get(node.videoId).videoType">{{videoTypeTitle(videoMap.get(node.videoId).videoType)}}</span>
+                <span v-if="node.type==='video' && videoMap.get(node.videoId)?.videoType" class="video-type" :data-video-type="videoMap.get(node.videoId).videoType">{{videoTypeTitle(videoMap.get(node.videoId).videoType)}}</span></span>
                 <p v-if="node.type !== 'video'">
                   {{ node.text || (node.type==='project'?"Double-clique pour présenter le projet.":"Double-clique pour définir cette étape.") }}
                 </p></button

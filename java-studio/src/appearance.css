@@ -51,7 +51,7 @@
 :root[data-appearance="light"] :is(.video-status,.canvas-node)[data-status=publishing]{--process-color:#b1a063;--process-ink:#70612e;--process-surface:#f6f3e8}
 :root[data-appearance="light"] :is(.video-status,.canvas-node)[data-status=published]{--process-color:#6a947e;--process-ink:#3d6951;--process-surface:#edf4ef}
 :root[data-appearance="light"] .video-status[data-status],
-:root[data-appearance="light"] .canvas-node .canvas-video-status{color:var(--process-ink);background:var(--process-surface);box-shadow:inset 3px 0 var(--process-color);padding-left:10px}
+:root[data-appearance="light"] .canvas-node .canvas-video-status{color:var(--process-ink);background:var(--process-surface);box-shadow:none;border:1px solid color-mix(in srgb,var(--process-color) 40%,transparent)}
 :root[data-appearance="light"] .canvas-workspace-app .canvas-node.note{background:#eaf0f7;border-color:#7895b7}
 :root[data-appearance="light"] .canvas-workspace-app .canvas-node.note .canvas-note-visual,
 :root[data-appearance="light"] .canvas-workspace-app .canvas-node.note .canvas-node-handle{color:#48698f}
