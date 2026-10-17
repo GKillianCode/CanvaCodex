@@ -210,7 +210,7 @@ export function renderStepTransition(ctx,from,to,theme,progress,options={}){
   const a=from.positions[key],b=to.positions[key];positions[key]=interpolatePosition({...a,h:a.h||blockBounds(ctx,from,key).h},{...b,h:b.h||blockBounds(ctx,to,key).h},progress);if(blockType(to,key)==='text')positions[key].autoSize=false;interpolated.add(key);
  }
  if(!options.transparent)background(ctx,theme,options.gradient!==false);
- const state=(alpha,visible=true)=>({alpha,visible,x:0,y:0,scale:1});
- renderSlide(ctx,from,theme,{...options,transparent:true,order:fromOrder,objectMotion:Object.fromEntries(sourceKeys.map(k=>[k,state(1-ease,!interpolated.has(k))]))});
- renderSlide(ctx,{...to,positions},theme,{...options,transparent:true,objectMotion:Object.fromEntries(targetKeys.map(k=>[k,state(interpolated.has(k)?1:ease)]))});
+ const state=(alpha,visible=true,motion)=>({...motion,alpha:alpha*(motion?.alpha??1),visible:visible&&motion?.visible!==false,x:motion?.x||0,y:motion?.y||0,scale:motion?.scale??1});
+ renderSlide(ctx,from,theme,{...options,transparent:true,order:fromOrder,objectMotion:Object.fromEntries(sourceKeys.map(k=>[k,state(1-ease,!interpolated.has(k),options.fromObjectMotion?.[k])]))});
+ renderSlide(ctx,{...to,positions},theme,{...options,transparent:true,objectMotion:Object.fromEntries(targetKeys.map(k=>[k,state(interpolated.has(k)?1:ease,true,options.objectMotion?.[k])]))});
 }

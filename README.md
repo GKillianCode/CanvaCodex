@@ -259,3 +259,12 @@ La navigation Accueil/Vidéo et les menus sont regroupés dans un bloc compact. 
 ## J’aime et abonnement animés
 
 Dans **Incrustations → Formats → Social**, choisir **J’aime et abonnement · animé**. Le bandeau apparaît, puis le bouton J’aime (0,9 s), l’abonnement (2,7 s) et le remerciement (4,8 s). Sortie commune en fondu à la fin des huit secondes. **Animer** donne accès à l’aperçu, aux timings par groupe et à l’export MOV transparent, ou WebM avec chrominance. Tous les textes, formes, couleurs et groupes restent éditables. Ce format est une invitation visuelle pour le montage, sans connexion ni action sur YouTube.
+
+
+## États des incrustations
+
+Les incrustations utilisent la même barre **Étapes** et le même gestionnaire que les diaporamas : dupliquer l’état courant, renommer, réordonner ou supprimer une étape (Ctrl Z pour annuler). Chaque état possède ses propres objets, textes, positions, styles et visibilité. Jusqu’à vingt étapes en plus de l’état initial. Le PNG exporte l’état sélectionné.
+
+Dans **Objet → Animation → Transition entre étapes**, cocher **Interpoler la position et la taille**, puis déplacer ou redimensionner cet objet dans une autre étape. Le calcul est commun au diaporama : transition douce de 0,5 s maximum, raccourcie si les étapes sont très rapprochées. Les autres objets passent en fondu.
+
+**Animer → Étapes de l’incrustation** règle le début de chaque état en secondes ; sans réglage, les états sont répartis sur la durée du clip. L’état initial commence à zéro, les autres restent dans l’ordre de l’éditeur. Les entrées/sorties des objets restent des timings globaux du clip, communs aux états : déplacer le curseur sur un état pour accéder à ses objets. Aperçu et exports MOV/WebM utilisent exactement le même rendu des états et des interpolations.

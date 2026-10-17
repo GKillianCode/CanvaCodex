@@ -1,11 +1,15 @@
-import {WIDTH,HEIGHT,visibleBlocks} from './model.js';
+import {WIDTH,HEIGHT} from './model.js';
 import {appearanceRows} from './appearances.js';
-import {renderSlide} from './render.js';
+import {overlayKeys,overlayStateAt} from './overlayTimeline.js';
+import {renderSlide,renderStepTransition} from './render.js';
 import {normalizeClip,clipMotion} from './overlayAnimation.js';
 import {pngMovie} from './pngMovie.js';
 export function renderOverlayFrame(ctx,slide,theme,raw,time,width=WIDTH,height=HEIGHT){
- const clip=normalizeClip(raw,visibleBlocks(slide));ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,width,height);if(clip.background==='chroma'){ctx.fillStyle=clip.chroma;ctx.fillRect(0,0,width,height);}ctx.scale(width/WIDTH,height/HEIGHT);
- renderSlide(ctx,slide,theme,{transparent:true,header:false,footer:false,objectMotion:clipMotion(slide,clip,time,appearanceRows(slide).filter(row=>row.keys.some(k=>!slide.hiddenKeys?.includes(k))))});ctx.restore();
+ const clip=normalizeClip(raw,overlayKeys(slide));ctx.save();ctx.setTransform(1,0,0,1,0,0);ctx.clearRect(0,0,width,height);if(clip.background==='chroma'){ctx.fillStyle=clip.chroma;ctx.fillRect(0,0,width,height);}ctx.scale(width/WIDTH,height/HEIGHT);
+ const state=overlayStateAt(slide,clip,time);
+ const motion=scene=>clipMotion(scene,clip,time,appearanceRows(scene).filter(row=>row.keys.some(k=>!scene.hiddenKeys?.includes(k))));
+ const options={transparent:true,header:false,footer:false,objectMotion:motion(state.scene)};
+ if(state.previous&&state.progress<1)renderStepTransition(ctx,state.previous,state.scene,theme,state.progress,{...options,fromObjectMotion:motion(state.previous)});else renderSlide(ctx,state.scene,theme,options);ctx.restore();
 }
 const aborted=()=>new DOMException('Export annulé.','AbortError');
 const check=signal=>{if(signal?.aborted)throw aborted();};
@@ -40,6 +44,6 @@ export function exportChromaMovie({canvas,slide,theme,clip,signal,onProgress=()=
 export function captureOverlayVideo(banner){
  const snapshot=JSON.parse(JSON.stringify(banner));
  if(!snapshot?.slide?.elements||!Array.isArray(snapshot.slide.blockKeys))throw Error('Incrustation indisponible pour l’export.');
- snapshot.clip=normalizeClip(snapshot.clip,snapshot.slide.blockKeys);
+ snapshot.clip=normalizeClip(snapshot.clip,overlayKeys(snapshot.slide));
  return snapshot;
 }

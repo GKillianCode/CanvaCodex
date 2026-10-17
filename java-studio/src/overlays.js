@@ -1,3 +1,4 @@
+import {overlayKeys} from './overlayTimeline.js';
 import {normalizeClip} from './overlayAnimation.js';
 import {normalizeBits} from './bits.js';
 import {setPrimitive} from './javaPrimitives.js';
@@ -78,6 +79,6 @@ export function makeOverlayClip(id,keys=[]){
  return normalizeClip({duration:8,entry:.55,exit:.6,stagger:0,format:'mov',background:'transparent',tracks},keys);
 }
 export function normalizeOverlay(raw){
- if(raw?.slide){try{const slide=normalizeSlide(raw.slide);slide.overlayFormat=overlayFormats.some(f=>f.id===raw.type)?raw.type:'lower';slide.overlayName=String(raw.slide.overlayName||overlayFormats.find(f=>f.id===slide.overlayFormat).name).slice(0,100);return {type:slide.overlayFormat,slide,clip:normalizeClip(raw.clip??makeOverlayClip(slide.overlayFormat,slide.blockKeys),slide.blockKeys)};}catch{}}
- const type=overlayFormats.some(f=>f.id===raw?.type)?raw.type:'lower';const slide=makeOverlay(type,raw||{});return {type,slide,clip:normalizeClip(raw?.clip??makeOverlayClip(type,slide.blockKeys),slide.blockKeys)};
+ if(raw?.slide){try{const slide=normalizeSlide(raw.slide);slide.overlayFormat=overlayFormats.some(f=>f.id===raw.type)?raw.type:'lower';slide.overlayName=String(raw.slide.overlayName||overlayFormats.find(f=>f.id===slide.overlayFormat).name).slice(0,100);return {type:slide.overlayFormat,slide,clip:normalizeClip(raw.clip??makeOverlayClip(slide.overlayFormat,overlayKeys(slide)),overlayKeys(slide))};}catch{}}
+ const type=overlayFormats.some(f=>f.id===raw?.type)?raw.type:'lower';const slide=makeOverlay(type,raw||{});return {type,slide,clip:normalizeClip(raw?.clip??makeOverlayClip(type,overlayKeys(slide)),overlayKeys(slide))};
 }
