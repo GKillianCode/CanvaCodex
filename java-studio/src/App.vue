@@ -106,6 +106,7 @@ async function syncRoute() {
         storage,
         fileSlot: "video:" + row.id,
         videoName: project.name,
+        playlist: project.playlist,
         name: row.name,
         status,
       };

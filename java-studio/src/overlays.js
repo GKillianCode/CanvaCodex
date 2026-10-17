@@ -6,7 +6,7 @@ import { makeSlide, normalizeSlide } from './model.js';
 import { normalizeShape } from './shapes.js';
 export const overlayFormats = [
  ['lower','Bandeau de titre','Titres'],['chapter','Titre de chapitre','Titres'],['tip','À retenir','Informations'],['video','Voir une autre vidéo','Vidéo'],
- ['video-thumbnail','Vidéo avec miniature','Vidéo'],['speaker','Portrait intervenant','Titres'],['nameplate','Cartouche compact','Titres'],['headline','Titre panoramique','Titres'],['section','Numéro de chapitre','Titres'],['quote','Citation','Informations'],['definition','Définition','Informations'],['warning','Attention','Informations'],['success','Validation','Informations'],['checklist','Liste de contrôle','Informations'],['steps','Trois étapes','Informations'],['stat','Chiffre clé','Informations'],['compare','Avant / après','Informations'],['subscribe','Abonnement','Social'],['like-subscribe','J’aime et abonnement · animé','Social'],['social','Profil social','Social'],['website','Lien du site','Social'],['podcast','Épisode podcast','Social'],['credits','Crédits','Titres'],['endcard','Écran de fin','Vidéo'],['product','Fiche produit','Vidéo'],['java-primitive','Fiche de type Java','Java'],['java-bits','Octets et bits','Java'],
+ ['video-thumbnail','Vidéo avec miniature','Vidéo'],['speaker','Portrait intervenant','Titres'],['nameplate','Cartouche compact','Titres'],['headline','Titre panoramique','Titres'],['section','Numéro de chapitre','Titres'],['quote','Citation','Informations'],['definition','Définition','Informations'],['warning','Attention','Informations'],['success','Validation','Informations'],['checklist','Liste de contrôle','Informations'],['steps','Trois étapes','Informations'],['stat','Chiffre clé','Informations'],['compare','Avant / après','Informations'],['subscribe','Abonnement','Social'],['like-subscribe','J’aime et abonnement · animé','Social'],['social','Profil social','Social'],['website','Lien du site','Social'],['podcast','Épisode podcast','Social'],['credits','Crédits','Titres'],['endcard','Écran de fin','Vidéo'],['youtube-outro','Outro YouTube · vidéo et playlist','Vidéo'],['product','Fiche produit','Vidéo'],['java-primitive','Fiche de type Java','Java'],['java-bits','Octets et bits','Java'],
 ].map(([id,name,category])=>({id,name,category}));
 export function makeOverlay(id='lower',legacy={}){
  const format=overlayFormats.find(f=>f.id===id)||overlayFormats[0];
@@ -59,6 +59,20 @@ export function makeOverlay(id='lower',legacy={}){
  case 'website':box('Carte',440,890,1040,120);txt('Lien','votre-site.fr',490,915,940,70,44,'accent',true);break;
  case 'podcast':box('Carte',110,730,1100,270);img('Couverture',140,760,210,210);txt('Épisode','ÉPISODE 12',390,765,765,45,26,'accent',true);txt('Titre','Le titre de votre épisode',390,830,765,115,48,'ink',true);break;
  case 'credits':box('Carte',1240,490,570,520);txt('Label','CRÉDITS',1280,530,480,45,26,'accent',true);txt('Crédits','Réalisation · Prénom Nom\nImages · Votre source\nMusique · Votre artiste',1280,625,480,335,30);break;
+ case 'youtube-outro':{
+  const solid=(key,shape,x,y,w,h,fill,outlined=false)=>add(key,normalizeShape({shape,name:key==='shapeChaine'?'Chaîne · cercle':key==='shapeFondVert'?'Fond vert':key==='shapeVideo'?'Zone vidéo · 16:9':'Zone playlist · 16:9',fill,stroke:'#f7f5f0',outlined,strokeWidth:3,radius:0}),x,y,w,h);
+  const label=(key,text,x,y,w,h,size,bold=false)=>{txt(key,text,x,y,w,h,size,'ink',bold);const p=s.positions['text'+key];p.textStyle={...p.textStyle,color:'#f7f5f0',colorRole:null,align:'center',verticalAlign:'middle'};};
+  solid('shapeFondVert','rect',0,0,1920,1080,'#00ff00');s.positions.shapeFondVert.locked=true;
+  label('Titre','On se retrouve dans la prochaine vidéo.',96,160,1728,100,54,true);
+  solid('shapeVideo','rect',96,380,640,360,'#232a32',true);
+  solid('shapePlaylist','rect',1184,380,640,360,'#232a32',true);
+  solid('shapeChaine','circle',813,413,294,294,'#232a32',true);
+  label('Video','UNE VIDÉO À DÉCOUVRIR',96,774,640,94,28,true);
+  label('Playlist',legacy.playlist||'LA PLAYLIST DE CETTE VIDÉO',1184,774,640,94,28,true);
+  label('Chaine','ABONNEZ-VOUS',768,774,384,94,25,true);
+  s.groups=[{id:'outro-video',keys:['shapeVideo','textVideo']},{id:'outro-playlist',keys:['shapePlaylist','textPlaylist']},{id:'outro-channel',keys:['shapeChaine','textChaine']}];
+  break;
+ }
  case 'endcard':box('Carte',110,500,1700,500);img('Vidéo1',150,540,720,405);img('Vidéo2',1020,540,720,405);txt('Titre','À suivre sur la chaîne',110,370,1700,90,62,'ink',true);break;
  case 'product':box('Carte',1040,470,770,540);img('Produit',1080,510,690,260);txt('Nom','Votre produit',1080,815,690,70,48,'ink',true);txt('Prix','Dès 49 € · En savoir plus',1080,915,690,55,32,'accent');break;
  }
@@ -68,6 +82,10 @@ export function makeOverlay(id='lower',legacy={}){
 }
 // Explicit tracks keep each visual group together in both preview and export.
 export function makeOverlayClip(id,keys=[]){
+ if(id==='youtube-outro'){
+  const tracks={};for(const key of keys){const start=key==='shapeFondVert'?0:['shapeVideo','textVideo'].includes(key)?.5:['shapePlaylist','textPlaylist'].includes(key)?1:['shapeChaine','textChaine'].includes(key)?1.5:0;tracks[key]={start,end:15,entry:.45,exit:.5,animation:key==='shapeFondVert'?'none':'fade',exitAnimation:key==='shapeFondVert'?'none':'fade'};}
+  return normalizeClip({duration:15,stagger:0,format:'mov',background:'chroma',chroma:'#00ff00',tracks},keys);
+ }
  if(id!=='like-subscribe')return normalizeClip({},keys);
  const tracks={};
  for(const [members,start,animation] of [
