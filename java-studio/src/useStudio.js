@@ -1,3 +1,4 @@
+import {workspaceLocalStorage} from './localPersistence.js';
 import {createLiveMovie} from './liveMovie.js';
 import {useExpiringUndo} from './useExpiringUndo.js';
 import { normalizeRuns } from './richText.js';
@@ -53,7 +54,7 @@ import { normalizeThemes, themeDraft } from './themes.js';
 import { LaserTrail } from './laser.js';
 
 export function useStudio(application='slides',creationContext=null) {
-  const localStorage=applicationStorage(creationContext?.storage||window.localStorage,application),isThumbnail=application==='thumbnails',appScope=application==='banners'?'banners':'slides';
+  const localStorage=applicationStorage(creationContext?.storage||workspaceLocalStorage,application),isThumbnail=application==='thumbnails',appScope=application==='banners'?'banners':'slides';
   const fileSnapshot=()=>applicationFile(snapshot(),application),fileNameDefault=isThumbnail?'frame-miniature.json':workspaceNames[appScope];
   const sample = [
     Object.assign(makeSlide('split', { x: 0, y: 0 }), { title: 'Tout commence\npar le bytecode.', body: 'Le compilateur traduit votre code Java en instructions que la JVM sait exécuter.\n\nUn même fichier .class.\nPlusieurs systèmes d’exploitation.', code: 'public class HelloWorld {\n    public static void main(String[] args) {\n        System.out.println("Hello, Java!");\n    }\n}' }),

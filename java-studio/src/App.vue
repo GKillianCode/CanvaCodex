@@ -7,6 +7,7 @@ import {
   videoHash,
   creationSession,
 } from "./videoProjects.js";
+import {persistentVideoRepository,localDataState,flushLocalData,downloadLocalRecovery,downloadMigrationArchives} from "./localPersistence.js";
 import { useGlobalModalScroll } from "./modalScroll.js";
 import { videoFolderStorage } from "./videoFolders.js";
 import UndoNotifications from "./components/UndoNotifications.vue";
@@ -24,7 +25,7 @@ const folderState = ref({
   error: "",
 });
 const folders = videoFolderStorage(
-  videoRepository(),
+  persistentVideoRepository(),
   window,
   (value) => (folderState.value = value),
 );
@@ -49,7 +50,7 @@ let generation = 0;
 async function navigate(hash) {
   try {
     await navigateAfterSave(
-      [studio.value?.flush, canvasApp.value?.flush, workflowApp.value?.flush],
+      [studio.value?.flush, canvasApp.value?.flush, workflowApp.value?.flush, flushLocalData],
       () => {
         window.location.hash = hash;
       },
@@ -152,6 +153,8 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
 </script>
 <template>
   <UndoNotifications/>
+  <div v-if="localDataState.notice" class="video-route-alert" role="status">{{localDataState.notice}}<button class="btn" @click="downloadMigrationArchives">Télécharger les archives</button><button class="btn" @click="localDataState.notice=''">Fermer</button></div>
+  <div v-if="localDataState.error" class="video-route-alert" role="alert">Sauvegarde sur disque interrompue : {{localDataState.error}} La copie en cours est conservée.<button class="btn" @click="flushLocalData().catch(()=>{})">Réessayer</button><button class="btn" @click="downloadLocalRecovery">Télécharger ma copie de secours</button></div>
   <div v-if="folderState.error" class="folder-warning" role="alert">
     {{ folderState.error }} Ta copie dans le navigateur est conservée.<button
       class="btn"

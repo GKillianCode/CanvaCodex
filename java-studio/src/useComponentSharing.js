@@ -1,14 +1,15 @@
+import {workspaceLocalStorage} from './localPersistence.js';
 import { ref,computed,watch,onMounted,onUnmounted } from 'vue';
 import { ComponentLibraryFile } from './componentLibraryFile.js';
 import { appendComponents,parseLibrary,serializeLibrary } from './frameTransfer.js';
 import { canonical } from './projectFile.js';
 export function useComponentSharing(notify){
- let cache;try{cache=JSON.parse(sessionStorage.getItem('frame-component-sharing'));}catch{}
+ let cache;try{cache=JSON.parse(workspaceLocalStorage.getItem('frame-shared-library-draft')||sessionStorage.getItem('frame-component-sharing'));}catch{}
  const file=new ComponentLibraryFile(),sharedComponents=ref([]),libraryScope=ref('project'),sharedFileName=ref(''),sharedBusy=ref(false),sharedError=ref(''),sharedBaseline=ref(cache?.baseline||null);
  try{sharedComponents.value=cache?.items?parseLibrary(serializeLibrary(cache.items)):sharedBaseline.value?parseLibrary(sharedBaseline.value):[];}catch{sharedBaseline.value=null;}
  try{if(sharedBaseline.value)parseLibrary(sharedBaseline.value);}catch{sharedBaseline.value=null;}
  const sharedDirty=computed(()=>canonical(sharedComponents.value)!==canonical(sharedBaseline.value?parseLibrary(sharedBaseline.value):[]));
- function persist(){try{sessionStorage.setItem('frame-component-sharing',JSON.stringify({items:sharedComponents.value,baseline:sharedBaseline.value}));}catch{notify('Bibliothèque trop volumineuse : enregistre le fichier pour la conserver.');}}
+ function persist(){try{const value=JSON.stringify({items:sharedComponents.value,baseline:sharedBaseline.value});sessionStorage.setItem('frame-component-sharing',value);workspaceLocalStorage.setItem('frame-shared-library-draft',value);}catch{notify('Bibliothèque trop volumineuse : enregistre le fichier pour la conserver.');}}
  watch([sharedComponents,sharedBaseline],persist,{deep:true});
  async function run(operation,silent=false){if(sharedBusy.value)return;sharedBusy.value=true;try{const items=await operation();if(items)sharedComponents.value=items;sharedBaseline.value=file.baseline;sharedFileName.value=file.handle?.name||'';sharedError.value='';if(!silent)notify('Bibliothèque partagée actualisée.');}catch(error){if(error.name!=='AbortError'){const message=error.message==='conflict'?'Conflit : '+error.conflicts.join(', ')+'. Exporte ta copie ou enregistre sous un autre fichier.':error.message==='changed'?'Le fichier a changé pendant l’enregistrement. Réessaie.':error.message==='limit'?'Limite de 100 composants atteinte.':error.message==='permission'?'Accès au fichier refusé.':'Fichier inaccessible ou bibliothèque Frame invalide.';if(sharedError.value!==message&&!silent)notify(message);sharedError.value=message;}}finally{sharedBusy.value=false;}}
  async function openSharedLibrary(){await run(()=>file.open(JSON.parse(JSON.stringify(sharedComponents.value))));libraryScope.value='shared';}

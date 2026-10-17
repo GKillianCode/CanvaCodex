@@ -1,4 +1,5 @@
 <script setup>
+import {workspaceLocalStorage as localStorage} from "../localPersistence.js";
 import {useUndoNotifications} from "../undoNotifications.js";
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import {
@@ -289,7 +290,7 @@ async function submit() {
       const project = await props.repository.get(props.videoId);
       let source = null;
       if (copyCurrent.value) {
-        const scoped = applicationStorage(window.localStorage, app.value),
+        const scoped = applicationStorage(localStorage, app.value),
           key = workspaceKeys[app.value === "banners" ? "banners" : "slides"],
           raw = scoped.getItem(key);
         if (!raw)

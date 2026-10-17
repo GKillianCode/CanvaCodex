@@ -1,3 +1,4 @@
+import {workspaceLocalStorage} from './localPersistence.js';
 import { ref } from "vue";
 export const APPEARANCE_KEY = "frame-ui-appearance";
 export const appearance = ref("dark");
@@ -14,13 +15,13 @@ export function setAppearance(value, persist = true) {
     document.documentElement.dataset.appearance = appearance.value;
   if (persist)
     try {
-      localStorage.setItem(APPEARANCE_KEY, appearance.value);
+      workspaceLocalStorage.setItem(APPEARANCE_KEY, appearance.value);
     } catch {}
 }
 export function initAppearance() {
   let storage;
   try {
-    storage = window.localStorage;
+    storage = workspaceLocalStorage;
   } catch {}
   setAppearance(readAppearance(storage), false);
   window.addEventListener("storage", (event) => {
