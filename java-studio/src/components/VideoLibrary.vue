@@ -77,7 +77,7 @@ const projects = ref([]),
 const deletedCreation = ref(null),creationFilter=ref('all');
 useExpiringUndo(deletedCreation);
 watch(() => props.videoId,()=>{deletedCreation.value=null;});
-const newVideoType = ref("course");
+const newVideoType = ref("");
 const starterApps = ref(["slides", "banners", "thumbnails"]);
 const browserOnly = ref(false);
 const selected = ref(null),
@@ -185,7 +185,7 @@ function newVideo() {
   starterApps.value = ["slides", "banners", "thumbnails"];
   browserOnly.value = false;
   newPlaylist.value = playlists.value[0] || "";
-  newVideoType.value = "course";
+  newVideoType.value = "";
   modal.value = { type: "video" };
 }
 function newCreation(kind) {
@@ -670,7 +670,7 @@ async function importVideo(event) {
               <span class="video-status" :data-status="p.status">{{
                 status(p.status)
               }}</span>
-              <span v-if="p.videoType" class="video-type" :data-video-type="p.videoType">{{videoTypeTitle(p.videoType)}}</span>
+              <span class="video-type" :data-video-type="p.videoType">{{videoTypeTitle(p.videoType)}}</span>
               <span class="video-order-number"
                 >N° {{ p.playlistPosition }} dans
                 {{ p.playlist || "Sans playlist" }}</span
@@ -752,7 +752,7 @@ async function importVideo(event) {
             >{{ selected.playlist || "Sans playlist" }} ·
             {{ status(selected.status) }}</span
           >
-          <span v-if="selected.videoType" class="video-type" :data-video-type="selected.videoType">{{videoTypeTitle(selected.videoType)}}</span>
+          <span class="video-type" :data-video-type="selected.videoType">{{videoTypeTitle(selected.videoType)}}</span>
           <h1>{{ selected.name }}</h1>
           <p>
             {{ selected.creations.length }} création{{
@@ -978,7 +978,7 @@ async function importVideo(event) {
               <option v-for="p in playlists" :key="p">{{ p }}</option>
             </select></label
           >
-          <label>Type de vidéo<select v-model="newVideoType"><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label>
+          <label>Type de vidéo<select v-model="newVideoType"><option value="">Non défini</option><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label>
           <div class="video-folder-setup">
             <strong>{{
               folderState?.name

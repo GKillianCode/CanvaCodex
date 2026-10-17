@@ -1077,7 +1077,7 @@ function selectEdge(value) {
                   "
                   >{{ statusTitle(videoMap.get(node.videoId)?.status) }}</span
                 >
-                <span v-if="node.type==='video' && videoMap.get(node.videoId)?.videoType" class="video-type" :data-video-type="videoMap.get(node.videoId).videoType">{{videoTypeTitle(videoMap.get(node.videoId).videoType)}}</span></span>
+                <span class="video-type" :data-video-type="videoMap.get(node.videoId)?.videoType">{{videoTypeTitle(videoMap.get(node.videoId)?.videoType)}}</span></span>
                 <p v-if="node.type !== 'video'">
                   {{ node.text || (node.type==='project'?"Double-clique pour présenter le projet.":"Double-clique pour définir cette étape.") }}
                 </p></button

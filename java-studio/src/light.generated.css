@@ -1753,11 +1753,7 @@
 }
 :root[data-appearance="light"] .record-format select {background:transparent;color:inherit;border:1px solid var(--border);border-radius:5px
 }
-:root[data-appearance="light"] .video-type {border:1px solid #c9d7cf40;border-radius:4px;color:#25382e;background:#98aec312
-}
-:root[data-appearance="light"] .video-type[data-video-type=exercise] {color:#25382e;border-color:#c9d7cf40;background:#baa47812
-}
-:root[data-appearance="light"] .video-type[data-video-type=demo] {color:#25382e;border-color:#c9d7cf40;background:#aa9bbb12
+:root[data-appearance="light"] .video-type {border:1px solid #c9d7cf40;border-radius:4px;color:#25382e;background:#adb5bf12
 }
 :root[data-appearance="light"] .video-status[data-status] {color:var(--status-ink);background:color-mix(in srgb,var(--status-ink) 7%,transparent)
 }

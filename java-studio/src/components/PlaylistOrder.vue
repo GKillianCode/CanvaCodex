@@ -292,7 +292,7 @@ onBeforeUnmount(clearDrag);
               :repository="repository"
               :project-id="row.id"
             /><strong>{{ row.name }}</strong
-            ><span v-if="row.videoType" class="video-type" :data-video-type="row.videoType">{{videoTypeTitle(row.videoType)}}</span><small v-if="row.archived"
+            ><span class="video-type" :data-video-type="row.videoType">{{videoTypeTitle(row.videoType)}}</span><small v-if="row.archived"
               ><Archive :size="12" />Archivée</small
             ></button
           ><span class="video-status" :data-status="row.status">{{

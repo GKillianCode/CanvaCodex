@@ -49,7 +49,7 @@ export function makeVideoProject(name = "Nouvelle vidéo") {
     name: label(name, "Nouvelle vidéo"),
     playlist: "Java",
     status: "preparation",
-    videoType: "course",
+    videoType: "",
     notes: "",
     workflow: normalizeWorkflow(),
     archived: false,
