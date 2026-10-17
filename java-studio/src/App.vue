@@ -153,10 +153,11 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
   <div v-if="folderState.error" class="folder-warning" role="alert">
     {{ folderState.error }} Ta copie dans le navigateur est conservée.<button
       class="btn"
-      @click="folders.authorize().catch((e) => (folderState.error = e.message))"
+      @click="folders.authorize().catch((e) => { if(e.name !== 'AbortError') folderState.error = e.message; })"
     >
-      Réautoriser / réessayer
-    </button>
+      {{ folderState.needsRelink ? 'Choisir le nouvel emplacement…' : 'Réautoriser / réessayer' }}
+    </button><button v-if="folderState.supported && !folderState.needsRelink" class="btn"
+      @click="folders.changeFolder().catch((e) => { if(e.name !== 'AbortError') folderState.error = e.message; })">Choisir un autre dossier…</button>
   </div>
   <div v-if="error" class="video-route-alert" role="alert">
     {{ error }}<button class="btn" @click="retry">Réessayer</button

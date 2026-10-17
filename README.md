@@ -248,3 +248,5 @@ La palette du parcours est atténuée : Création bleu grisé, Prêt à tourner 
 Chaque vidéo peut porter un type **Cours**, **Exercice** ou **Démonstration**, indépendant de son état d’avancement. Le choix se fait à la création ou dans la fiche vidéo et apparaît dans la bibliothèque, les playlists et le canvas. Les anciennes vidéos restent sans type jusqu’à leur classement.
 Les étiquettes d’état et de type partagent un contour fin et des dimensions communes, sans liseré latéral ; elles sont alignées sur les cartes du canvas dans les deux thèmes.
 Les nouvelles vidéos ont le type **Non défini** par défaut. Tous les types utilisent la même étiquette grise dans les deux thèmes ; les couleurs restent réservées aux états d’avancement. Les types déjà attribués sont conservés.
+
+Si le dossier de sauvegarde automatique a été déplacé, le bandeau permet de **Choisir le nouvel emplacement…** (ou **Choisir un autre dossier…**). Sélectionne le dossier qui contient les sous-dossiers portant les ID des vidéos : les sauvegardes en attente sont rejouées après la nouvelle liaison. Les copies du navigateur sont conservées si l’accès au disque échoue.

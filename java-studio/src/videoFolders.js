@@ -47,6 +47,7 @@ export function videoFolderStorage(
     name: "",
     status: "browser",
     error: "",
+    needsRelink: false,
   };
   const report = () => onState({ ...state });
   const ready = repository
@@ -116,53 +117,76 @@ export function videoFolderStorage(
       } catch (e) {
         recoveryIds.add(project.id);
         state.status = "error";
-        state.error = e.message || "Écriture du dossier impossible.";
+        folderError(e);
         report();
       }
     };
     tail = tail.then(task, task);
     await tail;
   }
-  async function authorize() {
-    // Call permission methods before an asynchronous database read to retain the user gesture.
-    if (root) {
-      if ((await root.requestPermission({ mode: "readwrite" })) !== "granted")
-        throw Error("Accès au dossier refusé.");
-    } else {
-      if (!state.supported)
-        throw Error(
-          "Ce navigateur ne permet pas l’écriture automatique dans un dossier.",
-        );
-      root = await host.showDirectoryPicker({
-        id: "frame-video-workspace",
-        mode: "readwrite",
-        startIn: "documents",
-      });
-    }
-    await repository.setSetting("video-folder-root", root);
-    state.name = root.name;
-    state.status = "saved";
-    state.error = "";
-    report();
+  function folderError(error) {
+    state.status = "error";
+    state.needsRelink = ["NotFoundError", "InvalidStateError"].includes(error.name);
+    state.error = state.needsRelink
+      ? "Le dossier de travail est introuvable ou a été déplacé. Choisis son nouvel emplacement."
+      : error.message || "Écriture du dossier impossible.";
+  }
+  async function retryPending() {
     for (const id of [...pendingIds]) {
       const project = await repository.get(id);
       if (project) await mirror(project, await repository.allCreations(id));
+      else {
+        pendingIds.delete(id);
+        recoveryIds.delete(id);
+        await repository.setSetting("video-folder-pending", [...pendingIds]);
+      }
     }
+    if (pendingIds.size) throw Object.assign(Error(state.error || "Des fichiers attendent encore leur sauvegarde."), {name: state.needsRelink ? "NotFoundError" : "Error"});
   }
-  async function changeFolder() {
-    if (!state.supported)
-      throw Error("Dossiers automatiques non disponibles dans ce navigateur.");
-    const next = await host.showDirectoryPicker({
-      id: "frame-video-workspace",
-      mode: "readwrite",
-      startIn: "documents",
-    });
+  async function link(next) {
+    await ready;
+    await tail;
     await repository.setSetting("video-folder-root", next);
     root = next;
     state.name = root.name;
     state.status = "saved";
     state.error = "";
+    state.needsRelink = false;
     report();
+    await retryPending();
+  }
+  async function authorize() {
+    // Pick synchronously from this click when a stale handle was detected.
+    if (!root || state.needsRelink) return changeFolder();
+    try {
+      if ((await root.requestPermission({ mode: "readwrite" })) !== "granted")
+        throw Error("Accès au dossier refusé. Autorise-le ou choisis un autre dossier.");
+      // Permission can remain granted even after the physical folder moved.
+      if (typeof root.entries === "function") await root.entries().next();
+      await link(root);
+    } catch (error) {
+      folderError(error);
+      report();
+      throw Error(state.error);
+    }
+  }
+  async function changeFolder() {
+    if (!state.supported)
+      throw Error("Ce navigateur ne permet pas l’écriture automatique dans un dossier.");
+    // The picker must run before any database await to preserve user activation.
+    const next = await host.showDirectoryPicker({
+      id: "frame-video-workspace",
+      mode: "readwrite",
+      startIn: "documents",
+    });
+    try {
+      if (typeof next.entries === "function") await next.entries().next();
+      await link(next);
+    } catch (error) {
+      folderError(error);
+      report();
+      throw Error(state.error);
+    }
   }
   return {
     ready,
