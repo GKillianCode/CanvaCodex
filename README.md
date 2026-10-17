@@ -2,7 +2,7 @@
 
 Studio personnel pour préparer des diaporamas, des incrustations vidéo et des miniatures avec une charte graphique commune.
 
-L’application se trouve dans [`java-studio/`](java-studio/README.md). Elle utilise Vue 3 et Vite, avec un service de stockage local intégré au lancement Vite.
+L’application se trouve dans [`java-studio/`](java-studio/README.md). Elle utilise Vue 3 et Vite, sans backend dans cette première version.
 
 ## Démarrer
 
@@ -24,7 +24,7 @@ npm run build
 - [`Agent.md`](Agent.md) : contexte, décisions, conventions, état et roadmap.
 - [Dépôt GitHub](https://github.com/GKillianCode/CanvaCodex) : issues et pull requests de suivi.
 
-Les projets sont sauvegardés sur le disque de cet ordinateur, indépendamment du port et peuvent être exportés/importés en JSON. Les incrustations sont exportées en PNG transparent et les présentations enregistrées en WebM, sans audio.
+Les projets sont sauvegardés dans le navigateur sur l’appareil utilisé et peuvent être exportés/importés en JSON. Les incrustations sont exportées en PNG transparent et les présentations enregistrées en WebM, sans audio.
 
 ## Accueil et ateliers indépendants
 
@@ -36,11 +36,11 @@ Format par défaut 1280 × 720, export PNG et JSON propres à Miniatures, outils
 
 ## Sauvegardes indépendantes
 
-Diaporamas et Incrustations conservent chacun leur document dans le stockage local partagé. À la réouverture, Frame affiche l’accueil ; ouvrir un atelier retrouve sa création en cours, avec ses objets et réglages. Noms, thèmes, couleurs, résolution et historiques sont indépendants.
+Diaporamas et Incrustations conservent chacun leur document dans le navigateur. À la réouverture, Frame affiche l’accueil ; ouvrir un atelier retrouve sa création en cours, avec ses objets et réglages. Noms, thèmes, couleurs, résolution et historiques sont indépendants.
 
 Le menu Fichier agit sur l’espace actif : `frame-diaporama.json` pour les diaporamas, `frame-incrustation.json` pour les incrustations, `frame-miniature.json` pour les miniatures. Chaque espace peut être lié à son propre fichier local. Importer un document agit uniquement dans l’application ouverte. Les documents des autres applications sont refusés avec un message.
 
-Les anciennes sauvegardes combinées sont migrées automatiquement ; l’ancien stockage est conservé jusqu’à la réussite des nouvelles écritures. Un ancien fichier combiné lié demande un premier « Enregistrer sous » pour préserver l’original. Son import reste compatible et restaure uniquement la partie de l’application ouverte ; importer le même ancien fichier dans l’autre atelier pour en retrouver l’autre partie. Les ateliers autonomes conservent un document courant par espace, partagés entre navigateurs après rechargement. Le prototype décrit plus bas ajoute une bibliothèque de vidéos et des créations multiples indépendantes.
+Les anciennes sauvegardes combinées sont migrées automatiquement ; l’ancien stockage est conservé jusqu’à la réussite des nouvelles écritures. Un ancien fichier combiné lié demande un premier « Enregistrer sous » pour préserver l’original. Son import reste compatible et restaure uniquement la partie de l’application ouverte ; importer le même ancien fichier dans l’autre atelier pour en retrouver l’autre partie. Les ateliers autonomes conservent un document courant par espace, sans synchronisation entre navigateurs. Le prototype décrit plus bas ajoute une bibliothèque de vidéos et des créations multiples indépendantes.
 
 La présentation dispose d’états pédagogiques dans une même diapo et d’une console privée synchronisée avec une fenêtre Public, pour filmer ou projeter sans afficher les notes.
 
@@ -254,13 +254,3 @@ Si le dossier de sauvegarde automatique a été déplacé, le bandeau permet de 
 Dans le Conducteur, **`/comment`** insère une note de travail jaune directement dans le document. Elle reste dans la sauvegarde, mais ne s’affiche ni en Aperçu ni en Présenter. Les parties disposent d’un trait de destination avant/après pendant leur déplacement. Les ateliers liés proposent deux icônes distinctes : retour direct à l’Accueil et retour à la fiche Vidéo.
 
 La navigation Accueil/Vidéo et les menus sont regroupés dans un bloc compact. Les suppressions de parties, blocs du Conducteur et créations affichent des notifications empilées en bas à droite, avec annulation indépendante pendant 15 secondes. Les commentaires privés gardent un contour complet dans les deux thèmes.
-
-## Port configurable et données locales
-
-`application.json` conserve l’UUID de Frame (`59b7e84f-7970-44fc-8fae-903394040764`). Au démarrage, Frame cherche cet UUID dans `../applications.json`, indépendamment du nom de la ligne. Un port entier entre 1024 et 65535 est appliqué à dev et preview ; `null` conserve le port habituel. Redémarrer après modification. Un port occupé provoque une erreur explicite.
-
-Les données communes (vidéos, supports, conducteur, publication, playlists, parcours, ateliers autonomes et préférences) résident sous `$XDG_DATA_HOME/frame/<UUID>` ou, sous Linux sans cette variable, `~/.local/share/frame/<UUID>`. `FRAME_DATA_DIRECTORY` permet de choisir un autre dossier. Le service reste sur cet ordinateur ; aucun service distant ni IA. Pour la version compilée, utiliser `npm run preview` après `npm run build` : un hébergement statique seul ne fournit pas ce service.
-
-**Avant de changer le port pour la première fois**, lancer cette version puis ouvrir l’ancienne adresse exacte dans le navigateur où se trouvent les données. Attendre la fin de la reprise. Chaque ancienne origine doit être ouverte une fois si elle contient des créations distinctes : un navigateur ne permet pas de lire les données d’un autre port. Les originaux restent dans le navigateur et une archive de migration est écrite sur disque. Les copies en conflit ne remplacent pas la version partagée ; une notification propose les archives JSON brutes de récupération (pas un export directement importable).
-
-Les écritures sont transactionnelles ; une édition concurrente obsolète est refusée plutôt que d’écraser le document partagé. Recharger une autre fenêtre pour actualiser ses données : ce n’est pas une collaboration en temps réel. Les autorisations de fichiers et de dossiers doivent éventuellement être redonnées sur un nouveau port. Les enregistrements historiques sont conservés : sauvegarder ce dossier complet et surveiller sa taille, notamment avec beaucoup d’images.

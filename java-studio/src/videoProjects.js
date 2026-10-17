@@ -470,9 +470,6 @@ export function videoRepository(api = globalThis.indexedDB) {
         );
     });
   }
-  return videoRepositoryOperations(transaction);
-}
-export function videoRepositoryOperations(transaction) {
   function storeProject(p, s, settings, project) {
     p.put(clone(project));
     s.put(videoSummary(project));
