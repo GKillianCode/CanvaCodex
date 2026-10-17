@@ -254,3 +254,8 @@ Si le dossier de sauvegarde automatique a été déplacé, le bandeau permet de 
 Dans le Conducteur, **`/comment`** insère une note de travail jaune directement dans le document. Elle reste dans la sauvegarde, mais ne s’affiche ni en Aperçu ni en Présenter. Les parties disposent d’un trait de destination avant/après pendant leur déplacement. Les ateliers liés proposent deux icônes distinctes : retour direct à l’Accueil et retour à la fiche Vidéo.
 
 La navigation Accueil/Vidéo et les menus sont regroupés dans un bloc compact. Les suppressions de parties, blocs du Conducteur et créations affichent des notifications empilées en bas à droite, avec annulation indépendante pendant 15 secondes. Les commentaires privés gardent un contour complet dans les deux thèmes.
+
+
+## J’aime et abonnement animés
+
+Dans **Incrustations → Formats → Social**, choisir **J’aime et abonnement · animé**. Le bandeau apparaît, puis le bouton J’aime (0,9 s), l’abonnement (2,7 s) et le remerciement (4,8 s). Sortie commune en fondu à la fin des huit secondes. **Animer** donne accès à l’aperçu, aux timings par groupe et à l’export MOV transparent, ou WebM avec chrominance. Tous les textes, formes, couleurs et groupes restent éditables. Ce format est une invitation visuelle pour le montage, sans connexion ni action sur YouTube.
