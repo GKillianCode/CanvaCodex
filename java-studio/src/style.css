@@ -283,3 +283,10 @@
 .canvas-workspace-app .canvas-node.note.selected,.canvas-node.project.selected{border-color:var(--mint)}
 
 .record-format,.record-alpha{display:flex;align-items:center;gap:6px;font-size:11px}.record-format select{font:inherit;background:transparent;color:inherit;border:1px solid var(--border);border-radius:5px;padding:7px}.record-alpha input{accent-color:var(--mint)}
+.video-type{display:inline-flex;align-items:center;font-size:10px;line-height:1.3;padding:4px 8px;border:1px solid #98aec340;border-radius:4px;color:#bacbdc;background:#98aec312;margin-left:6px;white-space:nowrap;vertical-align:middle}
+.video-type[data-video-type=exercise]{color:#d7c7a2;border-color:#baa47840;background:#baa47812}
+.video-type[data-video-type=demo]{color:#c7bddb;border-color:#aa9bbb40;background:#aa9bbb12}
+.canvas-node-content .video-type{font-size:9px;padding:3px 6px;margin-top:7px}
+.playlist-video-title .video-type{margin:6px 0 0}
+.video-details-grid{grid-template-columns:2fr repeat(3,minmax(0,1fr))}
+@media(max-width:760px){.video-details-grid{grid-template-columns:1fr}}

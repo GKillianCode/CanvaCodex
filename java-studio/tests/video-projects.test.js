@@ -396,3 +396,11 @@ test('removing one creation preserves other apps and refreshes the video cover',
  }
  const project=makeVideoProject(),row=makeCreation(project,'slides','Seul');attachCreation(project,row);detachCreation(project,row.id);assert.equal(project.creations.length,0);assert.equal(project.preview,null);
 });
+
+test('video types persist independently of status and historical videos remain unclassified',async()=>{
+ const {makeVideoProject,normalizeVideoProject,videoSummary,videoTypes}=await import('../src/videoProjects.js');
+ const p=makeVideoProject('Cours Java');assert.equal(p.videoType,'course');
+ for(const [videoType] of videoTypes){const normalized=normalizeVideoProject(JSON.parse(JSON.stringify({...p,videoType,status:'editing'})));assert.equal(normalized.videoType,videoType);assert.equal(normalized.status,'editing');assert.equal(videoSummary(normalized).videoType,videoType);}
+ const old={...p};delete old.videoType;assert.equal(normalizeVideoProject(old).videoType,'');
+ assert.equal(normalizeVideoProject({...p,videoType:'unknown'}).videoType,'');
+});

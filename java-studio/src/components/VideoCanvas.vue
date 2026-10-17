@@ -19,7 +19,7 @@ import {
 } from "lucide-vue-next";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import LibraryPreview from "./LibraryPreview.vue";
-import { videoStatuses } from "../videoProjects.js";
+import { videoStatuses, videoTypeTitle } from "../videoProjects.js";
 import {
   CANVAS_GROUP_COLORS,
   canvasGroupColorStyle,
@@ -1078,6 +1078,7 @@ function selectEdge(value) {
                   "
                   >{{ statusTitle(videoMap.get(node.videoId)?.status) }}</span
                 >
+                <span v-if="node.type==='video' && videoMap.get(node.videoId)?.videoType" class="video-type" :data-video-type="videoMap.get(node.videoId).videoType">{{videoTypeTitle(videoMap.get(node.videoId).videoType)}}</span>
                 <p v-if="node.type !== 'video'">
                   {{ node.text || (node.type==='project'?"Double-clique pour présenter le projet.":"Double-clique pour définir cette étape.") }}
                 </p></button

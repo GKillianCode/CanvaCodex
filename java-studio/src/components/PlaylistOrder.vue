@@ -13,7 +13,7 @@ import {
 } from "lucide-vue-next";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import LibraryPreview from "./LibraryPreview.vue";
-import { videoStatuses, playlistDropPosition } from "../videoProjects.js";
+import { videoTypeTitle, videoStatuses, playlistDropPosition } from "../videoProjects.js";
 const props = defineProps({
     name: String,
     returnLabel: { type: String, default: "Accueil" },
@@ -292,7 +292,7 @@ onBeforeUnmount(clearDrag);
               :repository="repository"
               :project-id="row.id"
             /><strong>{{ row.name }}</strong
-            ><small v-if="row.archived"
+            ><span v-if="row.videoType" class="video-type" :data-video-type="row.videoType">{{videoTypeTitle(row.videoType)}}</span><small v-if="row.archived"
               ><Archive :size="12" />Archivée</small
             ></button
           ><span class="video-status" :data-status="row.status">{{

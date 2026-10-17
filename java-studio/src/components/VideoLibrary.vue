@@ -25,6 +25,8 @@ import { applications, applicationStorage } from "../applicationDocuments.js";
 import { workspaceKeys } from "../workspaceStorage.js";
 import {
   makeVideoProject,
+  videoTypes,
+  videoTypeTitle,
   makeCreation,
   attachCreation,
   videoBundle,
@@ -75,6 +77,7 @@ const projects = ref([]),
 const deletedCreation = ref(null),creationFilter=ref('all');
 useExpiringUndo(deletedCreation);
 watch(() => props.videoId,()=>{deletedCreation.value=null;});
+const newVideoType = ref("course");
 const starterApps = ref(["slides", "banners", "thumbnails"]);
 const browserOnly = ref(false);
 const selected = ref(null),
@@ -182,6 +185,7 @@ function newVideo() {
   starterApps.value = ["slides", "banners", "thumbnails"];
   browserOnly.value = false;
   newPlaylist.value = playlists.value[0] || "";
+  newVideoType.value = "course";
   modal.value = { type: "video" };
 }
 function newCreation(kind) {
@@ -256,6 +260,7 @@ async function submit() {
     if (modal.value.type === "video") {
       const project = makeVideoProject(name.value);
       project.playlist = newPlaylist.value;
+      project.videoType = newVideoType.value;
       const rows = [];
       for (const a of applications) {
         if (importFiles.value[a.id])
@@ -380,6 +385,7 @@ async function saveDetails() {
       name: draft.value.name.trim() || project.name,
       playlist: draft.value.playlist,
       status: draft.value.status,
+      videoType: draft.value.videoType,
       notes: draft.value.notes,
       updatedAt: Date.now(),
     });
@@ -664,6 +670,7 @@ async function importVideo(event) {
               <span class="video-status" :data-status="p.status">{{
                 status(p.status)
               }}</span>
+              <span v-if="p.videoType" class="video-type" :data-video-type="p.videoType">{{videoTypeTitle(p.videoType)}}</span>
               <span class="video-order-number"
                 >N° {{ p.playlistPosition }} dans
                 {{ p.playlist || "Sans playlist" }}</span
@@ -745,6 +752,7 @@ async function importVideo(event) {
             >{{ selected.playlist || "Sans playlist" }} ·
             {{ status(selected.status) }}</span
           >
+          <span v-if="selected.videoType" class="video-type" :data-video-type="selected.videoType">{{videoTypeTitle(selected.videoType)}}</span>
           <h1>{{ selected.name }}</h1>
           <p>
             {{ selected.creations.length }} création{{
@@ -788,7 +796,7 @@ async function importVideo(event) {
       </section>
       <details class="video-details">
         <summary>
-          Fiche de la vidéo <span>Nom, playlist et statut</span>
+          Fiche de la vidéo <span>Nom, playlist, type et statut</span>
         </summary>
         <form @submit.prevent="saveDetails">
           <div class="video-details-grid">
@@ -803,6 +811,7 @@ async function importVideo(event) {
                 <option v-for="p in playlists" :key="p">{{ p }}</option>
               </select></label
             ><label
+              >Type de vidéo<select v-model="draft.videoType"><option value="">Non défini</option><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label><label
               >Statut<select v-model="draft.status">
                 <option
                   v-for="[id, title] in videoStatuses"
@@ -969,6 +978,7 @@ async function importVideo(event) {
               <option v-for="p in playlists" :key="p">{{ p }}</option>
             </select></label
           >
+          <label>Type de vidéo<select v-model="newVideoType"><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label>
           <div class="video-folder-setup">
             <strong>{{
               folderState?.name

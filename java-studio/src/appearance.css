@@ -68,3 +68,6 @@
 :root[data-appearance="light"] .canvas-link{stroke:#677d8b;stroke-width:2.5}
 :root[data-appearance="light"] .canvas-link.selected{stroke:#34596f;stroke-width:4}
 :root[data-appearance="light"] #learning-arrow path{fill:#677d8b}
+:root[data-appearance="light"] .video-type{color:#486079;border-color:#7d96ac50;background:#edf2f7}
+:root[data-appearance="light"] .video-type[data-video-type=exercise]{color:#766039;border-color:#ae976550;background:#f5f1e7}
+:root[data-appearance="light"] .video-type[data-video-type=demo]{color:#6c587f;border-color:#9d87b050;background:#f1edf6}

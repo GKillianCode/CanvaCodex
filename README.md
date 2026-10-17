@@ -244,3 +244,5 @@ Les groupes du canvas des parcours proposent sept couleurs (double-clic sur leur
 Les enregistrements de diaporamas proposent désormais MOV par défaut (PNG RGBA sans perte, fond transparent optionnel) et WebM en alternative. Les incrustations séparent le format MOV/WebM du choix de fond ; MOV conserve le canal alpha, WebM utilise un fond de chrominance. Les MOV sont limités à 256 Mo par prise et peuvent être volumineux : l’enregistrement s’arrête et finalise la prise à cette limite. Le lecteur intégré reste disponible pour WebM ; les MOV se téléchargent pour le montage. Aucun audio n’est enregistré.
 
 La palette du parcours est atténuée : Création bleu grisé, Prêt à tourner olive, groupes très légers en clair et flèches gris bleuté contrastées.
+
+Chaque vidéo peut porter un type **Cours**, **Exercice** ou **Démonstration**, indépendant de son état d’avancement. Le choix se fait à la création ou dans la fiche vidéo et apparaît dans la bibliothèque, les playlists et le canvas. Les anciennes vidéos restent sans type jusqu’à leur classement.
