@@ -8,6 +8,8 @@ import { Lock,LockOpen,Pencil,Copy,Trash2,Play,SlidersHorizontal,Palette,Move, S
 import PedagogicalSteps from './PedagogicalSteps.vue';
 import NotesEditor from './NotesEditor.vue';
 import MotionProperties from './MotionProperties.vue';
+import SvgProperties from './SvgProperties.vue';
+import {validSvgSource} from '../svg.js';
 import {imageEffects} from '../imageEffects.js';
 import NumberRange from './NumberRange.vue';
 import TypewriterProperties from './TypewriterProperties.vue';
@@ -56,7 +58,7 @@ const pixels=v=>Math.round(v*s.resolution.width/1920),isText=computed(()=>['text
  </div>
  <div v-show="category==='colors'">
   <InspectorDrawer v-if="isText||s.selectedType==='shape'" id="colors" title="Couleurs"><TextStyleProperties v-if="isText" mode="colors" :value="s.selectedTextStyle" :font="s.position.font" :type="s.selectedType" :theme="s.theme" @change="s.updateTextStyle"/><ShapeProperties v-else mode="colors" :theme="s.theme" :shape="object" :scale="s.resolution.width/1920"/></InspectorDrawer>
-  <InspectorDrawer v-if="s.selectedType==='image'" id="image-effects" title="Effets de l’image"><NumberRange v-for="effect in imageEffects" :key="effect.id" :label="effect.label" unit="%" :max="effect.max" :model-value="object.effects?.[effect.id]??effect.default" @update:model-value="object.effects={...object.effects,[effect.id]:$event}"/><button class="btn full" @click="object.effects={}">Réinitialiser les effets</button><p class="field-help">Flou : 100 % correspond à 40 px sur le canevas.</p></InspectorDrawer>
+  <InspectorDrawer v-if="s.selectedType==='image'&&validSvgSource(object.src)" id="svg-colors" title="Couleurs du SVG"><SvgProperties :image="object" :theme="s.theme"/></InspectorDrawer><InspectorDrawer v-if="s.selectedType==='image'" id="image-effects" title="Effets de l’image"><NumberRange v-for="effect in imageEffects" :key="effect.id" :label="effect.label" unit="%" :max="effect.max" :model-value="object.effects?.[effect.id]??effect.default" @update:model-value="object.effects={...object.effects,[effect.id]:$event}"/><button class="btn full" @click="object.effects={}">Réinitialiser les effets</button><p class="field-help">Flou : 100 % correspond à 40 px sur le canevas.</p></InspectorDrawer>
   <InspectorDrawer v-if="s.selectedType==='image'" id="colors" title="Fond de l’image"><label class="checkbox-label"><input type="checkbox" v-model="object.background">Fond du thème derrière l’image</label><p class="field-help">Les couleurs de la photo sont conservées. Le fond suit la palette du diaporama.</p></InspectorDrawer>
  </div>
  <BitsProperties v-if="s.selectedType==='bits'" :mode="category" :element="object" :position="s.position" :theme="s.theme"/><TableProperties v-if="s.selectedType==='table'&&['style','colors','layout'].includes(category)" :mode="category" :table="object" :position="s.position" @edit="s.workspace='editor';s.editSelected()" :theme="s.theme" :scale="s.resolution.width/1920"/>

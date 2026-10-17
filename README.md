@@ -268,3 +268,10 @@ Les incrustations utilisent la même barre **Étapes** et le même gestionnaire 
 Dans **Objet → Animation → Transition entre étapes**, cocher **Interpoler la position et la taille**, puis déplacer ou redimensionner cet objet dans une autre étape. Le calcul est commun au diaporama : transition douce de 0,5 s maximum, raccourcie si les étapes sont très rapprochées. Les autres objets passent en fondu.
 
 **Animer → Étapes de l’incrustation** règle le début de chaque état en secondes ; sans réglage, les états sont répartis sur la durée du clip. L’état initial commence à zéro, les autres restent dans l’ordre de l’éditeur. Les entrées/sorties des objets restent des timings globaux du clip, communs aux états : déplacer le curseur sur un état pour accéder à ses objets. Aperçu et exports MOV/WebM utilisent exactement le même rendu des états et des interpolations.
+
+
+## Couleurs et opacité des SVG
+
+Importer un SVG comme image, le sélectionner, puis ouvrir **Objet → Couleurs → Couleurs du SVG**. Chaque couleur détectée dans les attributs de remplissage/contour, les styles directement sur les éléments ou les points du dégradé dispose de la palette du thème et d’un sélecteur personnalisé. Une même couleur remplace toutes ses occurrences. Les liens au thème suivent ses changements ; les références aux dégradés, les zones sans remplissage et l’opacité propre au SVG sont conservés. Le fichier source reste intact et **Restaurer les couleurs du SVG** retire les substitutions.
+
+**Objet → Couleurs → Opacité** règle la transparence globale avec curseur ou saisie du pourcentage, comme pour tous les autres objets. Les réglages SVG sont conservés dans les états, les sauvegardes JSON, les composants réutilisables et les exports PNG/MOV/WebM des trois ateliers. Le remplacement de l’image repart de ses couleurs d’origine. Le SVG doit toujours être autonome : scripts, ressources externes et feuilles de style intégrées restent refusés lors de l’import. Jusqu’à128 couleurs explicites proposées par image ; ce panneau remplace une couleur commune, sans éditer individuellement les chemins.
