@@ -1759,3 +1759,11 @@
 }
 :root[data-appearance="light"] .video-status[data-status],:root[data-appearance="light"] .canvas-video-status {border:1px solid color-mix(in srgb,currentColor 25%,transparent);border-radius:4px
 }
+:root[data-appearance="light"] .navigation-return {border:1px solid var(--border);border-radius:7px
+}
+:root[data-appearance="light"] .conductor-outline li.part-drop-before:before,:root[data-appearance="light"] .conductor-outline li.part-drop-after:after {border-radius:3px;background:var(--mint)
+}
+:root[data-appearance="light"] .conductor-private-note {background:#d9b95512;border:1px solid #6d5d2b45;border-radius:7px;color:#645d44
+}
+:root[data-appearance="light"] .conductor-private-note:before {color:#817242
+}

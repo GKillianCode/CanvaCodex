@@ -69,3 +69,7 @@
 :root[data-appearance="light"] .canvas-link.selected{stroke:#34596f;stroke-width:4}
 :root[data-appearance="light"] #learning-arrow path{fill:#677d8b}
 :root[data-appearance="light"] .video-type{color:#58616b;border-color:#87919b50;background:#f0f2f4}
+
+:root[data-appearance="light"] .conductor-private-note{background:#fbf6e7;border-color:#c0a15350;color:#715c29}
+:root[data-appearance="light"] .conductor-private-note:before{color:#8a6c26}
+:root[data-appearance="light"] .conductor-outline li.part-drop-before:before,:root[data-appearance="light"] .conductor-outline li.part-drop-after:after{box-shadow:0 0 0 2px #f6f8f6}

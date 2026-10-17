@@ -180,6 +180,7 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     :application="active"
     :creation-context="context"
     @home="home"
+    @dashboard="navigate('#/')"
   /><component
     :is="video?.workshop === 'conductor' ? ConductorApp : PublicationApp"
     v-else-if="video?.workshop"
@@ -188,6 +189,7 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     :repository="repository"
     :video-id="video.videoId"
     :reader="video.reader"
+    @home="navigate('#/')"
     @back="navigate(videoHash(video.videoId))"
     @workshop="(name) => navigate(videoHash(video.videoId) + '/' + name)"
     @open-creation="(id, app, key) => navigate(videoHash(id, app, key))"

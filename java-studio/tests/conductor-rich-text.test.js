@@ -130,3 +130,17 @@ test("multiple blank lines inside code survive document spacing normalization", 
  assert.equal((source.match(/```java/g)||[]).length,1);
  assert.ok(source.endsWith("Après"));
 });
+
+test('private comments serialize to Markdown and render only in the editor',()=>{
+ const source=richMarkdown(node('div',[node('p',[text('Visible avant')]),node('aside',[node('p',[text('Slide manquant '),node('strong',[text('à créer')])])],{'data-private-note':'true'}),node('p',[text('Visible après')])]));
+ assert.match(source,/:::comment\nSlide manquant \*\*à créer\*\*\n:::/);
+ const reader=renderConductor(source);assert.doesNotMatch(reader,/Slide manquant|à créer|private-note|:::comment/);assert.match(reader,/Visible avant/);assert.match(reader,/Visible après/);
+ const editor=renderConductor(source,[],{includePrivate:true});assert.match(editor,/data-private-note="true"/);assert.match(editor,/Slide manquant <strong>à créer/);
+});
+test('unfinished comments stay private, code examples remain literal, HTML stays escaped',()=>{
+ assert.doesNotMatch(renderConductor('Texte\n\n:::comment\nNe pas diffuser'),/Ne pas diffuser/);
+ assert.match(renderConductor('```text\n:::comment\nExemple public\n:::\n```'),/Exemple public/);
+ assert.match(renderConductor(':::comment\n<script>alert(1)</script>\n:::',[],{includePrivate:true}),/&lt;script&gt;/);
+ const source=richMarkdown(node('div',[node('aside',[node('p',[text(':::')])],{'data-private-note':'true'})]));
+ assert.match(source,/::::comment/);assert.equal(renderConductor(source),'');
+});

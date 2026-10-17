@@ -76,6 +76,11 @@ export function richMarkdown(root) {
         ? "\n\n" + "#".repeat(Number(tag[1])) + " " + value + "\n\n"
         : "\n\n";
     }
+    if (tag === "aside" && node.getAttribute("data-private-note")) {
+      const body=inside().trim();
+      const fence=":".repeat(Math.max(3,...Array.from(body.matchAll(/^(:{3,})/gm),match=>match[1].length+1)));
+      return "\n\n"+fence+"comment\n"+body+"\n"+fence+"\n\n";
+    }
     if (tag === "blockquote")
       return (
         "\n\n" +

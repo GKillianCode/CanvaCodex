@@ -18,6 +18,7 @@ import {
   ChevronRight,
   ExternalLink,
 } from "lucide-vue-next";
+import {sequenceDropIndex} from "../conductorDrop.js";
 import ConductorPage from "./ConductorPage.vue";
 import ConductorRichEditor from "./ConductorRichEditor.vue";
 import { pageMarkdown } from "../conductorPage.js";
@@ -35,7 +36,7 @@ const props = defineProps({
   videoId: String,
   reader: Boolean,
 });
-const emit = defineEmits(["back", "open-creation", "workshop"]);
+const emit = defineEmits(["home", "back", "open-creation", "workshop"]);
 const {
   project,
   data,
@@ -58,6 +59,7 @@ const selected = ref(""),
   fontSize = ref(28),
   list = ref(null),
   dragged = ref(null),
+  dropTarget = ref(null),
   removed = ref(null);
 const sequences = computed(() => data.value?.sequences || []),
   index = computed(() =>
@@ -189,11 +191,18 @@ function move(from, to) {
   const [row] = sequences.value.splice(from, 1);
   sequences.value.splice(to, 0, row);
 }
+function dragOverPart(event, id){
+  if(!dragged.value)return;
+  const rect=event.currentTarget.getBoundingClientRect();
+  dropTarget.value={id,after:event.clientY>rect.top+rect.height/2};
+  event.dataTransfer.dropEffect='move';
+}
+function endPartDrag(){dragged.value=null;dropTarget.value=null;}
 function drop(target) {
-  const from = sequences.value.findIndex((s) => s.id === dragged.value),
-    to = sequences.value.findIndex((s) => s.id === target);
-  if (from >= 0 && to >= 0) move(from, to);
-  dragged.value = null;
+  const from=sequences.value.findIndex(row=>row.id===dragged.value);
+  const to=sequenceDropIndex(sequences.value.map(row=>row.id),dragged.value,target,dropTarget.value?.id===target&&dropTarget.value.after);
+  if(from>=0&&to>=0)move(from,to);
+  endPartDrag();
 }
 function duplicate() {
   if (!current.value || sequences.value.length >= 100) return;
@@ -326,7 +335,7 @@ onBeforeUnmount(() => {
     class="production-app conductor-app"
     :class="{ 'is-reading': reading, 'is-presenting': presenting }"
   >
-    <WorkspaceHeader title="" back-label="Vidéo" @back="go(() => emit('back'))">
+    <WorkspaceHeader title="" back-label="Vidéo" @home="go(() => emit('home'))" @back="go(() => emit('back'))">
       <template #context
         ><span class="creation-context-name">{{ project?.name }}</span
         ><span class="production-test">TEST</span></template
@@ -562,9 +571,9 @@ onBeforeUnmount(() => {
               v-for="(row, i) in sequences"
               :key="row.id"
               @contextmenu.prevent="openMenu($event, row.id)"
-              :class="{ active: !draftSelected && row.id === current?.id }"
-              @dragover.prevent
-              @drop.prevent="drop(row.id)"
+              :class="{ active: !draftSelected && row.id === current?.id, 'part-drop-before': dropTarget?.id===row.id&&!dropTarget.after, 'part-drop-after': dropTarget?.id===row.id&&dropTarget.after, 'part-dragging':dragged===row.id }"
+              @dragover.prevent="dragOverPart($event,row.id)"
+              @drop.prevent.stop="drop(row.id)"
             >
               <button
                 draggable="true"
@@ -572,7 +581,7 @@ onBeforeUnmount(() => {
                   dragged = row.id;
                   $event.dataTransfer.setData('text/plain', row.id);
                 "
-                @dragend="dragged = null"
+                @dragend="endPartDrag"
                 @click="selectPart(row.id)"
               >
                 <span>{{ String(i + 1).padStart(2, "0") }}</span>

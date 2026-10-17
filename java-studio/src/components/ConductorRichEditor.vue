@@ -16,7 +16,8 @@ import {
   fencedCode,
 } from "../conductorCode.js";
 import { GripVertical, Plus, Copy, Check } from "lucide-vue-next";
-import { renderConductor } from "../notebookMarkdown.js";
+import { renderConductor as renderConductorBase } from "../notebookMarkdown.js";
+const renderConductor=(value,images=[])=>renderConductorBase(value,images,{includePrivate:true});
 import { richMarkdown } from "../conductorRichText.js";
 import { highlightColors } from "../videoWorkflow.js";
 import { imageSource, imageImportError } from "../imageImport.js";
@@ -492,7 +493,8 @@ function runSlash(id) {
     imageInput.value?.click();
     return;
   }
-  if (id === "code") code();
+  if (id === "comment") privateComment();
+  else if (id === "code") code();
   else if (id === "hr") separator();
   else if (id === "table") table();
   else if (id === "ul" || id === "ol")
@@ -660,6 +662,14 @@ function table() {
       "| Colonne 1 | Colonne 2 |\n| --- | --- |\n| Texte | Texte |\n| Texte | Texte |\n",
     ),
   );
+  changed();
+}
+function privateComment() {
+  restore();
+  const id='private-'+crypto.randomUUID();
+  document.execCommand('insertHTML',false,'<aside data-private-note="true" class="conductor-private-note" id="'+id+'"><p>Note de travail…</p></aside><p><br></p>');
+  const note=editor.value.querySelector('#'+id);note?.removeAttribute('id');
+  if(note){const range=document.createRange();range.selectNodeContents(note.firstElementChild||note);const selection=window.getSelection();selection.removeAllRanges();selection.addRange(range);remember();}
   changed();
 }
 function separator() {
@@ -875,7 +885,8 @@ function keys(event) {
   const block = (
     anchor?.nodeType === 3 ? anchor.parentElement : anchor
   )?.closest?.("pre");
-  if (exitCode(event, block)) return;
+  const privateBlock=(anchor?.nodeType===3?anchor.parentElement:anchor)?.closest?.('aside[data-private-note]');
+  if (exitCode(event, block || privateBlock)) return;
   if (block && event.key === "Enter") {
     event.preventDefault();
     document.execCommand("insertText", false, "\n");

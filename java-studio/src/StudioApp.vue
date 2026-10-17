@@ -21,7 +21,7 @@ import ShapeGallery from './components/ShapeGallery.vue';
 import DeckCanvas from './components/DeckCanvas.vue';
 import ThumbnailGallery from './components/ThumbnailGallery.vue';
 import LayoutGallery from './components/LayoutGallery.vue';
-const props=defineProps({application:String,creationContext:Object});const emit=defineEmits(['home']);
+const props=defineProps({application:String,creationContext:Object});const emit=defineEmits(['home','dashboard']);
 const studio=useStudio(props.application,props.creationContext);
 defineExpose({flush:async()=>{if(studio.recording.value||studio.countdown.value||studio.finalizing.value||studio.overlayVideoBusy.value||studio.fileBusy.value)throw Error("Termine l’enregistrement ou l’export avant de changer d’atelier.");studio.flushLocal();await props.creationContext?.storage.flush();}});
 function updateEditorZoom(event,commit=false){const raw=event.target.value,next=boundedNumber(raw,25,300);if(next===null||!commit&&(Number(raw)<25||Number(raw)>300))return;studio.setZoom(next);if(commit)event.target.value=String(next);}
@@ -32,7 +32,7 @@ const { fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,save
 <template>
 <div class="studio" :class="{presenting,'presenter-console':presenting,'notes-open':presenting&&studio.notesVisible.value,'rail-collapsed':panels.collapsed,'rail-hidden':true}" :style="{'--inspector-width':panels.inspectorWidth+'px','--slides-width':panels.slidesWidth+'px'}">
  <div class="main-shell">
-  <AppHeader v-if="!presenting" :studio="studio" @home="emit('home')"/>
+  <AppHeader v-if="!presenting" :studio="studio" @home="emit('home')" @dashboard="emit('dashboard')"/>
   <template v-if="view==='themes'">
    <section class="theme-page"><h2>Une identité. Toutes tes créations.</h2><p>Personnalise la palette de cette création, dans cet atelier.</p><ProjectPalette :studio="studio"/><div v-if="studio.application==='slides'" class="theme-project-options"><h3>Options du diaporama</h3><label class="checkbox-label"><input type="checkbox" v-model="frame.gradient">Dégradé de fond</label><label class="checkbox-label"><input type="checkbox" v-model="frame.header">En-tête de diapo</label><label class="checkbox-label"><input type="checkbox" v-model="frame.footer">Pied de diapo</label><button class="btn" @click="view=studio.application==='banners'?'banners':'slides'">Retour aux diapos</button></div><div class="theme-page-actions"><button class="btn primary" @click="openTheme()"><Plus :size="16"/>Créer un thème</button><button v-if="themeUndo" class="btn" @click="undoTheme">Annuler la suppression</button></div><div class="theme-grid"><article v-for="t in themes" :key="t.id" :class="['theme-card',{chosen:themeId===t.id}]"><button class="theme-select" @click="studio.selectTheme(t.id)" :aria-label="'Appliquer '+t.name"><ThemePreview :theme="t"/><div class="theme-caption"><div>{{t.name}}<small class="theme-description">{{t.desc}}</small></div><Check v-if="themeId===t.id" :size="18"/></div></button><div class="theme-card-actions"><button class="btn" @click="openTheme(t)">Éditer le thème de base</button><button class="icon-btn" @click="openTheme(t,true)" :aria-label="'Dupliquer '+t.name" title="Créer à partir de ce thème"><Copy :size="16"/></button><button class="icon-btn" @click="deleteTheme(t.id)" :aria-label="'Supprimer '+t.name" :disabled="themes.length===1"><Trash2 :size="16"/></button></div></article></div></section>
 </template>

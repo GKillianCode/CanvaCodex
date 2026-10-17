@@ -250,3 +250,5 @@ Les étiquettes d’état et de type partagent un contour fin et des dimensions 
 Les nouvelles vidéos ont le type **Non défini** par défaut. Tous les types utilisent la même étiquette grise dans les deux thèmes ; les couleurs restent réservées aux états d’avancement. Les types déjà attribués sont conservés.
 
 Si le dossier de sauvegarde automatique a été déplacé, le bandeau permet de **Choisir le nouvel emplacement…** (ou **Choisir un autre dossier…**). Sélectionne le dossier qui contient les sous-dossiers portant les ID des vidéos : les sauvegardes en attente sont rejouées après la nouvelle liaison. Les copies du navigateur sont conservées si l’accès au disque échoue.
+
+Dans le Conducteur, **`/comment`** insère une note de travail jaune directement dans le document. Elle reste dans la sauvegarde, mais ne s’affiche ni en Aperçu ni en Présenter. Les parties disposent d’un trait de destination avant/après pendant leur déplacement. Les ateliers liés proposent deux icônes distinctes : retour direct à l’Accueil et retour à la fiche Vidéo.

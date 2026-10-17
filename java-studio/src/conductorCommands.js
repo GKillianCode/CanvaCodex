@@ -5,6 +5,7 @@ export const conductorCommands = [
   ['blockquote', 'Citation', 'citation'], ['code', 'Code', 'java code'],
   ['hr', 'Séparateur', 'ligne'], ['image', 'Image', 'photo illustration'],
   ['table', 'Tableau', 'table'],
+  ['comment', 'Commentaire privé', 'comment note rappel travail hors aperçu'],
 ];
 export function findConductorCommands(query = '') {
   const clean = value => value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

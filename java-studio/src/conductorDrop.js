@@ -5,3 +5,8 @@ export function documentDropSlot(rects, y){
  let index=0;for(let i=1;i<positions.length;i++)if(Math.abs(y-positions[i])<Math.abs(y-positions[index]))index=i;
  return {index,top:positions[index]};
 }
+
+export function sequenceDropIndex(ids, source, target, after=false){
+ const from=ids.indexOf(source),at=ids.indexOf(target);if(from<0||at<0)return -1;
+ const slot=at+(after?1:0);return slot-(from<slot?1:0);
+}

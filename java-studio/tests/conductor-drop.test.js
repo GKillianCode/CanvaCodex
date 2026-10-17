@@ -5,3 +5,13 @@ test('drop preview uses gaps around complete blocks, including a tall code block
  assert.deepEqual(documentDropSlot(blocks,170),{index:1,top:160});assert.deepEqual(documentDropSlot(blocks,590),{index:2,top:600});
 });
 test('outside drops clamp to the document ends and empty documents have no target',()=>{assert.deepEqual(documentDropSlot(blocks,-100),{index:0,top:90});assert.deepEqual(documentDropSlot(blocks,2000),{index:3,top:670});assert.equal(documentDropSlot([],100),null);});
+
+test('sequence drop uses the indicated gap in either direction',async()=>{
+ const {sequenceDropIndex}=await import('../src/conductorDrop.js');const ids=['a','b','c','d'];
+ assert.equal(sequenceDropIndex(ids,'a','c',false),1);
+ assert.equal(sequenceDropIndex(ids,'a','c',true),2);
+ assert.equal(sequenceDropIndex(ids,'d','a',false),0);
+ assert.equal(sequenceDropIndex(ids,'d','a',true),1);
+ assert.equal(sequenceDropIndex(ids,'b','b',true),1);
+ assert.equal(sequenceDropIndex(ids,'x','a'),-1);
+});

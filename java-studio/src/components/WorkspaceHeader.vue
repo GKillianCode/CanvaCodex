@@ -1,13 +1,13 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount } from "vue";
-import { Sun, Moon } from "lucide-vue-next";
+import { Sun, Moon, Home, Clapperboard, ArrowLeft } from "lucide-vue-next";
 import { appearance, setAppearance } from "../appearance.js";
 import WorkspaceLauncher from "./WorkspaceLauncher.vue";
 const props = defineProps({
   title: String,
   backLabel: { type: String, default: "Accueil" },
 });
-const emit = defineEmits(["back"]);
+const emit = defineEmits(["back", "home"]);
 const root = ref(null),
   active = ref(null);
 function fileAction(event) {
@@ -40,14 +40,15 @@ onBeforeUnmount(() => {
   >
     <slot>
       <div class="app-header-left">
-        <a href="#/" class="brand header-brand" @click.prevent="emit('back')"
+        <a href="#/" class="brand header-brand" @click.prevent="backLabel === 'Vidéo' ? emit('home') : emit('back')"
           ><span class="brand-icon">f</span
           ><span class="brand-name"
             >frame<span class="brand-dot">.</span></span
           ></a
         >
-        <button v-if="backLabel" class="btn home-return" @click="emit('back')">
-          {{ backLabel }}
+        <button v-if="backLabel === 'Vidéo'" class="icon-btn navigation-return" aria-label="Accueil" title="Accueil" @click="emit('home')"><Home :size="18"/></button>
+        <button v-if="backLabel" class="icon-btn navigation-return" :aria-label="backLabel" :title="backLabel" @click="emit('back')">
+          <Clapperboard v-if="backLabel === 'Vidéo'" :size="18"/><Home v-else-if="backLabel === 'Accueil'" :size="18"/><ArrowLeft v-else :size="18"/>
         </button>
         <span v-if="title" class="application-name">{{ title }}</span>
         <nav class="app-menus" aria-label="Menus de l’application">
