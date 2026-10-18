@@ -150,21 +150,57 @@ export function applyEffects(scene, effects, time) {
 // A spline supplies horizontal intent; vertical motion is integrated from a jump
 // impulse. Resize keeps the feet in place, so landing squash cannot sink in floors.
 export function simulateDrivenBody(sample, time, options = {}, floors = []) {
-  const gravity = options.gravity ?? 600, drag = options.drag ?? 0;
-  let p = {...sample(0)}, vy = options.velocityY || 0;
+  let gravity = options.gravity ?? 600;
+  const drag = options.drag ?? 0,
+    contacts = new Set();
+  let p = { ...sample(0) },
+    vy = options.velocityY || 0;
   const end = Math.max(0, Math.min(120, time));
-  for(let i=0;i<Math.ceil(end*120);i++) {
-    const dt=Math.min(1/120,end-i/120), next=sample(i/120+dt);
-    const bottom=p.y+p.h;
-    vy=(vy+gravity*dt)*Math.exp(-drag*dt);
-    p={...next,y:bottom-next.h+vy*dt};
-    for(const floor of floors) {
-      if(p.x+p.w>floor.x && p.x<floor.x+floor.w && vy>=0 && bottom<=floor.y+0.001 && p.y+p.h>=floor.y) {
-        p.y=floor.y-p.h;
-        vy=-vy*(options.bounce ?? 0);
-        if(Math.abs(vy)<2)vy=0;
+  for (let i = 0; i < Math.ceil(end * 120); i++) {
+    const dt = Math.min(1 / 120, end - i / 120),
+      next = sample(i / 120 + dt);
+    const bottom = p.y + p.h,
+      top = p.y;
+    vy = (vy + gravity * dt) * Math.exp(-drag * dt);
+    p = { ...next, y: (gravity < 0 ? top : bottom - next.h) + vy * dt };
+    for (const r of options.triggers || []) {
+      const b = r.bounds;
+      if (!b || contacts.has(r.id)) continue;
+      if (
+        p.x + p.w >= b.x &&
+        p.x <= b.x + b.w &&
+        p.y + p.h >= b.y &&
+        p.y <= b.y + b.h
+      ) {
+        contacts.add(r.id);
+        if (r.gravity != null) gravity = r.gravity;
+        if (r.impulse != null) vy = r.impulse;
+      }
+    }
+    for (const floor of floors) {
+      if (
+        p.x + p.w > floor.x &&
+        p.x < floor.x + floor.w &&
+        vy < 0 &&
+        top >= floor.y + floor.h - 0.001 &&
+        p.y <= floor.y + floor.h
+      ) {
+        p.y = floor.y + floor.h;
+        vy = -vy * (options.bounce ?? 0);
+        if (Math.abs(vy) < 2) vy = 0;
+      }
+      if (
+        p.x + p.w > floor.x &&
+        p.x < floor.x + floor.w &&
+        vy >= 0 &&
+        bottom <= floor.y + 0.001 &&
+        p.y + p.h >= floor.y
+      ) {
+        p.y = floor.y - p.h;
+        vy = -vy * (options.bounce ?? 0);
+        if (Math.abs(vy) < 2) vy = 0;
       }
     }
   }
-  return p;
+  return { ...p, contacts: [...contacts] };
 }

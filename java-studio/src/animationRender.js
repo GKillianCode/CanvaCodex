@@ -1,3 +1,4 @@
+import {drawAnimationBackground} from "./animationBackground.js";
 import {splineSegments} from "./splines.js";
 import { drawShape, normalizeShape, shapeGeometry } from "./shapes.js";
 import { boundColor } from "./colors.js";
@@ -14,10 +15,7 @@ export function renderAnimation(
   const state = animationScene(scene, config, time);
   if(positions) Object.assign(state.scene.positions, positions);
   ctx.save();
-  if (state.config.background === "solid") {
-    ctx.fillStyle = boundColor(state.config, "color", theme);
-    ctx.fillRect(0, 0, 1920, 1080);
-  }
+  drawAnimationBackground(ctx,state.config,theme);
   const cutters = state.config.effects
     .filter(
       (e) =>

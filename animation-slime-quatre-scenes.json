@@ -3,7 +3,7 @@
   "version": 1,
   "kind": "animation",
   "projectId": "slime-platform-demo",
-  "project": "Slime · trois mondes",
+  "project": "Slime · quatre mondes",
   "themes": [
     {
       "id": "mint",
@@ -452,35 +452,6 @@
       "id": "slime-scene-0",
       "exitDirection": "auto",
       "elements": {
-        "shapeSky": {
-          "type": "shape",
-          "custom": true,
-          "template": false,
-          "fillRole": null,
-          "strokeRole": null,
-          "name": "Ciel animé",
-          "shape": "rect",
-          "fill": "#dcece4",
-          "stroke": "#dcece4",
-          "filled": true,
-          "outlined": false,
-          "strokeWidth": 6,
-          "opacity": 100,
-          "radius": 0,
-          "roundedCorners": false,
-          "individualCorners": false,
-          "cornerRadii": {
-            "tl": 0,
-            "tr": 0,
-            "br": 0,
-            "bl": 0
-          },
-          "points": 5,
-          "innerRatio": 0.45,
-          "direction": "horizontal",
-          "dashed": false,
-          "roundedEnds": true
-        },
         "shapeHill0": {
           "type": "shape",
           "custom": true,
@@ -1783,13 +1754,6 @@
         "y": 0
       },
       "positions": {
-        "shapeSky": {
-          "x": 0,
-          "y": 0,
-          "w": 1920,
-          "h": 1080,
-          "size": 32
-        },
         "shapeHill0": {
           "x": -220,
           "y": 460,
@@ -2112,10 +2076,6 @@
         }
       },
       "fragments": {
-        "shapeSky": {
-          "order": 0,
-          "animation": "none"
-        },
         "shapeHill0": {
           "order": 0,
           "animation": "none"
@@ -2299,7 +2259,6 @@
       },
       "designVersion": 3,
       "blockKeys": [
-        "shapeSky",
         "shapeHill0",
         "shapeHill1",
         "shapeHill2",
@@ -2348,7 +2307,11 @@
       ],
       "groups": [],
       "animation": {
-        "version": 3,
+        "version": 4,
+        "actorKey": "shapeSlime",
+        "actorId": "slime-player",
+        "transition": 0.7,
+        "triggers": [],
         "effects": [
           {
             "id": "floor-shapeGroundLeft",
@@ -2656,7 +2619,9 @@
         ],
         "duration": 10,
         "fps": 30,
-        "background": "solid",
+        "background": "gradient",
+        "color2": "#b7cfb5",
+        "gradientAngle": 90,
         "color": "#dcece4",
         "links": [],
         "paths": [
@@ -2671,141 +2636,45 @@
                 "y": 820
               },
               {
-                "x": 339.0666666666666,
+                "x": 352.66666666666663,
                 "y": 820
               },
               {
-                "x": 518.1333333333332,
+                "x": 545.3333333333333,
                 "y": 820
               },
               {
-                "x": 697.1999999999999,
+                "x": 738,
                 "y": 820
               },
               {
-                "x": 820.0888888888888,
+                "x": 870.2222222222222,
                 "y": 3.3333333333333712
               },
               {
-                "x": 942.9777777777779,
+                "x": 1002.4444444444443,
                 "y": 3.3333333333333712
               },
               {
-                "x": 1065.8666666666668,
+                "x": 1134.6666666666665,
                 "y": 820
               },
               {
-                "x": 1290.5777777777778,
+                "x": 1376.4444444444443,
                 "y": 820
               },
               {
-                "x": 1515.288888888889,
+                "x": 1618.2222222222222,
                 "y": 820
               },
               {
-                "x": 1740,
+                "x": 1860,
                 "y": 820
               }
             ]
           }
         ],
         "clips": [
-          {
-            "id": "clip-shapeSky",
-            "name": "Couleur du ciel",
-            "enabled": true,
-            "collapsed": false,
-            "hidden": false,
-            "easing": "smooth",
-            "start": 0,
-            "duration": 10,
-            "markers": [],
-            "keys": [
-              "shapeSky"
-            ],
-            "pathId": "",
-            "orient": false,
-            "constantSpeed": true,
-            "particles": {
-              "enabled": false,
-              "force": 1,
-              "aspect": 1,
-              "rotation": 0,
-              "shape": {
-                "type": "shape",
-                "custom": true,
-                "template": false,
-                "fillRole": null,
-                "strokeRole": null,
-                "name": "Cercle",
-                "shape": "circle",
-                "fill": "#35ff91",
-                "stroke": "#35ff91",
-                "filled": true,
-                "outlined": false,
-                "strokeWidth": 6,
-                "opacity": 100,
-                "radius": 0,
-                "roundedCorners": false,
-                "individualCorners": false,
-                "cornerRadii": {
-                  "tl": 0,
-                  "tr": 0,
-                  "br": 0,
-                  "bl": 0
-                },
-                "points": 5,
-                "innerRatio": 0.45,
-                "direction": "horizontal",
-                "dashed": false,
-                "roundedEnds": true
-              },
-              "count": 40,
-              "seed": 1,
-              "life": 2,
-              "speed": 150,
-              "size": 8,
-              "color": "#89baa9",
-              "colorRole": null,
-              "direction": "radial",
-              "xMin": -1,
-              "xMax": 1,
-              "yMin": -1,
-              "yMax": 1
-            },
-            "modifier": "none",
-            "amplitude": 40,
-            "frequency": 1,
-            "gravity": 200,
-            "pivotX": 0.5,
-            "pivotY": 0.5,
-            "frames": [
-              {
-                "field": "color",
-                "time": 0,
-                "value": "#dcece4",
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "color",
-                "time": 10,
-                "value": "#b7c9dc",
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              }
-            ]
-          },
           {
             "id": "clip-shapeHill0",
             "name": "Parallaxe des collines",
@@ -5183,7 +5052,149 @@
               {
                 "field": "color",
                 "time": 10,
-                "value": "#edb87d",
+                "value": "#e9a65c",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "scene-background",
+            "name": "Fond de scène",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 10,
+            "markers": [],
+            "keys": [],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "backgroundColor",
+                "time": 0,
+                "value": "#dcece4",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor2",
+                "time": 0,
+                "value": "#b7cfb5",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundAngle",
+                "time": 0,
+                "value": 90,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor",
+                "time": 10,
+                "value": "#c1d4e0",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor2",
+                "time": 10,
+                "value": "#d6c6ab",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundAngle",
+                "time": 10,
+                "value": 125,
                 "ease": "smooth",
                 "curve": [
                   0.25,
@@ -5201,35 +5212,6 @@
       "id": "slime-scene-1",
       "exitDirection": "auto",
       "elements": {
-        "shapeSky": {
-          "type": "shape",
-          "custom": true,
-          "template": false,
-          "fillRole": null,
-          "strokeRole": null,
-          "name": "Ciel animé",
-          "shape": "rect",
-          "fill": "#efe0cf",
-          "stroke": "#efe0cf",
-          "filled": true,
-          "outlined": false,
-          "strokeWidth": 6,
-          "opacity": 100,
-          "radius": 0,
-          "roundedCorners": false,
-          "individualCorners": false,
-          "cornerRadii": {
-            "tl": 0,
-            "tr": 0,
-            "br": 0,
-            "bl": 0
-          },
-          "points": 5,
-          "innerRatio": 0.45,
-          "direction": "horizontal",
-          "dashed": false,
-          "roundedEnds": true
-        },
         "shapePeak0": {
           "type": "shape",
           "custom": true,
@@ -6224,7 +6206,7 @@
           "strokeRole": null,
           "name": "Slime · personnage",
           "shape": "circle",
-          "fill": "#80b4be",
+          "fill": "#e9a65c",
           "stroke": "#694c48",
           "filled": true,
           "outlined": true,
@@ -6387,13 +6369,6 @@
         "y": 0
       },
       "positions": {
-        "shapeSky": {
-          "x": 0,
-          "y": 0,
-          "w": 1920,
-          "h": 1080,
-          "size": 32
-        },
         "shapePeak0": {
           "x": -90,
           "y": 310,
@@ -6633,7 +6608,7 @@
           "size": 32
         },
         "shapeSlime": {
-          "x": 108,
+          "x": -112,
           "y": 716,
           "w": 104,
           "h": 104,
@@ -6681,10 +6656,6 @@
         }
       },
       "fragments": {
-        "shapeSky": {
-          "order": 0,
-          "animation": "none"
-        },
         "shapePeak0": {
           "order": 0,
           "animation": "none"
@@ -6848,7 +6819,6 @@
       },
       "designVersion": 3,
       "blockKeys": [
-        "shapeSky",
         "shapePeak0",
         "shapePeak1",
         "shapePeak2",
@@ -6892,7 +6862,11 @@
       ],
       "groups": [],
       "animation": {
-        "version": 3,
+        "version": 4,
+        "actorKey": "shapeSlime",
+        "actorId": "slime-player",
+        "transition": 0.7,
+        "triggers": [],
         "effects": [
           {
             "id": "floor-shapeGroundLeft",
@@ -7200,7 +7174,9 @@
         ],
         "duration": 10,
         "fps": 30,
-        "background": "solid",
+        "background": "gradient",
+        "color2": "#d9b395",
+        "gradientAngle": 90,
         "color": "#efe0cf",
         "links": [],
         "paths": [
@@ -7211,145 +7187,49 @@
             "closed": false,
             "points": [
               {
-                "x": 160,
+                "x": -60,
                 "y": 820
               },
               {
-                "x": 339.0666666666666,
+                "x": 157.6,
                 "y": 820
               },
               {
-                "x": 518.1333333333332,
+                "x": 375.2,
                 "y": 820
               },
               {
-                "x": 697.1999999999999,
+                "x": 592.8,
                 "y": 820
               },
               {
-                "x": 820.0888888888888,
+                "x": 742.1333333333333,
                 "y": 3.3333333333333712
               },
               {
-                "x": 942.9777777777779,
+                "x": 891.4666666666667,
                 "y": 3.3333333333333712
               },
               {
-                "x": 1065.8666666666668,
+                "x": 1040.8,
                 "y": 820
               },
               {
-                "x": 1290.5777777777778,
+                "x": 1313.8666666666666,
                 "y": 820
               },
               {
-                "x": 1515.288888888889,
+                "x": 1586.9333333333334,
                 "y": 820
               },
               {
-                "x": 1740,
+                "x": 1860,
                 "y": 820
               }
             ]
           }
         ],
         "clips": [
-          {
-            "id": "clip-shapeSky",
-            "name": "Couleur du ciel",
-            "enabled": true,
-            "collapsed": false,
-            "hidden": false,
-            "easing": "smooth",
-            "start": 0,
-            "duration": 10,
-            "markers": [],
-            "keys": [
-              "shapeSky"
-            ],
-            "pathId": "",
-            "orient": false,
-            "constantSpeed": true,
-            "particles": {
-              "enabled": false,
-              "force": 1,
-              "aspect": 1,
-              "rotation": 0,
-              "shape": {
-                "type": "shape",
-                "custom": true,
-                "template": false,
-                "fillRole": null,
-                "strokeRole": null,
-                "name": "Cercle",
-                "shape": "circle",
-                "fill": "#35ff91",
-                "stroke": "#35ff91",
-                "filled": true,
-                "outlined": false,
-                "strokeWidth": 6,
-                "opacity": 100,
-                "radius": 0,
-                "roundedCorners": false,
-                "individualCorners": false,
-                "cornerRadii": {
-                  "tl": 0,
-                  "tr": 0,
-                  "br": 0,
-                  "bl": 0
-                },
-                "points": 5,
-                "innerRatio": 0.45,
-                "direction": "horizontal",
-                "dashed": false,
-                "roundedEnds": true
-              },
-              "count": 40,
-              "seed": 1,
-              "life": 2,
-              "speed": 150,
-              "size": 8,
-              "color": "#89baa9",
-              "colorRole": null,
-              "direction": "radial",
-              "xMin": -1,
-              "xMax": 1,
-              "yMin": -1,
-              "yMax": 1
-            },
-            "modifier": "none",
-            "amplitude": 40,
-            "frequency": 1,
-            "gravity": 200,
-            "pivotX": 0.5,
-            "pivotY": 0.5,
-            "frames": [
-              {
-                "field": "color",
-                "time": 0,
-                "value": "#efe0cf",
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "color",
-                "time": 10,
-                "value": "#d3bfc7",
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              }
-            ]
-          },
           {
             "id": "clip-shapePeak0",
             "name": "Relief en transformation",
@@ -8779,7 +8659,7 @@
               {
                 "field": "color",
                 "time": 0,
-                "value": "#80b4be",
+                "value": "#e9a65c",
                 "ease": "smooth",
                 "curve": [
                   0.25,
@@ -9199,7 +9079,149 @@
               {
                 "field": "color",
                 "time": 10,
-                "value": "#aed0cb",
+                "value": "#e9a65c",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "scene-background",
+            "name": "Fond de scène",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 10,
+            "markers": [],
+            "keys": [],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "backgroundColor",
+                "time": 0,
+                "value": "#efe0cf",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor2",
+                "time": 0,
+                "value": "#d9b395",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundAngle",
+                "time": 0,
+                "value": 90,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor",
+                "time": 10,
+                "value": "#d4c0cc",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor2",
+                "time": 10,
+                "value": "#aa8182",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundAngle",
+                "time": 10,
+                "value": 125,
                 "ease": "smooth",
                 "curve": [
                   0.25,
@@ -9217,35 +9239,6 @@
       "id": "slime-scene-2",
       "exitDirection": "auto",
       "elements": {
-        "shapeSky": {
-          "type": "shape",
-          "custom": true,
-          "template": false,
-          "fillRole": null,
-          "strokeRole": null,
-          "name": "Ciel animé",
-          "shape": "rect",
-          "fill": "#202e42",
-          "stroke": "#202e42",
-          "filled": true,
-          "outlined": false,
-          "strokeWidth": 6,
-          "opacity": 100,
-          "radius": 0,
-          "roundedCorners": false,
-          "individualCorners": false,
-          "cornerRadii": {
-            "tl": 0,
-            "tr": 0,
-            "br": 0,
-            "bl": 0
-          },
-          "points": 5,
-          "innerRatio": 0.45,
-          "direction": "horizontal",
-          "dashed": false,
-          "roundedEnds": true
-        },
         "shapeTower0": {
           "type": "shape",
           "custom": true,
@@ -11110,7 +11103,7 @@
           "strokeRole": null,
           "name": "Slime · personnage",
           "shape": "circle",
-          "fill": "#d6a6c9",
+          "fill": "#e9a65c",
           "stroke": "#e1e8eb",
           "filled": true,
           "outlined": true,
@@ -11273,13 +11266,6 @@
         "y": 0
       },
       "positions": {
-        "shapeSky": {
-          "x": 0,
-          "y": 0,
-          "w": 1920,
-          "h": 1080,
-          "size": 32
-        },
         "shapeTower0": {
           "x": 0,
           "y": 340,
@@ -11610,9 +11596,9 @@
           "size": 32
         },
         "shapeGroundLeft": {
-          "x": 0,
+          "x": -300,
           "y": 820,
-          "w": 800,
+          "w": 1100,
           "h": 260,
           "size": 32
         },
@@ -11729,7 +11715,7 @@
           "size": 32
         },
         "shapeSlime": {
-          "x": 108,
+          "x": -112,
           "y": 716,
           "w": 104,
           "h": 104,
@@ -11777,10 +11763,6 @@
         }
       },
       "fragments": {
-        "shapeSky": {
-          "order": 0,
-          "animation": "none"
-        },
         "shapeTower0": {
           "order": 0,
           "animation": "none"
@@ -12064,7 +12046,6 @@
       },
       "designVersion": 3,
       "blockKeys": [
-        "shapeSky",
         "shapeTower0",
         "shapeWindow0-0",
         "shapeWindow0-1",
@@ -12138,7 +12119,11 @@
       ],
       "groups": [],
       "animation": {
-        "version": 3,
+        "version": 4,
+        "actorKey": "shapeSlime",
+        "actorId": "slime-player",
+        "transition": 0.7,
+        "triggers": [],
         "effects": [
           {
             "id": "floor-shapeGroundLeft",
@@ -12185,14 +12170,14 @@
             "offsetX": 0,
             "offsetY": 0,
             "followPath": true,
-            "velocityY": -1050,
+            "velocityY": 0,
             "drag": 0,
             "bounce": 0,
             "friction": 0.15,
             "wind": 0,
             "enabled": true,
-            "start": 3.4,
-            "duration": 6.6,
+            "start": 0,
+            "duration": 10,
             "gravity": 900,
             "targets": [
               "shapeSlime"
@@ -12446,7 +12431,9 @@
         ],
         "duration": 10,
         "fps": 30,
-        "background": "solid",
+        "background": "gradient",
+        "color2": "#101b30",
+        "gradientAngle": 90,
         "color": "#202e42",
         "links": [],
         "paths": [
@@ -12457,145 +12444,25 @@
             "closed": false,
             "points": [
               {
-                "x": 160,
+                "x": -60,
                 "y": 820
               },
               {
-                "x": 339.0666666666666,
+                "x": 280,
                 "y": 820
               },
               {
-                "x": 518.1333333333332,
+                "x": 620,
                 "y": 820
               },
               {
-                "x": 697.1999999999999,
-                "y": 820
-              },
-              {
-                "x": 820.0888888888888,
-                "y": 3.3333333333333712
-              },
-              {
-                "x": 942.9777777777779,
-                "y": 3.3333333333333712
-              },
-              {
-                "x": 1065.8666666666668,
-                "y": 820
-              },
-              {
-                "x": 1290.5777777777778,
-                "y": 820
-              },
-              {
-                "x": 1515.288888888889,
-                "y": 820
-              },
-              {
-                "x": 1740,
+                "x": 960,
                 "y": 820
               }
             ]
           }
         ],
         "clips": [
-          {
-            "id": "clip-shapeSky",
-            "name": "Couleur du ciel",
-            "enabled": true,
-            "collapsed": false,
-            "hidden": false,
-            "easing": "smooth",
-            "start": 0,
-            "duration": 10,
-            "markers": [],
-            "keys": [
-              "shapeSky"
-            ],
-            "pathId": "",
-            "orient": false,
-            "constantSpeed": true,
-            "particles": {
-              "enabled": false,
-              "force": 1,
-              "aspect": 1,
-              "rotation": 0,
-              "shape": {
-                "type": "shape",
-                "custom": true,
-                "template": false,
-                "fillRole": null,
-                "strokeRole": null,
-                "name": "Cercle",
-                "shape": "circle",
-                "fill": "#35ff91",
-                "stroke": "#35ff91",
-                "filled": true,
-                "outlined": false,
-                "strokeWidth": 6,
-                "opacity": 100,
-                "radius": 0,
-                "roundedCorners": false,
-                "individualCorners": false,
-                "cornerRadii": {
-                  "tl": 0,
-                  "tr": 0,
-                  "br": 0,
-                  "bl": 0
-                },
-                "points": 5,
-                "innerRatio": 0.45,
-                "direction": "horizontal",
-                "dashed": false,
-                "roundedEnds": true
-              },
-              "count": 40,
-              "seed": 1,
-              "life": 2,
-              "speed": 150,
-              "size": 8,
-              "color": "#89baa9",
-              "colorRole": null,
-              "direction": "radial",
-              "xMin": -1,
-              "xMax": 1,
-              "yMin": -1,
-              "yMax": 1
-            },
-            "modifier": "none",
-            "amplitude": 40,
-            "frequency": 1,
-            "gravity": 200,
-            "pivotX": 0.5,
-            "pivotY": 0.5,
-            "frames": [
-              {
-                "field": "color",
-                "time": 0,
-                "value": "#202e42",
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "color",
-                "time": 10,
-                "value": "#39465d",
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              }
-            ]
-          },
           {
             "id": "clip-shapeTower0",
             "name": "Architecture mobile",
@@ -15115,6 +14982,18 @@
             "pivotY": 1,
             "frames": [
               {
+                "field": "color",
+                "time": 0,
+                "value": "#e9a65c",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
                 "field": "progress",
                 "time": 0,
                 "value": 0,
@@ -15127,405 +15006,9 @@
                 ]
               },
               {
-                "field": "w",
-                "time": 0,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "h",
-                "time": 0,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
                 "field": "color",
-                "time": 0,
-                "value": "#d6a6c9",
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 0.35,
-                "value": 112,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 0.7,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 1.05,
-                "value": 112,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 1.4,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 1.75,
-                "value": 112,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 2.1,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 2.45,
-                "value": 112,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 2.8,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "h",
-                "time": 3,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 3.23,
-                "value": 140,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "h",
-                "time": 3.23,
-                "value": 72,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "progress",
-                "time": 3.4,
-                "value": 0.3333333333333333,
-                "ease": "linear",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 3.4,
-                "value": 80,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "h",
-                "time": 3.4,
-                "value": 132,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 3.8,
-                "value": 96,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "h",
-                "time": 3.8,
-                "value": 108,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 5.613333333333333,
-                "value": 92,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "h",
-                "time": 5.613333333333333,
-                "value": 118,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "progress",
-                "time": 5.733333333333333,
-                "value": 0.6666666666666666,
-                "ease": "linear",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 5.733333333333333,
-                "value": 146,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "h",
-                "time": 5.733333333333333,
-                "value": 66,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 5.953333333333333,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "h",
-                "time": 5.953333333333333,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 6.4,
-                "value": 112,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 6.8,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 7.2,
-                "value": 112,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 7.6,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 8,
-                "value": 112,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 8.4,
-                "value": 104,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 8.8,
-                "value": 112,
-                "ease": "smooth",
-                "curve": [
-                  0.25,
-                  0.1,
-                  0.25,
-                  1
-                ]
-              },
-              {
-                "field": "w",
-                "time": 9.2,
-                "value": 104,
+                "time": 10,
+                "value": "#e9a65c",
                 "ease": "smooth",
                 "curve": [
                   0.25,
@@ -15545,11 +15028,1737 @@
                   0.25,
                   1
                 ]
+              }
+            ]
+          },
+          {
+            "id": "scene-background",
+            "name": "Fond de scène",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 10,
+            "markers": [],
+            "keys": [],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "backgroundColor",
+                "time": 0,
+                "value": "#202e42",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
               },
               {
-                "field": "w",
+                "field": "backgroundColor2",
+                "time": 0,
+                "value": "#101b30",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundAngle",
+                "time": 0,
+                "value": 90,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor",
                 "time": 10,
-                "value": 104,
+                "value": "#35445f",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor2",
+                "time": 10,
+                "value": "#46616c",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundAngle",
+                "time": 10,
+                "value": 125,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "slime-scene-3",
+      "exitDirection": "auto",
+      "elements": {
+        "shapeFloor": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Sol de gravité",
+          "shape": "rect",
+          "fill": "#4b596c",
+          "stroke": "#4b596c",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeCeiling": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Plafond · rive droite",
+          "shape": "rect",
+          "fill": "#4b596c",
+          "stroke": "#4b596c",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeCeilingLeft": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Plafond · rive gauche",
+          "shape": "rect",
+          "fill": "#4b596c",
+          "stroke": "#4b596c",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeFloorEdge": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Bord du sol",
+          "shape": "rect",
+          "fill": "#b8a0b2",
+          "stroke": "#b8a0b2",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeCeilingEdge": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Bord du plafond",
+          "shape": "rect",
+          "fill": "#83a6b3",
+          "stroke": "#83a6b3",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeCeilingEdgeLeft": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Bord du plafond gauche",
+          "shape": "rect",
+          "fill": "#83a6b3",
+          "stroke": "#83a6b3",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn0": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn1": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn2": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn3": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn4": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn5": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn6": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn7": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn8": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn9": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn10": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeColumn11": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Architecture changeante",
+          "shape": "rounded",
+          "fill": "#2d4257",
+          "stroke": "#2d4257",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 8,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 8,
+            "tr": 8,
+            "br": 8,
+            "bl": 8
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeSlime": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Slime · même personnage",
+          "shape": "circle",
+          "fill": "#e9a65c",
+          "stroke": "#e8dccb",
+          "filled": true,
+          "outlined": true,
+          "strokeWidth": 3,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeGravity": {
+          "engineKind": "gravity",
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Gravité · contacts inversent la force",
+          "shape": "circle",
+          "fill": "#a6b6c7",
+          "stroke": "#a6b6c7",
+          "filled": false,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeLucky0": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Bloc de transformation 1",
+          "shape": "rounded",
+          "fill": "#d9b86f",
+          "stroke": "#eed8a2",
+          "filled": true,
+          "outlined": true,
+          "strokeWidth": 4,
+          "opacity": 100,
+          "radius": 12,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 12,
+            "tr": 12,
+            "br": 12,
+            "bl": 12
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeMark0": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Repère du bloc 1",
+          "shape": "diamond",
+          "fill": "#685a4f",
+          "stroke": "#685a4f",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeLucky1": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Bloc de transformation 2",
+          "shape": "rounded",
+          "fill": "#d9b86f",
+          "stroke": "#eed8a2",
+          "filled": true,
+          "outlined": true,
+          "strokeWidth": 4,
+          "opacity": 100,
+          "radius": 12,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 12,
+            "tr": 12,
+            "br": 12,
+            "bl": 12
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeMark1": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Repère du bloc 2",
+          "shape": "diamond",
+          "fill": "#685a4f",
+          "stroke": "#685a4f",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeLucky2": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Bloc de transformation 3",
+          "shape": "rounded",
+          "fill": "#d9b86f",
+          "stroke": "#eed8a2",
+          "filled": true,
+          "outlined": true,
+          "strokeWidth": 4,
+          "opacity": 100,
+          "radius": 12,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 12,
+            "tr": 12,
+            "br": 12,
+            "bl": 12
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeMark2": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Repère du bloc 3",
+          "shape": "diamond",
+          "fill": "#685a4f",
+          "stroke": "#685a4f",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeLucky3": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Bloc de transformation 4",
+          "shape": "rounded",
+          "fill": "#d9b86f",
+          "stroke": "#eed8a2",
+          "filled": true,
+          "outlined": true,
+          "strokeWidth": 4,
+          "opacity": 100,
+          "radius": 12,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 12,
+            "tr": 12,
+            "br": 12,
+            "bl": 12
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeMark3": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Repère du bloc 4",
+          "shape": "diamond",
+          "fill": "#685a4f",
+          "stroke": "#685a4f",
+          "filled": true,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "shapeEnergy": {
+          "engineKind": "particles",
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Étincelles liées au personnage",
+          "shape": "circle",
+          "fill": "#d5b99d",
+          "stroke": "#d5b99d",
+          "filled": false,
+          "outlined": false,
+          "strokeWidth": 6,
+          "opacity": 100,
+          "radius": 0,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 0,
+            "tr": 0,
+            "br": 0,
+            "bl": 0
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        }
+      },
+      "title": "Gravité · le monde inversé",
+      "body": "",
+      "code": "",
+      "notes": "",
+      "pedagogicalSteps": [],
+      "hiddenKeys": [],
+      "emphasisKeys": [],
+      "label": "",
+      "codeTitle": "",
+      "layout": "title",
+      "grid": {
+        "x": 2,
+        "y": 1
+      },
+      "positions": {
+        "shapeFloor": {
+          "x": 0,
+          "y": 900,
+          "w": 1920,
+          "h": 180,
+          "size": 32
+        },
+        "shapeCeiling": {
+          "x": 1120,
+          "y": 50,
+          "w": 800,
+          "h": 80,
+          "size": 32
+        },
+        "shapeCeilingLeft": {
+          "x": 0,
+          "y": 50,
+          "w": 850,
+          "h": 80,
+          "size": 32
+        },
+        "shapeFloorEdge": {
+          "x": 0,
+          "y": 900,
+          "w": 1920,
+          "h": 12,
+          "size": 32
+        },
+        "shapeCeilingEdge": {
+          "x": 1120,
+          "y": 118,
+          "w": 800,
+          "h": 12,
+          "size": 32
+        },
+        "shapeCeilingEdgeLeft": {
+          "x": 0,
+          "y": 118,
+          "w": 850,
+          "h": 12,
+          "size": 32
+        },
+        "shapeColumn0": {
+          "x": 0,
+          "y": 260,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeColumn1": {
+          "x": 180,
+          "y": 320,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeColumn2": {
+          "x": 360,
+          "y": 380,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeColumn3": {
+          "x": 540,
+          "y": 260,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeColumn4": {
+          "x": 720,
+          "y": 320,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeColumn5": {
+          "x": 900,
+          "y": 380,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeColumn6": {
+          "x": 1080,
+          "y": 260,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeColumn7": {
+          "x": 1260,
+          "y": 320,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeColumn8": {
+          "x": 1440,
+          "y": 380,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeColumn9": {
+          "x": 1620,
+          "y": 260,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeColumn10": {
+          "x": 1800,
+          "y": 320,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeColumn11": {
+          "x": 1980,
+          "y": 380,
+          "w": 95,
+          "h": 340,
+          "size": 32
+        },
+        "shapeSlime": {
+          "x": 908,
+          "y": 151.99999999999955,
+          "w": 104,
+          "h": 104,
+          "size": 32
+        },
+        "shapeGravity": {
+          "x": 70,
+          "y": 190,
+          "w": 48,
+          "h": 48,
+          "size": 32
+        },
+        "shapeLucky0": {
+          "x": 1120,
+          "y": 820,
+          "w": 80,
+          "h": 80,
+          "size": 32
+        },
+        "shapeMark0": {
+          "x": 1149,
+          "y": 845,
+          "w": 22,
+          "h": 30,
+          "size": 32
+        },
+        "shapeLucky1": {
+          "x": 1320,
+          "y": 130,
+          "w": 80,
+          "h": 80,
+          "size": 32
+        },
+        "shapeMark1": {
+          "x": 1349,
+          "y": 155,
+          "w": 22,
+          "h": 30,
+          "size": 32
+        },
+        "shapeLucky2": {
+          "x": 1520,
+          "y": 820,
+          "w": 80,
+          "h": 80,
+          "size": 32
+        },
+        "shapeMark2": {
+          "x": 1549,
+          "y": 845,
+          "w": 22,
+          "h": 30,
+          "size": 32
+        },
+        "shapeLucky3": {
+          "x": 1720,
+          "y": 130,
+          "w": 80,
+          "h": 80,
+          "size": 32
+        },
+        "shapeMark3": {
+          "x": 1749,
+          "y": 155,
+          "w": 22,
+          "h": 30,
+          "size": 32
+        },
+        "shapeEnergy": {
+          "x": 940,
+          "y": -20,
+          "w": 48,
+          "h": 48,
+          "size": 32
+        }
+      },
+      "fragments": {
+        "shapeFloor": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeCeiling": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeCeilingLeft": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeFloorEdge": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeCeilingEdge": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeCeilingEdgeLeft": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn0": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn1": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn2": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn3": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn4": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn5": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn6": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn7": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn8": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn9": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn10": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeColumn11": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeSlime": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeGravity": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeLucky0": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeMark0": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeLucky1": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeMark1": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeLucky2": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeMark2": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeLucky3": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeMark3": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeEnergy": {
+          "order": 0,
+          "animation": "none"
+        }
+      },
+      "designVersion": 3,
+      "blockKeys": [
+        "shapeFloor",
+        "shapeCeiling",
+        "shapeCeilingLeft",
+        "shapeFloorEdge",
+        "shapeCeilingEdge",
+        "shapeCeilingEdgeLeft",
+        "shapeColumn0",
+        "shapeColumn1",
+        "shapeColumn2",
+        "shapeColumn3",
+        "shapeColumn4",
+        "shapeColumn5",
+        "shapeColumn6",
+        "shapeColumn7",
+        "shapeColumn8",
+        "shapeColumn9",
+        "shapeColumn10",
+        "shapeColumn11",
+        "shapeSlime",
+        "shapeGravity",
+        "shapeLucky0",
+        "shapeMark0",
+        "shapeLucky1",
+        "shapeMark1",
+        "shapeLucky2",
+        "shapeMark2",
+        "shapeLucky3",
+        "shapeMark3",
+        "shapeEnergy"
+      ],
+      "groups": [],
+      "animation": {
+        "version": 4,
+        "actorKey": "shapeSlime",
+        "actorId": "slime-player",
+        "transition": 0,
+        "triggers": [
+          {
+            "id": "lucky-0",
+            "enabled": true,
+            "actor": "shapeSlime",
+            "target": "shapeLucky0",
+            "shape": "square",
+            "targetShape": "circle",
+            "color": "#a8c5cc",
+            "targetColor": "#6d858e",
+            "gravity": -1100,
+            "impulse": 0
+          },
+          {
+            "id": "lucky-1",
+            "enabled": true,
+            "actor": "shapeSlime",
+            "target": "shapeLucky1",
+            "shape": "diamond",
+            "targetShape": "circle",
+            "color": "#d6b688",
+            "targetColor": "#6d858e",
+            "gravity": 1100,
+            "impulse": 0
+          },
+          {
+            "id": "lucky-2",
+            "enabled": true,
+            "actor": "shapeSlime",
+            "target": "shapeLucky2",
+            "shape": "cross",
+            "targetShape": "circle",
+            "color": "#c7acd0",
+            "targetColor": "#6d858e",
+            "gravity": -1100,
+            "impulse": 0
+          },
+          {
+            "id": "lucky-3",
+            "enabled": true,
+            "actor": "shapeSlime",
+            "target": "shapeLucky3",
+            "shape": "star",
+            "targetShape": "circle",
+            "color": "#e9a65c",
+            "targetColor": "#6d858e",
+            "gravity": 1100,
+            "impulse": 0
+          }
+        ],
+        "effects": [
+          {
+            "id": "collider-shapeFloor",
+            "kind": "collider",
+            "enabled": true,
+            "key": "shapeFloor",
+            "target": "",
+            "amount": 40,
+            "frequency": 1,
+            "count": 4,
+            "dx": 100,
+            "dy": 0,
+            "gravity": 600,
+            "wind": 0,
+            "drag": 0.1,
+            "bounce": 0.5,
+            "friction": 0.15
+          },
+          {
+            "id": "collider-shapeCeiling",
+            "kind": "collider",
+            "enabled": true,
+            "key": "shapeCeiling",
+            "target": "",
+            "amount": 40,
+            "frequency": 1,
+            "count": 4,
+            "dx": 100,
+            "dy": 0,
+            "gravity": 600,
+            "wind": 0,
+            "drag": 0.1,
+            "bounce": 0.5,
+            "friction": 0.15
+          },
+          {
+            "id": "collider-shapeCeilingLeft",
+            "kind": "collider",
+            "enabled": true,
+            "key": "shapeCeilingLeft",
+            "target": "",
+            "amount": 40,
+            "frequency": 1,
+            "count": 4,
+            "dx": 100,
+            "dy": 0,
+            "gravity": 600,
+            "wind": 0,
+            "drag": 0.1,
+            "bounce": 0.5,
+            "friction": 0.15
+          }
+        ],
+        "colorRole": null,
+        "engines": [
+          {
+            "id": "gravity-player",
+            "key": "shapeGravity",
+            "kind": "gravity",
+            "parent": "",
+            "offsetX": 0,
+            "offsetY": 0,
+            "followPath": true,
+            "velocityY": 959.749999999849,
+            "drag": 0,
+            "bounce": 0.12,
+            "friction": 0.15,
+            "wind": 0,
+            "enabled": true,
+            "start": 0,
+            "duration": 14,
+            "gravity": 900,
+            "targets": [
+              "shapeSlime"
+            ],
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            }
+          },
+          {
+            "id": "energy",
+            "key": "shapeEnergy",
+            "kind": "particles",
+            "parent": "shapeSlime",
+            "offsetX": -40,
+            "offsetY": 0,
+            "followPath": false,
+            "velocityY": 0,
+            "drag": 0,
+            "bounce": 0.5,
+            "friction": 0.15,
+            "wind": 0,
+            "enabled": true,
+            "start": 0,
+            "duration": 14,
+            "gravity": 0,
+            "targets": [],
+            "particles": {
+              "enabled": true,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Losange",
+                "shape": "diamond",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 45,
+              "seed": 1,
+              "life": 0.5,
+              "speed": 100,
+              "size": 4,
+              "color": "#c5b5d4",
+              "colorRole": null,
+              "direction": "axes",
+              "xMin": -1,
+              "xMax": -0.1,
+              "yMin": -0.5,
+              "yMax": 0.5
+            }
+          }
+        ],
+        "duration": 14,
+        "fps": 30,
+        "background": "gradient",
+        "color2": "#4c4056",
+        "gradientAngle": 20,
+        "color": "#152639",
+        "links": [],
+        "paths": [
+          {
+            "id": "gravity-path",
+            "name": "Avancée vers les quatre blocs",
+            "visible": false,
+            "closed": false,
+            "points": [
+              {
+                "x": 960,
+                "y": 255.99999999999955
+              },
+              {
+                "x": 1246.6667,
+                "y": 255.99999999999955
+              },
+              {
+                "x": 1533.3333,
+                "y": 255.99999999999955
+              },
+              {
+                "x": 1820,
+                "y": 255.99999999999955
+              }
+            ]
+          }
+        ],
+        "clips": [
+          {
+            "id": "architecture-0",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn0"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
                 "ease": "smooth",
                 "curve": [
                   0.25,
@@ -15560,8 +16769,8 @@
               },
               {
                 "field": "h",
-                "time": 10,
-                "value": 104,
+                "time": 14,
+                "value": 170,
                 "ease": "smooth",
                 "curve": [
                   0.25,
@@ -15571,9 +16780,2251 @@
                 ]
               },
               {
-                "field": "color",
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "architecture-1",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn1"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "h",
+                "time": 14,
+                "value": 235,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "architecture-2",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn2"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "h",
+                "time": 14,
+                "value": 300,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "architecture-3",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn3"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "h",
+                "time": 14,
+                "value": 365,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "architecture-4",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn4"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "h",
+                "time": 14,
+                "value": 170,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "architecture-5",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn5"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "h",
+                "time": 14,
+                "value": 235,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "architecture-6",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn6"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "h",
+                "time": 14,
+                "value": 300,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "architecture-7",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn7"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "h",
+                "time": 14,
+                "value": 365,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "architecture-8",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn8"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "h",
+                "time": 14,
+                "value": 170,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "architecture-9",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn9"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "h",
+                "time": 14,
+                "value": 235,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "architecture-10",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn10"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "h",
+                "time": 14,
+                "value": 300,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "architecture-11",
+            "name": "Architecture mobile",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeColumn11"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "h",
+                "time": 0,
+                "value": 340,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 0,
+                "value": 8,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "h",
+                "time": 14,
+                "value": 365,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "radius",
+                "time": 14,
+                "value": 45,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "slime-motion",
+            "name": "Personnage · avancée",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeSlime"
+            ],
+            "pathId": "gravity-path",
+            "orient": false,
+            "constantSpeed": false,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 1,
+            "frames": [
+              {
+                "field": "progress",
+                "time": 0,
+                "value": 0,
+                "ease": "linear",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "progress",
+                "time": 14,
+                "value": 1,
+                "ease": "linear",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "block-0",
+            "name": "Bloc · pulsation",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeMark0"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "opacity",
+                "time": 0,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 2,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 4,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 6,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 8,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
                 "time": 10,
-                "value": "#c2bbe3",
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 12,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 14,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "block-1",
+            "name": "Bloc · pulsation",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeMark1"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "opacity",
+                "time": 0,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 2,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 4,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 6,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 8,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 10,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 12,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 14,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "block-2",
+            "name": "Bloc · pulsation",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeMark2"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "opacity",
+                "time": 0,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 2,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 4,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 6,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 8,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 10,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 12,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 14,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "block-3",
+            "name": "Bloc · pulsation",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [
+              "shapeMark3"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "opacity",
+                "time": 0,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 2,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 4,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 6,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 8,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 10,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 12,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 14,
+                "value": 40,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "scene-background",
+            "name": "Fond de scène",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 14,
+            "markers": [],
+            "keys": [],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "backgroundColor",
+                "time": 0,
+                "value": "#152639",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor2",
+                "time": 0,
+                "value": "#4c4056",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundAngle",
+                "time": 0,
+                "value": 20,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor",
+                "time": 7,
+                "value": "#3c314f",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor",
+                "time": 14,
+                "value": "#344f59",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundColor2",
+                "time": 14,
+                "value": "#172f43",
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "backgroundAngle",
+                "time": 14,
+                "value": 160,
                 "ease": "smooth",
                 "curve": [
                   0.25,

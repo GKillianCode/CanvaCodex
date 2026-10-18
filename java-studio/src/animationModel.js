@@ -1,5 +1,5 @@
-import {splinePoint,splineAngle,splineParameter} from "./splines.js";
-export {splinePoint,splineAngle,splineParameter} from "./splines.js";
+import { splinePoint, splineAngle, splineParameter } from "./splines.js";
+export { splinePoint, splineAngle, splineParameter } from "./splines.js";
 import {
   applyEffects,
   normalizeEffect,
@@ -32,8 +32,19 @@ export const discreteAnimationFields = [
   "strokeEnabled",
   "dashed",
 ];
-export const colorAnimationFields = ["color", "strokeColor"];
+export const backgroundAnimationFields = [
+  "backgroundColor",
+  "backgroundColor2",
+  "backgroundAngle",
+];
+export const colorAnimationFields = [
+  "color",
+  "strokeColor",
+  "backgroundColor",
+  "backgroundColor2",
+];
 export const animationFields = [
+  ...backgroundAnimationFields,
   ...Object.keys(shapeAnimationFields),
   ...Object.keys(engineAnimationFields),
   "x",
@@ -107,13 +118,34 @@ export function normalizeEngine(raw = {}, i = 0) {
 }
 export function normalizeAnimation(raw = {}) {
   return {
-    version: 3,
+    version: 4,
+    actorKey: String(raw?.actorKey || "").slice(0, 100),
+    actorId: String(raw?.actorId || "").slice(0, 100),
+    transition: number(raw?.transition, 0, 0, 2),
+    triggers: list(raw?.triggers, 100).map((r, i) => ({
+      id: String(r?.id || "contact" + i).slice(0, 100),
+      enabled: r?.enabled !== false,
+      actor: String(r?.actor || "").slice(0, 100),
+      target: String(r?.target || "").slice(0, 100),
+      shape: r?.shape ? normalizeShape({ shape: r.shape }).shape : "",
+      targetShape: r?.targetShape
+        ? normalizeShape({ shape: r.targetShape }).shape
+        : "",
+      color: /^#[a-f0-9]{6}$/i.test(r?.color) ? r.color : "",
+      targetColor: /^#[a-f0-9]{6}$/i.test(r?.targetColor) ? r.targetColor : "",
+      gravity: r?.gravity == null ? null : number(r.gravity, 900, -2000, 2000),
+      impulse: r?.impulse == null ? null : number(r.impulse, 0, -3000, 3000),
+    })),
     effects: list(raw?.effects, 100).map(normalizeEffect),
     colorRole: validColorRole(raw?.colorRole),
     engines: list(raw?.engines, 50).map(normalizeEngine),
     duration: number(raw?.duration, 8, 0.1, 120),
     fps: [24, 30, 60].includes(raw?.fps) ? raw.fps : 30,
-    background: raw?.background === "solid" ? "solid" : "transparent",
+    background: ["solid", "gradient"].includes(raw?.background)
+      ? raw.background
+      : "transparent",
+    color2: /^#[a-f0-9]{6}$/i.test(raw?.color2) ? raw.color2 : "#223c57",
+    gradientAngle: number(raw?.gradientAngle, 90, -360, 360),
     color: /^#[a-f0-9]{6}$/i.test(raw?.color) ? raw.color : "#00ff00",
     links: list(raw?.links, 100)
       .filter((l) => typeof l?.from === "string" && typeof l?.to === "string")
@@ -128,11 +160,19 @@ export function normalizeAnimation(raw = {}) {
       id: String(p?.id || "path" + i).slice(0, 100),
       name: String(p?.name || "Trajectoire").slice(0, 100),
       visible: p?.visible === true,
-      closed:p?.closed===true,
-      points: Array.from({ length:Array.isArray(p?.points)&&p.points.length>=4?Math.min(97,1+3*Math.floor((p.points.length-1)/3)):4 }, (_, j) => ({
-        x: number(p?.points?.[j]?.x, 300 + j * 400),
-        y: number(p?.points?.[j]?.y, j === 1 ? 150 : 600),
-      })),
+      closed: p?.closed === true,
+      points: Array.from(
+        {
+          length:
+            Array.isArray(p?.points) && p.points.length >= 4
+              ? Math.min(97, 1 + 3 * Math.floor((p.points.length - 1) / 3))
+              : 4,
+        },
+        (_, j) => ({
+          x: number(p?.points?.[j]?.x, 300 + j * 400),
+          y: number(p?.points?.[j]?.y, j === 1 ? 150 : 600),
+        }),
+      ),
     })),
     clips: list(raw?.clips, 100).map((c, i) => ({
       id: String(c?.id || "clip" + i).slice(0, 100),
@@ -287,9 +327,19 @@ export function animationScene(scene, raw, time) {
       path = config.paths.find((p) => p.id === clip.pathId),
       parameter =
         path && clip.constantSpeed
-          ? splineParameter(path.points, progress,path.closed)
+          ? splineParameter(path.points, progress, path.closed)
           : progress,
-      point = path ? splinePoint(path.points, parameter,path.closed) : null;
+      point = path ? splinePoint(path.points, parameter, path.closed) : null;
+    for (const [field, prop] of [
+      ["backgroundColor", "color"],
+      ["backgroundColor2", "color2"],
+      ["backgroundAngle", "gradientAngle"],
+    ]) {
+      if (clip.frames.some((f) => f.field === field)) {
+        config[prop] = frameValue(clip.frames, field, local, config[prop]);
+        if (prop === "color") config.colorRole = null;
+      }
+    }
     const keys = clip.keys.filter((k) => result.positions[k]),
       anchor = result.positions[keys[0]];
     if (!anchor) continue;
@@ -326,7 +376,9 @@ export function animationScene(scene, raw, time) {
     const angle =
         frameValue(clip.frames, "rotation", local, anchor.rotation || 0) -
         (anchor.rotation || 0) +
-        (clip.orient && path ? splineAngle(path.points, parameter,path.closed) : 0),
+        (clip.orient && path
+          ? splineAngle(path.points, parameter, path.closed)
+          : 0),
       rad = (angle * Math.PI) / 180;
     let dx = point
         ? point.x - px
@@ -349,10 +401,17 @@ export function animationScene(scene, raw, time) {
       // One object's X/Y denote its top-left, independently of its size keys.
       // Paths instead anchor its pivot, including squash/stretch at landings.
       if (keys.length === 1) {
-        p.x = point ? point.x - w * clip.pivotX : frameValue(clip.frames, "x", local, base.x);
-        p.y = point ? point.y - h * clip.pivotY : frameValue(clip.frames, "y", local, base.y);
-        if (clip.modifier === "oscillate") p.y += Math.sin(local * clip.frequency * Math.PI * 2) * clip.amplitude;
-        if (clip.modifier === "gravity") p.y += 0.5 * clip.gravity * local * local;
+        p.x = point
+          ? point.x - w * clip.pivotX
+          : frameValue(clip.frames, "x", local, base.x);
+        p.y = point
+          ? point.y - h * clip.pivotY
+          : frameValue(clip.frames, "y", local, base.y);
+        if (clip.modifier === "oscillate")
+          p.y +=
+            Math.sin(local * clip.frequency * Math.PI * 2) * clip.amplitude;
+        if (clip.modifier === "gravity")
+          p.y += 0.5 * clip.gravity * local * local;
       }
       if (base.w !== undefined) p.w = w;
       if (base.h !== undefined) p.h = h;
@@ -425,32 +484,92 @@ export function animationScene(scene, raw, time) {
     for (const key of engine.targets) {
       const p = result.positions[key];
       if (!p || result.elements[key]?.engineKind) continue;
-      const driven = engine.followPath && config.clips.find(c=>c.enabled && c.keys.length===1 && c.keys[0]===key && c.pathId);
-      if(driven) {
-        const path=config.paths.find(p=>p.id===driven.pathId),base=scene.positions[key];
-        const sample=elapsed=>{
-          const local=Math.max(0,Math.min(driven.duration,engine.start+elapsed-driven.start));
-          const progress=frameValue(driven.frames,"progress",local,local/driven.duration);
-          const point=splinePoint(path.points,driven.constantSpeed?splineParameter(path.points,progress,path.closed):progress,path.closed);
-          const w=frameValue(driven.frames,"w",local,base.w),h=frameValue(driven.frames,"h",local,base.h);
-          return {...p,x:point.x-w*driven.pivotX,y:point.y-h*driven.pivotY,w,h};
-        };
-        const floors=config.effects.filter(e=>e.enabled&&e.kind==="collider"&&e.key!==key).map(e=>result.positions[e.key]).filter(Boolean);
-        if(path) result.positions[key]=simulateDrivenBody(sample,t,engine,floors);
-      } else {
-      if (p && !result.elements[key]?.engineKind)
-        result.positions[key] = simulateBody(
-          p,
-          t,
-          engine,
-          config.effects
-            .filter((e) => e.enabled && e.kind === "collider" && e.key !== key)
-            .map((e) => result.positions[e.key])
-            .filter(Boolean),
+      const driven =
+        engine.followPath &&
+        config.clips.find(
+          (c) =>
+            c.enabled && c.keys.length === 1 && c.keys[0] === key && c.pathId,
         );
+      if (driven) {
+        const path = config.paths.find((p) => p.id === driven.pathId),
+          base = scene.positions[key];
+        const sample = (elapsed) => {
+          const local = Math.max(
+            0,
+            Math.min(driven.duration, engine.start + elapsed - driven.start),
+          );
+          const progress = frameValue(
+            driven.frames,
+            "progress",
+            local,
+            local / driven.duration,
+          );
+          const point = splinePoint(
+            path.points,
+            driven.constantSpeed
+              ? splineParameter(path.points, progress, path.closed)
+              : progress,
+            path.closed,
+          );
+          const w = frameValue(driven.frames, "w", local, base.w),
+            h = frameValue(driven.frames, "h", local, base.h);
+          return {
+            ...p,
+            x: point.x - w * driven.pivotX,
+            y: point.y - h * driven.pivotY,
+            w,
+            h,
+          };
+        };
+        const floors = config.effects
+          .filter((e) => e.enabled && e.kind === "collider" && e.key !== key)
+          .map((e) => result.positions[e.key])
+          .filter(Boolean);
+        if (path)
+          result.positions[key] = simulateDrivenBody(
+            sample,
+            t,
+            {
+              ...engine,
+              triggers: config.triggers
+                .filter((r) => r.enabled && r.actor === key)
+                .map((r) => ({ ...r, bounds: result.positions[r.target] })),
+            },
+            floors,
+          );
+      } else {
+        if (p && !result.elements[key]?.engineKind)
+          result.positions[key] = simulateBody(
+            p,
+            t,
+            engine,
+            config.effects
+              .filter(
+                (e) => e.enabled && e.kind === "collider" && e.key !== key,
+              )
+              .map((e) => result.positions[e.key])
+              .filter(Boolean),
+          );
       }
     }
   }
+  for (const [key, p] of Object.entries(result.positions))
+    for (const id of p.contacts || []) {
+      const r = config.triggers.find((r) => r.id === id);
+      if (!r) continue;
+      if (r.shape || r.color)
+        result.elements[key] = normalizeShape({
+          ...result.elements[key],
+          ...(r.shape ? { shape: r.shape } : {}),
+          ...(r.color ? { fill: r.color, fillRole: null } : {}),
+        });
+      if (result.elements[r.target] && (r.targetShape || r.targetColor))
+        result.elements[r.target] = normalizeShape({
+          ...result.elements[r.target],
+          ...(r.targetShape ? { shape: r.targetShape } : {}),
+          ...(r.targetColor ? { fill: r.targetColor, fillRole: null } : {}),
+        });
+    }
   applyEffects(result, config.effects, time);
   for (const engine of config.engines) {
     const parent = result.positions[engine.parent],

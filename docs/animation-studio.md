@@ -91,7 +91,7 @@ Chrome isolé : plateau fini vérifié en clair/sombre, marqueur vide créé pui
 
 ## Parcours Slime et édition d’un état animé
 
-`animation-slime-trois-scenes.json`, à la racine du dépôt, s’importe dans **Animation → Fichier → Importer un document JSON**. Il remplace le document ouvert dans cet atelier comme les autres imports. Le menu **Exemples → Slime · trois mondes** ajoute plutôt trois scènes au document actuel. Chaque scène dure 10 secondes : prairie, canyon, atelier nocturne. Cocher **Toutes les scènes** dans l’aperçu pour lire/exporter les 30 secondes à la suite.
+`animation-slime-quatre-scenes.json`, à la racine du dépôt, s’importe dans **Animation → Fichier → Importer un document JSON**. Il remplace le document ouvert dans cet atelier comme les autres imports. Le menu **Exemples → Slime · quatre mondes** ajoute plutôt quatre scènes au document actuel. Prairie, canyon et atelier nocturne durent 10 secondes chacun ; le monde inversé dure 14 secondes. Cocher **Toutes les scènes** dans l’aperçu pour lire/exporter les 44 secondes à la suite. Le même personnage entre par la gauche dans les scènes suivantes, puis tombe du trou nocturne vers la quatrième scène placée en dessous.
 
 Les sols sont deux vrais blocs obstacles séparés par un trou. La trajectoire est une spline à trois segments. Un moteur de gravité utilise le nouveau mode **Spline horizontale + saut physique** : X suit la spline, Y vient de l’impulsion verticale initiale et de la gravité, avec arrêt sur les obstacles. Une impulsion négative fait sauter ; son instant est le début du moteur. Le vent et le frottement horizontal ne s’appliquent pas dans ce mode puisque X est imposé par la spline. La physique utilise des pas déterministes de 1/120 seconde, sans IA. Il s’agit d’une simulation 2D simple, pas d’un moteur de corps rigides rotatifs.
 
@@ -100,3 +100,15 @@ Le pivot inférieur conserve les pieds pendant les clés largeur/hauteur : prép
 Dans **État animé**, cliquer un objet conserve l’instant affiché. Déplacer/redimensionner l’objet enregistre les coordonnées et dimensions dans ses clés, en conservant sa disposition initiale. Pour un objet seul, **Position X/Y** désignent le coin supérieur gauche indépendamment du redimensionnement. Une spline ancre au contraire le pivot choisi. Le panneau **Image clé** est dans les propriétés à droite et libère la liste des scènes à gauche.
 
 Régénération de la démonstration : `node java-studio/scripts/build-slime-demo.mjs` depuis la racine.
+
+## Canvas des scènes, dégradés et contacts
+
+**Éditer / Canvas** dans Animation réutilise le Canvas du diaporama : déplacement des scènes sur la grille, liens, parcours automatique ou manuel, zoom et retour à l’éditeur. L’ordre choisi s’applique à la lecture et à l’export de toutes les scènes. Une durée de transition réglable dans **Scène** fait glisser la caméra vers la scène suivante selon sa position dans le Canvas.
+
+Dans **Scène**, le fond peut être transparent, uni ou dégradé à deux couleurs. Couleurs, angle et losanges posent leurs clés dans une piste **Fond de scène**. La palette du thème reste accessible. Les mêmes couleurs interpolées sont rendues dans l’éditeur, l’aperçu et l’export ; aucun rectangle décoratif n’est nécessaire pour animer le fond.
+
+L’option **Objet continu entre scènes** et son **Identifiant partagé** identifient un personnage entre deux scènes. Pendant une transition, les deux décors défilent et un seul personnage est dessiné entre ses poses de sortie et d’entrée. Chaque scène conserve son état local éditable. Dans la démo, les poses de frontière et la vitesse de chute sont raccordées par calcul.
+
+Pour une forme équipée d’un moteur **Spline horizontale + saut physique**, **Animation → Au contact d’un bloc** permet de choisir un bloc, modifier la forme/couleur du personnage et du bloc, définir une nouvelle force de gravité et une impulsion. Chaque règle se déclenche une fois pendant l’évaluation ; rejouer ou déplacer la tête de lecture recalcule les contacts. Une gravité négative attire au plafond ; les blocs Obstacles arrêtent aussi la montée. Les changements de forme gardent la taille et les réglages physiques du personnage.
+
+La détection utilise les cadres rectangulaires, avec des blocs contacts fixes pendant l’évaluation. Ce n’est pas une collision précise selon les contours d’une étoile, ni une simulation complète d’obstacles mobiles. Le fond dégradé est opaque ; choisir Transparent pour un export avec décor transparent.

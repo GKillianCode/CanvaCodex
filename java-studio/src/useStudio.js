@@ -7,6 +7,8 @@ import {useAnimationStudio} from './useAnimationStudio.js';
 import {drawEngineGuides} from './animationViewport.js';
 import {boundColor} from './colors.js';
 import {normalizeAnimation,animationScene} from './animationModel.js';
+import {drawAnimationBackground} from './animationBackground.js';
+import {renderAnimationStoryboard} from './animationStoryboardRender.js';
 import {renderAnimation} from './animationRender.js';
 import {makeAnimationExample} from './animationExamples.js';
 import {ensureVideoEncoder} from './videoEncoding.js';
@@ -273,13 +275,13 @@ export function useStudio(application='slides',creationContext=null) {
       drawSlideTransition(ctx, from, to, direction, ease);
       if (p === 1) { slideMotion = null; moving.value = false; }
     } else {
-      let s = current.value;if(isAnimation&&s.animation?.background==='solid'&&!animation.preview.value){ctx.fillStyle=boundColor(s.animation,'color',theme.value);ctx.fillRect(0,0,1920,1080);}
+      let s = current.value;if(isAnimation&&!animation.preview.value)drawAnimationBackground(ctx,s.animation,theme.value);
       if(tablePreview.value?.id===s.id&&tablePreview.value.key===selected.value)s={...s,elements:{...s.elements,[selected.value]:tablePreview.value.table}};
       if(drag&&lockedTransform(s,drag)){drag=null;transformPreview.value=null;snapGuides.value=[];}
       if (drag) s = { ...toRaw(s), positions: { ...s.positions, ...(drag.positions||(drag.position?{[drag.key]:drag.position}:{})) } };
       if(drag?.corner&&!drag.scaling){const e=s.elements[drag.key];if(e?.shape==='line'&&['horizontal','vertical'].includes(e.direction))s={...s,elements:{...s.elements,[drag.key]:{...e,strokeWidth:Math.max(1,Math.min(60,drag.position[e.direction==='horizontal'?'h':'w']))}}};}
       viewportScene=s;const drawScene=stateMotion&&presenting.value?(ctx,s,theme,options)=>renderStepTransition(ctx,stateMotion.scene,s,theme,Math.min(1,(now-stateMotion.started)/STEP_INTERPOLATION_MS),{...options,fromOrder:stateMotion.order}):renderSlide;
-      if(isAnimation&&animation.preview.value){ctx.save();ctx.beginPath();ctx.rect(0,0,1920,1080);ctx.clip();s=renderAnimation(ctx,current.value,theme.value,current.value.animation,animation.time.value,{guides:animation.pathEditing.value,positions:transformPreview.value?.positions||(transformPreview.value?.key?{[transformPreview.value.key]:transformPreview.value.position}:null)}).scene;viewportScene=s;ctx.restore();}else drawScene(ctx, s, theme.value, { ...renderOptions(s, index.value, presenting.value ? currentOrder() : Infinity), motion: presenting.value ? revealMotion : null, showHidden:!presenting.value, typingElapsed:typingTimes(now), now, omit: editing.value&&blockType(s,editing.value)==='code'?editing.value:null });
+      if(isAnimation&&animation.preview.value){ctx.save();ctx.beginPath();ctx.rect(0,0,1920,1080);ctx.clip();s=(animation.allScenes.value?renderAnimationStoryboard(ctx,slides.value,theme.value,animation.playbackTime.value):renderAnimation(ctx,current.value,theme.value,current.value.animation,animation.time.value,{guides:animation.pathEditing.value,positions:transformPreview.value?.positions||(transformPreview.value?.key?{[transformPreview.value.key]:transformPreview.value.position}:null)})).scene;viewportScene=s;ctx.restore();}else drawScene(ctx, s, theme.value, { ...renderOptions(s, index.value, presenting.value ? currentOrder() : Infinity), motion: presenting.value ? revealMotion : null, showHidden:!presenting.value, typingElapsed:typingTimes(now), now, omit: editing.value&&blockType(s,editing.value)==='code'?editing.value:null });
       if (!presenting.value && !editing.value && (selectedKeys.value.length||visibleBlocks(s).includes(selected.value))) {
         for(const key of selectedKeys.value.length?selectedKeys.value:[selected.value]){
         const measured=blockBounds(ctx,s,key), b=blockType(s,key)==='shape'?measured:{...measured,h:s.positions[key].h||measured.h}; ctx.save();if(b.rotation){ctx.translate(b.x+b.w/2,b.y+b.h/2);ctx.rotate(b.rotation*Math.PI/180);ctx.translate(-b.x-b.w/2,-b.y-b.h/2);}ctx.strokeStyle = `${theme.value.accent}90`; ctx.lineWidth = 2; ctx.setLineDash([8, 8]); ctx.strokeRect(b.x, b.y, b.w, b.h); ctx.setLineDash([]);ctx.restore();}

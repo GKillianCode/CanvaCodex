@@ -13,7 +13,9 @@ import {
   shapeAnimationFields,
   discreteAnimationFields,
   colorAnimationFields,
+  backgroundAnimationFields,
 } from "./animationModel.js";
+import {renderAnimationStoryboard} from "./animationStoryboardRender.js";
 import { renderAnimation } from "./animationRender.js";
 import { prepareImages } from "./render.js";
 import { prepareFonts } from "./fontAssets.js";
@@ -565,14 +567,16 @@ export function useAnimationStudio(s) {
   }
   function example(kind) {
     if(kind === "slime") {
-      if(s.slides.value.length>97){s.notify("Trois places de scène sont nécessaires.");return;}
+      if(s.slides.value.length>96){s.notify("Quatre places de scène sont nécessaires.");return;}
       stop();s.beginGesture();
       const scenes=makeSlimeDemo().slides;
-      for(const scene of scenes)scene.id=crypto.randomUUID();
+      let offset=0;
+      while(scenes.some(scene=>s.slides.value.some(existing=>existing.grid.x===scene.grid.x+offset&&existing.grid.y===scene.grid.y)))offset++;
+      for(const scene of scenes){scene.id=crypto.randomUUID();scene.grid.x+=offset;}
       const first=s.slides.value.length;
       s.slides.value.push(...scenes);s.index.value=first;
       s.endGesture();preview.value=true;
-      s.notify("Parcours Slime ajouté : trois scènes, dix secondes chacune.");return;
+      s.notify("Parcours Slime ajouté : quatre scènes, un personnage continu.");return;
     }
     if (s.slides.value.length >= 100) {
       s.notify("Limite de 100 scènes.");
@@ -604,7 +608,7 @@ export function useAnimationStudio(s) {
     try {
       if (
         outputFormat === "webm" &&
-        scenes.some((scene) => scene.animation?.background !== "solid")
+        scenes.some((scene) => scene.animation?.background === "transparent")
       )
         throw Error(
           "Pour conserver la transparence, choisis MOV ou MKV. WebM utilise un fond uni ou vert.",
@@ -748,14 +752,7 @@ export function useAnimationStudio(s) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.save();
         ctx.scale(canvas.width / 1920, canvas.height / 1080);
-        const part = storyboardAt(scenes, t);
-        renderAnimation(
-          ctx,
-          part.scene,
-          theme,
-          part.scene.animation,
-          part.time,
-        );
+        renderAnimationStoryboard(ctx,scenes,theme,t);
         ctx.restore();
       }
     } catch (e) {
@@ -766,6 +763,10 @@ export function useAnimationStudio(s) {
     }
   }
   function propertyValue(name, animated = preview.value) {
+    if(backgroundAnimationFields.includes(name)) {
+      const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;
+      return name==='backgroundColor'?boundColor(cfg,'color',s.theme.value):name==='backgroundColor2'?cfg.color2:cfg.gradientAngle;
+    }
     const key =
       clip.value?.keys.find((k) => s.selectedKeys.value.includes(k)) ||
       s.selected.value ||
@@ -829,10 +830,11 @@ export function useAnimationStudio(s) {
     );
   }
   function keyAt(name) {
-    return clip.value?.frames.find(
+    const target=backgroundAnimationFields.includes(name)?config.value.clips.find(c=>c.keys.length===0&&c.frames.some(f=>backgroundAnimationFields.includes(f.field))):clip.value;
+    return target?.frames.find(
       (f) =>
         f.field === name &&
-        Math.abs(f.time - (time.value - clip.value.start)) < 0.0001,
+        Math.abs(f.time - (time.value - target.start)) < 0.0001,
     );
   }
   function ensureClip() {
@@ -843,6 +845,11 @@ export function useAnimationStudio(s) {
       addClip();
     return clip.value;
   }
+  function ensureBackgroundClip(){
+    let c=config.value.clips.find(c=>c.keys.length===0&&c.frames.some(f=>backgroundAnimationFields.includes(f.field)));
+    if(!c){if(config.value.clips.length>=100)return null;c=normalizeAnimation({clips:[{id:crypto.randomUUID(),name:'Fond de scène',keys:[],duration:config.value.duration}]}).clips[0];config.value.clips.push(c);}
+    selectedClip.value=c.id;return c;
+  }
   function setProperty(name, value) {
     if (!Number.isFinite(Number(value)) && !colorAnimationFields.includes(name))
       return;
@@ -850,7 +857,7 @@ export function useAnimationStudio(s) {
     s.beginGesture();
     try {
       const previous = propertyValue(name, true),
-        c = ensureClip();
+        c = backgroundAnimationFields.includes(name) ? ensureBackgroundClip() : ensureClip();
       if (!c) return;
       const local = Math.max(0, Math.min(c.duration, time.value - c.start));
       const interpolation =
@@ -907,7 +914,7 @@ export function useAnimationStudio(s) {
   }
   function toggleProperty(name) {
     const f = keyAt(name);
-    if (f) deleteKey(clip.value, f);
+    if (f) deleteKey(backgroundAnimationFields.includes(name)?config.value.clips.find(c=>c.frames.includes(f)):clip.value, f);
     else setProperty(name, propertyValue(name));
   }
   function setClipEasing(c, value) {
