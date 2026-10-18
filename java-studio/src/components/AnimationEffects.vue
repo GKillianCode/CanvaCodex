@@ -42,7 +42,7 @@ const groups = [
     [
       ["array", "Répétition", Copy],
       ["subtract", "Découpe", Scissors],
-      ["intersect", "Combineion", Combine],
+      ["intersect", "Intersection", Combine],
     ],
   ],
   [

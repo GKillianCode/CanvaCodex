@@ -767,3 +767,105 @@
   min-height: 22px;
   min-width: 22px;
 }
+
+/* The dotted board is finite; the workspace around it stays plain. */
+.studio.animation-studio .canvas-space {
+  background-image: none;
+  background-color: #101614;
+}
+.studio.animation-studio .canvas-space .stage-wrap {
+  background-color: #161e1c;
+  background-image: radial-gradient(#61756a 1.3px, transparent 1.4px);
+  background-size: var(--animation-grid-size, 36px)
+    var(--animation-grid-size, 36px);
+  border: 1px solid #53645b;
+}
+:root[data-appearance="light"] .studio.animation-studio .canvas-space {
+  background-image: none;
+  background-color: #e4e9e6;
+}
+:root[data-appearance="light"]
+  .studio.animation-studio
+  .canvas-space
+  .stage-wrap {
+  background-color: #f5f7f5;
+  background-image: radial-gradient(#a2b1a7 1.3px, transparent 1.4px);
+  border-color: #acb9b0;
+}
+.animation-transport,
+.animation-key-tools {
+  justify-content: center;
+}
+
+.frame-marker {
+  position: absolute;
+  top: 11px;
+  transform: translateX(-50%);
+  border: 0;
+  background: none;
+  color: var(--accent);
+  z-index: 2;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 20px;
+  padding: 0 4px;
+}
+.frame-marker.empty {
+  color: var(--ink);
+  opacity: 0.65;
+}
+.animation-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+  background: #0007;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(3px);
+}
+.animation-confirm {
+  max-width: 440px;
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: #191c22;
+  color: #e4e8ec;
+  box-shadow: 0 20px 80px #0005;
+}
+.animation-confirm h2 {
+  font-size: 18px;
+  margin: 12px 0;
+}
+.animation-confirm p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.animation-confirm > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 22px;
+}
+.animation-confirm .danger {
+  background: #9d4242;
+  color: #fff;
+}
+:root[data-appearance="light"] .animation-confirm {
+  background: #fff;
+  color: #25382e;
+}
+.animated-color-field {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.animated-color-field > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.animation-key-tools .field-help {
+  flex: 0 1 auto;
+}

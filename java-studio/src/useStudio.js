@@ -436,7 +436,7 @@ export function useStudio(application='slides',creationContext=null) {
     s.fragments[key]={order:Math.min(20,Math.max(0,...Object.values(s.fragments).map(f=>f.order))+1),animation:'up'};
     selectedKeys.value=[key];selectionScope.value='elements';selected.value=key;if(type==='text')editing.value=key;
   }
-  function removeBlock() { const keys=selectedKeys.value.length?selectedKeys.value:[selected.value];if(isAnimation){const cfg=current.value.animation;cfg.engines=cfg.engines.filter(e=>!keys.includes(e.key));for(const e of cfg.engines)e.targets=e.targets.filter(k=>!keys.includes(k));for(const c of cfg.clips)c.keys=c.keys.filter(k=>!keys.includes(k));cfg.links=cfg.links.filter(l=>!keys.includes(l.from)&&!keys.includes(l.to));}contextMenu.value=null;closeEdit();for(const k of keys){if(!k)continue;delete current.value.elements[k];delete current.value.positions[k];delete current.value.fragments[k];current.value.blockKeys=current.value.blockKeys.filter(key=>key!==k);}current.value.groups=normalizeGroups(current.value.groups,visibleBlocks(current.value));deselect();requestDraw(); }
+  function removeBlock(confirmed=false) {if(isAnimation&&confirmed!==true){animation.requestDelete('les éléments sélectionnés',()=>removeBlock(true));return;} const keys=selectedKeys.value.length?selectedKeys.value:[selected.value];if(isAnimation){const cfg=current.value.animation;cfg.engines=cfg.engines.filter(e=>!keys.includes(e.key));for(const e of cfg.engines)e.targets=e.targets.filter(k=>!keys.includes(k));for(const c of cfg.clips)c.keys=c.keys.filter(k=>!keys.includes(k));cfg.links=cfg.links.filter(l=>!keys.includes(l.from)&&!keys.includes(l.to));}contextMenu.value=null;closeEdit();for(const k of keys){if(!k)continue;delete current.value.elements[k];delete current.value.positions[k];delete current.value.fragments[k];current.value.blockKeys=current.value.blockKeys.filter(key=>key!==k);}current.value.groups=normalizeGroups(current.value.groups,visibleBlocks(current.value));deselect();requestDraw(); }
   function imageAsBackground(){if(!canTransform())return;
     if(selectedType.value!=='image')return;
     closeEdit();const slide=current.value,key=selected.value;
@@ -475,7 +475,7 @@ export function useStudio(application='slides',creationContext=null) {
   function moveGrid(id,x,y) { if(!Number.isInteger(x)||!Number.isInteger(y)||Math.abs(x)>10000||Math.abs(y)>10000)return; const s=slides.value.find(s=>s.id===id);if(!s)return;const occupant=slides.value.find(other=>other.id!==id&&other.grid.x===x&&other.grid.y===y);if(occupant){occupant.grid={...s.grid};notify('Positions des deux diapos interverties.');}s.grid={x,y};if(routeMode.value==='spatial')rebuildRoute(); }
   function imagesReady() {thumbnailKeys.clear();queueThumbnails();requestDraw();}
   function duplicate() { if(slides.value.length>=100){notify('Le projet contient déjà 100 diapos.');return;} const s = JSON.parse(JSON.stringify(baseSlide.value)); s.id = crypto.randomUUID(); s.grid = nextFreeGrid(slides.value, current.value.grid, 'right'); slides.value.splice(index.value + 1, 0, s); chooseSlide(index.value + 1);if(routeMode.value==='spatial')rebuildRoute(); }
-  function remove() { if (slides.value.length <= 1) return; closeEdit(); slides.value.splice(index.value, 1);editStep.value=0; index.value = Math.min(index.value, slides.value.length - 1); gridDraft.value = { ...current.value.grid };if(routeMode.value==='spatial')rebuildRoute(); requestDraw(); }
+  function remove(confirmed=false) { if (slides.value.length <= 1) return;if(isAnimation&&confirmed!==true){animation.requestDelete('la scène « '+current.value.title+' »',()=>remove(true));return;} closeEdit(); slides.value.splice(index.value, 1);editStep.value=0; index.value = Math.min(index.value, slides.value.length - 1); gridDraft.value = { ...current.value.grid };if(routeMode.value==='spatial')rebuildRoute(); requestDraw(); }
   function applyGrid() {
     const { x, y } = gridDraft.value;
     if (!Number.isInteger(x) || !Number.isInteger(y) || Math.abs(x) > 10000 || Math.abs(y) > 10000 || slides.value.some(s => s.id !== current.value.id && s.grid.x === x && s.grid.y === y)) { gridDraft.value = { ...current.value.grid }; notify('Cette case est occupée ou sa position est invalide.'); return; }
@@ -583,7 +583,7 @@ export function useStudio(application='slides',creationContext=null) {
   }
   function presentationShortcut(e){if(application!=='slides')return;if(e.key!=='F12'||e.ctrlKey||e.metaKey||e.altKey||e.shiftKey)return;e.preventDefault();e.stopPropagation();if(e.repeat||presenting.value)return;if(overlayVideoOpen.value||editing.value||overlayGallery.value||gallery.value||shapeGallery.value||themeEditor.value||formatOpen.value||videoPreview.value)return;startPresenter();}
   function keys(e) {
-    if(overlayVideoOpen.value||animation?.previewOpen.value)return;
+    if(overlayVideoOpen.value||animation?.previewOpen.value||animation?.pendingDelete.value)return;
     if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='s'&&!presenting.value){e.preventDefault();if(!e.repeat)saveProject(e.shiftKey);return;}
     if(['Alt','AltGraph'].includes(e.key)&&!presenting.value&&!editing.value&&['slides','banners'].includes(view.value)&&workspace.value==='editor'){altHeld.value=true;refreshMeasurementTarget();e.preventDefault();}
     if(e.target.isContentEditable)return;

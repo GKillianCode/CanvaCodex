@@ -6,7 +6,7 @@ Branche `codex/test-animation-studio`, [PR #127](https://github.com/GKillianCode
 
 L’atelier est accessible depuis l’accueil, une vidéo ou `#/animations`. Chaque animation possède ses fichiers, sa sauvegarde et ses scènes successives. Plusieurs animations indépendantes sont plusieurs supports de la vidéo.
 
-Le cadre central délimite la vidéo, avec bordure complète sur fond uni ou transparent. L’extérieur est un canevas à points en clair/sombre. Les objets peuvent dépasser du cadre. Ctrl + molette zoome la scène ; bouton central ou Espace + glisser déplace la vue. Les points, repères et commandes ne sont pas exportés.
+Le cadre central délimite la vidéo, avec bordure complète sur fond uni ou transparent. L’extérieur de la scène est un plateau fini à points en clair/sombre. Les points s’arrêtent à sa bordure extérieure ; la zone de travail autour reste unie. Les objets peuvent dépasser du cadre. Ctrl + molette zoome la scène ; bouton central ou Espace + glisser déplace la vue. Les points, repères et commandes ne sont pas exportés.
 
 - **Objet** : les propriétés communes aux autres ateliers, ou uniquement les paramètres du moteur sélectionné. Sélectionner un objet ou moteur revient à sa fiche de propriétés.
 - **Scène** : nom, durée de 0,1 à 120 s, 24/30/60 images par seconde, fond et palette.
@@ -23,11 +23,13 @@ Styles par mots, textes progressifs, SVG, images, tableaux, bits, groupes, verro
 
 Dans Objet → Placement, les losanges se trouvent à côté de X, Y, largeur, hauteur et rotation. Ils existent aussi pour la taille du texte, l’opacité et la couleur. Animation → Propriétés animées rassemble les canaux de transformation, inclinaison, échelle et progression du chemin.
 
-1. Choisir un instant dans la timeline.
-2. Cliquer le losange pour poser une clé avec la valeur actuelle, ou modifier une valeur animée pour créer/actualiser sa clé.
+1. Choisir un instant dans la timeline, puis **Ajouter une image clé**. Le marqueur peut être vide, sans propriété imposée. Un double-clic dans la piste pose également une image clé.
+2. Associer les propriétés avec leurs losanges. Modifier un style sur l’image clé sélectionnée crée son canal avec une référence initiale, sans remplacer la valeur de base.
 3. Répéter à un autre instant. Plusieurs propriétés peuvent être enregistrées au même instant.
 
-Un losange plein indique une clé à cet instant ; un contour coloré indique un canal animé. Recliquer le losange plein retire la clé. Lors de la première saisie à un temps non nul, une référence est créée à zéro pour éviter un saut immédiat. L’interpolation des nouvelles clés reprend celle du canal.
+Les formes proposent des canaux distincts pour la couleur du remplissage, la couleur du contour, leur activation, les pointillés, l’épaisseur, l’arrondi, les branches et leur profondeur. Activation et pointillés changent instantanément, sans fausse interpolation.
+
+Un losange plein indique une clé à cet instant ; un contour coloré indique un canal animé. Recliquer le losange plein propose de retirer la clé. Lors de la première saisie à un temps non nul, une référence est créée à zéro pour éviter un saut immédiat. L’interpolation des nouvelles clés reprend celle du canal.
 
 Les moteurs à particules disposent également de clés pour la force, la vitesse, la taille, la quantité, la durée de vie et la gravité. La couleur animée est prise dans le rendu réel de la palette.
 
@@ -35,7 +37,7 @@ Les moteurs à particules disposent également de clés pour la force, la vitess
 - Double-clic ou clic droit → **Afficher cet état** place le curseur au temps exact, active le rendu animé et ouvre les valeurs de la clé à gauche.
 - Clic droit : dupliquer/supprimer une clé. La duplication la décale pour ne pas la recouvrir immédiatement.
 - Chaque ligne de propriété a sa propre interpolation : linéaire, progressive, accélération, décélération, instantanée ou Bézier. Les paramètres Bézier et valeurs individuelles restent à gauche.
-- Le nom de séquence est directement éditable. Chaque séquence possède suppression, activation et masquage de piste. Désactiver suspend son animation ; masquer ne modifie que la timeline. **Pistes masquées** permet de la retrouver.
+- Le nom de séquence est directement éditable. La suppression demande confirmation ; le double-clic affiche l’état et ne supprime jamais la séquence. Chaque séquence possède suppression, activation et masquage de piste. Désactiver suspend son animation ; masquer ne modifie que la timeline. **Pistes masquées** permet de la retrouver.
 - La flèche de ligne replie ses propriétés. La tête de lecture a une poignée large et un curseur horizontal. Ctrl + molette zoome le temps indépendamment de la scène ; la barre horizontale parcourt la zone zoomée.
 
 Les séquences sont évaluées de haut en bas et conservent leur état final. Les groupes gardent leurs écarts. Une spline attachée pilote X/Y ; les anciennes clés restent enregistrées mais ne décalent pas la trajectoire.
@@ -77,6 +79,12 @@ MOV et MKV conservent la transparence via FFmpeg local. Le rendu et les données
 
 ## Validation et limites
 
-334 tests automatisés ; build réussi avec l’avertissement de chunk préexistant. Contrôles Chrome headless isolés : clés multiples, valeurs et couleurs animées, rappel d’état, masquage/activation/interpolation des pistes, zoom temporel, moteur déplacé avec annulation, attachement/détachement, formes de particules, découpe préservant l’arrière-plan, thèmes entre ateliers et lecture de scènes successives.
+336 tests automatisés ; build réussi avec l’avertissement de chunk préexistant. Contrôles Chrome headless isolés : clés multiples, valeurs et couleurs animées, rappel d’état, masquage/activation/interpolation des pistes, zoom temporel, moteur déplacé avec annulation, attachement/détachement, formes de particules, découpe préservant l’arrière-plan, thèmes entre ateliers et lecture de scènes successives.
 
 Export réel de deux scènes : MOV qtrle/argb et MKV ffv1/bgra, 1280 × 720, 30 fps, quinze images/0,5 s. Alpha préservé, coupure vérifiée à l’image 6 et pixels RGBA identiques entre formats. Pas de vérification directe dans Kdenlive, ni de gros projets, ni de données personnelles modifiées.
+
+## Retours du même jour — sécurité et découverte
+
+Les deux barres de commandes sont centrées. Le bouton Ajouter une image clé et les marqueurs globaux de piste permettent de choisir l’instant avant les propriétés. Les splines sont disponibles dans la barre et dans Animation → Trajectoire spline, même sans séquence préexistante. Séquences, clés, objets, scènes, effets et trajectoires demandent confirmation avant suppression dans Animation ; Annuler ou Échap conserve les données.
+
+Chrome isolé : plateau fini vérifié en clair/sombre, marqueur vide créé puis alimenté par cinq canaux de style, couleurs remplissage/contour séparées, double-clic sans suppression, confirmation/annulation/Échap/annuler l’action, quatre poignées de spline et conservation des marqueurs après rechargement. Les thèmes et Diaporama ont été revérifiés. Publication du lot actuellement bloquée par une limite d’utilisation de la revue automatique GitHub ; commits locaux conservés, branche distante non modifiée.

@@ -258,3 +258,5 @@ L’ajustement automatique utilise une taille uniforme pour le corps et une autr
 ## Prototype Animation
 
 L’atelier Animation réutilise les propriétés de Diaporama et ajoute des clés par propriété, pistes désactivables/masquables, effets ajoutables, formes de particules et physique 2D avec obstacles/rebonds. Les scènes se succèdent dans une même animation ; « Animer / Exporter » permet de choisir la scène seule ou toutes les scènes pour MOV/MKV transparents. Les thèmes personnels enregistrés sont disponibles entre ateliers. Voir le [guide Animation](../docs/animation-studio.md) pour les commandes et limites. Branche de test, sans fusion automatique.
+
+La timeline Animation permet de poser une **image clé vide**, puis de lui associer les propriétés au moyen des losanges. Remplissage et contour ont leurs propres couleurs et canaux ; les suppressions demandent confirmation. Les points du plateau s’arrêtent à sa bordure extérieure.

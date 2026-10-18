@@ -9,6 +9,9 @@ import {
   addAnimationKey,
   frameValue,
   engineAnimationFields,
+  shapeAnimationFields,
+  discreteAnimationFields,
+  colorAnimationFields,
 } from "./animationModel.js";
 import { renderAnimation } from "./animationRender.js";
 import { prepareImages } from "./render.js";
@@ -37,6 +40,8 @@ export function useAnimationStudio(s) {
     activePath = ref("");
   const previewOpen = ref(false),
     activeKey = ref(null),
+    activeFrame = ref(null),
+    pendingDelete = ref(null),
     allScenes = ref(false),
     exportOpen = ref(false);
   const totalDuration = computed(() =>
@@ -216,10 +221,15 @@ export function useAnimationStudio(s) {
     if (s.panels) s.panels.value.slides = true;
   }
   function deleteKey(c, key) {
-    s.beginGesture();
-    c.frames = c.frames.filter((f) => f !== key);
-    if (activeKey.value === key) activeKey.value = null;
-    s.endGesture();
+    requestDelete(
+      "la clé de cette propriété à " + key.time.toFixed(2) + " s",
+      () => {
+        s.beginGesture();
+        c.frames = c.frames.filter((f) => f !== key);
+        if (activeKey.value === key) activeKey.value = null;
+        s.endGesture();
+      },
+    );
   }
   function duplicateKey(c, key) {
     s.beginGesture();
@@ -385,11 +395,73 @@ export function useAnimationStudio(s) {
     config.value.clips.push(c);
     selectedClip.value = c.id;
   }
+  function requestDelete(label, action) {
+    stop();
+    pendingDelete.value = { label, action };
+  }
+  function confirmDelete() {
+    const pending = pendingDelete.value;
+    pendingDelete.value = null;
+    pending?.action();
+  }
   function removeClip() {
-    config.value.clips = config.value.clips.filter(
-      (c) => c.id !== selectedClip.value,
+    const id = selectedClip.value,
+      c = config.value.clips.find((c) => c.id === id),
+      scene = s.current.value;
+    if (!c) return;
+    requestDelete("la séquence « " + c.name + " »", () => {
+      s.beginGesture();
+      scene.animation.clips = scene.animation.clips.filter((c) => c.id !== id);
+      if (selectedClip.value === id) {
+        selectedClip.value = "";
+        activeKey.value = null;
+        activeFrame.value = null;
+      }
+      s.endGesture();
+    });
+  }
+  function addFrame() {
+    const c = ensureClip();
+    if (!c) return;
+    const local = Math.max(
+      0,
+      Math.min(
+        c.duration,
+        Math.round((time.value - c.start) * config.value.fps) /
+          config.value.fps,
+      ),
     );
-    selectedClip.value = config.value.clips[0]?.id || "";
+    s.beginGesture();
+    c.markers ||= [];
+    if (!c.markers.some((t) => Math.abs(t - local) < 0.0001))
+      c.markers.push(local);
+    c.markers.sort((a, b) => a - b);
+    s.endGesture();
+    focusFrame(c, local);
+  }
+  function focusFrame(c, local) {
+    selectClip(c.id);
+    activeKey.value =
+      c.frames.find((f) => Math.abs(f.time - local) < 0.0001) || null;
+    activeFrame.value = { clipId: c.id, time: local };
+    seek(c.start + local);
+    preview.value = true;
+    s.requestDraw();
+  }
+  function removeFrame(c, local) {
+    requestDelete(
+      "l’image clé à " + local.toFixed(2) + " s et ses propriétés",
+      () => {
+        s.beginGesture();
+        c.frames = c.frames.filter((f) => Math.abs(f.time - local) > 0.0001);
+        c.markers = (c.markers || []).filter(
+          (t) => Math.abs(t - local) > 0.0001,
+        );
+        activeKey.value = null;
+        activeFrame.value = null;
+        s.endGesture();
+      },
+    );
   }
   function addKey() {
     if (!clip.value) addClip();
@@ -428,6 +500,7 @@ export function useAnimationStudio(s) {
     );
   }
   function addPath() {
+    if (s.selectedKeys.value.length && !clip.value) ensureClip();
     if (config.value.paths.length >= 50) return;
     const p = normalizeAnimation({
       paths: [
@@ -444,6 +517,9 @@ export function useAnimationStudio(s) {
       clip.value.pathId = p.id;
       field.value = "progress";
     }
+    s.notify(
+      "Spline ajoutée : ses quatre poignées sont visibles sur la scène.",
+    );
     s.requestDraw();
   }
   function addLink() {
@@ -462,7 +538,11 @@ export function useAnimationStudio(s) {
     });
     s.requestDraw();
   }
-  function removePath() {
+  function removePath(confirmed = false) {
+    if (!confirmed) {
+      requestDelete("cette spline", () => removePath(true));
+      return;
+    }
     const id = activePath.value;
     config.value.paths = config.value.paths.filter((p) => p.id !== id);
     for (const c of config.value.clips) if (c.pathId === id) c.pathId = "";
@@ -712,6 +792,17 @@ export function useAnimationStudio(s) {
             (clip.value?.duration || config.value.duration),
         ),
       );
+    if (shapeAnimationFields[name]) {
+      const e = scene.elements[key],
+        prop = shapeAnimationFields[name];
+      return name === "strokeColor"
+        ? boundColor(e, "stroke", s.theme.value)
+        : discreteAnimationFields.includes(name)
+          ? e?.[prop]
+            ? 1
+            : 0
+          : (e?.[prop] ?? 0);
+    }
     if (name === "color")
       return scene.elements[key]?.type === "shape"
         ? boundColor(scene.elements[key], "fill", s.theme.value)
@@ -738,7 +829,8 @@ export function useAnimationStudio(s) {
     return clip.value;
   }
   function setProperty(name, value) {
-    if (!Number.isFinite(Number(value)) && name !== "color") return;
+    if (!Number.isFinite(Number(value)) && !colorAnimationFields.includes(name))
+      return;
     stop();
     s.beginGesture();
     try {
@@ -752,13 +844,19 @@ export function useAnimationStudio(s) {
         c.frames.find((f) => f.field === name)?.ease ||
         c.easing;
       if (local > 0 && !c.frames.some((f) => f.field === name))
-        addAnimationKey(c, name, 0, previous, interpolation);
+        addAnimationKey(
+          c,
+          name,
+          0,
+          previous,
+          discreteAnimationFields.includes(name) ? "hold" : interpolation,
+        );
       addAnimationKey(
         c,
         name,
         local,
-        name === "color" ? value : Number(value),
-        interpolation,
+        colorAnimationFields.includes(name) ? value : Number(value),
+        discreteAnimationFields.includes(name) ? "hold" : interpolation,
       );
       activeKey.value = c.frames.find(
         (f) => f.field === name && Math.abs(f.time - local) < 0.0001,
@@ -795,9 +893,11 @@ export function useAnimationStudio(s) {
     s.endGesture();
   }
   function removeEffect(id) {
-    s.beginGesture();
-    config.value.effects = config.value.effects.filter((e) => e.id !== id);
-    s.endGesture();
+    requestDelete("cet effet", () => {
+      s.beginGesture();
+      config.value.effects = config.value.effects.filter((e) => e.id !== id);
+      s.endGesture();
+    });
   }
   function attachEngine(parent) {
     const e = engine.value,
@@ -890,6 +990,13 @@ export function useAnimationStudio(s) {
     window.removeEventListener("blur", blur);
   });
   return {
+    activeFrame,
+    pendingDelete,
+    requestDelete,
+    confirmDelete,
+    addFrame,
+    focusFrame,
+    removeFrame,
     allScenes,
     totalDuration,
     playbackTime,

@@ -1,4 +1,5 @@
 <script setup>
+import { computed } from "vue";
 import AnimationKeyButton from "./AnimationKeyButton.vue";
 import NumberRange from "./NumberRange.vue";
 import CornerProperties from "./CornerProperties.vue";
@@ -11,37 +12,65 @@ const props = defineProps({
   studio: Object,
   mode: { type: String, default: "style" },
 });
-const animatedShape = new Proxy(
+const a = computed(() => props.studio?.animation),
+  map = {
+    fill: "color",
+    stroke: "strokeColor",
+    filled: "fillEnabled",
+    outlined: "strokeEnabled",
+    dashed: "dashed",
+    strokeWidth: "strokeWidth",
+    radius: "radius",
+    points: "points",
+    innerRatio: "innerRatio",
+  };
+function animated(key) {
+  return !!a.value?.clip?.frames.some((f) => f.field === map[key]);
+}
+function frameEditing() {
+  return (
+    !!a.value?.activeFrame &&
+    a.value.activeFrame.clipId === a.value.clip?.id &&
+    Math.abs(a.value.time - a.value.clip.start - a.value.activeFrame.time) <
+      0.0001
+  );
+}
+function set(key, value) {
+  if (a.value && map[key] && (animated(key) || frameEditing()))
+    a.value.setProperty(
+      map[key],
+      typeof value === "boolean" ? Number(value) : value,
+    );
+  else props.shape[key] = value;
+}
+const shapeView = new Proxy(
   {},
   {
     get(_, key) {
       if (
-        key === "fillRole" &&
-        props.studio?.animation?.clip?.frames.some((f) => f.field === "color")
+        ["fillRole", "strokeRole"].includes(key) &&
+        (animated(key === "fillRole" ? "fill" : "stroke") || frameEditing())
       )
         return null;
-      if (
-        key === "fill" &&
-        props.studio?.animation?.clip?.frames.some((f) => f.field === "color")
-      )
-        return props.studio.animation.propertyValue("color");
+      if (animated(key)) {
+        const v = a.value.propertyValue(map[key]);
+        return ["filled", "outlined", "dashed"].includes(key) ? v >= 0.5 : v;
+      }
       return props.shape[key];
     },
     set(_, key, value) {
       if (
-        props.studio?.animation &&
-        ["fill", "fillRole"].includes(key) &&
-        props.studio.animation.clip?.frames.some((f) => f.field === "color")
+        ["fillRole", "strokeRole"].includes(key) &&
+        (animated(key === "fillRole" ? "fill" : "stroke") || frameEditing())
       ) {
-        const color =
-          key === "fillRole"
-            ? props.theme[value] ||
-              props.theme.swatches?.find((c) => c.id === value)?.color
-            : value;
-        if (color) props.studio.animation.setProperty("color", color);
+        const field = key === "fillRole" ? "color" : "strokeColor",
+          color =
+            props.theme[value] ||
+            props.theme.swatches?.find((s) => s.id === value)?.color;
+        if (color) a.value.setProperty(field, color);
         return true;
       }
-      props.shape[key] = value;
+      set(key, value);
       return true;
     },
   },
@@ -50,20 +79,35 @@ const animatedShape = new Proxy(
 <template>
   <div class="shape-properties">
     <template v-if="mode === 'colors'"
-      ><AnimationKeyButton
-        v-if="studio"
-        :studio="studio"
-        field="color" /><PaletteColor
+      ><div
         v-if="!['line', 'curve'].includes(shape.shape)"
-        :element="animatedShape"
-        field="fill"
-        label="Remplissage"
-        :theme="theme" /><PaletteColor
-        :element="shape"
-        field="stroke"
-        label="Contour"
-        :theme="theme"
-    /></template>
+        class="animated-color-field"
+      >
+        <span
+          >Couleur du remplissage<AnimationKeyButton
+            v-if="studio"
+            :studio="studio"
+            field="color" /></span
+        ><PaletteColor
+          :element="shapeView"
+          field="fill"
+          label="Remplissage"
+          :theme="theme"
+        />
+      </div>
+      <div class="animated-color-field">
+        <span
+          >Couleur du contour<AnimationKeyButton
+            v-if="studio"
+            :studio="studio"
+            field="strokeColor" /></span
+        ><PaletteColor
+          :element="shapeView"
+          field="stroke"
+          label="Contour"
+          :theme="theme"
+        /></div
+    ></template>
     <template v-else
       ><label
         >Forme<select v-model="shape.shape" aria-label="Type de forme">
@@ -80,8 +124,7 @@ const animatedShape = new Proxy(
           :checked="shape.roundedEnds !== false"
           @change="shape.roundedEnds = $event.target.checked"
         />Extrémités arrondies</label
-      >
-      <label v-if="shape.shape === 'line'"
+      ><label v-if="shape.shape === 'line'"
         >Orientation<select v-model="shape.direction">
           <option value="horizontal">Horizontale</option>
           <option value="vertical">Verticale</option>
@@ -92,41 +135,79 @@ const animatedShape = new Proxy(
       <label
         v-if="!['line', 'curve'].includes(shape.shape)"
         class="checkbox-label"
-        ><input type="checkbox" v-model="shape.filled" />Remplissage</label
+        ><input
+          type="checkbox"
+          aria-label="Remplissage"
+          :checked="shapeView.filled"
+          @change="
+            set('filled', $event.target.checked)
+          " />Remplissage<AnimationKeyButton
+          v-if="studio"
+          :studio="studio"
+          field="fillEnabled" /></label
       ><label
         v-if="!['line', 'curve'].includes(shape.shape)"
         class="checkbox-label"
-        ><input type="checkbox" v-model="shape.outlined" />Contour</label
-      >
-      <template v-if="shape.outlined || ['line', 'curve'].includes(shape.shape)"
+        ><input
+          type="checkbox"
+          aria-label="Contour"
+          :checked="shapeView.outlined"
+          @change="
+            set('outlined', $event.target.checked)
+          " />Contour<AnimationKeyButton
+          v-if="studio"
+          :studio="studio"
+          field="strokeEnabled"
+      /></label>
+      <template
+        v-if="shapeView.outlined || ['line', 'curve'].includes(shape.shape)"
         ><label
-          >Épaisseur · px<input
+          >Épaisseur · px<AnimationKeyButton
+            v-if="studio"
+            :studio="studio"
+            field="strokeWidth" /><input
             type="number"
             aria-label="Épaisseur du contour"
-            :value="Math.round(shape.strokeWidth * scale * 100) / 100"
+            :value="Math.round(shapeView.strokeWidth * scale * 100) / 100"
             :min="scale"
             :max="60 * scale"
             step="1"
             @change="
-              shape.strokeWidth = Math.max(
-                1,
-                Math.min(60, Number($event.target.value) / scale || 1),
+              set(
+                'strokeWidth',
+                Math.max(
+                  1,
+                  Math.min(60, Number($event.target.value) / scale || 1),
+                ),
               )
             " /></label
         ><label class="checkbox-label"
-          ><input type="checkbox" v-model="shape.dashed" />Pointillés</label
-        ></template
-      >
-      <NumberRange
+          ><input
+            type="checkbox"
+            aria-label="Pointillés"
+            :checked="shapeView.dashed"
+            @change="
+              set('dashed', $event.target.checked)
+            " />Pointillés<AnimationKeyButton
+            v-if="studio"
+            :studio="studio"
+            field="dashed" /></label
+      ></template>
+      <template
         v-if="
           ['rounded', 'rect', 'square'].includes(shape.shape) &&
           !shape.individualCorners
         "
-        label="Arrondi des coins"
-        unit="%"
-        :max="50"
-        v-model="shape.radius" />
-      <CornerProperties
+        ><AnimationKeyButton
+          v-if="studio"
+          :studio="studio"
+          field="radius" /><NumberRange
+          label="Arrondi des coins"
+          unit="%"
+          :max="50"
+          :model-value="shapeView.radius"
+          @update:model-value="set('radius', $event)" /></template
+      ><CornerProperties
         :value="shape"
         @change="(key, value) => (shape[key] = value)"
         @corner="
@@ -137,23 +218,33 @@ const animatedShape = new Proxy(
         " />
       <template v-if="shape.shape === 'star'"
         ><label
-          >Branches<input
+          >Branches<AnimationKeyButton
+            v-if="studio"
+            :studio="studio"
+            field="points" /><input
             type="number"
             min="3"
             max="12"
-            :value="shape.points"
+            :value="shapeView.points"
             @change="
-              shape.points = Math.max(
-                3,
-                Math.min(12, Math.round(Number($event.target.value) || 5)),
+              set(
+                'points',
+                Math.max(
+                  3,
+                  Math.min(12, Math.round(Number($event.target.value) || 5)),
+                ),
               )
             " /></label
-        ><NumberRange
+        ><AnimationKeyButton
+          v-if="studio"
+          :studio="studio"
+          field="innerRatio" /><NumberRange
           label="Profondeur des branches"
           :min="0.15"
           :max="0.8"
           :step="0.01"
-          v-model="shape.innerRatio" /></template
+          :model-value="shapeView.innerRatio"
+          @update:model-value="set('innerRatio', $event)" /></template
     ></template>
   </div>
 </template>

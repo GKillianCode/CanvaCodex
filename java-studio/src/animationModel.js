@@ -14,7 +14,24 @@ export const engineAnimationFields = {
   particleCount: "count",
   particleLife: "life",
 };
+export const shapeAnimationFields = {
+  fillEnabled: "filled",
+  strokeEnabled: "outlined",
+  dashed: "dashed",
+  strokeWidth: "strokeWidth",
+  radius: "radius",
+  points: "points",
+  innerRatio: "innerRatio",
+  strokeColor: "stroke",
+};
+export const discreteAnimationFields = [
+  "fillEnabled",
+  "strokeEnabled",
+  "dashed",
+];
+export const colorAnimationFields = ["color", "strokeColor"];
 export const animationFields = [
+  ...Object.keys(shapeAnimationFields),
   ...Object.keys(engineAnimationFields),
   "x",
   "y",
@@ -120,6 +137,13 @@ export function normalizeAnimation(raw = {}) {
       easing: animationEasings.includes(c?.easing) ? c.easing : "smooth",
       start: number(c?.start, 0, 0, 120),
       duration: number(c?.duration, 8, 0.1, 120),
+      markers: [
+        ...new Set(
+          list(c?.markers, 1000)
+            .filter((v) => Number.isFinite(Number(v)))
+            .map((v) => number(v, 0, 0, 120)),
+        ),
+      ].sort((a, b) => a - b),
       keys: list(c?.keys, 100).filter(
         (k) => typeof k === "string" && k.length < 100,
       ),
@@ -140,16 +164,21 @@ export function normalizeAnimation(raw = {}) {
           (f) =>
             animationFields.includes(f?.field) &&
             Number.isFinite(Number(f?.time)) &&
-            (f.field === "color"
+            (colorAnimationFields.includes(f.field)
               ? /^#[a-f0-9]{6}$/i.test(f.value)
               : Number.isFinite(Number(f.value))),
         )
         .map((f) => ({
           field: f.field,
           time: number(f.time, 0, 0, 120),
-          value:
-            f.field === "color" ? f.value : number(f.value, 0, -10000, 10000),
-          ease: animationEasings.includes(f.ease) ? f.ease : "smooth",
+          value: colorAnimationFields.includes(f.field)
+            ? f.value
+            : number(f.value, 0, -10000, 10000),
+          ease: discreteAnimationFields.includes(f.field)
+            ? "hold"
+            : animationEasings.includes(f.ease)
+              ? f.ease
+              : "smooth",
           curve: Array.from({ length: 4 }, (_, i) =>
             number(
               f.curve?.[i],
@@ -382,6 +411,22 @@ export function animationScene(scene, raw, time) {
             fillRole: "",
           };
       }
+      if (
+        result.elements[key]?.type === "shape" &&
+        !result.elements[key]?.engineKind
+      ) {
+        const shape = { ...result.elements[key] };
+        for (const [field, prop] of Object.entries(shapeAnimationFields)) {
+          const frames = clip.frames.filter((f) => f.field === field);
+          if (!frames.length) continue;
+          if (discreteAnimationFields.includes(field)) {
+            const f = frames.filter((f) => f.time <= local).at(-1) || frames[0];
+            shape[prop] = Number(f.value) >= 0.5;
+          } else shape[prop] = frameValue(frames, field, local, shape[prop]);
+          if (field === "strokeColor") shape.strokeRole = null;
+        }
+        result.elements[key] = normalizeShape(shape);
+      }
       result.positions[key] = p;
       typingElapsed[key] = local * 1000;
     }
@@ -401,7 +446,7 @@ export function animationScene(scene, raw, time) {
         t,
         engine.particles.color,
       );
-      if (c.frames.some((f) => f.field === "color"))
+      if (c.frames.some((f) => colorAnimationFields.includes(f.field)))
         engine.particles.colorRole = null;
     }
     engine.particles = normalizeParticles(engine.particles);

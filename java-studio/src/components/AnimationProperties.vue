@@ -78,12 +78,10 @@ const props = defineProps({ studio: Object }),
       </p></template
     ></InspectorDrawer
   >
-  <InspectorDrawer
-    v-if="a.clip"
-    id="animation-path"
-    title="Trajectoire spline"
-    :icon="Route"
-    ><label
+  <InspectorDrawer id="animation-path" title="Trajectoire spline" :icon="Route"
+    ><button class="btn full" @click="a.addPath()">
+      <Route :size="14" />Ajouter une spline</button
+    ><label v-if="a.clip"
       >Chemin<select
         v-model="a.clip.pathId"
         @change="a.clip.pathId && (a.field = 'progress')"
@@ -94,17 +92,16 @@ const props = defineProps({ studio: Object }),
         </option>
       </select></label
     >
-    <p v-if="a.clip.pathId" class="field-help">
+    <p v-if="a.clip?.pathId" class="field-help">
       La spline pilote X et Y. Retire le chemin pour retrouver les pistes de
       position.
     </p>
-    <label class="checkbox-label"
+    <label v-if="a.clip" class="checkbox-label"
       ><input type="checkbox" v-model="a.clip.constantSpeed" />Vitesse constante
       le long du chemin</label
-    ><label class="checkbox-label"
+    ><label v-if="a.clip" class="checkbox-label"
       ><input type="checkbox" v-model="a.clip.orient" />Orienter selon le
       chemin</label
-    ><button class="btn" @click="a.addPath()">Créer une spline</button
     ><label class="checkbox-label"
       ><input type="checkbox" v-model="a.pathEditing" />Afficher les
       poignées</label

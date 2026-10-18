@@ -213,3 +213,54 @@ test("fast falling bodies cannot tunnel through a thin horizontal floor", () => 
   );
   assert.ok(result.y + 1 <= 10000.001);
 });
+
+test("shape fill, stroke, stroke width and discrete options animate independently", () => {
+  const scene = makeAnimationExample();
+  scene.animation = normalizeAnimation({
+    clips: [
+      {
+        keys: ["shapeObject"],
+        duration: 2,
+        frames: [
+          { field: "color", time: 0, value: "#ff0000" },
+          { field: "color", time: 2, value: "#ffffff" },
+          { field: "strokeColor", time: 0, value: "#00ff00" },
+          { field: "strokeColor", time: 2, value: "#0000ff" },
+          { field: "strokeWidth", time: 0, value: 6 },
+          { field: "strokeWidth", time: 2, value: 16 },
+          { field: "fillEnabled", time: 0, value: 1 },
+          { field: "fillEnabled", time: 2, value: 0 },
+          { field: "strokeEnabled", time: 0, value: 0 },
+          { field: "strokeEnabled", time: 2, value: 1 },
+          { field: "dashed", time: 0, value: 0 },
+          { field: "dashed", time: 2, value: 1 },
+        ],
+      },
+    ],
+  });
+  const before = JSON.stringify(scene),
+    middle = animationScene(scene, scene.animation, 1).scene.elements
+      .shapeObject,
+    end = animationScene(scene, scene.animation, 2).scene.elements.shapeObject;
+  assert.equal(middle.fill, "#ff8080");
+  assert.equal(middle.stroke, "#008080");
+  assert.equal(middle.strokeWidth, 11);
+  assert.equal(middle.filled, true);
+  assert.equal(middle.outlined, false);
+  assert.equal(middle.dashed, false);
+  assert.equal(end.filled, false);
+  assert.equal(end.outlined, true);
+  assert.equal(end.dashed, true);
+  assert.equal(JSON.stringify(scene), before);
+});
+test("empty frame markers persist without introducing or removing any property", () => {
+  const config = normalizeAnimation({
+    clips: [{ markers: [2, 2, 0, "bad"], frames: [] }],
+  });
+  assert.deepEqual(config.clips[0].markers, [0, 2]);
+  assert.deepEqual(config.clips[0].frames, []);
+  assert.deepEqual(
+    normalizeAnimation(JSON.parse(JSON.stringify(config))),
+    config,
+  );
+});

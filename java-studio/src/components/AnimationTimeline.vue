@@ -17,7 +17,11 @@ import {
   Power,
   ChevronDown,
 } from "lucide-vue-next";
-import { animationFields, animationEasings } from "../animationModel.js";
+import {
+  animationFields,
+  animationEasings,
+  discreteAnimationFields,
+} from "../animationModel.js";
 import { timelineView, timelineTime } from "../animationTimelineView.js";
 const props = defineProps({ studio: Object }),
   s = reactive(props.studio),
@@ -30,6 +34,14 @@ const props = defineProps({ studio: Object }),
   showHidden = ref(false);
 const view = computed(() => timelineView(a.config.duration, zoom.value));
 const labels = {
+  fillEnabled: "Remplissage activé",
+  strokeEnabled: "Contour activé",
+  dashed: "Pointillés",
+  strokeWidth: "Épaisseur du contour",
+  radius: "Arrondi",
+  points: "Branches",
+  innerRatio: "Profondeur",
+  strokeColor: "Couleur du contour",
   engineGravity: "Force de gravité",
   particleForce: "Force d’émission",
   particleSpeed: "Vitesse des particules",
@@ -47,7 +59,7 @@ const labels = {
   size: "Taille du texte",
   contentScale: "Échelle du contenu",
   progress: "Progression du chemin",
-  color: "Couleur",
+  color: "Couleur du remplissage",
 };
 const easeLabels = {
   linear: "Linéaire",
@@ -171,10 +183,24 @@ function context(event, c, key) {
 function outside(event) {
   if (!event.target.closest(".animation-key-context")) menu.value = null;
 }
+function addFrameAt(event, c) {
+  if (event.target.closest("button")) return;
+  const rect = event.currentTarget.getBoundingClientRect();
+  a.selectClip(c.id);
+  a.seek(timelineTime(event.clientX, rect.left, rect.width, view.value.span));
+  a.addFrame();
+}
+function frameTimes(c) {
+  return [
+    ...new Set([...(c.markers || []), ...c.frames.map((f) => f.time)]),
+  ].sort((a, b) => a - b);
+}
 function deleteEvent(event) {
   if (["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
   event.preventDefault();
   if (a.clip && a.activeKey) a.deleteKey(a.clip, a.activeKey);
+  else if (a.clip && a.activeFrame) a.removeFrame(a.clip, a.activeFrame.time);
+  else if (a.clip) a.removeClip();
 }
 onMounted(() => {
   tracks.value.addEventListener("wheel", wheel, { passive: false });
@@ -278,6 +304,13 @@ onUnmounted(() => {
     </div>
     <div class="animation-key-tools">
       <button
+        class="btn primary"
+        title="Poser une image clé à cet instant, puis lui associer des propriétés avec les losanges"
+        @click="a.addFrame()"
+      >
+        <Diamond :size="14" />Ajouter une image clé
+      </button>
+      <button
         class="btn"
         title="Créer une séquence pour les objets sélectionnés"
         @click="a.addClip()"
@@ -294,10 +327,7 @@ onUnmounted(() => {
         class="icon-btn"
         :disabled="!a.clip"
         title="Supprimer la séquence"
-        @click="
-          a.removeClip();
-          a.activeKey = null;
-        "
+        @click="a.removeClip()"
       >
         <Trash2 :size="14" /></button
       ><button
@@ -397,13 +427,16 @@ onUnmounted(() => {
                 @click.stop="
                   a.selectClip(c.id);
                   a.removeClip();
-                  a.activeKey = null;
                 "
               >
                 <Trash2 :size="12" />
               </button>
             </div>
-            <div class="track-lane" @pointerdown.self="a.selectClip(c.id)">
+            <div
+              class="track-lane"
+              @pointerdown.self="a.selectClip(c.id)"
+              @dblclick.stop.prevent="addFrameAt($event, c)"
+            >
               <span
                 class="clip-span"
                 :style="{
@@ -413,6 +446,31 @@ onUnmounted(() => {
                 title="Glisser pour décaler la séquence"
                 @pointerdown="dragClip($event, c)"
               ></span
+              ><button
+                v-for="t in frameTimes(c)"
+                :key="t"
+                class="frame-marker"
+                :class="{
+                  empty: !c.frames.some((f) => Math.abs(f.time - t) < 0.0001),
+                }"
+                :style="{ left: ((c.start + t) / view.span) * 100 + '%' }"
+                :aria-label="'Image clé à ' + t + ' secondes'"
+                :title="
+                  'Image clé · ' + t + ' s · double-clic : afficher cet état'
+                "
+                @pointerdown.stop
+                @click.stop="a.focusFrame(c, t)"
+                @dblclick.stop.prevent="a.focusFrame(c, t)"
+                @contextmenu.prevent.stop="
+                  menu = {
+                    c,
+                    frameTime: t,
+                    x: Math.min(innerWidth - 210, $event.clientX),
+                    y: Math.min(innerHeight - 180, $event.clientY),
+                  }
+                "
+              >
+                ◆</button
               ><i
                 class="track-cursor"
                 :style="{ left: (a.time / view.span) * 100 + '%' }"
@@ -433,6 +491,7 @@ onUnmounted(() => {
                   :aria-label="'Interpolation · ' + labels[f]"
                   :value="c.frames.find((k) => k.field === f)?.ease || c.easing"
                   title="Interpolation de cette propriété"
+                  :disabled="discreteAnimationFields.includes(f)"
                   @change="
                     a.beginGesture();
                     c.frames
@@ -489,31 +548,51 @@ onUnmounted(() => {
       :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
       @pointerdown.stop
     >
-      <button
-        role="menuitem"
-        @click="
-          a.focusKey(menu.c, menu.key);
-          menu = null;
-        "
+      <template v-if="menu.frameTime !== undefined"
+        ><button
+          role="menuitem"
+          @click="
+            a.focusFrame(menu.c, menu.frameTime);
+            menu = null;
+          "
+        >
+          Afficher cet état</button
+        ><button
+          role="menuitem"
+          @click="
+            a.removeFrame(menu.c, menu.frameTime);
+            menu = null;
+          "
+        >
+          Supprimer l’image clé
+        </button></template
+      ><template v-else
+        ><button
+          role="menuitem"
+          @click="
+            a.focusKey(menu.c, menu.key);
+            menu = null;
+          "
+        >
+          Afficher cet état</button
+        ><button
+          role="menuitem"
+          @click="
+            a.duplicateKey(menu.c, menu.key);
+            menu = null;
+          "
+        >
+          Dupliquer la clé</button
+        ><button
+          role="menuitem"
+          @click="
+            a.deleteKey(menu.c, menu.key);
+            menu = null;
+          "
+        >
+          Supprimer la clé
+        </button></template
       >
-        Afficher cet état</button
-      ><button
-        role="menuitem"
-        @click="
-          a.duplicateKey(menu.c, menu.key);
-          menu = null;
-        "
-      >
-        Dupliquer la clé</button
-      ><button
-        role="menuitem"
-        @click="
-          a.deleteKey(menu.c, menu.key);
-          menu = null;
-        "
-      >
-        Supprimer la clé
-      </button>
     </div>
   </section>
 </template>
