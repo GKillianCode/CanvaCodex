@@ -6,8 +6,8 @@ import {
   Circle,
   Lasso,
   GripVertical,
-  ChevronUp,
-  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
   PenTool,
   Spline,
   Plus,
@@ -108,7 +108,7 @@ function nodeDown(e, i, part) {
   >
     <div class="drawing-palette-controls">
       <button class="drawing-palette-grip" :class="{moving}" aria-label="Déplacer la palette" title="Déplacer la palette · flèches du clavier" @pointerdown.stop="startPalette" @pointermove="movePalette" @pointerup="endPalette" @pointercancel="endPalette" @lostpointercapture="endPalette" @keydown="movePaletteKey"><GripVertical :size="16" /></button>
-      <button :aria-expanded="!collapsed" :aria-label="collapsed ? 'Déplier la palette' : 'Replier la palette'" :title="collapsed ? 'Déplier la palette' : 'Replier la palette'" @click="togglePalette"><component :is="collapsed ? ChevronDown : ChevronUp" :size="15" /></button>
+      <button :aria-expanded="!collapsed" :aria-label="collapsed ? 'Déplier la palette' : 'Replier la palette'" :title="collapsed ? 'Déplier la palette' : 'Replier la palette'" @click="togglePalette"><component :is="collapsed ? ChevronRight : ChevronLeft" :size="15" /></button>
     </div>
     <div v-show="!collapsed" class="drawing-palette-content">
     <div class="drawing-tool-row">
