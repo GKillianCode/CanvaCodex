@@ -2,7 +2,7 @@
 
 Studio personnel pour préparer des diaporamas, des incrustations vidéo et des miniatures avec une charte graphique commune.
 
-L’application se trouve dans [`java-studio/`](java-studio/README.md). Elle utilise Vue 3 et Vite, sans backend dans cette première version.
+L’application se trouve dans [`java-studio/`](java-studio/README.md). Elle utilise Vue 3 et Vite. Les exports MOV/MKV utilisent un encodeur FFmpeg local intégré au lancement Vite ; les sauvegardes restent dans le navigateur.
 
 ## Démarrer
 
@@ -62,7 +62,8 @@ Les fiches suivent la [spécification Java](https://docs.oracle.com/javase/specs
 
 Dans **Incrustations → Animer** (ou **Fichier → Exporter une incrustation animée**), régler une durée de 2–20 secondes. Choisir les animations d’entrée/sortie et leur durée, puis le décalage entre blocs. Cliquer un bloc ou un groupe pour définir son arrivée, sa fin de sortie et ses effets ; les membres d’un groupe restent synchronisés. Les animations de présentation existantes restent indépendantes. Lire l’aperçu ou déplacer son curseur avant d’exporter.
 
-- **Transparent · MOV sans perte**, choix par défaut : vidéo 30 images/s avec canal alpha, contenant des images PNG RGBA. Le damier de l’aperçu n’est jamais exporté. Export déterministe image par image, sans encodeur externe ni serveur ; fichier plus volumineux, limite 256 Mo. Certains logiciels de montage n’importent pas ce codec et nécessitent une conversion (par exemple vers ProRes 4444).
+- **MOV · QTRLE**, choix par défaut : vidéo30 images/s sans perte avec alpha ARGB, encodée automatiquement avec FFmpeg local pour le montage.
+- **MKV · FFV1** : alternative sans perte avec alpha BGRA, dans un conteneur Matroska. MOV et MKV gardent la transparence avec le fond Transparent ; le damier n’est pas exporté. Ils acceptent aussi un fond de chrominance. La capture intermédiaire PNG/MOV est limitée à256Mo, la sortie encodée à512Mo.
 - **Fond de chrominance · WebM** : fond vert, bleu ou personnalisé à retirer au montage. Choisir une couleur absente des objets ; rester sur l’onglet pendant la capture en temps réel. Export sans audio, aux dimensions du projet. Si MediaRecorder n’est pas disponible, utiliser le MOV.
 
 La progression et l’annulation sont disponibles pendant l’export. Les réglages sont sauvegardés avec le projet et réimportés en JSON. Changer de format conserve le rythme global mais réinitialise les réglages propres aux anciens blocs. Le PNG transparent reste accessible dans Fichier.
@@ -241,7 +242,7 @@ La fiche vidéo propose deux cartes illustrées, Préparer et Publier ; les supp
 Les états des vidéos disposent d’une palette dédiée au mode clair : badges et bordures du canvas restent contrastés, sans modifier les couleurs du mode sombre.
 Les groupes du canvas des parcours proposent sept couleurs (double-clic sur leur titre pour les modifier), conservées dans les sauvegardes et adaptées aux deux apparences. Les étapes sont bleues, les projets fil rouge violets.
 
-Les enregistrements de diaporamas proposent désormais MOV par défaut (PNG RGBA sans perte, fond transparent optionnel) et WebM en alternative. Les incrustations séparent le format MOV/WebM du choix de fond ; MOV conserve le canal alpha, WebM utilise un fond de chrominance. Les MOV sont limités à 256 Mo par prise et peuvent être volumineux : l’enregistrement s’arrête et finalise la prise à cette limite. Le lecteur intégré reste disponible pour WebM ; les MOV se téléchargent pour le montage. Aucun audio n’est enregistré.
+Les enregistrements de diaporamas proposent MOV QTRLE par défaut, MKV FFV1 et WebM. MOV et MKV acceptent le fond transparent optionnel ; WebM garde le comportement habituel. Les incrustations séparent le format du choix de fond : MOV/MKV préservent l’alpha, WebM utilise la chrominance. Capture limitée à256Mo par prise et arrêt automatique à cette limite ; sortie encodée limitée à512Mo. Le lecteur intégré reste disponible pour WebM ; MOV/MKV se téléchargent pour le montage. Aucun audio n’est enregistré.
 
 La palette du parcours est atténuée : Création bleu grisé, Prêt à tourner olive, groupes très légers en clair et flèches gris bleuté contrastées.
 
@@ -284,3 +285,12 @@ Dans **Incrustations → Formats → Vidéo**, choisir **Outro YouTube · vidéo
 Fond vert #00ff00, également présent comme calque de fond verrouillé pour le PNG et l’éditeur (déverrouillable dans Calques). **Animer** utilise15s, apparitions successives vidéo/playlist/chaîne, MOV sur fond de chrominance par défaut ; WebM reste disponible. Les couleurs visibles sont fixes et évitent le vert de découpe, mais chaque objet reste personnalisable. Ctrl Z annule l’application du format, y compris la résolution.
 
 Ajouter ensuite les vrais éléments vidéo, playlist et abonnement dans [YouTube Studio](https://support.google.com/youtube/answer/6388789?hl=fr), sur les5 à20 dernières secondes. La documentation officielle autorise leur repositionnement et ne donne pas de dimensions fixes en pixels :640 ×360 et le cercle294px sont des repères de composition ajustables, pas une garantie de placement exact sur tous les appareils. Il ne s’agit pas de la bannière de chaîne YouTube.
+
+
+## Encodage local pour Kdenlive
+
+Les MOV livrés utilisent maintenant **QTRLE/ARGB**, soit l’équivalent automatique de `ffmpeg -i capture.mov -c:v qtrle -pix_fmt argb sortie.mov`. Le nouveau **MKV utilise FFV1/BGRA**, sans perte et avec alpha. Le conteneur MKV seul ne garantit pas la transparence : c’est le codec/pixel format choisi qui la conserve. Même pipeline pour les incrustations animées et les enregistrements de présentation. WebM reste disponible.
+
+**FFmpeg doit être installé et accessible dans le PATH du processus qui lance Frame** (c’est le cas sur la machine de développement vérifiée). Lancer l’application avec `npm run dev`, ou `npm run build` puis `npm run preview`. Redémarrer le serveur après mise à jour. Un hébergement statique seul conserve WebM mais ne fournit pas les exports QTRLE/FFV1. Ce service se contente d’encoder : aucun changement de port, aucun déplacement ni migration des sauvegardes. Aucun service distant ni IA.
+
+La disponibilité du codec est vérifiée avant une capture. Si l’encodage final échoue après l’enregistrement, une fenêtre conserve la capture source avec **Réessayer**, **Télécharger la capture source** et fermeture explicite. Ne pas fermer l’onglet avant d’avoir récupéré cette capture. Les fichiers temporaires d’encodage sont supprimés après réponse, erreur ou annulation ; un arrêt brutal du processus peut laisser un dossier `frame-video-*` dans le répertoire temporaire système. Une seule conversion à la fois par instance, dix minutes maximum, capture256Mo et sortie512Mo. Les projets et les captures sources utilisateur ne sont pas modifiés.

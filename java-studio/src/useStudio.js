@@ -1,3 +1,5 @@
+import {ensureVideoEncoder} from './videoEncoding.js';
+import {useVideoEncoding} from './useVideoEncoding.js';
 import {createLiveMovie} from './liveMovie.js';
 import {useExpiringUndo} from './useExpiringUndo.js';
 import { normalizeRuns } from './richText.js';
@@ -88,6 +90,7 @@ export function useStudio(application='slides',creationContext=null) {
   const overlayVideoOpen=ref(false),overlayVideoBusy=ref(false),overlayVideoProgress=ref(0);let overlayVideoController;
   const recordingFormat=ref('mov'),recordingAlpha=ref(true);
   let activeRecordingFormat='mov',activeRecordingAlpha=true,liveMovie;
+  const videoEncoding=useVideoEncoding(download,notify);
   const lastExport = ref(null), videoPreview = ref(false), videoMeta = ref(''), finalizing = ref(false), shapeGallery=ref(false), gallery = ref(false), editing = ref(null), formatting = ref(false);
   const resolution = ref(normalizeResolution(initial?.resolution)), formatOpen = ref(false), formatWidth = ref(resolution.value.width);
   const trail = new LaserTrail(), layoutBackup=ref(null);
@@ -499,13 +502,13 @@ export function useStudio(application='slides',creationContext=null) {
   async function openOverlayVideo(){if(view.value!=='banners')return;closeEdit();if(!await ensureFonts())return;await prepareImages(allScenes([banner.value.slide]),theme.value);overlayVideoOpen.value=true;}
   function cancelOverlayVideo(){overlayVideoController?.abort();}
   async function exportOverlayVideo(){
-    if(overlayVideoBusy.value)return;
+    if(overlayVideoBusy.value||videoEncoding.recovery.value)return;
     const overlay=captureOverlayVideo(banner.value),colors=structuredClone(toRaw(theme.value)),size={...resolution.value};
     overlayVideoBusy.value=true;overlayVideoProgress.value=0;const controller=new AbortController();overlayVideoController=controller;
-    try{await prepareFonts(allScenes([overlay.slide]));await prepareImages(allScenes([overlay.slide]),colors);if(controller.signal.aborted)return;
+    try{await ensureVideoEncoder(overlay.clip.format,{signal:controller.signal});await prepareFonts(allScenes([overlay.slide]));await prepareImages(allScenes([overlay.slide]),colors);if(controller.signal.aborted)return;
       const c=document.createElement('canvas');c.width=size.width;c.height=size.height;const clip=normalizeClip(overlay.clip,overlayKeys(overlay.slide));
-      const blob=await (clip.format==='mov'?exportTransparentMovie:exportChromaMovie)({canvas:c,slide:overlay.slide,theme:colors,clip,signal:controller.signal,onProgress:value=>overlayVideoProgress.value=Math.round(value*100)});
-      if(controller.signal.aborted)return;download(blob,clip.format==='mov'?(clip.background==='transparent'?'frame-incrustation-alpha.mov':'frame-incrustation-chroma.mov'):'frame-incrustation-chroma.webm',false);notify('Incrustation animée prête à télécharger.');
+      const blob=await (clip.format==='webm'?exportChromaMovie:exportTransparentMovie)({canvas:c,slide:overlay.slide,theme:colors,clip,signal:controller.signal,onProgress:value=>overlayVideoProgress.value=Math.round(value*100)});
+      if(controller.signal.aborted)return;if(clip.format==='webm')download(blob,'frame-incrustation-chroma.webm',false);else await videoEncoding.save(blob,clip.format,'frame-incrustation-'+(clip.background==='transparent'?'alpha':'chroma')+'.'+clip.format,{signal:controller.signal,preview:false});notify('Incrustation animée prête à télécharger.');
     }catch(error){if(error.name!=='AbortError')notify(error.message||'Impossible d’exporter la vidéo.');else notify('Export annulé.');}
     finally{overlayVideoBusy.value=false;overlayVideoController=null;}
   }
@@ -521,11 +524,21 @@ export function useStudio(application='slides',creationContext=null) {
   let presenterClock;
   let countdownTimer;
   function cancelCountdown(){clearInterval(countdownTimer);countdown.value=0;}
-  async function startRecord(){if(countdown.value){cancelCountdown();return;}if(recording.value||finalizing.value)return;if(!await ensureFonts())return;elapsed.value=0;countdown.value=5;const deadline=performance.now()+5000;countdownTimer=setInterval(()=>{countdown.value=Math.max(0,Math.ceil((deadline-performance.now())/1000));if(!countdown.value){cancelCountdown();recordNow();}},100);}
+  let preparingRecord=false;
+  async function startRecord(){
+    if(countdown.value){cancelCountdown();return;}
+    if(recording.value||finalizing.value||videoEncoding.recovery.value||preparingRecord)return;
+    preparingRecord=true;
+    try{await ensureVideoEncoder(recordingFormat.value);if(!await ensureFonts()||!presenting.value)return;
+      elapsed.value=0;countdown.value=5;const deadline=performance.now()+5000;
+      countdownTimer=setInterval(()=>{countdown.value=Math.max(0,Math.ceil((deadline-performance.now())/1000));if(!countdown.value){cancelCountdown();recordNow();}},100);
+    }catch(error){notify(error.message);}finally{preparingRecord=false;}
+  }
+
   function recordNow() {
     if (finalizing.value||recording.value||!presenting.value) return;
-    if(recordingFormat.value==='mov'){
-      activeRecordingFormat='mov';activeRecordingAlpha=recordingAlpha.value;recording.value=true;started=Date.now();elapsed.value=0;draw();
+    if(['mov','mkv'].includes(recordingFormat.value)){
+      activeRecordingFormat=recordingFormat.value;activeRecordingAlpha=recordingAlpha.value;recording.value=true;started=Date.now();elapsed.value=0;draw();
       liveMovie=createLiveMovie(canvas.value,{onLimit(){notify('Limite de 256 Mo atteinte : enregistrement arrêté et conservé.');stopRecord();},onError(error){notify(error.message);stopRecord();}});
       timer=setInterval(()=>elapsed.value=Math.floor((Date.now()-started)/1000),1000);requestDraw();return;
     }
@@ -542,7 +555,7 @@ export function useStudio(application='slides',creationContext=null) {
     } catch { stream?.getTracks().forEach(t => t.stop()); notify('Impossible de lancer l’enregistrement.'); }
   }
   async function stopRecord() { if (!recording.value) return; recording.value = false; finalizing.value = true; clearInterval(timer);
-    if(activeRecordingFormat==='mov'){try{const blob=await liveMovie.stop();download(blob,'frame-presentation'+(activeRecordingAlpha?'-alpha':'')+'.mov');}catch(error){notify(error.message||'Finalisation MOV impossible.');}finally{liveMovie=null;finalizing.value=false;requestDraw();}}else recorder.stop();
+    if(['mov','mkv'].includes(activeRecordingFormat)){try{const blob=await liveMovie.stop();await videoEncoding.save(blob,activeRecordingFormat,'frame-presentation'+(activeRecordingAlpha?'-alpha':'')+'.'+activeRecordingFormat);}catch(error){notify(error.message||'Finalisation vidéo impossible.');}finally{liveMovie=null;finalizing.value=false;requestDraw();}}else recorder.stop();
   }
   function deselect(){selected.value=null;selectedKeys.value=[];selectedSlides.value=[];closeEdit();}
   function selectSlide(n,event){chooseSlide(n);selectionScope.value='slides';selected.value=null;selectedKeys.value=[];const id=slides.value[n]?.id;if(!id)return;selectedSlides.value=event&&(event.ctrlKey||event.metaKey)?(selectedSlides.value.includes(id)?selectedSlides.value.filter(k=>k!==id):[...selectedSlides.value,id]):[id];}
@@ -577,7 +590,7 @@ export function useStudio(application='slides',creationContext=null) {
     else if ([' ', 'Enter', 'PageDown'].includes(e.key)) { e.preventDefault(); advance(); }
     else if (['Backspace', 'PageUp'].includes(e.key)) { e.preventDefault(); retreat(); }
   }
-  function beforeUnload(e) { flushLocal();if (recording.value || finalizing.value || overlayVideoBusy.value) { e.preventDefault(); e.returnValue = ''; } }
+  function beforeUnload(e) { flushLocal();if (recording.value || finalizing.value || overlayVideoBusy.value || videoEncoding.recovery.value || videoEncoding.busy.value) { e.preventDefault(); e.returnValue = ''; } }
   onMounted(() => {
     presenterClock=setInterval(()=>{if(recording.value)presentationSeconds.value=elapsed.value;},1000);
     fileBusy.value=true;Promise.all(['slides','banners'].map(kind=>fileStores[kind].restore(documents[kind].projectId))).then(refreshFileState).finally(()=>fileBusy.value=false);flushLocal();window.addEventListener('pagehide',flushLocal);document.addEventListener('visibilitychange',visibilitySave);
@@ -590,5 +603,5 @@ export function useStudio(application='slides',creationContext=null) {
   function chooseThumbnail(id){closeEdit();try{const preset=applyThumbnailIdentity(current.value,id);projectColors.value={...projectColors.value,...thumbnailPalette,accent:preset.color};workspace.value='editor';deselect();gallery.value=false;requestDraw();}catch(error){notify(error.message);}}
   function chooseOverlay(id){if(!overlayFormats.some(f=>f.id===id))return;closeEdit();const slide=makeOverlay(id,{playlist:creationContext?.playlist});if(id==='youtube-outro')resolution.value={width:1920,height:1080};banner.value=normalizeOverlay({type:id,slide,clip:['like-subscribe','youtube-outro'].includes(id)?makeOverlayClip(id,slide.blockKeys):{...banner.value.clip,tracks:{}}});editStep.value=0;overlayGallery.value=false;deselect();selectionScope.value='elements';requestDraw();}
   const overlayGallery=ref(false);
-  return { recordingFormat,recordingAlpha,creationContext,flushLocal,updateTypewriter,setInterpolation,selectedInterpolation,selectionLocked,toggleLock,imageAsBackground,application,isThumbnail,chooseThumbnail,documentScope,overlayVideoOpen,overlayVideoBusy,overlayVideoProgress,openOverlayVideo,exportOverlayVideo,cancelOverlayVideo,previewTable,commitTableTracks,commitTable,selectedOpacity,updateOpacity,presenter,startPresenter,presentationSeconds,nextPreviewUrl,sequence,stepLabel,jumpStep,baseSlide,editStep,activeState,selectPedagogicalStep,addPedagogical,movePedagogical,removePedagogical, notesVisible,scaleMode,scalePercent,applySelectionScale,...sharing,libraryComponents,renameComponent,shareComponent,exportComponents,importComponents,copyComponent,clipboardStatus,pasteFromSystem,commonCorner,updateCorner,overlayGallery,chooseOverlay,overlayFormats,projectColors,baseTheme,setProjectColor,selectTheme,setTextRole,textRole,snapGuides,updateAppearance,placementMargin,placeObjects,canPasteObjects,multiType,commonProperty,updateCommon,copySelection,pasteSelection,selectedName,commitText,setZoom,zoomWheel,setLayer,selectLayer,components,componentName,spacing,createComponent,useComponent,deleteComponent,arrangeObjects,centerObjects,undo,redo,canUndo,canRedo,dragImages,dropImages,fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,saveProject,selectionBounds,canUngroup,groupObjects,ungroupObjects,fitSelection, selectedTextStyle,updateTextStyle,refreshTextStyle, fontLoading,fontCss, rotationHandle,rotateDown,setRotation, shapeGallery,openShapes,addShape,moveLayer, routeMode,routeStart,routeBackup,setRouteMode,setRouteStart,traceRoute,connectSlides,undoRoute, palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved:computed(()=>saved.value&&(!creationContext||creationContext.status.value==='saved')), zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
+  return { videoEncoding,recordingFormat,recordingAlpha,creationContext,flushLocal,updateTypewriter,setInterpolation,selectedInterpolation,selectionLocked,toggleLock,imageAsBackground,application,isThumbnail,chooseThumbnail,documentScope,overlayVideoOpen,overlayVideoBusy,overlayVideoProgress,openOverlayVideo,exportOverlayVideo,cancelOverlayVideo,previewTable,commitTableTracks,commitTable,selectedOpacity,updateOpacity,presenter,startPresenter,presentationSeconds,nextPreviewUrl,sequence,stepLabel,jumpStep,baseSlide,editStep,activeState,selectPedagogicalStep,addPedagogical,movePedagogical,removePedagogical, notesVisible,scaleMode,scalePercent,applySelectionScale,...sharing,libraryComponents,renameComponent,shareComponent,exportComponents,importComponents,copyComponent,clipboardStatus,pasteFromSystem,commonCorner,updateCorner,overlayGallery,chooseOverlay,overlayFormats,projectColors,baseTheme,setProjectColor,selectTheme,setTextRole,textRole,snapGuides,updateAppearance,placementMargin,placeObjects,canPasteObjects,multiType,commonProperty,updateCommon,copySelection,pasteSelection,selectedName,commitText,setZoom,zoomWheel,setLayer,selectLayer,components,componentName,spacing,createComponent,useComponent,deleteComponent,arrangeObjects,centerObjects,undo,redo,canUndo,canRedo,dragImages,dropImages,fileName,fileDirty,fileBusy,fileSupported,openSupported,openProject,saveProject,selectionBounds,canUngroup,groupObjects,ungroupObjects,fitSelection, selectedTextStyle,updateTextStyle,refreshTextStyle, fontLoading,fontCss, rotationHandle,rotateDown,setRotation, shapeGallery,openShapes,addShape,moveLayer, routeMode,routeStart,routeBackup,setRouteMode,setRouteStart,traceRoute,connectSlides,undoRoute, palette,themeEditor,themeUndo,openTheme,saveTheme,deleteTheme,undoTheme,panels,displayMenu,resizePanel,selectedKeys,selectedSlides,selectionScope,selectSlide,deselect,countdown,previewVisible, selectedBounds, altHeld, contextMenu, codeCaption, handles, resizeDown, duplicateSelected, openContext, dismissContext, resolution, formatOpen, formatWidth, applyFormat, editSize, undoLayout, canUndoLayout, workspace, listDrag, listTarget, selectedType, editedText, exitLabel, changeText, addBlock, removeBlock, uploadImage, reorder, listDown, moveGrid, slides, project, themeId, frame, banner, index, view, tab, selected, presenting, canvas, stage, stageWidth, toast, saved:computed(()=>saved.value&&(!creationContext||creationContext.status.value==='saved')), zoom, recording, elapsed, laser, laserSize, tool, lastExport, videoPreview, videoMeta, finalizing, gallery, editing, formatting, thumbs, step, transitionMs, moving, gridDraft, current, theme, position, orders, editStyle, notify, add, chooseLayout, addMemory, applyPreset, duplicate, remove, applyGrid, setPosition, updateFragment, formatCode, exportProject, importProject, png, startPresentation, exit, startRecord, stopRecord, navigate, advance, retreat, goDirection, canGo, chooseSlide, down, move, up, leave, doubleClick, closeEdit, editSelected, clearAnnotations };
 }

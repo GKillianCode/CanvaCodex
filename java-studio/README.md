@@ -15,7 +15,7 @@ npm run dev
 npm run build
 ```
 
-Le dossier `dist` peut être servi par un serveur statique ou intégré à une application Symfony. Cette première version ne contient pas de backend Symfony.
+Pour conserver les exports MOV QTRLE et MKV FFV1, lancer `npm run preview` après la compilation et installer FFmpeg dans le PATH du processus. Le service local d’encodage est intégré à Vite en dev et preview. Un hébergement purement statique permet encore WebM, mais pas ces conversions. Aucun backend Symfony ni stockage serveur ajouté.
 
 ## Utilisation
 
@@ -48,10 +48,10 @@ Le dossier `dist` peut être servi par un serveur statique ou intégré à une a
 - L’en-tête et le pied de page sont désactivés par défaut ; les activer dans Style si souhaité.
 - Dans Élément / Apparition : définir l’ordre d’apparition de chaque élément (0 = visible au départ), son animation, les paramètres du parcours et des transitions se trouvent dans Diapo.
 - Présenter : aperçu repliable de la prochaine diapo, hors enregistrement ; **Espace** révèle les éléments puis passe à la suivante. Flèches pour le parcours spatial, Espace/Entrée ou le bouton Révéler/Suivant pour révéler puis avancer, Page précédente pour revenir, Échap pour quitter ; Maintenir le **clic gauche** avec le laser pour tracer ; relâcher arrête les nouveaux points et la traînée s’efface en 900 ms. Elle forme un ruban fin, translucide et lissé, sans marqueurs aux points échantillonnés. Le crayon conserve ses traits jusqu’à l’effacement.
-- Enregistrer : **compte à rebours de 5 secondes**, annulable avant le départ, puis vidéo WebM à la résolution du projet, 30 images/seconde, sans audio. La vidéo contient uniquement le rendu des diapos, le laser et les annotations.
+- Enregistrer : **compte à rebours de 5 secondes**, annulable avant le départ, puis vidéo MOV QTRLE, MKV FFV1 ou WebM à la résolution du projet, 30 images/seconde, sans audio. La vidéo contient uniquement le rendu des diapos, le laser et les annotations.
 - Sauvegarde automatique locale et restauration de la diapo active, de la vue et des panneaux après actualisation/fermeture. **Ctrl S** écrit dans le fichier lié ; **Ctrl Maj S / Enregistrer sous** choisit un fichier. **Ouvrir un fichier lié** permet de modifier un JSON directement. Le menu du fichier conserve aussi l’import/export de copies. Chrome/Edge compatibles : lien persisté avec IndexedDB, permission éventuellement redemandée à la reprise. Les autres navigateurs téléchargent une copie JSON. Un fichier modifié en dehors de Frame provoque un conflit ; utiliser Enregistrer sous. Le cache local ne remplace pas une sauvegarde portable.
 
-L’enregistrement utilise Canvas.captureStream et MediaRecorder ; un navigateur récent compatible WebM est nécessaire. Le téléchargement se déclenche au clic sur Stop. L’enregistrement reste en mémoire jusqu’à son export : privilégier des séquences courtes. Le format est WebM, pas MP4.
+MOV et MKV utilisent une capture sans perte puis FFmpeg sur cet ordinateur : QTRLE/ARGB pour MOV, FFV1/BGRA pour MKV, transparence optionnelle. WebM conserve Canvas.captureStream et MediaRecorder. Après Stop, la vidéo est encodée puis téléchargée ; une erreur d’encodage permet de récupérer la capture source et de réessayer. Capture limitée à 256 Mo, sortie à 512 Mo ; privilégier des séquences courtes. Aucun export MP4.
 
 Les transitions déplacent deux diapos contiguës dans le même Canvas, y compris dans la vidéo. Les préférences système de réduction des animations sont respectées. L’exemple mémoire utilise les unités décimales (1 Go = 1 000 Mo) et distingue les unités binaires GiB/MiB/KiB.
 
