@@ -350,3 +350,237 @@
   background: color-mix(in srgb, var(--accent) 18%, var(--panel));
   color: var(--accent);
 }
+/* The viewport is a shared dotted workspace; only the inner video frame is painted. */
+.studio.animation-studio .canvas-space {
+  background-color: #131b20;
+  background-image: radial-gradient(#5b716544 1px, transparent 1px);
+  background-size: var(--animation-grid-size, 24px)
+    var(--animation-grid-size, 24px);
+}
+:root[data-appearance="light"] .studio.animation-studio .canvas-space {
+  background-color: #f1f5f2;
+  background-image: radial-gradient(#49655635 1px, transparent 1px);
+}
+.studio.animation-studio .stage-wrap {
+  background: transparent;
+  box-shadow: none;
+  aspect-ratio: 16/9;
+}
+.studio.animation-studio .canvas-space .stage-wrap > canvas {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  max-width: none;
+  background: transparent;
+  object-fit: fill;
+  aspect-ratio: 16/9;
+}
+.animation-studio .inspector-navigation {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+.animation-studio .inspector-navigation button {
+  min-width: 0;
+  font-size: 10px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+.animation-tracks-world {
+  min-width: 100%;
+  position: relative;
+}
+.animation-timeline .track-name,
+.animation-timeline .property-track-label,
+.animation-ruler > span {
+  position: sticky;
+  left: 0;
+  z-index: 3;
+  background: var(--panel);
+}
+.animation-ruler {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: var(--panel);
+}
+.animation-key-context {
+  position: fixed;
+  z-index: 1200;
+  display: grid;
+  width: 210px;
+  padding: 6px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+  box-shadow: 0 12px 30px #0003;
+}
+.animation-key-context button {
+  background: none;
+  border: 0;
+  padding: 9px;
+  text-align: left;
+  color: var(--ink);
+  border-radius: 5px;
+}
+.animation-key-context button:hover {
+  background: color-mix(in srgb, var(--accent) 15%, transparent);
+}
+.animation-key-inspector {
+  flex-shrink: 0;
+  max-height: 55%;
+  overflow: auto;
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+  font-size: 11px;
+}
+.animation-key-inspector > div:first-child {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.animation-key-inspector small {
+  display: block;
+  color: var(--muted);
+  margin: 3px 0 12px;
+  overflow-wrap: anywhere;
+}
+.animation-key-inspector label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin: 9px 0;
+  color: inherit;
+}
+.animation-key-inspector input,
+.animation-key-inspector select {
+  min-width: 0;
+  width: 100%;
+  padding: 6px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: #151b21;
+  color: inherit;
+}
+.animation-key-inspector .key-property {
+  border-top: 1px solid var(--border);
+  margin-top: 10px;
+  padding-top: 3px;
+}
+.animation-key-inspector .key-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin-top: 12px;
+}
+.animation-key-inspector .btn {
+  padding: 6px;
+  font-size: 10px;
+}
+.engine-add-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.engine-add-actions .btn {
+  padding: 8px;
+  font-size: 11px;
+}
+.animation-engines .layer-row {
+  justify-content: space-between;
+}
+.animation-engines .layer-row small {
+  color: var(--muted);
+  font-size: 10px;
+}
+.engine-context-submenu summary {
+  cursor: pointer;
+  padding: 10px;
+  font-size: 12px;
+}
+.engine-context-submenu[open] {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.animation-preview-dialog {
+  position: fixed;
+  inset: 0;
+  z-index: 1050;
+  background: #14191f;
+  color: #e0e9e4;
+  display: flex;
+  flex-direction: column;
+  padding: 18px 24px;
+  gap: 16px;
+  outline: none;
+}
+.animation-preview-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.animation-preview-heading strong {
+  font-size: 16px;
+}
+.animation-preview-heading small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+  margin-top: 5px;
+}
+.animation-preview-screen {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+.animation-preview-screen canvas {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: repeating-conic-gradient(#80808015 0 25%, transparent 0 50%)
+    0/24px 24px;
+  border: 1px solid var(--border);
+}
+.animation-preview-controls {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.animation-preview-controls > input[type="range"] {
+  flex: 1;
+  min-width: 120px;
+  accent-color: var(--mint);
+}
+.animation-preview-controls label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+}
+.animation-preview-controls input[type="number"] {
+  width: 85px;
+}
+.animation-preview-controls input:not([type="checkbox"]):not([type="range"]),
+.animation-preview-controls select {
+  padding: 7px;
+  background: #1a2428;
+  color: inherit;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+:root[data-appearance="light"] .animation-preview-dialog {
+  background: #f1f5f2;
+  color: #25382e;
+}
+:root[data-appearance="light"] .animation-key-inspector input,
+:root[data-appearance="light"] .animation-key-inspector select,
+:root[data-appearance="light"]
+  .animation-preview-controls
+  input:not([type="checkbox"]):not([type="range"]),
+:root[data-appearance="light"] .animation-preview-controls select {
+  background: #fff;
+  color: #25382e;
+}

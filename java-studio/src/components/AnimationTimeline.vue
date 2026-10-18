@@ -1,5 +1,5 @@
 <script setup>
-import { reactive, ref, onUnmounted } from "vue";
+import { reactive, ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import {
   Play,
   Pause,
@@ -12,14 +12,20 @@ import {
   Diamond,
   Download,
   Route,
+  Maximize2,
+  Minus,
 } from "lucide-vue-next";
 import { animationFields, animationEasings } from "../animationModel.js";
+import { timelineView, timelineTime } from "../animationTimelineView.js";
 const props = defineProps({ studio: Object }),
   s = reactive(props.studio),
   a = s.animation,
-  selected = ref(null),
   height = ref(260),
-  ruler = ref(null);
+  zoom = ref(100),
+  tracks = ref(null),
+  world = ref(null),
+  menu = ref(null);
+const view = computed(() => timelineView(a.config.duration, zoom.value));
 const labels = {
   x: "Position X",
   y: "Position Y",
@@ -34,104 +40,150 @@ const labels = {
   progress: "Progression du chemin",
   color: "Couleur",
 };
+const easeLabels = {
+  linear: "Linéaire",
+  smooth: "Progressive",
+  easeIn: "Accélération",
+  easeOut: "Décélération",
+  hold: "Instantanée",
+  bezier: "Bézier",
+};
 let cleanup = () => {};
-function gesture(event, move) {
+function gesture(move) {
   cleanup();
   a.beginGesture();
-  const onMove = (e) => move(e);
   const end = () => {
-    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", end);
     window.removeEventListener("pointercancel", end);
     a.endGesture();
     cleanup = () => {};
   };
-  window.addEventListener("pointermove", onMove);
+  window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", end);
   window.addEventListener("pointercancel", end);
   cleanup = end;
 }
-function dragKey(event, clip, key) {
+function dragKey(event, c, key) {
   event.preventDefault();
   event.stopPropagation();
-  selected.value = key;
+  a.activeKey = key;
   const rect = event.currentTarget.parentElement.getBoundingClientRect();
-  gesture(event, (e) => {
+  gesture((e) => {
     key.time = Math.max(
       0,
       Math.min(
-        clip.duration,
+        c.duration,
         Math.round(
-          (((e.clientX - rect.left) / rect.width) * a.config.duration -
-            clip.start) *
-            a.config.fps,
+          timelineTime(
+            e.clientX,
+            rect.left,
+            rect.width,
+            view.value.span,
+            c.start,
+          ) * a.config.fps,
         ) / a.config.fps,
       ),
     );
-    clip.frames.sort((x, y) => x.time - y.time);
+    c.frames.sort((x, y) => x.time - y.time);
   });
 }
 function scrub(event) {
   const rect = event.currentTarget.getBoundingClientRect();
   const update = (e) =>
-    a.seek(((e.clientX - rect.left) / rect.width) * a.config.duration);
+    a.seek(timelineTime(e.clientX, rect.left, rect.width, view.value.span));
   update(event);
-  gesture(event, update);
+  gesture(update);
 }
 function resize(event) {
   const y = event.clientY,
     h = height.value;
   gesture(
-    event,
     (e) => (height.value = Math.max(180, Math.min(650, h + y - e.clientY))),
   );
 }
-function dragClip(event, clip) {
+function dragClip(event, c) {
   event.preventDefault();
-  event.stopPropagation();
-  a.selectClip(clip.id);
+  a.selectClip(c.id);
   const rect = event.currentTarget.parentElement.getBoundingClientRect(),
     x = event.clientX,
-    start = clip.start;
-  gesture(event, (e) => {
-    clip.start = Math.max(
-      0,
-      Math.min(
-        a.config.duration - 0.1,
-        Math.round(
-          (start + ((e.clientX - x) / rect.width) * a.config.duration) *
-            a.config.fps,
-        ) / a.config.fps,
-      ),
-    );
-  });
+    start = c.start;
+  gesture(
+    (e) =>
+      (c.start = Math.max(
+        0,
+        Math.min(
+          a.config.duration - 0.1,
+          Math.round(
+            (start + ((e.clientX - x) / rect.width) * view.value.span) *
+              a.config.fps,
+          ) / a.config.fps,
+        ),
+      )),
+  );
+}
+async function zoomAt(value, event) {
+  const el = tracks.value;
+  if (!el) return;
+  const rect = el.getBoundingClientRect(),
+    pointer = event ? event.clientX - rect.left : rect.width / 2,
+    oldWidth = world.value.getBoundingClientRect().width,
+    time =
+      ((el.scrollLeft + pointer - 210) / Math.max(1, oldWidth - 210)) *
+      view.value.span;
+  zoom.value = timelineView(a.config.duration, value).zoom;
+  await nextTick();
+  const width = world.value.getBoundingClientRect().width;
+  el.scrollLeft = Math.max(
+    0,
+    210 + (time / view.value.span) * (width - 210) - pointer,
+  );
+}
+function wheel(event) {
+  if (!event.ctrlKey && !event.metaKey) return;
+  event.preventDefault();
+  zoomAt(zoom.value * Math.exp(-event.deltaY * 0.002), event);
+}
+function context(event, c, key) {
+  event.preventDefault();
+  event.stopPropagation();
+  a.selectClip(c.id);
+  a.activeKey = key;
+  menu.value = {
+    c,
+    key,
+    x: Math.min(innerWidth - 210, event.clientX),
+    y: Math.min(innerHeight - 130, event.clientY),
+  };
+}
+function outside(event) {
+  if (!event.target.closest(".animation-key-context")) menu.value = null;
 }
 function deleteEvent(event) {
-  if (
-    ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName) ||
-    event.target.isContentEditable
-  )
-    return;
+  if (["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
   event.preventDefault();
-  delKey();
+  if (a.clip && a.activeKey) a.deleteKey(a.clip, a.activeKey);
 }
-function delKey() {
-  if (a.clip && selected.value)
-    a.clip.frames = a.clip.frames.filter((k) => k !== selected.value);
-  selected.value = null;
-}
-onUnmounted(() => cleanup());
+onMounted(() => {
+  tracks.value.addEventListener("wheel", wheel, { passive: false });
+  window.addEventListener("pointerdown", outside);
+});
+onUnmounted(() => {
+  cleanup();
+  tracks.value?.removeEventListener("wheel", wheel);
+  window.removeEventListener("pointerdown", outside);
+});
 </script>
 <template>
   <section
+    class="animation-timeline"
+    :style="{ height: height + 'px' }"
+    aria-label="Timeline de l’animation"
     @keydown.delete.stop="deleteEvent($event)"
     @keydown.left.stop
     @keydown.right.stop
     @keydown.up.stop
     @keydown.down.stop
-    class="animation-timeline"
-    :style="{ height: height + 'px' }"
-    aria-label="Timeline de l’animation"
   >
     <button
       class="timeline-resizer"
@@ -164,13 +216,16 @@ onUnmounted(() => cleanup());
             :value="a.time.toFixed(2)"
             min="0"
             :max="a.config.duration"
-            step="0.01"
+            step=".01"
             aria-label="Temps en secondes"
             @change="a.seek($event.target.value)"
           />
           s</label
         ><label><input type="checkbox" v-model="a.loop" />Boucle</label>
-        <div class="workspace-switch">
+        <div
+          class="workspace-switch"
+          title="Base des objets : disposition hors animation. État animé : rendu à l’instant du curseur."
+        >
           <button
             :class="{ active: !a.preview }"
             @click="
@@ -178,48 +233,53 @@ onUnmounted(() => cleanup());
               a.preview = false;
             "
           >
-            Composer</button
+            Base des objets</button
           ><button :class="{ active: a.preview }" @click="a.preview = true">
-            Aperçu
+            État animé
           </button>
         </div>
+        <button
+          class="btn"
+          @click="
+            a.preview = true;
+            a.previewOpen = true;
+          "
+        >
+          <Maximize2 :size="15" />Aperçu plein écran
+        </button>
       </div>
       <div class="bottom-tools">
-        <label
-          >Durée
-          <input
-            type="number"
-            v-model.number="a.config.duration"
-            min="0.1"
-            max="120"
-            step="0.1"
-          />
-          s</label
-        ><label
-          >FPS<select v-model.number="a.config.fps">
-            <option v-for="n in [24, 30, 60]" :value="n" :key="n">
-              {{ n }}
-            </option>
-          </select></label
+        <button
+          class="icon-btn"
+          aria-label="Dézoomer la timeline"
+          @click="zoomAt(zoom / 1.25)"
         >
+          <Minus :size="14" /></button
+        ><label
+          ><input
+            type="number"
+            :value="Math.round(zoom)"
+            min="25"
+            max="1600"
+            aria-label="Zoom de la timeline"
+            @change="zoomAt($event.target.value)"
+          />
+          %</label
+        ><button
+          class="icon-btn"
+          aria-label="Zoomer la timeline"
+          @click="zoomAt(zoom * 1.25)"
+        >
+          <Plus :size="14" />
+        </button>
         <details class="animation-menu">
           <summary>Export et exemples</summary>
           <div>
             <label
-              >Fond<select v-model="a.config.background">
-                <option value="transparent">Transparent</option>
-                <option value="solid">Couleur unie / vert</option>
-              </select></label
-            ><input
-              v-if="a.config.background === 'solid'"
-              type="color"
-              v-model="a.config.color"
-              aria-label="Couleur du fond"
-            /><label
               >Format<select v-model="a.format">
                 <option value="mov">MOV · QTRLE</option>
                 <option value="mkv">MKV · FFV1</option>
-                <option value="webm">WebM</option>
+                <option value="webm">WebM · fond uni</option>
               </select></label
             ><label
               >Résolution<select v-model.number="a.exportWidth">
@@ -263,26 +323,22 @@ onUnmounted(() => cleanup());
         title="Supprimer la séquence"
         @click="
           a.removeClip();
-          selected = null;
+          a.activeKey = null;
         "
       >
         <Trash2 :size="14" /></button
       ><select v-model="a.field" aria-label="Propriété à animer">
-        <option v-for="f in animationFields" :key="f" :value="f">
+        <option
+          v-for="f in animationFields"
+          :key="f"
+          :value="f"
+          :disabled="!!a.clip?.pathId && ['x', 'y'].includes(f)"
+        >
           {{ labels[f] }}
         </option></select
       ><select v-model="a.ease" aria-label="Interpolation des nouvelles clés">
-        <option v-for="e in animationEasings" :value="e" :key="e">
-          {{
-            {
-              linear: "Linéaire",
-              smooth: "Progressive",
-              easeIn: "Accélération",
-              easeOut: "Décélération",
-              hold: "Instantanée",
-              bezier: "Courbe de Bézier",
-            }[e]
-          }}
+        <option v-for="e in animationEasings" :key="e" :value="e">
+          {{ easeLabels[e] }}
         </option></select
       ><button class="btn" @click="a.addKey()">
         <Diamond :size="14" />Ajouter une clé</button
@@ -290,126 +346,129 @@ onUnmounted(() => cleanup());
       ><button class="btn" @click="a.addPath()">
         <Route :size="14" />Spline</button
       ><span class="field-help"
-        >Ajuste la valeur d’une clé ci-dessous. Composer modifie la base.</span
+        >Double-clic : voir et régler la clé. Clic droit : dupliquer ou
+        supprimer.</span
       >
     </div>
-    <div class="animation-tracks">
-      <div class="animation-ruler">
-        <span>Séquences</span>
-        <div ref="ruler" class="timeline-ruler" @pointerdown="scrub">
-          <span
-            v-for="i in 9"
-            :key="i"
-            :style="{ left: ((i - 1) / 8) * 100 + '%' }"
-            >{{ (((i - 1) * a.config.duration) / 8).toFixed(1) }}</span
-          ><i :style="{ left: (a.time / a.config.duration) * 100 + '%' }"></i>
-        </div>
-      </div>
-      <template v-for="c in a.config.clips" :key="c.id"
-        ><div :class="['animation-track', { active: a.selectedClip === c.id }]">
-          <button
-            class="track-name"
-            @click="
-              a.selectClip(c.id);
-              selected = null;
-            "
-          >
-            <span :class="{ 'track-disabled': !c.enabled }">{{ c.name }}</span
-            ><small>{{ c.keys.length }} objets</small>
-          </button>
-          <div class="track-lane" @pointerdown.self="a.selectClip(c.id)">
+    <div ref="tracks" class="animation-tracks">
+      <div
+        ref="world"
+        class="animation-tracks-world"
+        :style="{ width: view.widthPercent + '%' }"
+      >
+        <div class="animation-ruler">
+          <span>Séquences</span>
+          <div class="timeline-ruler" @pointerdown="scrub">
             <span
-              class="clip-span"
-              :style="{
-                left: (c.start / a.config.duration) * 100 + '%',
-                width: (c.duration / a.config.duration) * 100 + '%',
-              }"
-              title="Glisser pour décaler la séquence"
-              @pointerdown="dragClip($event, c)"
-            ></span
-            ><i
-              class="track-cursor"
-              :style="{ left: (a.time / a.config.duration) * 100 + '%' }"
-            ></i>
+              v-for="i in 9"
+              :key="i"
+              :style="{ left: ((i - 1) / 8) * 100 + '%' }"
+              >{{ (((i - 1) * view.span) / 8).toFixed(1) }}</span
+            ><i :style="{ left: (a.time / view.span) * 100 + '%' }"></i>
           </div>
         </div>
-        <template v-if="a.selectedClip === c.id"
+        <template v-for="c in a.config.clips" :key="c.id"
           ><div
-            v-for="f in animationFields.filter((f) =>
-              c.frames.some((k) => k.field === f),
-            )"
-            :key="f"
-            class="animation-property-track"
+            :class="['animation-track', { active: a.selectedClip === c.id }]"
           >
-            <span class="property-track-label">{{ labels[f] }}</span>
-            <div class="track-lane">
-              <button
-                v-for="(key, n) in c.frames.filter((k) => k.field === f)"
-                :key="n"
-                :class="['key-diamond', { selected: selected === key }]"
+            <button
+              class="track-name"
+              @click="
+                a.selectClip(c.id);
+                a.activeKey = null;
+              "
+            >
+              <span :class="{ 'track-disabled': !c.enabled }">{{ c.name }}</span
+              ><small>{{ c.keys.length }} objets</small>
+            </button>
+            <div class="track-lane" @pointerdown.self="a.selectClip(c.id)">
+              <span
+                class="clip-span"
                 :style="{
-                  left: ((c.start + key.time) / a.config.duration) * 100 + '%',
-                  top: '6px',
+                  left: (c.start / view.span) * 100 + '%',
+                  width: (c.duration / view.span) * 100 + '%',
                 }"
-                :aria-label="labels[key.field] + ' à ' + key.time + ' secondes'"
-                :title="
-                  labels[key.field] + ' · ' + key.time + ' s · ' + key.value
-                "
-                @pointerdown="dragKey($event, c, key)"
-              >
-                ◆</button
+                title="Glisser pour décaler la séquence"
+                @pointerdown="dragClip($event, c)"
+              ></span
               ><i
                 class="track-cursor"
-                :style="{ left: (a.time / a.config.duration) * 100 + '%' }"
+                :style="{ left: (a.time / view.span) * 100 + '%' }"
               ></i>
-            </div></div></template
-      ></template>
-      <p v-if="!a.config.clips.length" class="animation-empty">
-        Sélectionne un objet, puis « Animer la sélection ». Les exemples sont
-        disponibles dans « Export et exemples ».
-      </p>
+            </div>
+          </div>
+          <template v-if="a.selectedClip === c.id"
+            ><div
+              v-for="f in animationFields.filter((f) =>
+                c.frames.some((k) => k.field === f),
+              )"
+              :key="f"
+              class="animation-property-track"
+            >
+              <span class="property-track-label">{{ labels[f] }}</span>
+              <div class="track-lane">
+                <button
+                  v-for="(key, n) in c.frames.filter((k) => k.field === f)"
+                  :key="n"
+                  :class="['key-diamond', { selected: a.activeKey === key }]"
+                  :style="{
+                    left: ((c.start + key.time) / view.span) * 100 + '%',
+                    top: '6px',
+                  }"
+                  :aria-label="
+                    labels[key.field] + ' à ' + key.time + ' secondes'
+                  "
+                  :title="
+                    labels[key.field] + ' · ' + key.time + ' s · ' + key.value
+                  "
+                  @pointerdown="dragKey($event, c, key)"
+                  @dblclick.stop.prevent="a.focusKey(c, key)"
+                  @contextmenu="context($event, c, key)"
+                >
+                  ◆</button
+                ><i
+                  class="track-cursor"
+                  :style="{ left: (a.time / view.span) * 100 + '%' }"
+                ></i>
+              </div></div></template
+        ></template>
+        <p v-if="!a.config.clips.length" class="animation-empty">
+          Sélectionne un objet puis « Animer la sélection ». Ajoute un moteur
+          par clic droit sur la scène.
+        </p>
+      </div>
     </div>
     <div
-      v-if="selected && a.clip?.frames.includes(selected)"
-      class="animation-key-editor"
+      v-if="menu"
+      class="animation-key-context"
+      role="menu"
+      :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
+      @pointerdown.stop
     >
-      <strong>{{ labels[selected.field] }}</strong
-      ><label
-        >Temps local · s<input
-          type="number"
-          v-model.number="selected.time"
-          min="0"
-          :max="a.clip.duration"
-          step="0.01"
-          @change="a.clip.frames.sort((x, y) => x.time - y.time)" /></label
-      ><label
-        >Valeur<input
-          :type="selected.field === 'color' ? 'color' : 'number'"
-          :value="selected.value"
-          step="0.1"
-          @input="
-            selected.value =
-              selected.field === 'color'
-                ? $event.target.value
-                : Number($event.target.value)
-          " /></label
-      ><label
-        >Vers la clé suivante<select v-model="selected.ease">
-          <option v-for="e in animationEasings" :value="e" :key="e">
-            {{ e }}
-          </option>
-        </select></label
-      ><template v-if="selected.ease === 'bezier'"
-        ><label v-for="(name, i) in ['X1', 'Y1', 'X2', 'Y2']" :key="i"
-          >{{ name
-          }}<input
-            type="number"
-            v-model.number="selected.curve[i]"
-            :min="i % 2 ? -2 : 0"
-            :max="i % 2 ? 3 : 1"
-            step="0.05" /></label></template
-      ><button class="icon-btn" title="Supprimer la clé" @click="delKey">
-        <Trash2 :size="15" />
+      <button
+        role="menuitem"
+        @click="
+          a.focusKey(menu.c, menu.key);
+          menu = null;
+        "
+      >
+        Afficher cet état</button
+      ><button
+        role="menuitem"
+        @click="
+          a.duplicateKey(menu.c, menu.key);
+          menu = null;
+        "
+      >
+        Dupliquer la clé</button
+      ><button
+        role="menuitem"
+        @click="
+          a.deleteKey(menu.c, menu.key);
+          menu = null;
+        "
+      >
+        Supprimer la clé
       </button>
     </div>
   </section>

@@ -250,3 +250,128 @@ test("video creation, routes and bundles include independent animation documents
   const bundle = videoBundle(project, [creation]);
   assert.equal(importVideoBundle(bundle).creations[0].app, "animation");
 });
+
+test("attached spline takes precedence over absolute position keys", () => {
+  const s = scene(),
+    points = [
+      { x: 400, y: 100 },
+      { x: 500, y: 400 },
+      { x: 700, y: 500 },
+      { x: 900, y: 300 },
+    ];
+  const config = normalizeAnimation({
+    paths: [{ id: "route", points }],
+    clips: [
+      clip({
+        pathId: "route",
+        constantSpeed: false,
+        frames: [
+          { field: "x", time: 0, value: -900 },
+          { field: "x", time: 4, value: 9000 },
+          { field: "y", time: 0, value: 7000 },
+        ],
+      }),
+    ],
+  });
+  for (const t of [0, 1, 2, 4]) {
+    const p = animationScene(s, config, t).scene.positions.shapeA,
+      target = splinePoint(points, t / 4);
+    assert.ok(Math.abs(p.x + p.w / 2 - target.x) < 1e-8);
+    assert.ok(Math.abs(p.y + p.h / 2 - target.y) < 1e-8);
+  }
+});
+test("independent engines persist as invisible editing markers and target gravity explicitly", async () => {
+  const { addSceneEngine } = await import("../src/animationEngines.js");
+  const { renderSlide } = await import("../src/render.js");
+  const s = makeAnimationExample("gc"),
+    base = s.positions.shapeObject.y,
+    e = addSceneEngine(s, "particles", { x: 123, y: 456 });
+  assert.deepEqual(
+    { x: s.positions[e.key].x + 24, y: s.positions[e.key].y + 24 },
+    { x: 123, y: 456 },
+  );
+  assert.equal(e.kind, "particles");
+  assert.deepEqual(e.targets, []);
+  const normalized = normalizeSlides([s])[0];
+  assert.equal(normalized.elements[e.key].engineKind, "particles");
+  assert.equal(normalized.animation.engines[0].key, e.key);
+  assert.doesNotThrow(() =>
+    renderSlide(
+      {},
+      {
+        ...normalized,
+        elements: { [e.key]: normalized.elements[e.key] },
+        blockKeys: [e.key],
+      },
+      {},
+      { transparent: true },
+    ),
+  );
+  const gravity = addSceneEngine(s, "gravity", { x: 960, y: 540 }, [
+    "shapeObject",
+  ]);
+  gravity.gravity = 20;
+  assert.equal(
+    animationScene(s, s.animation, 2).scene.positions.shapeObject.y,
+    base + 40,
+  );
+  assert.equal(animationScene(s, s.animation, 2).scene.positions[e.key].y, 432);
+});
+test("particle axis ranges constrain direction without random changes after seeking", () => {
+  const c = normalizeAnimation({
+    clips: [
+      clip({
+        gravity: 0,
+        particles: {
+          enabled: true,
+          direction: "axes",
+          xMin: 0,
+          xMax: 1,
+          yMin: 0,
+          yMax: 0,
+          count: 30,
+          speed: 200,
+        },
+      }),
+    ],
+  }).clips[0];
+  const particles = animationParticles(c, 1, { x: 0, y: 0 });
+  assert.ok(particles.length > 0);
+  assert.ok(particles.every((p) => p.x >= 0 && p.y === 0));
+  const left = { ...c, particles: { ...c.particles, xMin: -1, xMax: 0 } };
+  assert.ok(
+    animationParticles(left, 1, { x: 0, y: 0 }).every(
+      (p) => p.x <= 0 && p.y === 0,
+    ),
+  );
+  assert.deepEqual(animationParticles(c, 1, { x: 0, y: 0 }), particles);
+});
+test("scene and particle theme bindings survive files and resolve dynamically", async () => {
+  const { boundColor } = await import("../src/colors.js");
+  const { addSceneEngine } = await import("../src/animationEngines.js");
+  const s = makeAnimationExample();
+  s.animation.colorRole = "panel";
+  const e = addSceneEngine(s, "particles");
+  e.particles.colorRole = "accent";
+  const file = applicationFile({ slides: [s] }, "animation"),
+    restored = readApplicationFile(file, "animation").slides.slides[0]
+      .animation;
+  assert.equal(boundColor(restored, "color", { panel: "#123456" }), "#123456");
+  assert.equal(
+    boundColor(restored.engines[0].particles, "color", { accent: "#abcdef" }),
+    "#abcdef",
+  );
+  assert.equal(
+    boundColor(restored.engines[0].particles, "color", { accent: "#987654" }),
+    "#987654",
+  );
+});
+test("timeline zoom adjusts its visible time range and pointer conversion together", async () => {
+  const { timelineView, timelineTime } =
+    await import("../src/animationTimelineView.js");
+  assert.equal(timelineView(8, 50).span, 16);
+  assert.equal(timelineView(8, 200).widthPercent, 200);
+  assert.equal(timelineView(8, 99999).zoom, 1600);
+  assert.equal(timelineTime(300, 100, 400, 8, 1), 3);
+  assert.equal(timelineTime(50, 100, 400, 8), 0);
+});

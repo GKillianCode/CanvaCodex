@@ -1,3 +1,4 @@
+import { addSceneEngine } from "./animationEngines.js";
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import {
   normalizeAnimation,
@@ -29,6 +30,8 @@ export function useAnimationStudio(s) {
     exportWidth = ref(1920),
     pathEditing = ref(false),
     activePath = ref("");
+  const previewOpen = ref(false),
+    activeKey = ref(null);
   let raf = 0,
     controller,
     clock = 0,
@@ -37,17 +40,36 @@ export function useAnimationStudio(s) {
     clip = computed(() =>
       config.value?.clips.find((c) => c.id === selectedClip.value),
     ),
+    engine = computed(() =>
+      config.value?.engines?.find((e) => e.key === s.selected.value),
+    ),
     path = computed(() =>
       config.value?.paths.find((p) => p.id === activePath.value),
     );
   watch(
     s.current,
-    (scene) => {
+    (scene, previous) => {
       stop();
+      const same = scene.id === previous?.id,
+        oldKey = activeKey.value;
       if (!scene.animation) scene.animation = normalizeAnimation();
-      selectedClip.value = scene.animation.clips[0]?.id || "";
-      activePath.value = scene.animation.paths[0]?.id || "";
-      time.value = 0;
+      selectedClip.value = scene.animation.clips.some(
+        (c) => c.id === selectedClip.value,
+      )
+        ? selectedClip.value
+        : scene.animation.clips[0]?.id || "";
+      activePath.value = scene.animation.paths.some(
+        (p) => p.id === activePath.value,
+      )
+        ? activePath.value
+        : scene.animation.paths[0]?.id || "";
+      activeKey.value =
+        same && oldKey
+          ? clip.value?.frames.find(
+              (f) => f.field === oldKey.field && f.time === oldKey.time,
+            ) || null
+          : null;
+      time.value = same ? Math.min(time.value, scene.animation.duration) : 0;
     },
     { immediate: true },
   );
@@ -60,6 +82,143 @@ export function useAnimationStudio(s) {
       if (time.value > duration) seek(duration);
     },
   );
+  watch(
+    s.selectedKeys,
+    (keys) => {
+      if (keys.length && !keys.some((k) => clip.value?.keys.includes(k))) {
+        selectedClip.value =
+          config.value.clips.find((c) => keys.some((k) => c.keys.includes(k)))
+            ?.id || "";
+        activeKey.value = null;
+      }
+    },
+    { deep: true },
+  );
+  function addEngine(kind, point) {
+    stop();
+    preview.value = false;
+    s.beginGesture();
+    try {
+      const e = addSceneEngine(
+        s.current.value,
+        kind,
+        point,
+        s.selectedKeys.value.filter(
+          (k) => !s.current.value.elements[k]?.engineKind,
+        ),
+      );
+      s.selectedKeys.value = [e.key];
+      s.selected.value = e.key;
+      s.notify("Moteur ajouté : déplace son repère sur la scène.");
+      return e;
+    } catch (error) {
+      s.notify(error.message);
+    } finally {
+      s.endGesture();
+      s.requestDraw();
+    }
+  }
+  function duplicateEngine() {
+    const original = engine.value;
+    if (!original) return;
+    const p = s.current.value.positions[original.key];
+    s.beginGesture();
+    try {
+      const next = addSceneEngine(
+        s.current.value,
+        original.kind,
+        { x: p.x + p.w / 2 + 40, y: p.y + p.h / 2 + 40 },
+        original.targets,
+      );
+      const id = next.id,
+        key = next.key;
+      Object.assign(next, copy(original), { id, key });
+      s.current.value.elements[key].name =
+        s.current.value.elements[original.key].name + " · copie";
+      s.selectedKeys.value = [key];
+      s.selected.value = key;
+    } catch (error) {
+      s.notify(error.message);
+    } finally {
+      s.endGesture();
+    }
+  }
+  function selectEngine(id) {
+    stop();
+    preview.value = false;
+    const e = config.value.engines.find((e) => e.id === id);
+    if (e && s.current.value.positions[e.key]) {
+      s.selectedKeys.value = [e.key];
+      s.selected.value = e.key;
+    }
+  }
+  function removeEngine(id) {
+    const e = config.value.engines.find((e) => e.id === id);
+    if (!e) return;
+    s.beginGesture();
+    s.selectedKeys.value = [e.key];
+    s.selected.value = e.key;
+    s.removeBlock();
+    s.endGesture();
+  }
+  function detachLegacy(c) {
+    const p = s.current.value.positions[c.keys[0]];
+    if (!p) return;
+    stop();
+    s.beginGesture();
+    try {
+      const e = addSceneEngine(s.current.value, "particles", {
+        x: p.x + (p.w || 0) / 2,
+        y: p.y + (p.h || 0) / 2,
+      });
+      e.start = c.start;
+      e.duration = c.duration;
+      e.particles = copy(c.particles);
+      e.gravity = c.gravity;
+      c.particles.enabled = false;
+      preview.value = false;
+      s.selectedKeys.value = [e.key];
+      s.selected.value = e.key;
+    } catch (error) {
+      s.notify(error.message);
+    } finally {
+      s.endGesture();
+    }
+  }
+  function focusKey(c, key) {
+    selectClip(c.id);
+    activeKey.value = key;
+    field.value = key.field;
+    seek(c.start + key.time);
+    preview.value = true;
+    if (s.panels) s.panels.value.slides = true;
+  }
+  function deleteKey(c, key) {
+    s.beginGesture();
+    c.frames = c.frames.filter((f) => f !== key);
+    if (activeKey.value === key) activeKey.value = null;
+    s.endGesture();
+  }
+  function duplicateKey(c, key) {
+    s.beginGesture();
+    const time = Math.min(
+      c.duration,
+      Math.round(
+        (key.time + Math.max(1 / config.value.fps, c.duration / 20)) *
+          config.value.fps,
+      ) / config.value.fps,
+    );
+    if (time === key.time) {
+      s.notify("Décale la clé avant de la dupliquer en fin de séquence.");
+      s.endGesture();
+      return;
+    }
+    addAnimationKey(c, key.field, time, key.value, key.ease);
+    const next = c.frames.find((f) => f.field === key.field && f.time === time);
+    next.curve = copy(key.curve || [0.25, 0.1, 0.25, 1]);
+    activeKey.value = next;
+    s.endGesture();
+  }
   function keyboard(event) {
     if (
       event.code !== "Space" ||
@@ -184,7 +343,11 @@ export function useAnimationStudio(s) {
     const key =
         s.selectedKeys.value.find((k) => clip.value.keys.includes(k)) ||
         clip.value.keys[0],
-      p = s.current.value.positions[key];
+      p = (
+        preview.value
+          ? animationScene(s.current.value, config.value, time.value).scene
+          : s.current.value
+      ).positions[key];
     if (!p) return;
     const value =
       field.value === "progress"
@@ -223,7 +386,10 @@ export function useAnimationStudio(s) {
     config.value.paths.push(p);
     activePath.value = p.id;
     pathEditing.value = true;
-    if (clip.value) clip.value.pathId = p.id;
+    if (clip.value) {
+      clip.value.pathId = p.id;
+      field.value = "progress";
+    }
     s.requestDraw();
   }
   function addLink() {
@@ -444,6 +610,17 @@ export function useAnimationStudio(s) {
     window.removeEventListener("blur", blur);
   });
   return {
+    previewOpen,
+    activeKey,
+    engine,
+    duplicateEngine,
+    addEngine,
+    selectEngine,
+    removeEngine,
+    detachLegacy,
+    focusKey,
+    deleteKey,
+    duplicateKey,
     beginGesture: s.beginGesture,
     endGesture: s.endGesture,
     panX,

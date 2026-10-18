@@ -1,3 +1,4 @@
+import { validColorRole } from "./colors.js";
 // Animation data is independent of pedagogical steps. All times are seconds.
 export const animationFields = [
   "x",
@@ -24,9 +25,43 @@ export const animationEasings = [
 const number = (v, d, min = -10000, max = 10000) =>
   Number.isFinite(Number(v)) ? Math.max(min, Math.min(max, Number(v))) : d;
 const list = (v, max) => (Array.isArray(v) ? v.slice(0, max) : []);
+export function normalizeParticles(raw = {}) {
+  return {
+    enabled: raw?.enabled === true,
+    count: Math.round(number(raw?.count, 40, 1, 200)),
+    seed: Math.round(number(raw?.seed, 1, 0, 100000)),
+    life: number(raw?.life, 2, 0.1, 10),
+    speed: number(raw?.speed, 150, 0, 1000),
+    size: number(raw?.size, 8, 1, 100),
+    color: /^#[a-f0-9]{6}$/i.test(raw?.color) ? raw.color : "#89baa9",
+    colorRole: validColorRole(raw?.colorRole),
+    direction: raw?.direction === "axes" ? "axes" : "radial",
+    xMin: number(raw?.xMin, -1, -1, 1),
+    xMax: number(raw?.xMax, 1, -1, 1),
+    yMin: number(raw?.yMin, -1, -1, 1),
+    yMax: number(raw?.yMax, 1, -1, 1),
+  };
+}
+export function normalizeEngine(raw = {}, i = 0) {
+  return {
+    id: String(raw?.id || "engine" + i).slice(0, 100),
+    key: String(raw?.key || "").slice(0, 100),
+    kind: raw?.kind === "gravity" ? "gravity" : "particles",
+    enabled: raw?.enabled !== false,
+    start: number(raw?.start, 0, 0, 120),
+    duration: number(raw?.duration, 8, 0.1, 120),
+    gravity: number(raw?.gravity, 200, -2000, 2000),
+    targets: list(raw?.targets, 100).filter(
+      (k) => typeof k === "string" && k.length < 100,
+    ),
+    particles: normalizeParticles(raw?.particles),
+  };
+}
 export function normalizeAnimation(raw = {}) {
   return {
-    version: 1,
+    version: 2,
+    colorRole: validColorRole(raw?.colorRole),
+    engines: list(raw?.engines, 50).map(normalizeEngine),
     duration: number(raw?.duration, 8, 0.1, 120),
     fps: [24, 30, 60].includes(raw?.fps) ? raw.fps : 30,
     background: raw?.background === "solid" ? "solid" : "transparent",
@@ -61,17 +96,7 @@ export function normalizeAnimation(raw = {}) {
       pathId: typeof c?.pathId === "string" ? c.pathId.slice(0, 100) : "",
       orient: c?.orient === true,
       constantSpeed: c?.constantSpeed !== false,
-      particles: {
-        enabled: c?.particles?.enabled === true,
-        count: Math.round(number(c?.particles?.count, 40, 1, 200)),
-        seed: Math.round(number(c?.particles?.seed, 1, 0, 100000)),
-        life: number(c?.particles?.life, 2, 0.1, 10),
-        speed: number(c?.particles?.speed, 150, 0, 1000),
-        size: number(c?.particles?.size, 8, 1, 100),
-        color: /^#[a-f0-9]{6}$/i.test(c?.particles?.color)
-          ? c.particles.color
-          : "#89baa9",
-      },
+      particles: normalizeParticles(c?.particles),
       modifier: ["oscillate", "gravity", "stretch"].includes(c?.modifier)
         ? c.modifier
         : "none",
@@ -284,14 +309,12 @@ export function animationScene(scene, raw, time) {
         (anchor.rotation || 0) +
         (clip.orient && path ? splineAngle(path.points, parameter) : 0),
       rad = (angle * Math.PI) / 180;
-    let dx =
-        frameValue(clip.frames, "x", local, anchor.x) -
-        anchor.x +
-        (point ? point.x - px : 0),
-      dy =
-        frameValue(clip.frames, "y", local, anchor.y) -
-        anchor.y +
-        (point ? point.y - py : 0);
+    let dx = point
+        ? point.x - px
+        : frameValue(clip.frames, "x", local, anchor.x) - anchor.x,
+      dy = point
+        ? point.y - py
+        : frameValue(clip.frames, "y", local, anchor.y) - anchor.y;
     if (clip.modifier === "oscillate")
       dy += Math.sin(local * clip.frequency * Math.PI * 2) * clip.amplitude;
     if (clip.modifier === "gravity") dy += 0.5 * clip.gravity * local * local;
@@ -331,6 +354,16 @@ export function animationScene(scene, raw, time) {
       typingElapsed[key] = local * 1000;
     }
   }
+  for (const engine of config.engines) {
+    if (!engine.enabled || engine.kind !== "gravity" || time < engine.start)
+      continue;
+    const t = Math.min(engine.duration, time - engine.start);
+    for (const key of engine.targets) {
+      const p = result.positions[key];
+      if (p && !result.elements[key]?.engineKind)
+        result.positions[key] = { ...p, y: p.y + 0.5 * engine.gravity * t * t };
+    }
+  }
   return { scene: result, typingElapsed, config };
 }
 // Closed-form, seeded particles: seeking and exporting do not depend on preview FPS.
@@ -355,9 +388,21 @@ export function animationParticles(clip, time, origin) {
       cycle = Math.floor(t / p.life),
       a = random(i + cycle * p.count) * Math.PI * 2,
       v = p.speed * (0.4 + 0.6 * random(i + 109));
+    const vx =
+      p.direction === "axes"
+        ? (Math.min(p.xMin, p.xMax) +
+            random(i + cycle * p.count + 251) * Math.abs(p.xMax - p.xMin)) *
+          p.speed
+        : Math.cos(a) * v;
+    const vy =
+      p.direction === "axes"
+        ? (Math.min(p.yMin, p.yMax) +
+            random(i + cycle * p.count + 503) * Math.abs(p.yMax - p.yMin)) *
+          p.speed
+        : Math.sin(a) * v;
     out.push({
-      x: origin.x + Math.cos(a) * v * age,
-      y: origin.y + Math.sin(a) * v * age + 0.5 * clip.gravity * age * age,
+      x: origin.x + vx * age,
+      y: origin.y + vy * age + 0.5 * clip.gravity * age * age,
       size: p.size * (1 - age / p.life),
       alpha: 1 - age / p.life,
       color: p.color,

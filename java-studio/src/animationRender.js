@@ -1,3 +1,4 @@
+import { boundColor } from "./colors.js";
 import { animationScene, animationParticles } from "./animationModel.js";
 import { renderSlide } from "./render.js";
 export function renderAnimation(
@@ -11,7 +12,7 @@ export function renderAnimation(
   const state = animationScene(scene, config, time);
   ctx.save();
   if (state.config.background === "solid") {
-    ctx.fillStyle = state.config.color;
+    ctx.fillStyle = boundColor(state.config, "color", theme);
     ctx.fillRect(0, 0, 1920, 1080);
   }
   renderSlide(ctx, state.scene, theme, {
@@ -71,7 +72,25 @@ export function renderAnimation(
     })) {
       ctx.save();
       ctx.globalAlpha = particle.alpha;
-      ctx.fillStyle = particle.color;
+      ctx.fillStyle = boundColor(clip.particles,"color",theme);
+      ctx.beginPath();
+      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+    }
+  }
+  for (const engine of state.config.engines) {
+    if (!engine.enabled || engine.kind !== "particles") continue;
+    const p = state.scene.positions[engine.key];
+    if (!p) continue;
+    for (const particle of animationParticles(
+      { ...engine, particles: { ...engine.particles, enabled: true } },
+      time,
+      { x: p.x + p.w / 2, y: p.y + p.h / 2 },
+    )) {
+      ctx.save();
+      ctx.globalAlpha = particle.alpha;
+      ctx.fillStyle = boundColor(engine.particles, "color", theme);
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
       ctx.fill();
