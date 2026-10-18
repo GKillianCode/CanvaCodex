@@ -10,6 +10,12 @@ const frames = computed(() =>
     : [],
 );
 const labels = {
+  engineGravity: "Force de gravité",
+  particleForce: "Force d’émission",
+  particleSpeed: "Vitesse des particules",
+  particleSize: "Taille des particules",
+  particleCount: "Quantité de particules",
+  particleLife: "Vie des particules",
   x: "Position X",
   y: "Position Y",
   w: "Largeur",

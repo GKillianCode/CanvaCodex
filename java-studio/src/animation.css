@@ -584,3 +584,186 @@
   background: #fff;
   color: #25382e;
 }
+
+/* Contextual animation controls share the studio's segmented language. */
+.animation-transport .bottom-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--panel) 94%, var(--ink));
+}
+.animation-transport .icon-btn,
+.animation-transport .btn {
+  height: 30px;
+  min-width: 30px;
+  border-radius: 6px;
+}
+.animation-transport .workspace-switch {
+  margin-left: 8px;
+}
+.animation-transport .timeline-time {
+  padding: 0 8px;
+}
+.animation-track .track-name {
+  gap: 2px;
+  padding: 4px;
+  cursor: pointer;
+}
+.animation-track .track-name input {
+  width: 66px;
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  padding: 4px;
+}
+.animation-track .track-name .icon-btn {
+  width: 23px;
+  min-width: 23px;
+  height: 25px;
+  padding: 3px;
+}
+.animation-property-track .property-track-label {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 12px;
+  opacity: 1;
+}
+.animation-property-track .property-track-label select {
+  max-width: 95px;
+  font-size: 10px;
+}
+.timeline-ruler {
+  cursor: ew-resize;
+  touch-action: none;
+}
+.playhead-head {
+  position: absolute;
+  top: 22px;
+  width: 16px;
+  height: 17px;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 4px 4px 6px 6px;
+  background: var(--accent);
+  cursor: ew-resize;
+  z-index: 5;
+  touch-action: none;
+}
+.animation-property-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 4px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.animation-property-key.animated {
+  color: var(--mint);
+}
+.animation-property-key.keyed {
+  color: #c7994d;
+}
+.effect-group {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 7px 0;
+  padding: 5px;
+}
+.effect-group summary,
+.property-details summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.effect-group summary {
+  padding: 7px;
+}
+.effect-group .btn {
+  justify-content: flex-start;
+  margin-top: 5px;
+}
+.animation-examples {
+  position: relative;
+  font-size: 12px;
+}
+.animation-examples summary {
+  cursor: pointer;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.animation-examples > div {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 30;
+  background: var(--surface, #191c22);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+.engine-guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.engine-guide-icon {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  color: var(--mint);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface, #191c22);
+  pointer-events: auto;
+  cursor: move;
+}
+.studio.animation-studio .canvas-space {
+  background-image: radial-gradient(#61756a 1.3px, transparent 1.4px);
+  background-color: #161e1c;
+}
+:root[data-appearance="light"] .studio.animation-studio .canvas-space {
+  background-image: radial-gradient(#a2b1a7 1.3px, transparent 1.4px);
+  background-color: #eff2f0;
+}
+:root[data-appearance="light"] .animation-examples > div {
+  background: #fff;
+}
+
+.animation-ruler,
+.animation-track,
+.animation-property-track {
+  grid-template-columns: 280px minmax(250px, 1fr);
+}
+.animation-track.muted .track-lane {
+  opacity: 0.3;
+}
+.animation-track.muted .track-name input {
+  color: var(--muted);
+}
+.animation-key-tools .btn:not(.primary) {
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 96%, var(--ink));
+}
+.animation-studio .inspector .animation-property-key {
+  min-height: 22px;
+  min-width: 22px;
+}

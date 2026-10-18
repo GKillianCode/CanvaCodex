@@ -1,9 +1,14 @@
+import { boundColor } from "./colors.js";
+import { storyboardAt, storyboardDuration } from "./animationStoryboard.js";
+import { normalizeEffect } from "./animationEffects.js";
 import { addSceneEngine } from "./animationEngines.js";
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import {
   normalizeAnimation,
   animationScene,
   addAnimationKey,
+  frameValue,
+  engineAnimationFields,
 } from "./animationModel.js";
 import { renderAnimation } from "./animationRender.js";
 import { prepareImages } from "./render.js";
@@ -31,7 +36,23 @@ export function useAnimationStudio(s) {
     pathEditing = ref(false),
     activePath = ref("");
   const previewOpen = ref(false),
-    activeKey = ref(null);
+    activeKey = ref(null),
+    allScenes = ref(false),
+    exportOpen = ref(false);
+  const totalDuration = computed(() =>
+    allScenes.value
+      ? storyboardDuration(s.slides.value)
+      : config.value.duration,
+  );
+  const playbackTime = computed(() =>
+    allScenes.value
+      ? s.slides.value
+          .slice(0, s.index.value)
+          .reduce((n, scene) => n + (scene.animation?.duration || 8), 0) +
+        time.value
+      : time.value,
+  );
+  let advancing = false;
   let raf = 0,
     controller,
     clock = 0,
@@ -49,7 +70,7 @@ export function useAnimationStudio(s) {
   watch(
     s.current,
     (scene, previous) => {
-      stop();
+      if (!advancing) stop();
       const same = scene.id === previous?.id,
         oldKey = activeKey.value;
       if (!scene.animation) scene.animation = normalizeAnimation();
@@ -191,6 +212,7 @@ export function useAnimationStudio(s) {
     field.value = key.field;
     seek(c.start + key.time);
     preview.value = true;
+    s.requestDraw();
     if (s.panels) s.panels.value.slides = true;
   }
   function deleteKey(c, key) {
@@ -269,12 +291,31 @@ export function useAnimationStudio(s) {
     cancelAnimationFrame(raf);
     raf = 0;
   }
+  function seekGlobal(value) {
+    stop();
+    const part = storyboardAt(s.slides.value, value);
+    if (!part) return;
+    advancing = true;
+    s.index.value = part.index;
+    time.value = part.time;
+    preview.value = true;
+    queueMicrotask(() => {
+      advancing = false;
+      time.value = part.time;
+      s.requestDraw();
+    });
+  }
+  function seekPlayback(value) {
+    if (allScenes.value) seekGlobal(value);
+    else seek(value);
+  }
   function seek(value) {
     stop();
     time.value = Math.max(
       0,
       Math.min(config.value.duration, Number(value) || 0),
     );
+    preview.value = true;
     s.requestDraw();
   }
   function play() {
@@ -284,21 +325,34 @@ export function useAnimationStudio(s) {
     }
     preview.value = true;
     clock = performance.now();
-    offset = time.value >= config.value.duration ? 0 : time.value;
+    offset = playbackTime.value >= totalDuration.value ? 0 : playbackTime.value;
     playing.value = true;
     const tick = (now) => {
       const value = offset + (now - clock) / 1000;
-      if (value >= config.value.duration) {
+      let t = value;
+      if (t >= totalDuration.value) {
         if (loop.value) {
           clock = now;
           offset = 0;
-          time.value = 0;
+          t = 0;
         } else {
-          time.value = config.value.duration;
+          t = totalDuration.value;
           stop();
-          return;
         }
-      } else time.value = value;
+      }
+      if (allScenes.value) {
+        const part = storyboardAt(s.slides.value, t);
+        if (part) {
+          advancing = true;
+          s.index.value = part.index;
+          time.value = part.time;
+          queueMicrotask(() => {
+            advancing = false;
+            time.value = part.time;
+          });
+        }
+      } else time.value = t;
+      if (!playing.value) return;
       raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);
@@ -370,7 +424,7 @@ export function useAnimationStudio(s) {
       field.value,
       Math.max(0, Math.min(clip.value.duration, time.value - clip.value.start)),
       value,
-      ease.value,
+      clip.value.easing || ease.value,
     );
   }
   function addPath() {
@@ -443,19 +497,30 @@ export function useAnimationStudio(s) {
     progress.value = 0;
     controller = new AbortController();
     const signal = controller.signal;
-    const scene = copy(s.current.value),
+    const scenes = copy(allScenes.value ? s.slides.value : [s.current.value]),
+      scene = scenes[0],
       theme = copy(s.theme.value),
-      config = normalizeAnimation(scene.animation),
+      config = {
+        ...normalizeAnimation(scene.animation),
+        duration: storyboardDuration(scenes),
+      },
       outputFormat = format.value,
       width = exportWidth.value;
     try {
-      if (outputFormat === "webm" && config.background === "transparent")
+      if (
+        outputFormat === "webm" &&
+        scenes.some((scene) => scene.animation?.background !== "solid")
+      )
         throw Error(
           "Pour conserver la transparence, choisis MOV ou MKV. WebM utilise un fond uni ou vert.",
         );
+      if (config.duration > 600)
+        throw Error(
+          "L’export est limité à 10 minutes. Exporte une scène ou raccourcis l’animation.",
+        );
       await ensureVideoEncoder(outputFormat, { signal });
-      await prepareFonts([scene]);
-      await prepareImages([scene], theme);
+      await prepareFonts(scenes);
+      await prepareImages(scenes, theme);
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = (canvas.width * 9) / 16;
@@ -588,7 +653,14 @@ export function useAnimationStudio(s) {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         ctx.save();
         ctx.scale(canvas.width / 1920, canvas.height / 1080);
-        renderAnimation(ctx, scene, theme, config, t);
+        const part = storyboardAt(scenes, t);
+        renderAnimation(
+          ctx,
+          part.scene,
+          theme,
+          part.scene.animation,
+          part.time,
+        );
         ctx.restore();
       }
     } catch (e) {
@@ -598,6 +670,214 @@ export function useAnimationStudio(s) {
       controller = null;
     }
   }
+  function propertyValue(name, animated = preview.value) {
+    const key =
+      clip.value?.keys.find((k) => s.selectedKeys.value.includes(k)) ||
+      s.selected.value ||
+      s.selectedKeys.value[0];
+    const scene = animated
+        ? animationScene(s.current.value, config.value, time.value).scene
+        : s.current.value,
+      p = scene.positions[key];
+    if (engine.value && (engineAnimationFields[name] || name === "color")) {
+      const e = animated
+        ? animationScene(
+            s.current.value,
+            config.value,
+            time.value,
+          ).config.engines.find((e) => e.id === engine.value.id)
+        : engine.value;
+      return name === "color"
+        ? boundColor(e.particles, "color", s.theme.value)
+        : name === "engineGravity"
+          ? e.gravity
+          : e.particles[engineAnimationFields[name]];
+    }
+    if (
+      name === "progress" &&
+      clip.value?.frames.some((f) => f.field === "progress")
+    )
+      return frameValue(
+        clip.value.frames,
+        "progress",
+        time.value - clip.value.start,
+        0,
+      );
+    if (name === "progress")
+      return Math.max(
+        0,
+        Math.min(
+          1,
+          (time.value - (clip.value?.start || 0)) /
+            (clip.value?.duration || config.value.duration),
+        ),
+      );
+    if (name === "color")
+      return scene.elements[key]?.type === "shape"
+        ? boundColor(scene.elements[key], "fill", s.theme.value)
+        : p?.textStyle?.colorRole
+          ? boundColor(p.textStyle, "color", s.theme.value)
+          : p?.textStyle?.color || s.theme.value.ink;
+    return (
+      p?.[name] ?? (name === "opacity" ? 100 : name === "contentScale" ? 1 : 0)
+    );
+  }
+  function keyAt(name) {
+    return clip.value?.frames.find(
+      (f) =>
+        f.field === name &&
+        Math.abs(f.time - (time.value - clip.value.start)) < 0.0001,
+    );
+  }
+  function ensureClip() {
+    if (
+      !clip.value ||
+      !s.selectedKeys.value.some((k) => clip.value.keys.includes(k))
+    )
+      addClip();
+    return clip.value;
+  }
+  function setProperty(name, value) {
+    if (!Number.isFinite(Number(value)) && name !== "color") return;
+    stop();
+    s.beginGesture();
+    try {
+      const previous = propertyValue(name, true),
+        c = ensureClip();
+      if (!c) return;
+      const local = Math.max(0, Math.min(c.duration, time.value - c.start));
+      const interpolation =
+        c.frames.filter((f) => f.field === name && f.time <= local).at(-1)
+          ?.ease ||
+        c.frames.find((f) => f.field === name)?.ease ||
+        c.easing;
+      if (local > 0 && !c.frames.some((f) => f.field === name))
+        addAnimationKey(c, name, 0, previous, interpolation);
+      addAnimationKey(
+        c,
+        name,
+        local,
+        name === "color" ? value : Number(value),
+        interpolation,
+      );
+      activeKey.value = c.frames.find(
+        (f) => f.field === name && Math.abs(f.time - local) < 0.0001,
+      );
+      preview.value = true;
+    } finally {
+      s.endGesture();
+      s.requestDraw();
+    }
+  }
+  function toggleProperty(name) {
+    const f = keyAt(name);
+    if (f) deleteKey(clip.value, f);
+    else setProperty(name, propertyValue(name));
+  }
+  function setClipEasing(c, value) {
+    s.beginGesture();
+    c.easing = value;
+    for (const f of c.frames) f.ease = value;
+    s.endGesture();
+  }
+  function addEffect(kind) {
+    if (!s.selectedKeys.value.length) {
+      s.notify("Sélectionne un objet.");
+      return;
+    }
+    s.beginGesture();
+    for (const key of s.selectedKeys.value) {
+      if (config.value.effects.length >= 100) break;
+      config.value.effects.push(
+        normalizeEffect({ id: crypto.randomUUID(), kind, key }),
+      );
+    }
+    s.endGesture();
+  }
+  function removeEffect(id) {
+    s.beginGesture();
+    config.value.effects = config.value.effects.filter((e) => e.id !== id);
+    s.endGesture();
+  }
+  function attachEngine(parent) {
+    const e = engine.value,
+      p = s.current.value.positions[e?.key],
+      target = s.current.value.positions[parent];
+    if (!e || !p) return;
+    s.beginGesture();
+    if (target && parent !== e.key) {
+      const state = animationScene(
+          s.current.value,
+          config.value,
+          time.value,
+        ).scene,
+        world = state.positions[e.key],
+        t = state.positions[parent];
+      e.parent = parent;
+      e.offsetX = world.x + world.w / 2 - t.x - t.w / 2;
+      e.offsetY = world.y + world.h / 2 - t.y - (t.h || 0) / 2;
+    } else {
+      const world = animationScene(s.current.value, config.value, time.value)
+        .scene.positions[e.key];
+      const wasPreview = preview.value;
+      preview.value = true;
+      e.parent = "";
+      const free = animationScene(s.current.value, config.value, time.value)
+          .scene.positions[e.key],
+        dx = world.x - free.x,
+        dy = world.y - free.y;
+      p.x += dx;
+      p.y += dy;
+      for (const c of config.value.clips.filter((c) =>
+        c.keys.includes(e.key),
+      )) {
+        for (const f of c.frames) {
+          if (f.field === "x") f.value += dx;
+          if (f.field === "y") f.value += dy;
+        }
+        if (c.pathId) {
+          const path = config.value.paths.find((p) => p.id === c.pathId);
+          if (path && config.value.paths.length < 50) {
+            const detached = copy(path);
+            detached.id = crypto.randomUUID();
+            detached.name += " · détaché";
+            detached.points.forEach((p) => {
+              p.x += dx;
+              p.y += dy;
+            });
+            config.value.paths.push(detached);
+            c.pathId = detached.id;
+          }
+        }
+      }
+      preview.value = wasPreview;
+    }
+    s.endGesture();
+    s.requestDraw();
+  }
+  // Moving the emitter's rest pose translates its own keys too, rather than snapping back at playback.
+  watch(
+    () =>
+      config.value.engines.map((e) => {
+        const p = s.current.value.positions[e.key];
+        return [e.key, p?.x, p?.y];
+      }),
+    (next, old) => {
+      if (preview.value || s.restoring?.() || !old) return;
+      for (const [key, x, y] of next) {
+        const before = old.find((v) => v[0] === key);
+        if (!before) continue;
+        for (const c of config.value.clips.filter(
+          (c) => c.keys.length === 1 && c.keys[0] === key && !c.pathId,
+        ))
+          for (const f of c.frames) {
+            if (f.field === "x") f.value += x - before[1];
+            if (f.field === "y") f.value += y - before[2];
+          }
+      }
+    },
+    { flush: "sync" },
+  );
   function cancel() {
     controller?.abort();
   }
@@ -610,6 +890,19 @@ export function useAnimationStudio(s) {
     window.removeEventListener("blur", blur);
   });
   return {
+    allScenes,
+    totalDuration,
+    playbackTime,
+    seekPlayback,
+    exportOpen,
+    propertyValue,
+    keyAt,
+    setProperty,
+    toggleProperty,
+    setClipEasing,
+    addEffect,
+    removeEffect,
+    attachEngine,
     previewOpen,
     activeKey,
     engine,

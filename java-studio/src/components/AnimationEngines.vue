@@ -1,7 +1,9 @@
 <script setup>
 import { reactive } from "vue";
 import { blockLabel } from "../model.js";
-import AnimationProperties from "./AnimationProperties.vue";
+import AnimationKeyButton from "./AnimationKeyButton.vue";
+import ShapeProperties from "./ShapeProperties.vue";
+import { Sparkles, Move, Palette, ArrowDown, Shapes } from "lucide-vue-next";
 import InspectorDrawer from "./InspectorDrawer.vue";
 import PaletteColor from "./PaletteColor.vue";
 const props = defineProps({ studio: Object }),
@@ -26,35 +28,8 @@ function direction(id) {
 </script>
 <template>
   <div class="animation-engines">
-    <div class="engine-add-actions">
-      <button class="btn" @click="a.addEngine('particles')">+ Particules</button
-      ><button class="btn" @click="a.addEngine('gravity')">+ Gravité</button>
-    </div>
-    <p class="field-help">
-      Les moteurs ont leur propre repère déplaçable. Ce repère ne figure jamais
-      dans la vidéo.
-    </p>
-    <button
-      v-for="e in a.config.engines"
-      :key="e.id"
-      class="layer-row"
-      :class="{ active: a.engine?.id === e.id }"
-      @click="a.selectEngine(e.id)"
-    >
-      {{ s.current.elements[e.key]?.name || "Moteur"
-      }}<small>{{
-        e.kind === "particles" ? "Particules" : "Gravité"
-      }}</small></button
-    ><template
-      v-for="c in a.config.clips.filter((c) => c.particles?.enabled)"
-      :key="c.id"
-      ><p class="field-help">Ancien émetteur attaché : {{ c.name }}</p>
-      <button class="btn" @click="a.detachLegacy(c)">
-        Détacher cet émetteur
-      </button></template
-    >
     <template v-if="a.engine"
-      ><InspectorDrawer id="engine-main" title="Moteur sélectionné"
+      ><InspectorDrawer id="engine-main" title="Repère et émission" :icon="Move"
         ><label
           >Nom<input
             v-model="s.current.elements[a.engine.key].name"
@@ -78,15 +53,29 @@ function direction(id) {
               max="120"
               step="0.1" /></label
           ><label
-            >Position X<input
+            >Position X<AnimationKeyButton :studio="s" field="x" /><input
               type="number"
-              v-model.number="s.current.positions[a.engine.key].x"
+              :value="a.propertyValue('x')"
+              @change="
+                a.clip?.frames.some((f) => f.field === 'x')
+                  ? a.setProperty('x', $event.target.value)
+                  : (s.current.positions[a.engine.key].x = Number(
+                      $event.target.value,
+                    ))
+              "
               min="-10000"
               max="10000" /></label
           ><label
-            >Position Y<input
+            >Position Y<AnimationKeyButton :studio="s" field="y" /><input
               type="number"
-              v-model.number="s.current.positions[a.engine.key].y"
+              :value="a.propertyValue('y')"
+              @change="
+                a.clip?.frames.some((f) => f.field === 'y')
+                  ? a.setProperty('y', $event.target.value)
+                  : (s.current.positions[a.engine.key].y = Number(
+                      $event.target.value,
+                    ))
+              "
               min="-10000"
               max="10000"
           /></label>
@@ -99,6 +88,7 @@ function direction(id) {
         v-if="a.engine.kind === 'particles'"
         id="engine-particles"
         title="Émission et direction"
+        :icon="Sparkles"
         ><label
           >Répartition<select
             :value="
@@ -128,9 +118,31 @@ function direction(id) {
             ]"
             :key="key"
             >{{ label
-            }}<input
+            }}<AnimationKeyButton
+              v-if="['count', 'life', 'speed', 'size', 'force'].includes(key)"
+              :studio="s"
+              :field="'particle' + key[0].toUpperCase() + key.slice(1)" /><input
               type="number"
-              v-model.number="a.engine.particles[key]"
+              :value="
+                ['count', 'life', 'speed', 'size', 'force'].includes(key)
+                  ? a.propertyValue(
+                      'particle' + key[0].toUpperCase() + key.slice(1),
+                    )
+                  : a.engine.particles[key]
+              "
+              @change="
+                ['count', 'life', 'speed', 'size', 'force'].includes(key) &&
+                a.clip?.frames.some(
+                  (f) =>
+                    f.field ===
+                    'particle' + key[0].toUpperCase() + key.slice(1),
+                )
+                  ? a.setProperty(
+                      'particle' + key[0].toUpperCase() + key.slice(1),
+                      $event.target.value,
+                    )
+                  : (a.engine.particles[key] = Number($event.target.value))
+              "
               min="-1"
               max="1"
               step="0.1"
@@ -146,14 +158,37 @@ function direction(id) {
               ['count', 'Nombre maximal', 1, 200, 1],
               ['life', 'Durée de vie · s', 0.1, 10, 0.1],
               ['speed', 'Vitesse · px/s', 0, 1000, 1],
+              ['force', 'Force de l’émetteur', 0, 10, 0.1],
               ['size', 'Taille · px', 1, 100, 1],
               ['seed', 'Graine', 0, 100000, 1],
             ]"
             :key="key"
             >{{ label
-            }}<input
+            }}<AnimationKeyButton
+              v-if="['count', 'life', 'speed', 'size', 'force'].includes(key)"
+              :studio="s"
+              :field="'particle' + key[0].toUpperCase() + key.slice(1)" /><input
               type="number"
-              v-model.number="a.engine.particles[key]"
+              :value="
+                ['count', 'life', 'speed', 'size', 'force'].includes(key)
+                  ? a.propertyValue(
+                      'particle' + key[0].toUpperCase() + key.slice(1),
+                    )
+                  : a.engine.particles[key]
+              "
+              @change="
+                ['count', 'life', 'speed', 'size', 'force'].includes(key) &&
+                a.clip?.frames.some(
+                  (f) =>
+                    f.field ===
+                    'particle' + key[0].toUpperCase() + key.slice(1),
+                )
+                  ? a.setProperty(
+                      'particle' + key[0].toUpperCase() + key.slice(1),
+                      $event.target.value,
+                    )
+                  : (a.engine.particles[key] = Number($event.target.value))
+              "
               :min="min"
               :max="max"
               :step="step"
@@ -162,15 +197,43 @@ function direction(id) {
         <label
           >Gravité des particules · px/s²<input
             type="number"
-            v-model.number="a.engine.gravity"
+            :value="a.propertyValue('engineGravity')"
+            @change="
+              a.clip?.frames.some((f) => f.field === 'engineGravity')
+                ? a.setProperty('engineGravity', $event.target.value)
+                : (a.engine.gravity = Number($event.target.value))
+            "
             min="-2000"
             max="2000" /></label
       ></InspectorDrawer>
       <InspectorDrawer
         v-if="a.engine.kind === 'particles'"
+        id="particle-shape"
+        title="Forme des particules"
+        :icon="Shapes"
+        ><ShapeProperties
+          :shape="a.engine.particles.shape"
+          :theme="s.theme"
+          :scale="1" /><label
+          >Proportion largeur / hauteur<input
+            type="number"
+            min=".1"
+            max="10"
+            step=".1"
+            v-model.number="a.engine.particles.aspect" /></label
+        ><label
+          >Rotation · degrés<input
+            type="number"
+            min="-360"
+            max="360"
+            v-model.number="a.engine.particles.rotation" /></label
+      ></InspectorDrawer>
+      <InspectorDrawer
+        v-if="a.engine.kind === 'particles'"
         id="engine-colors"
         title="Couleur des particules"
-        ><PaletteColor
+        :icon="Palette"
+        ><AnimationKeyButton :studio="s" field="color" /><PaletteColor
           :element="a.engine.particles"
           field="color"
           label="Couleur des particules"
@@ -180,12 +243,35 @@ function direction(id) {
         v-if="a.engine.kind === 'gravity'"
         id="engine-gravity"
         title="Gravité et objets concernés"
+        :icon="ArrowDown"
         ><label
-          >Accélération · px/s²<input
+          >Force de gravité · px/s²<AnimationKeyButton
+            :studio="s"
+            field="engineGravity" /><input
             type="number"
-            v-model.number="a.engine.gravity"
+            :value="a.propertyValue('engineGravity')"
+            @change="
+              a.clip?.frames.some((f) => f.field === 'engineGravity')
+                ? a.setProperty('engineGravity', $event.target.value)
+                : (a.engine.gravity = Number($event.target.value))
+            "
             min="-2000"
             max="2000" /></label
+        ><label
+          v-for="[key, label, min, max] in [
+            ['drag', 'Résistance de l’air', 0, 10],
+            ['bounce', 'Rebond', 0, 1],
+            ['friction', 'Frottement', 0, 1],
+            ['wind', 'Force du vent · px/s²', -2000, 2000],
+          ]"
+          :key="key"
+          >{{ label
+          }}<input
+            type="number"
+            :min="min"
+            :max="max"
+            step=".05"
+            v-model.number="a.engine[key]" /></label
         ><label
           v-for="key in s.current.blockKeys.filter(
             (k) => !s.current.elements[k]?.engineKind,
@@ -202,14 +288,5 @@ function direction(id) {
         </p></InspectorDrawer
       ></template
     >
-    <template v-if="a.engine"
-      ><button
-        v-if="!a.clip?.keys.includes(a.engine.key)"
-        class="btn full"
-        @click="a.addClip()"
-      >
-        Animer ce moteur</button
-      ><AnimationProperties v-else :studio="s"
-    /></template>
   </div>
 </template>

@@ -18,8 +18,6 @@ export function drawEngineGuides(ctx, scene, theme) {
     ctx.moveTo(p.x + p.w / 2, p.y + p.h / 2 - 10);
     ctx.lineTo(p.x + p.w / 2, p.y + p.h / 2 + 10);
     ctx.stroke();
-    ctx.font = "500 28px Inter";
-    ctx.fillText(e.name, p.x + p.w / 2 + 28, p.y + p.h / 2 + 8);
     ctx.restore();
   }
 }
