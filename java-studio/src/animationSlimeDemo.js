@@ -1,3 +1,4 @@
+import { enrichSlimeWorkflow } from "./animationSlimeWorkflow.js";
 import {extendSlimeWorlds} from "./animationSlimeWorlds.js";
 import { makeSlide } from "./model.js";
 import { normalizeAnimation } from "./animationModel.js";
@@ -626,10 +627,11 @@ export function makeSlimeDemo() {
     return s;
   });
   extendSlimeWorlds(scenes);
+  enrichSlimeWorkflow(scenes);
   return applicationFile(
     {
       projectId: "slime-platform-demo",
-      project: "Slime · quatre mondes",
+      project: "Slime · cinq mondes",
       slides: scenes,
       themes: normalizeThemes(),
       themeId: "terminal",

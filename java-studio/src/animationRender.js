@@ -1,3 +1,5 @@
+import {applyCamera} from "./animationWorkflow.js";
+import {drawAnimationDiagnostics} from "./animationDiagnostics.js";
 import {particleOriginSampler} from "./particleHistory.js";
 import {drawAnimationBackground} from "./animationBackground.js";
 import {splineSegments} from "./splines.js";
@@ -11,12 +13,13 @@ export function renderAnimation(
   theme,
   config,
   time,
-  { guides = false, positions = null } = {},
+  { guides = false, positions = null, camera=true, diagnostics=null } = {},
 ) {
   const state = animationScene(scene, config, time);
   if(positions) Object.assign(state.scene.positions, positions);
   ctx.save();
   drawAnimationBackground(ctx,state.config,theme);
+  if(camera)applyCamera(ctx,state.config.camera);
   const cutters = state.config.effects
     .filter(
       (e) =>
@@ -69,6 +72,7 @@ export function renderAnimation(
     },
   );
   for (const link of state.config.links) {
+    if(link.visible===false)continue;
     const a = state.scene.positions[link.from],
       b = state.scene.positions[link.to];
     if (!a || !b) continue;
@@ -111,7 +115,7 @@ export function renderAnimation(
     ctx.restore();
   }
   for (const clip of state.config.clips) {
-    if (!clip.enabled) continue;
+    if (!clip.enabled || !clip.particles?.enabled) continue;
     const p = state.scene.positions[clip.keys[0]];
     if (!p) continue;
     for (const particle of animationParticles(clip, time, particleOriginSampler(scene,config,clip.keys[0]))) {
@@ -172,6 +176,7 @@ export function renderAnimation(
       ctx.stroke();
       ctx.restore();
     }
+  if(diagnostics)drawAnimationDiagnostics(ctx,state,diagnostics);
   ctx.restore();
   return state;
 }

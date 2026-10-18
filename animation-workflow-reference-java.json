@@ -1,0 +1,1068 @@
+{
+  "format": "frame-workspace",
+  "version": 1,
+  "kind": "animation",
+  "projectId": "java-reference-workflow",
+  "project": "Java · références et événements",
+  "themes": [
+    {
+      "id": "mint",
+      "name": "Terminal",
+      "desc": "Vert néon, noir profond.",
+      "accent": "#35ff91",
+      "secondary": "#38baff",
+      "bg": "#080d14",
+      "panel": "#121e2b",
+      "ink": "#f5f9ff",
+      "swatches": [
+        {
+          "id": "soft",
+          "name": "Accent doux",
+          "color": "#8bfcc3"
+        },
+        {
+          "id": "deep",
+          "name": "Accent profond",
+          "color": "#239e5f"
+        },
+        {
+          "id": "muted",
+          "name": "Texte discret",
+          "color": "#a2a6ad"
+        },
+        {
+          "id": "success",
+          "name": "Succès",
+          "color": "#69e6a6"
+        },
+        {
+          "id": "warning",
+          "name": "Attention",
+          "color": "#ffd166"
+        },
+        {
+          "id": "danger",
+          "name": "Erreur",
+          "color": "#ff718b"
+        }
+      ],
+      "light": false
+    },
+    {
+      "id": "violet",
+      "name": "Midnight",
+      "desc": "Violet électrique et rose lumineux.",
+      "accent": "#bb83ff",
+      "secondary": "#ff54cb",
+      "bg": "#100b21",
+      "panel": "#221735",
+      "ink": "#faf6ff",
+      "swatches": [
+        {
+          "id": "soft",
+          "name": "Accent doux",
+          "color": "#d7b7ff"
+        },
+        {
+          "id": "deep",
+          "name": "Accent profond",
+          "color": "#7753a6"
+        },
+        {
+          "id": "muted",
+          "name": "Texte discret",
+          "color": "#a8a4b1"
+        },
+        {
+          "id": "success",
+          "name": "Succès",
+          "color": "#69e6a6"
+        },
+        {
+          "id": "warning",
+          "name": "Attention",
+          "color": "#ffd166"
+        },
+        {
+          "id": "danger",
+          "name": "Erreur",
+          "color": "#ff718b"
+        }
+      ],
+      "light": false
+    },
+    {
+      "id": "amber",
+      "name": "Carbon",
+      "desc": "Ambre intense, précision et chaleur.",
+      "accent": "#ffbc25",
+      "secondary": "#ff7146",
+      "bg": "#120e09",
+      "panel": "#2b2217",
+      "ink": "#fff9ee",
+      "swatches": [
+        {
+          "id": "soft",
+          "name": "Accent doux",
+          "color": "#ffd77f"
+        },
+        {
+          "id": "deep",
+          "name": "Accent profond",
+          "color": "#a0761a"
+        },
+        {
+          "id": "muted",
+          "name": "Texte discret",
+          "color": "#aca79e"
+        },
+        {
+          "id": "success",
+          "name": "Succès",
+          "color": "#69e6a6"
+        },
+        {
+          "id": "warning",
+          "name": "Attention",
+          "color": "#ffd166"
+        },
+        {
+          "id": "danger",
+          "name": "Erreur",
+          "color": "#ff718b"
+        }
+      ],
+      "light": false
+    },
+    {
+      "id": "paper",
+      "name": "Studio",
+      "desc": "Blanc doux, bleu franc, lignes nettes.",
+      "accent": "#2459ed",
+      "secondary": "#b33824",
+      "bg": "#f6f5f1",
+      "panel": "#ffffff",
+      "ink": "#171923",
+      "swatches": [
+        {
+          "id": "soft",
+          "name": "Accent doux",
+          "color": "#1e3c92"
+        },
+        {
+          "id": "deep",
+          "name": "Accent profond",
+          "color": "#7897ef"
+        },
+        {
+          "id": "muted",
+          "name": "Texte discret",
+          "color": "#65666b"
+        },
+        {
+          "id": "success",
+          "name": "Succès",
+          "color": "#18794e"
+        },
+        {
+          "id": "warning",
+          "name": "Attention",
+          "color": "#946200"
+        },
+        {
+          "id": "danger",
+          "name": "Erreur",
+          "color": "#c52a43"
+        }
+      ],
+      "light": true
+    },
+    {
+      "id": "cobalt",
+      "name": "Cobalt",
+      "desc": "Bleu nuit et cyan éclatant.",
+      "accent": "#50baff",
+      "secondary": "#53f2d2",
+      "bg": "#07142e",
+      "panel": "#142644",
+      "ink": "#f1f8ff",
+      "swatches": [
+        {
+          "id": "soft",
+          "name": "Accent doux",
+          "color": "#98d6ff"
+        },
+        {
+          "id": "deep",
+          "name": "Accent profond",
+          "color": "#3378ab"
+        },
+        {
+          "id": "muted",
+          "name": "Texte discret",
+          "color": "#9fa8b6"
+        },
+        {
+          "id": "success",
+          "name": "Succès",
+          "color": "#69e6a6"
+        },
+        {
+          "id": "warning",
+          "name": "Attention",
+          "color": "#ffd166"
+        },
+        {
+          "id": "danger",
+          "name": "Erreur",
+          "color": "#ff718b"
+        }
+      ],
+      "light": false
+    },
+    {
+      "id": "coral",
+      "name": "Corail",
+      "desc": "Orange corail, énergie sur fond sombre.",
+      "accent": "#ff784a",
+      "secondary": "#ffca67",
+      "bg": "#1a1015",
+      "panel": "#301d24",
+      "ink": "#fff6f2",
+      "swatches": [
+        {
+          "id": "soft",
+          "name": "Accent doux",
+          "color": "#ffb196"
+        },
+        {
+          "id": "deep",
+          "name": "Accent profond",
+          "color": "#a34e35"
+        },
+        {
+          "id": "muted",
+          "name": "Texte discret",
+          "color": "#afa6a5"
+        },
+        {
+          "id": "success",
+          "name": "Succès",
+          "color": "#69e6a6"
+        },
+        {
+          "id": "warning",
+          "name": "Attention",
+          "color": "#ffd166"
+        },
+        {
+          "id": "danger",
+          "name": "Erreur",
+          "color": "#ff718b"
+        }
+      ],
+      "light": false
+    },
+    {
+      "id": "electric",
+      "name": "Volt",
+      "desc": "Jaune acide et vert électrique.",
+      "accent": "#dfff35",
+      "secondary": "#44eec5",
+      "bg": "#0e130d",
+      "panel": "#20291b",
+      "ink": "#f9ffe9",
+      "swatches": [
+        {
+          "id": "soft",
+          "name": "Accent doux",
+          "color": "#ebff86"
+        },
+        {
+          "id": "deep",
+          "name": "Accent profond",
+          "color": "#8ba125"
+        },
+        {
+          "id": "muted",
+          "name": "Texte discret",
+          "color": "#a7ac9c"
+        },
+        {
+          "id": "success",
+          "name": "Succès",
+          "color": "#69e6a6"
+        },
+        {
+          "id": "warning",
+          "name": "Attention",
+          "color": "#ffd166"
+        },
+        {
+          "id": "danger",
+          "name": "Erreur",
+          "color": "#ff718b"
+        }
+      ],
+      "light": false
+    },
+    {
+      "id": "magenta",
+      "name": "Pulse",
+      "desc": "Magenta vibrant, contraste assumé.",
+      "accent": "#ff61b7",
+      "secondary": "#bda0ff",
+      "bg": "#190d22",
+      "panel": "#311b3c",
+      "ink": "#fff4fc",
+      "swatches": [
+        {
+          "id": "soft",
+          "name": "Accent doux",
+          "color": "#ffa3d6"
+        },
+        {
+          "id": "deep",
+          "name": "Accent profond",
+          "color": "#a33f7b"
+        },
+        {
+          "id": "muted",
+          "name": "Texte discret",
+          "color": "#afa3b0"
+        },
+        {
+          "id": "success",
+          "name": "Succès",
+          "color": "#69e6a6"
+        },
+        {
+          "id": "warning",
+          "name": "Attention",
+          "color": "#ffd166"
+        },
+        {
+          "id": "danger",
+          "name": "Erreur",
+          "color": "#ff718b"
+        }
+      ],
+      "light": false
+    },
+    {
+      "id": "glacier",
+      "name": "Glacier",
+      "desc": "Un fond clair, du bleu et du relief.",
+      "accent": "#0068cd",
+      "secondary": "#006f73",
+      "bg": "#edf7ff",
+      "panel": "#ffffff",
+      "ink": "#10223d",
+      "swatches": [
+        {
+          "id": "soft",
+          "name": "Accent doux",
+          "color": "#07498c"
+        },
+        {
+          "id": "deep",
+          "name": "Accent profond",
+          "color": "#5fa1e1"
+        },
+        {
+          "id": "muted",
+          "name": "Texte discret",
+          "color": "#5d6d81"
+        },
+        {
+          "id": "success",
+          "name": "Succès",
+          "color": "#18794e"
+        },
+        {
+          "id": "warning",
+          "name": "Attention",
+          "color": "#946200"
+        },
+        {
+          "id": "danger",
+          "name": "Erreur",
+          "color": "#c52a43"
+        }
+      ],
+      "light": true
+    },
+    {
+      "id": "sunset",
+      "name": "Sunset",
+      "desc": "Orange solaire et rose sur fond prune.",
+      "accent": "#ff9b53",
+      "secondary": "#ff68bb",
+      "bg": "#25122d",
+      "panel": "#3b2444",
+      "ink": "#fff6ef",
+      "swatches": [
+        {
+          "id": "soft",
+          "name": "Accent doux",
+          "color": "#ffc499"
+        },
+        {
+          "id": "deep",
+          "name": "Accent profond",
+          "color": "#a86444"
+        },
+        {
+          "id": "muted",
+          "name": "Texte discret",
+          "color": "#b3a6ab"
+        },
+        {
+          "id": "success",
+          "name": "Succès",
+          "color": "#69e6a6"
+        },
+        {
+          "id": "warning",
+          "name": "Attention",
+          "color": "#ffd166"
+        },
+        {
+          "id": "danger",
+          "name": "Erreur",
+          "color": "#ff718b"
+        }
+      ],
+      "light": false
+    }
+  ],
+  "themeId": "terminal",
+  "resolution": {
+    "width": 1920,
+    "height": 1080
+  },
+  "frame": {
+    "header": false,
+    "footer": false,
+    "gradient": false
+  },
+  "slides": [
+    {
+      "id": "java-reference-scene",
+      "exitDirection": "auto",
+      "elements": {
+        "shapeVariable": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Variable nom",
+          "shape": "rounded",
+          "fill": "#304b47",
+          "stroke": "#a5c1b3",
+          "filled": true,
+          "outlined": true,
+          "strokeWidth": 2,
+          "opacity": 100,
+          "radius": 12,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 12,
+            "tr": 12,
+            "br": 12,
+            "bl": 12
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "textVariable": {
+          "type": "text",
+          "custom": true,
+          "name": "Nom de variable",
+          "text": "nom"
+        },
+        "shapeObject": {
+          "type": "shape",
+          "custom": true,
+          "template": false,
+          "fillRole": null,
+          "strokeRole": null,
+          "name": "Objet String",
+          "shape": "rounded",
+          "fill": "#3c475e",
+          "stroke": "#a5c1b3",
+          "filled": true,
+          "outlined": true,
+          "strokeWidth": 2,
+          "opacity": 100,
+          "radius": 12,
+          "roundedCorners": false,
+          "individualCorners": false,
+          "cornerRadii": {
+            "tl": 12,
+            "tr": 12,
+            "br": 12,
+            "bl": 12
+          },
+          "points": 5,
+          "innerRatio": 0.45,
+          "direction": "horizontal",
+          "dashed": false,
+          "roundedEnds": true
+        },
+        "textValue": {
+          "type": "text",
+          "custom": true,
+          "name": "Valeur de l’objet",
+          "text": "\"Bonjour\""
+        },
+        "textTitle": {
+          "type": "text",
+          "custom": true,
+          "name": "Titre",
+          "text": "String : la variable référence un objet"
+        },
+        "textStatus": {
+          "type": "text",
+          "custom": true,
+          "name": "Explication",
+          "text": "La flèche représente la référence."
+        }
+      },
+      "title": "String · une variable et sa référence",
+      "body": "",
+      "code": "",
+      "notes": "",
+      "pedagogicalSteps": [],
+      "hiddenKeys": [],
+      "emphasisKeys": [],
+      "label": "",
+      "codeTitle": "",
+      "layout": "title",
+      "grid": {
+        "x": 0,
+        "y": 0
+      },
+      "positions": {
+        "shapeVariable": {
+          "x": 250,
+          "y": 480,
+          "w": 300,
+          "h": 150,
+          "size": 30
+        },
+        "textVariable": {
+          "x": 250,
+          "y": 480,
+          "w": 300,
+          "h": 150,
+          "size": 42,
+          "font": "inter",
+          "textStyle": {
+            "color": "#edf2ed",
+            "align": "center",
+            "verticalAlign": "middle"
+          }
+        },
+        "shapeObject": {
+          "x": 1180,
+          "y": 180,
+          "w": 360,
+          "h": 150,
+          "size": 30
+        },
+        "textValue": {
+          "x": 1180,
+          "y": 180,
+          "w": 360,
+          "h": 150,
+          "size": 38,
+          "font": "inter",
+          "textStyle": {
+            "color": "#edf2ed",
+            "align": "center",
+            "verticalAlign": "middle"
+          }
+        },
+        "textTitle": {
+          "x": 160,
+          "y": 90,
+          "w": 1600,
+          "h": 100,
+          "size": 48,
+          "font": "inter",
+          "textStyle": {
+            "color": "#edf2ed",
+            "align": "center",
+            "verticalAlign": "middle"
+          }
+        },
+        "textStatus": {
+          "x": 400,
+          "y": 780,
+          "w": 1120,
+          "h": 100,
+          "size": 32,
+          "font": "inter",
+          "textStyle": {
+            "color": "#edf2ed",
+            "align": "center",
+            "verticalAlign": "middle"
+          },
+          "opacity": 0
+        }
+      },
+      "fragments": {
+        "shapeVariable": {
+          "order": 0,
+          "animation": "none"
+        },
+        "textVariable": {
+          "order": 0,
+          "animation": "none"
+        },
+        "shapeObject": {
+          "order": 0,
+          "animation": "none"
+        },
+        "textValue": {
+          "order": 0,
+          "animation": "none"
+        },
+        "textTitle": {
+          "order": 0,
+          "animation": "none"
+        },
+        "textStatus": {
+          "order": 0,
+          "animation": "none"
+        }
+      },
+      "designVersion": 3,
+      "blockKeys": [
+        "shapeVariable",
+        "textVariable",
+        "shapeObject",
+        "textValue",
+        "textTitle",
+        "textStatus"
+      ],
+      "groups": [],
+      "animation": {
+        "version": 5,
+        "attachments": [
+          {
+            "id": "name-on-variable",
+            "child": "textVariable",
+            "parent": "shapeVariable",
+            "enabled": true,
+            "parentX": 0.5,
+            "parentY": 0.5,
+            "childX": 0.5,
+            "childY": 0.5,
+            "offsetX": 0,
+            "offsetY": 0,
+            "rotate": false
+          },
+          {
+            "id": "value-on-object",
+            "child": "textValue",
+            "parent": "shapeObject",
+            "enabled": true,
+            "parentX": 0.5,
+            "parentY": 0.5,
+            "childX": 0.5,
+            "childY": 0.5,
+            "offsetX": 0,
+            "offsetY": 0,
+            "rotate": false
+          }
+        ],
+        "events": [
+          {
+            "id": "show-reference",
+            "name": "Référence à l’arrivée",
+            "enabled": true,
+            "trigger": "clipEnd",
+            "time": 0,
+            "source": "arrival",
+            "action": "show",
+            "target": "java-reference",
+            "value": ""
+          },
+          {
+            "id": "start-explanation",
+            "name": "Explication après arrivée",
+            "enabled": true,
+            "trigger": "clipEnd",
+            "time": 0,
+            "source": "arrival",
+            "action": "startClip",
+            "target": "explanation",
+            "value": ""
+          },
+          {
+            "id": "highlight",
+            "name": "Mettre l’objet en valeur",
+            "enabled": true,
+            "trigger": "time",
+            "time": 3.5,
+            "source": "",
+            "action": "color",
+            "target": "shapeObject",
+            "value": "#4b7770"
+          }
+        ],
+        "camera": {
+          "x": 960,
+          "y": 540,
+          "zoom": 100,
+          "rotation": 0
+        },
+        "actorKey": "",
+        "actorId": "",
+        "transition": 0,
+        "triggers": [],
+        "effects": [],
+        "colorRole": null,
+        "engines": [],
+        "duration": 6,
+        "fps": 30,
+        "background": "gradient",
+        "color2": "#29354a",
+        "gradientAngle": 35,
+        "color": "#18272c",
+        "links": [
+          {
+            "id": "java-reference",
+            "visible": false,
+            "from": "shapeVariable",
+            "to": "shapeObject",
+            "color": "#a5cdbb",
+            "width": 5
+          }
+        ],
+        "paths": [],
+        "clips": [
+          {
+            "id": "arrival",
+            "name": "Arrivée de l’objet",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 2,
+            "markers": [],
+            "keys": [
+              "shapeObject"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "y",
+                "time": 0,
+                "value": 180,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "y",
+                "time": 2,
+                "value": 480,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "explanation",
+            "name": "Apparition de l’explication",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 0,
+            "duration": 1,
+            "markers": [],
+            "keys": [
+              "textStatus"
+            ],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "opacity",
+                "time": 0,
+                "value": 0,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "opacity",
+                "time": 1,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          },
+          {
+            "id": "camera",
+            "name": "Caméra · zoom sur la référence",
+            "enabled": true,
+            "collapsed": false,
+            "hidden": false,
+            "easing": "smooth",
+            "start": 2,
+            "duration": 3,
+            "markers": [],
+            "keys": [],
+            "pathId": "",
+            "orient": false,
+            "constantSpeed": true,
+            "particles": {
+              "enabled": false,
+              "force": 1,
+              "aspect": 1,
+              "rotation": 0,
+              "shape": {
+                "type": "shape",
+                "custom": true,
+                "template": false,
+                "fillRole": null,
+                "strokeRole": null,
+                "name": "Cercle",
+                "shape": "circle",
+                "fill": "#35ff91",
+                "stroke": "#35ff91",
+                "filled": true,
+                "outlined": false,
+                "strokeWidth": 6,
+                "opacity": 100,
+                "radius": 0,
+                "roundedCorners": false,
+                "individualCorners": false,
+                "cornerRadii": {
+                  "tl": 0,
+                  "tr": 0,
+                  "br": 0,
+                  "bl": 0
+                },
+                "points": 5,
+                "innerRatio": 0.45,
+                "direction": "horizontal",
+                "dashed": false,
+                "roundedEnds": true
+              },
+              "count": 40,
+              "seed": 1,
+              "life": 2,
+              "speed": 150,
+              "size": 8,
+              "color": "#89baa9",
+              "colorRole": null,
+              "direction": "radial",
+              "xMin": -1,
+              "xMax": 1,
+              "yMin": -1,
+              "yMax": 1
+            },
+            "modifier": "none",
+            "amplitude": 40,
+            "frequency": 1,
+            "gravity": 200,
+            "pivotX": 0.5,
+            "pivotY": 0.5,
+            "frames": [
+              {
+                "field": "cameraZoom",
+                "time": 0,
+                "value": 100,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "cameraX",
+                "time": 0,
+                "value": 960,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "cameraZoom",
+                "time": 3,
+                "value": 118,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              },
+              {
+                "field": "cameraX",
+                "time": 3,
+                "value": 1020,
+                "ease": "smooth",
+                "curve": [
+                  0.25,
+                  0.1,
+                  0.25,
+                  1
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ],
+  "routeMode": "manual",
+  "routeStart": "java-reference-scene"
+}

@@ -152,7 +152,7 @@ export function applyEffects(scene, effects, time) {
 export function simulateDrivenBody(sample, time, options = {}, floors = []) {
   let gravity = options.gravity ?? 600, contactGravity=null;
   const drag = options.drag ?? 0,
-    contacts = new Set();
+    contacts = new Set(),contactTimes={};
   let p = { ...sample(0) },
     vy = options.velocityY || 0;
   const end = Math.max(0, Math.min(120, time));
@@ -173,7 +173,7 @@ export function simulateDrivenBody(sample, time, options = {}, floors = []) {
         p.y + p.h >= b.y &&
         p.y <= b.y + b.h
       ) {
-        contacts.add(r.id);
+        contacts.add(r.id);contactTimes[r.id]=i/120+dt;
         if (r.gravity != null) { gravity = r.gravity;contactGravity=r.gravity; }
         if (r.impulse != null) vy = r.impulse;
       }
@@ -203,5 +203,5 @@ export function simulateDrivenBody(sample, time, options = {}, floors = []) {
       }
     }
   }
-  return { ...p, contacts: [...contacts] };
+  return { ...p, contacts: [...contacts],contactTimes };
 }

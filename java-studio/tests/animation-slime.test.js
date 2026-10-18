@@ -59,15 +59,15 @@ test("driven jump lands on actual floors, falls without floors and preserves fee
   assert.ok(simulateDrivenBody(sample, 3, options, []).y > 800);
   assert.deepEqual(land, simulateDrivenBody(sample, 3, options, floors));
 });
-test("root JSON imports four scenes with real jumps, deformation, emitters and changing scenery", async () => {
+test("root JSON imports five scenes with real jumps, deformation, emitters and changing scenery", async () => {
   const file = JSON.parse(
     await readFile(
-      new URL("../../animation-slime-quatre-scenes.json", import.meta.url),
+      new URL("../../animation-slime-cinq-scenes.json", import.meta.url),
       "utf8",
     ),
   );
   const imported = readApplicationFile(file, "animation").slides;
-  assert.equal(imported.slides.length, 4);
+  assert.equal(imported.slides.length, 5);
   assert.equal(file.kind, "animation");
   for (const scene of imported.slides.slice(0, 2)) {
     assert.ok(scene.blockKeys.length <= 100);
@@ -98,10 +98,33 @@ test("root JSON imports four scenes with real jumps, deformation, emitters and c
     );
     assert.deepEqual(at(4.5), at(4.5));
   }
-  assert.equal(makeSlimeDemo().slides.length, 4);
+  assert.equal(makeSlimeDemo().slides.length, 5);
 });
 test("a removed spline does not crash the driven gravity engine", () => {
   const s = makeSlimeDemo().slides[0];
   s.animation.paths = [];
   assert.doesNotThrow(() => animationScene(s, s.animation, 5));
+});
+
+test('five worlds exercise attachments, orchestration, editable curves, camera and reused motion', () => {
+  const scenes = makeSlimeDemo().slides;
+  for (const s of scenes) {
+    const a = s.animation;
+    assert.equal(a.actorId, 'slime-player');
+    assert.ok(a.attachments.length >= 2);
+    assert.ok(a.clips.some(c => c.frames.some(f => f.ease === 'bezier')));
+    assert.ok(a.clips.some(c => c.frames.some(f => f.field === 'cameraZoom')));
+    assert.ok(a.clips.some(c => c.id === 'relay-preset'));
+    const before = animationScene(s, a, 0), after = animationScene(s, a, 4.5);
+    assert.equal(before.config.links[0].visible, false);
+    assert.equal(after.config.links[0].visible, true);
+    assert.equal(before.scene.positions.shapeSignal.opacity, 0);
+    assert.equal(after.scene.positions.shapeSignal.opacity ?? 100, 100);
+    assert.equal(after.scene.positions.shapeRelay.rotation, 90);
+    const parent = after.scene.positions.shapeSlime, child = after.scene.positions.shapeCompanion;
+    assert.ok(Math.abs(child.x + child.w / 2 - parent.x - parent.w / 2) < 1e-6);
+    assert.ok(after.firedEvents.length >= 3);
+    assert.deepEqual(after.warnings, []);
+  }
+  assert.ok(scenes[4].animation.paths.some(p => p.id === 'observatory-orbit' && p.closed));
 });

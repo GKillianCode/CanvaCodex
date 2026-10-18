@@ -1785,3 +1785,7 @@
 }
 :root[data-appearance="light"] .undo-notification .text-action {color:#51675b
 }
+:root[data-appearance="light"] .rotation-handle {background:var(--panel,#eff2f1);border:1px solid var(--accent,#537a68);color:var(--accent,#496b5b)
+}
+:root[data-appearance="light"] .rotation-handle::after {background:currentColor
+}

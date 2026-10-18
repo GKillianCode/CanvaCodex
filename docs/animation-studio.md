@@ -91,7 +91,7 @@ Chrome isolé : plateau fini vérifié en clair/sombre, marqueur vide créé pui
 
 ## Parcours Slime et édition d’un état animé
 
-`animation-slime-quatre-scenes.json`, à la racine du dépôt, s’importe dans **Animation → Fichier → Importer un document JSON**. Il remplace le document ouvert dans cet atelier comme les autres imports. Le menu **Exemples → Slime · quatre mondes** ajoute plutôt quatre scènes au document actuel. Prairie, canyon et atelier nocturne durent 10 secondes chacun ; le monde inversé dure 14 secondes. Cocher **Toutes les scènes** dans l’aperçu pour lire/exporter les 44 secondes à la suite. Le même personnage entre par la gauche dans les scènes suivantes, puis tombe du trou nocturne vers la quatrième scène placée en dessous.
+`animation-slime-cinq-scenes.json`, à la racine du dépôt, s’importe dans **Animation → Fichier → Importer un document JSON**. Il remplace le document ouvert dans cet atelier comme les autres imports. Le menu **Exemples → Slime · quatre mondes** ajoute plutôt quatre scènes au document actuel. Prairie, canyon et atelier nocturne durent 10 secondes chacun ; le monde inversé dure 14 secondes. Cocher **Toutes les scènes** dans l’aperçu pour lire/exporter les 44 secondes à la suite. Le même personnage entre par la gauche dans les scènes suivantes, puis tombe du trou nocturne vers la quatrième scène placée en dessous.
 
 Les sols sont deux vrais blocs obstacles séparés par un trou. La trajectoire est une spline à trois segments. Un moteur de gravité utilise le nouveau mode **Spline horizontale + saut physique** : X suit la spline, Y vient de l’impulsion verticale initiale et de la gravité, avec arrêt sur les obstacles. Une impulsion négative fait sauter ; son instant est le début du moteur. Le vent et le frottement horizontal ne s’appliquent pas dans ce mode puisque X est imposé par la spline. La physique utilise des pas déterministes de 1/120 seconde, sans IA. Il s’agit d’une simulation 2D simple, pas d’un moteur de corps rigides rotatifs.
 
@@ -112,3 +112,33 @@ L’option **Objet continu entre scènes** et son **Identifiant partagé** ident
 Pour une forme équipée d’un moteur **Spline horizontale + saut physique**, **Animation → Au contact d’un bloc** permet de choisir un bloc, modifier la forme/couleur du personnage et du bloc, définir une nouvelle force de gravité et une impulsion. Chaque règle se déclenche une fois pendant l’évaluation ; rejouer ou déplacer la tête de lecture recalcule les contacts. Une gravité négative attire au plafond ; les blocs Obstacles arrêtent aussi la montée. Les changements de forme gardent la taille et les réglages physiques du personnage.
 
 La détection utilise les cadres rectangulaires, avec des blocs contacts fixes pendant l’évaluation. Ce n’est pas une collision précise selon les contours d’une étoile, ni une simulation complète d’obstacles mobiles. Le fond dégradé est opaque ; choisir Transparent pour un export avec décor transparent.
+
+## Branche de test : outils de construction d’animations
+
+La branche `codex/test-animation-workflow` part des trois correctifs de gravité, séquence active et naissance des particules. Elle ne fusionne pas la branche de test précédente.
+
+Dans **Propriétés → Animation**, les nouveaux tiroirs proposent :
+
+- **Attaches et références** : parent, ancre parent/enfant, décalages, rotation héritée et flèches reliant deux objets. Les cycles sont ignorés avec un diagnostic. Les attaches imposent la position de l’enfant ; utiliser les décalages ou détacher pour le déplacer librement.
+- **Événements** : à un instant, à la fin d’une séquence ou après un contact physique déjà défini. Actions : montrer un objet ou une flèche, changer une couleur/forme, démarrer une séquence. Les fins de séquences suivent les décalages des séquences déclenchées ; les boucles désactivent les séquences concernées et sont signalées. Les événements restent locaux à la scène. Les contacts sources sont évalués sur la simulation de base ; un réseau où le démarrage conditionnel d’une physique modifierait le contact qui le déclenche n’est pas un graphe physique général pris en charge par cette V1.
+- **Caméra** : centre X/Y, zoom 10–800 %, rotation et clés propres à la piste Caméra. Le cadrage est visible dans l’aperçu et l’export. L’éditeur garde les coordonnées du monde pour préserver ses gestes ; le repère caméra montre le cadre de sortie.
+- **Mouvements réutilisables** : apparition, pulsation et rebond intégrés ; sauvegarde d’une séquence d’un objet avec sa trajectoire éventuelle dans `.frame-data/motions.json`. Les mouvements personnels sont partagés entre animations de cette installation, avec sauvegarde précédente et contrôle de concurrence. Appliquer adapte positions, dimensions et durée à l’objet cible. Les copies appliquées restent indépendantes du mouvement source. Le choix du mouvement est conservé en changeant d’objet.
+- **Diagnostic visuel** : cadres des objets, obstacles, contacts, attaches, forces, chemins et cadre caméra. Ces repères ne sont pas enregistrés dans les vidéos.
+
+Dans **Image clé**, le graphique permet de déplacer les deux poignées Bézier ; les champs numériques restent disponibles. Dans la timeline, Ctrl ou Maj + clic sélectionne plusieurs clés. Les glisser les décale ensemble dans les limites de leurs séquences, sans écraser une clé non sélectionnée. Copier/coller via boutons ou Ctrl C / Ctrl V fonctionne lorsque la timeline a le focus ; le collage se fait dans la séquence sélectionnée à la tête de lecture et refuse un dépassement de durée.
+
+Exemple importable : `animation-workflow-reference-java.json` à la racine, aussi disponible dans **Exemples → Référence Java · événements**. Le libellé suit son objet, une référence apparaît à l’arrivée, une explication commence ensuite et la caméra zoome. L’exemple dure 6 secondes, sans IA.
+
+## Gestes et images partagés entre les éditeurs
+
+Dans diaporamas, incrustations, miniatures et animations : poignée de rotation au-dessus de l’objet ; Maj impose 0/90/180/270°. Les sélections multiples peuvent aussi tourner autour de leur centre. Maj + une poignée de redimensionnement conserve les proportions, y compris les poignées latérales et les objets déjà tournés. Le pourcentage de mise à l’échelle existant reste disponible dans les propriétés.
+
+**Objet → Couleurs → Image de fond de la forme** permet d’importer un PNG/JPEG/WebP/SVG dans une forme fermée : image découpée selon le chemin de la forme, remplissage/contour indépendants, cadrage remplir/contenir, opacité et effets. Le contour est dessiné après l’image. Les données survivent aux exports JSON et aux composants réutilisables ; le rendu commun sert aux PNG, présentations et vidéos. Traits et courbes ouverts restent des contours sans surface de remplissage. La plume et les outils de sélection supplémentaires sont un chantier ultérieur, pas inclus ici.
+
+### Slime · cinq mondes : parcours d’essai du workflow
+
+Importer `animation-slime-cinq-scenes.json` à la racine, ou choisir **Exemples → Slime · cinq mondes**. L’exemple ajoute désormais l’Observatoire après le monde inversé (54 secondes au total). Les quatre parcours physiques précédents restent conservés ; la sortie du quatrième monde correspond à l’entrée du cinquième.
+
+Dans chaque scène : le satellite est attaché au Slime ; le signal est attaché au relais. Une flèche apparaît à 1 seconde, la fin de la pulsation déclenche la rotation du relais et affiche son signal, puis le relais change de couleur. La pulsation provient réellement du préréglage réutilisable et reste éditable sous forme de clés. Des courbes Bézier pilotent pulsation/rotation ; la caméra zoome légèrement puis retrouve son cadre initial à la fin. Dans le monde inversé, le premier contact transforme aussi le satellite. Dans l’Observatoire, une sonde suit une spline fermée, le satellite scintille et le relais devient une étoile.
+
+Pour examiner le fonctionnement, ouvrir **Animation → Diagnostic visuel** : activer Attaches, Collisions, Forces, Caméra et Trajectoires selon le besoin. Ces repères sont disponibles dans toutes les scènes, désactivés par défaut et exclus des exports. Ils ne constituent pas des objets de décor. Les mouvements appliqués dans le fichier n’écrivent pas dans la bibliothèque personnelle de l’utilisateur.

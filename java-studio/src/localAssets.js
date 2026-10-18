@@ -1,6 +1,6 @@
 import { reactive } from "vue";
 export const localAssets = reactive({
-  components: [],
+  components: [],motions: [],
   themes: [],
   removed: [],
   ready: false,
@@ -14,9 +14,9 @@ let token = "",
   queue = Promise.resolve(),
   opening = null;
 const clone = (v) => JSON.parse(JSON.stringify(v));
-export async function refreshAssets() {
+export async function refreshAssets(kinds=["components","themes","motions"]) {
   try {
-    for (const kind of ["components", "themes"]) {
+    for (const kind of kinds) {
       const response = await fetch("/__frame_assets__/" + kind, {
         headers: localAssets.revisions[kind]
           ? { "If-None-Match": localAssets.revisions[kind] }
@@ -59,11 +59,11 @@ export function updateAssets(kind, mutate) {
       localAssets.busy++;
       try {
         for (let retry = 0; retry < 3; retry++) {
-          await refreshAssets();
+          await refreshAssets([kind]);
           const data = {
             format:
               "frame-" +
-              (kind === "themes" ? "theme" : "component") +
+              (kind === "themes" ? "theme" : kind === "motions" ? "motion" : "component") +
               "-library",
             version: 1,
             [kind]: clone(localAssets[kind]),

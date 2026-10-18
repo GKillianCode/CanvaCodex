@@ -1,4 +1,5 @@
 <script setup>
+import {moveKeySelection} from "../animationEditing.js";
 import { reactive, ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import {
   Play,
@@ -60,6 +61,7 @@ const labels = {
   contentScale: "Échelle du contenu",
   progress: "Progression du chemin",
   color: "Couleur du remplissage",
+  cameraX:"Caméra · centre X",cameraY:"Caméra · centre Y",cameraZoom:"Caméra · zoom",cameraRotation:"Caméra · rotation",
   backgroundColor:"Fond · couleur 1",backgroundColor2:"Fond · couleur 2",backgroundAngle:"Fond · angle",
 };
 const easeLabels = {
@@ -89,27 +91,13 @@ function gesture(move) {
 function dragKey(event, c, key) {
   event.preventDefault();
   event.stopPropagation();
-  a.activeKey = key;
-  const rect = event.currentTarget.parentElement.getBoundingClientRect();
-  gesture((e) => {
-    key.time = Math.max(
-      0,
-      Math.min(
-        c.duration,
-        Math.round(
-          timelineTime(
-            e.clientX,
-            rect.left,
-            rect.width,
-            view.value.span,
-            c.start,
-          ) * a.config.fps,
-        ) / a.config.fps,
-      ),
-    );
-    c.frames.sort((x, y) => x.time - y.time);
-  });
+  event.currentTarget.closest('.animation-timeline')?.focus({preventScroll:true});
+  a.selectKey(c,key,event.ctrlKey||event.metaKey||event.shiftKey);
+  const entries=a.keyEntries();if(!entries.length)return;
+  const rect=event.currentTarget.parentElement.getBoundingClientRect(),x=event.clientX,origins=entries.map(r=>r.key.time);
+  gesture(e=>{const delta=Math.round((e.clientX-x)/rect.width*view.value.span*a.config.fps)/a.config.fps;moveKeySelection(entries,delta,origins);});
 }
+function keyShortcuts(e){if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if((e.ctrlKey||e.metaKey)&&['c','v'].includes(e.key.toLowerCase())){e.preventDefault();e.stopPropagation();if(e.key.toLowerCase()==='c')a.copyKeys();else a.pasteKeys();}if(e.key==='Delete'&&a.keyEntries().length){e.preventDefault();e.stopPropagation();a.deleteKeys();}}
 function scrub(event) {
   event.preventDefault();
   const rect = (
@@ -215,10 +203,11 @@ onUnmounted(() => {
 </script>
 <template>
   <section
-    class="animation-timeline"
+    class="animation-timeline" tabindex="0"
+    @keydown="keyShortcuts"
     :style="{ height: height + 'px' }"
     aria-label="Timeline de l’animation"
-    @keydown.delete.stop="deleteEvent($event)"
+    @keydown.delete.stop="!a.keyEntries().length&&deleteEvent($event)"
     @keydown.left.stop
     @keydown.right.stop
     @keydown.up.stop
@@ -349,7 +338,8 @@ onUnmounted(() => {
         >Losanges dans les propriétés · Ctrl + molette : zoom temporel.</span
       >
     </div>
-    <div ref="tracks" class="animation-tracks">
+    <div class="animation-key-selection-tools"><button class="btn" :disabled="!a.keySelection.length" title="Copier les clés sélectionnées · Ctrl C" @click="a.copyKeys()">Copier {{a.keySelection.length}} clé(s)</button><button class="btn" :disabled="!a.keyClipboard.length||!a.clip" title="Coller à la tête de lecture · Ctrl V" @click="a.pasteKeys()">Coller les clés</button><button class="icon-btn" :disabled="!a.keySelection.length" aria-label="Supprimer les clés sélectionnées" @click="a.deleteKeys()"><Trash2 :size="14"/></button><small>Ctrl ou Maj + clic : sélection multiple · glisser pour décaler ensemble.</small></div>
+<div ref="tracks" class="animation-tracks">
       <div
         ref="world"
         class="animation-tracks-world"
@@ -514,7 +504,7 @@ onUnmounted(() => {
                 <button
                   v-for="(key, n) in c.frames.filter((k) => k.field === f)"
                   :key="n"
-                  :class="['key-diamond', { selected: a.activeKey === key }]"
+                  :class="['key-diamond', { selected: a.activeKey === key || a.keySelection.some(r=>r.key===key) }]"
                   :style="{
                     left: ((c.start + key.time) / view.span) * 100 + '%',
                     top: '6px',

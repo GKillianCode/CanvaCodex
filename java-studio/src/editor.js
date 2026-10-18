@@ -22,5 +22,18 @@ export function duplicateElement(s,key) {
 
 export function normalizeAngle(value){return Number.isFinite(Number(value))?((Number(value)%360)+360)%360:0;}
 export function rotatePoint(point,b,degrees=b.rotation||0){const a=degrees*Math.PI/180,c=Math.cos(a),s=Math.sin(a),cx=b.x+b.w/2,cy=b.y+b.h/2,dx=point.x-cx,dy=point.y-cy;return {x:cx+dx*c-dy*s,y:cy+dx*s+dy*c};}
-export function rotationFromPointer(b,start,point,snap=false){const cx=b.x+b.w/2,cy=b.y+b.h/2;let angle=(b.rotation||0)+(Math.atan2(point.y-cy,point.x-cx)-Math.atan2(start.y-cy,start.x-cx))*180/Math.PI;if(snap)angle=Math.round(angle/45)*45;return normalizeAngle(angle);}
-export function resizeRotated(origin,handle,dx,dy,type){const a=(origin.rotation||0)*Math.PI/180,c=Math.cos(a),s=Math.sin(a),b=resizePosition(origin,handle,dx*c+dy*s,-dx*s+dy*c,type),ox=origin.x+origin.w/2,oy=origin.y+origin.h/2,cx=b.x+b.w/2,cy=b.y+b.h/2;return {...b,x:b.x+(cx-ox)*c-(cy-oy)*s-(cx-ox),y:b.y+(cx-ox)*s+(cy-oy)*c-(cy-oy)};}
+export function rotationFromPointer(b,start,point,snap=false){const cx=b.x+b.w/2,cy=b.y+b.h/2;let angle=(b.rotation||0)+(Math.atan2(point.y-cy,point.x-cx)-Math.atan2(start.y-cy,start.x-cx))*180/Math.PI;if(snap)angle=Math.round(angle/90)*90;return normalizeAngle(angle);}
+export function resizeRotated(origin,handle,dx,dy,type,uniform=false){const a=(origin.rotation||0)*Math.PI/180,c=Math.cos(a),s=Math.sin(a),b=(uniform?resizeProportional:resizePosition)(origin,handle,dx*c+dy*s,-dx*s+dy*c,type),ox=origin.x+origin.w/2,oy=origin.y+origin.h/2,cx=b.x+b.w/2,cy=b.y+b.h/2;return {...b,x:b.x+(cx-ox)*c-(cy-oy)*s-(cx-ox),y:b.y+(cx-ox)*s+(cy-oy)*c-(cy-oy)};}
+
+export function resizeProportional(origin,handle,dx,dy,type){
+ const west=handle.includes('w'),east=handle.includes('e'),north=handle.includes('n'),south=handle.includes('s'),horizontal=west||east,vertical=north||south;
+ const vx=(west?-1:1)*origin.w,vy=(north?-1:1)*origin.h;
+ let factor=horizontal&&vertical?1+(dx*vx+dy*vy)/(vx*vx+vy*vy):horizontal?1+dx/vx:1+dy/vy;
+ factor=Math.max(Math.max(1/origin.w,1/origin.h),Math.min(10000/origin.w,10000/origin.h,factor));
+ const w=origin.w*factor,h=origin.h*factor;
+ return {...origin,w,h,x:west?origin.x+origin.w-w:east?origin.x:origin.x+(origin.w-w)/2,y:north?origin.y+origin.h-h:south?origin.y:origin.y+(origin.h-h)/2,...(Number.isFinite(origin.size)?{size:origin.size*factor}:{}),contentScale:(origin.contentScale||1)*factor};
+}
+export function rotateObjects(positions,bounds,delta){
+ const angle=delta*Math.PI/180,c=Math.cos(angle),s=Math.sin(angle),cx=bounds.x+bounds.w/2,cy=bounds.y+bounds.h/2;
+ return Object.fromEntries(Object.entries(positions).map(([key,p])=>{const x=p.x+p.w/2-cx,y=p.y+p.h/2-cy;return[key,{...p,x:cx+x*c-y*s-p.w/2,y:cy+x*s+y*c-p.h/2,rotation:normalizeAngle((p.rotation||0)+delta)}]}));
+}

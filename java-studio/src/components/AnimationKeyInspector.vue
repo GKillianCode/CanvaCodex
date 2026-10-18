@@ -1,4 +1,5 @@
 <script setup>
+import AnimationCurveEditor from "./AnimationCurveEditor.vue";
 import { reactive, computed } from "vue";
 import {
   animationEasings,
@@ -14,6 +15,7 @@ const frames = computed(() =>
 );
 const labels = {
   backgroundColor:"Fond · couleur 1",backgroundColor2:"Fond · couleur 2",backgroundAngle:"Fond · angle",
+  cameraX:"Caméra · centre X",cameraY:"Caméra · centre Y",cameraZoom:"Caméra · zoom",cameraRotation:"Caméra · rotation",
   fillEnabled: "Remplissage activé",
   strokeEnabled: "Contour activé",
   dashed: "Pointillés",
@@ -127,7 +129,7 @@ const labels = {
             </option>
           </select></label
         >
-        <div v-if="f.ease === 'bezier'" class="position-grid">
+        <AnimationCurveEditor v-if="!discreteAnimationFields.includes(f.field)" :frame="f"/><div v-if="f.ease === 'bezier'" class="position-grid">
           <label v-for="(name, i) in ['X1', 'Y1', 'X2', 'Y2']" :key="i"
             >{{ name
             }}<input

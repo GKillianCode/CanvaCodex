@@ -5,6 +5,7 @@ import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assetLibraryPlugin } from "../scripts/asset-library-plugin.mjs";
+import {builtinMotions} from "../src/animationPresets.js";
 import { normalizeThemes } from "../src/themes.js";
 test("local asset files persist atomically, reject stale writes and preserve a backup", async () => {
   const directory = await mkdtemp(join(tmpdir(), "frame-assets-test-"));
@@ -96,6 +97,10 @@ test("local asset files persist atomically, reject stale writes and preserve a b
     );
     const old = await (await fetch(url + "/components")).json();
     assert.equal(old.data.components.length, 0);
+    const motions=await(await fetch(url+"/motions")).json();
+    const written=await fetch(url+"/motions",{method:"PUT",headers:{...headers,"If-Match":motions.revision},body:JSON.stringify({format:"frame-motion-library",version:1,motions:[builtinMotions[0]]})});
+    assert.equal(written.status,200);assert.equal(JSON.parse(await readFile(join(directory,"motions.json"),"utf8")).motions[0].id,builtinMotions[0].id);
+
   } finally {
     await new Promise((r) => server.close(r));
     await rm(directory, { recursive: true, force: true });

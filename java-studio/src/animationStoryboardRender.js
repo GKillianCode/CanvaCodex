@@ -1,3 +1,4 @@
+import {projectCameraPose} from "./animationWorkflow.js";
 import { storyboardAt } from "./animationStoryboard.js";
 import { animationScene } from "./animationModel.js";
 import { renderAnimation } from "./animationRender.js";
@@ -26,7 +27,7 @@ export function storyboardTransition(scenes, time) {
         : { x: (Math.sign(dx) || 1) * 1920, y: 0 },
   };
 }
-export function renderAnimationStoryboard(ctx, scenes, theme, time) {
+export function renderAnimationStoryboard(ctx, scenes, theme, time,options={}) {
   const part = storyboardTransition(scenes, time);
   if (!part) return;
   if (!part.next)
@@ -35,7 +36,7 @@ export function renderAnimationStoryboard(ctx, scenes, theme, time) {
       part.scene,
       theme,
       part.scene.animation,
-      part.time,
+      part.time,options,
     );
   const { next, progress: u, offset: d } = part,
     a = part.scene.animation,
@@ -60,7 +61,7 @@ export function renderAnimationStoryboard(ctx, scenes, theme, time) {
     hide(part.scene, linked ? a.actorKey : null),
     theme,
     a,
-    part.time,
+    part.time,options,
   );
   ctx.restore();
   ctx.save();
@@ -70,12 +71,12 @@ export function renderAnimationStoryboard(ctx, scenes, theme, time) {
     hide(next, linked ? b.actorKey : null),
     theme,
     b,
-    0,
+    0,options,
   );
   ctx.restore();
   if (linked) {
-    const p = from.scene.positions[a.actorKey],
-      q = to.scene.positions[b.actorKey];
+    const p = options.camera===false?from.scene.positions[a.actorKey]:projectCameraPose(from.scene.positions[a.actorKey],from.config.camera),
+      q = options.camera===false?to.scene.positions[b.actorKey]:projectCameraPose(to.scene.positions[b.actorKey],to.config.camera);
     if (p && q) {
       const pose = { ...p };
       for (const k of ["x", "y", "w", "h", "rotation", "opacity"]) {

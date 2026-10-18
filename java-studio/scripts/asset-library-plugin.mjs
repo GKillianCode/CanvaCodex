@@ -1,3 +1,4 @@
+import {normalizeMotionPresets} from "../src/animationPresets.js";
 import { randomBytes, createHash } from "node:crypto";
 import {
   readFile,
@@ -19,7 +20,7 @@ export function normalizeAssetFile(kind, raw) {
     !raw ||
     raw.version !== 1 ||
     raw.format !==
-      "frame-" + (kind === "themes" ? "theme" : "component") + "-library"
+      "frame-" + (kind === "themes" ? "theme" : kind === "motions" ? "motion" : "component") + "-library"
   )
     throw Error("Bibliothèque invalide.");
   const list = raw[kind];
@@ -30,7 +31,7 @@ export function normalizeAssetFile(kind, raw) {
       ? list.length
         ? normalizeThemes(list)
         : []
-      : normalizeComponents(list);
+      : kind === "motions" ? normalizeMotionPresets(list) : normalizeComponents(list);
   if (normalized.length !== list.length)
     throw Error("Éléments invalides dans la bibliothèque.");
   return {
@@ -56,7 +57,7 @@ export function assetLibraryPlugin({
     tail = Promise.resolve();
   const cache = new Map();
   const empty = (kind) => ({
-    format: "frame-" + (kind === "themes" ? "theme" : "component") + "-library",
+    format: "frame-" + (kind === "themes" ? "theme" : kind === "motions" ? "motion" : "component") + "-library",
     version: 1,
     [kind]: [],
     ...(kind === "themes" ? { removed: [] } : {}),
@@ -104,7 +105,7 @@ export function assetLibraryPlugin({
         )
           return json(403, { error: "Accès local uniquement." });
         const kind = new URL(req.url, "http://" + host).pathname.slice(1);
-        if (!["themes", "components"].includes(kind))
+        if (!["themes", "components", "motions"].includes(kind))
           return json(404, { error: "Bibliothèque inconnue." });
         if (req.method === "GET") {
           const current = await read(kind);

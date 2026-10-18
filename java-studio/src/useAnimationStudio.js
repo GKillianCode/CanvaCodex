@@ -1,4 +1,6 @@
-import {editableClip} from "./animationEditing.js";
+import {makeWorkflowExample} from "./animationWorkflowExample.js";
+import {cameraFields} from "./animationWorkflow.js";
+import {editableClip,copyKeySelection} from "./animationEditing.js";
 import {splitSpline,removeSplinePoint} from "./splines.js";
 import { boundColor } from "./colors.js";
 import { storyboardAt, storyboardDuration } from "./animationStoryboard.js";
@@ -43,6 +45,9 @@ export function useAnimationStudio(s) {
     exportWidth = ref(1920),
     pathEditing = ref(false),
     activePath = ref("");
+  const motionPrefs=ref({name:'Mon mouvement',duration:1,motion:'builtin-fade'});
+  const keySelection=ref([]),keyClipboard=ref([]);
+  const diagnostics=ref({bounds:false,collisions:false,contacts:false,attachments:false,forces:false,camera:false,paths:false});
   const selectedPathPoint=ref(0);
   const previewOpen = ref(false),
     activeKey = ref(null),
@@ -82,6 +87,7 @@ export function useAnimationStudio(s) {
     s.current,
     (scene, previous) => {
       if (!advancing) stop();
+      keySelection.value=[];
       const same = scene.id === previous?.id,
         oldKey = activeKey.value;
       if (!scene.animation) scene.animation = normalizeAnimation();
@@ -106,6 +112,7 @@ export function useAnimationStudio(s) {
     { immediate: true },
   );
   watch([time, preview, pathEditing], s.requestDraw);
+  watch(diagnostics,s.requestDraw,{deep:true});
   watch(
     () => config.value?.duration,
     () => {
@@ -418,6 +425,7 @@ export function useAnimationStudio(s) {
     requestDelete("la séquence « " + c.name + " »", () => {
       s.beginGesture();
       scene.animation.clips = scene.animation.clips.filter((c) => c.id !== id);
+      scene.animation.events=scene.animation.events.filter(e=>!(e.action==='startClip'&&e.target===id)&&!(e.trigger==='clipEnd'&&e.source===id));
       if (selectedClip.value === id) {
         selectedClip.value = "";
         activeKey.value = null;
@@ -567,6 +575,7 @@ export function useAnimationStudio(s) {
     }
   }
   function example(kind) {
+    if(kind==='reference'){if(s.slides.value.length>=100)return;stop();s.beginGesture();const scene=makeWorkflowExample().slides[0];scene.id=crypto.randomUUID();scene.grid={x:Math.max(0,...s.slides.value.map(s=>s.grid.x))+1,y:0};s.slides.value.push(scene);s.index.value=s.slides.value.length-1;s.endGesture();preview.value=true;return;}
     if(kind === "slime") {
       if(s.slides.value.length>96){s.notify("Quatre places de scène sont nécessaires.");return;}
       stop();s.beginGesture();
@@ -764,7 +773,8 @@ export function useAnimationStudio(s) {
     }
   }
   function propertyValue(name, animated = preview.value) {
-    if(backgroundAnimationFields.includes(name)) {
+    if([...backgroundAnimationFields,...cameraFields].includes(name)) {
+      if(cameraFields.includes(name)){const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;const p=name.slice(6);return cfg.camera[p[0].toLowerCase()+p.slice(1)];}
       const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;
       return name==='backgroundColor'?boundColor(cfg,'color',s.theme.value):name==='backgroundColor2'?cfg.color2:cfg.gradientAngle;
     }
@@ -831,7 +841,7 @@ export function useAnimationStudio(s) {
     );
   }
   function keyAt(name) {
-    const target=backgroundAnimationFields.includes(name)?config.value.clips.find(c=>c.keys.length===0&&c.frames.some(f=>backgroundAnimationFields.includes(f.field))):clip.value;
+    const target=[...backgroundAnimationFields,...cameraFields].includes(name)?config.value.clips.find(c=>c.keys.length===0&&c.frames.some(f=>(cameraFields.includes(name)?cameraFields:backgroundAnimationFields).includes(f.field))):clip.value;
     return target?.frames.find(
       (f) =>
         f.field === name &&
@@ -846,9 +856,11 @@ export function useAnimationStudio(s) {
       addClip();
     return clip.value;
   }
-  function ensureBackgroundClip(){
-    let c=config.value.clips.find(c=>c.keys.length===0&&c.frames.some(f=>backgroundAnimationFields.includes(f.field)));
-    if(!c){if(config.value.clips.length>=100)return null;c=normalizeAnimation({clips:[{id:crypto.randomUUID(),name:'Fond de scène',keys:[],duration:config.value.duration}]}).clips[0];config.value.clips.push(c);}
+  function ensureBackgroundClip(field){
+    const fields=cameraFields.includes(field)?cameraFields:backgroundAnimationFields;
+    let c=config.value.clips.find(c=>c.keys.length===0&&c.frames.some(f=>fields.includes(f.field)));
+    if(!c){if(config.value.clips.length>=100)return null;c=normalizeAnimation({clips:[{id:crypto.randomUUID(),name:cameraFields.includes(field)?'Caméra':'Fond de scène',keys:[],duration:config.value.duration}]}).clips[0];config.value.clips.push(c);}
+    if(c.start){for(const f of c.frames)f.time+=c.start;c.start=0;}c.duration=config.value.duration;
     selectedClip.value=c.id;return c;
   }
   function setProperty(name, value) {
@@ -858,7 +870,7 @@ export function useAnimationStudio(s) {
     s.beginGesture();
     try {
       const previous = propertyValue(name, true),
-        c = backgroundAnimationFields.includes(name) ? ensureBackgroundClip() : ensureClip();
+        c = [...backgroundAnimationFields,...cameraFields].includes(name) ? ensureBackgroundClip(name) : ensureClip();
       if (!c) return;
       const local = Math.max(0, Math.min(c.duration, time.value - c.start));
       const interpolation =
@@ -866,7 +878,7 @@ export function useAnimationStudio(s) {
           ?.ease ||
         c.frames.find((f) => f.field === name)?.ease ||
         c.easing;
-      if (local > 0 && !c.frames.some((f) => f.field === name))
+      if (local > 0 && !c.frames.some((f) => f.field === name && f.time < local))
         addAnimationKey(
           c,
           name,
@@ -903,7 +915,7 @@ export function useAnimationStudio(s) {
           config.value.clips.push(c);
         }
         const local = Math.max(0, Math.min(c.duration,time.value-c.start));
-        for(const field of ["x","y","w","h","rotation"]) {
+        for(const field of ["x","y","w","h","rotation","size","contentScale"]) {
           if(c.pathId && ["x","y"].includes(field)) continue;
           if(!Number.isFinite(p[field]) || Math.abs(p[field]-(before[field]||0))<0.0001) continue;
           if(local>0 && !c.frames.some(f=>f.field===field)) addAnimationKey(c,field,0,before[field]||0,c.easing);
@@ -915,7 +927,7 @@ export function useAnimationStudio(s) {
   }
   function toggleProperty(name) {
     const f = keyAt(name);
-    if (f) deleteKey(backgroundAnimationFields.includes(name)?config.value.clips.find(c=>c.frames.includes(f)):clip.value, f);
+    if (f) deleteKey([...backgroundAnimationFields,...cameraFields].includes(name)?config.value.clips.find(c=>c.frames.includes(f)):clip.value, f);
     else setProperty(name, propertyValue(name));
   }
   function setClipEasing(c, value) {
@@ -1024,6 +1036,16 @@ export function useAnimationStudio(s) {
     },
     { flush: "sync" },
   );
+  function selectKey(c,key,add=false){
+    selectClip(c.id);activeKey.value=key;
+    const found=keySelection.value.find(r=>r.clipId===c.id&&r.key===key);
+    if(add){if(found)keySelection.value=keySelection.value.filter(r=>r!==found);else keySelection.value.push({clipId:c.id,key});}
+    else if(!found)keySelection.value=[{clipId:c.id,key}];
+  }
+  function keyEntries(){return keySelection.value.map(r=>({clip:config.value.clips.find(c=>c.id===r.clipId),key:r.key})).filter(r=>r.clip?.frames.includes(r.key));}
+  function copyKeys(){keyClipboard.value=copyKeySelection(keyEntries());s.notify(keyClipboard.value.length+" clé(s) copiée(s).");}
+  function pasteKeys(){const c=clip.value;if(!c||!keyClipboard.value.length)return;const start=time.value-c.start;if(start<0||keyClipboard.value.some(f=>start+f.time>c.duration)){s.notify("Les clés dépassent la durée de cette séquence.");return;}s.beginGesture();keySelection.value=[];for(const f of keyClipboard.value){addAnimationKey(c,f.field,start+f.time,f.value,f.ease);const key=c.frames.find(k=>k.field===f.field&&Math.abs(k.time-start-f.time)<1e-6);key.curve=copy(f.curve);keySelection.value.push({clipId:c.id,key});}s.endGesture();s.requestDraw();}
+  function deleteKeys(){const entries=keyEntries();if(!entries.length)return;requestDelete(entries.length+" clé(s) sélectionnée(s)",()=>{s.beginGesture();for(const r of entries)r.clip.frames=r.clip.frames.filter(k=>k!==r.key);keySelection.value=[];activeKey.value=null;s.endGesture();});}
   function cancel() {
     controller?.abort();
   }
@@ -1036,7 +1058,7 @@ export function useAnimationStudio(s) {
     window.removeEventListener("blur", blur);
   });
   return {
-    commitPose,selectedPathPoint,addPathPoint,removePathPoint,
+    motionPrefs,keySelection,keyClipboard,selectKey,keyEntries,copyKeys,pasteKeys,deleteKeys,diagnostics,commitPose,selectedPathPoint,addPathPoint,removePathPoint,
     activeFrame,
     pendingDelete,
     requestDelete,

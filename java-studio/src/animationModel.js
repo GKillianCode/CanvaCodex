@@ -1,3 +1,5 @@
+const contactHistory=new WeakMap();
+import {normalizeAttachments,applyAttachments,normalizeEvents,eventSchedule,applyEvents,normalizeCamera,cameraFields} from "./animationWorkflow.js";
 import { splinePoint, splineAngle, splineParameter } from "./splines.js";
 export { splinePoint, splineAngle, splineParameter } from "./splines.js";
 import {
@@ -44,6 +46,7 @@ export const colorAnimationFields = [
   "backgroundColor2",
 ];
 export const animationFields = [
+  ...cameraFields,
   ...backgroundAnimationFields,
   ...Object.keys(shapeAnimationFields),
   ...Object.keys(engineAnimationFields),
@@ -118,7 +121,8 @@ export function normalizeEngine(raw = {}, i = 0) {
 }
 export function normalizeAnimation(raw = {}) {
   return {
-    version: 4,
+    version: 5,
+    attachments:normalizeAttachments(raw?.attachments),events:normalizeEvents(raw?.events),camera:normalizeCamera(raw?.camera),
     actorKey: String(raw?.actorKey || "").slice(0, 100),
     actorId: String(raw?.actorId || "").slice(0, 100),
     transition: number(raw?.transition, 0, 0, 2),
@@ -150,7 +154,7 @@ export function normalizeAnimation(raw = {}) {
     links: list(raw?.links, 100)
       .filter((l) => typeof l?.from === "string" && typeof l?.to === "string")
       .map((l, i) => ({
-        id: String(l.id || "link" + i).slice(0, 100),
+        id: String(l.id || "link" + i).slice(0, 100),visible:l.visible!==false,
         from: l.from.slice(0, 100),
         to: l.to.slice(0, 100),
         color: /^#[a-f0-9]{6}$/i.test(l.color) ? l.color : "#8ab9ab",
@@ -298,7 +302,7 @@ export function frameValue(frames, field, time, fallback) {
     }
   return keys.at(-1).value;
 }
-export function animationScene(scene, raw, time) {
+export function animationScene(scene, raw, time, options={}) {
   const config = normalizeAnimation(raw),
     result = {
       ...scene,
@@ -308,6 +312,13 @@ export function animationScene(scene, raw, time) {
       blockKeys: [...(scene.blockKeys || [])],
     },
     typingElapsed = {};
+  let contactTimes={};
+  if(!options.skipEvents&&config.events.some(e=>e.enabled&&e.trigger==='contact')){
+    const signature=JSON.stringify([scene.positions,scene.elements,config]);const cached=contactHistory.get(scene);
+    if(cached?.signature===signature)contactTimes=cached.times;
+    else{const past=animationScene(scene,{...config,events:[]},config.duration,{skipEvents:true}).scene;for(const p of Object.values(past.positions))Object.assign(contactTimes,p.contactTimes||{});contactHistory.set(scene,{signature,times:contactTimes});}
+  }
+  const schedule=eventSchedule(config,contactTimes);
   for (const key of scene.blockKeys || []) {
     const starts = config.clips
       .filter((c) => c.enabled && c.keys.includes(key))
@@ -340,6 +351,7 @@ export function animationScene(scene, raw, time) {
         if (prop === "color") config.colorRole = null;
       }
     }
+    for(const field of cameraFields)if(clip.frames.some(f=>f.field===field)){const prop=field.slice(6);const key=prop[0].toLowerCase()+prop.slice(1);config.camera[key]=frameValue(clip.frames,field,local,config.camera[key]);}
     const keys = clip.keys.filter((k) => result.positions[k]),
       anchor = result.positions[keys[0]];
     if (!anchor) continue;
@@ -543,6 +555,7 @@ export function animationScene(scene, raw, time) {
             },
             floors,
           );
+        if(result.positions[key]?.contactTimes)result.positions[key].contactStart=engine.start;
       } else {
         if (p && !result.elements[key]?.engineKind)
           result.positions[key] = simulateBody(
@@ -559,6 +572,7 @@ export function animationScene(scene, raw, time) {
       }
     }
   }
+  for(const [key,p]of Object.entries(result.positions))if(p.contactTimes)result.positions[key]={...p,contactTimes:Object.fromEntries(Object.entries(p.contactTimes).map(([id,t])=>[id,t+(p.contactStart||0)]))};
   for (const [key, p] of Object.entries(result.positions))
     for (const id of p.contacts || []) {
       const r = config.triggers.find((r) => r.id === id);
@@ -577,6 +591,9 @@ export function animationScene(scene, raw, time) {
         });
     }
   applyEffects(result, config.effects, time);
+  const attachmentWarnings=applyAttachments(result,config.attachments);
+  const firedEvents=applyEvents(result,config,time,schedule.times);
+  config.camera=normalizeCamera(config.camera);
   for (const engine of config.engines) {
     const parent = result.positions[engine.parent],
       p = result.positions[engine.key];
@@ -587,7 +604,7 @@ export function animationScene(scene, raw, time) {
         y: parent.y + (parent.h || 0) / 2 + engine.offsetY - p.h / 2,
       };
   }
-  return { scene: result, typingElapsed, config };
+  return { scene: result, typingElapsed, config, firedEvents,eventTimes:schedule.times,warnings:[...schedule.warnings,...attachmentWarnings] };
 }
 // Closed-form, seeded particles: seeking and exporting do not depend on preview FPS.
 export function animationParticles(clip, time, origin) {

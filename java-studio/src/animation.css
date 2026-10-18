@@ -867,3 +867,4 @@
 .animation-key-tools .field-help {
   flex: 0 1 auto;
 }
+.animation-key-selection-tools{display:flex;align-items:center;gap:8px;padding:6px 14px;border-top:1px solid var(--border);font-size:11px}.animation-key-selection-tools small{color:var(--muted)}

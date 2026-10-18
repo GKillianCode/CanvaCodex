@@ -1,3 +1,4 @@
+import {imageAsset} from "./imageCache.js";
 import {svgImageSource} from './svgColors.js';
 import { layoutRichText } from './richTextLayout.js';
 import { textSegments } from './richText.js';
@@ -21,18 +22,8 @@ import { WIDTH, HEIGHT, visibleBlocks, blockType, blockText } from './model.js';
 import { javaLines, codeColor } from './code.js';
 const richTextStyle=(s,key)=>({...getTextStyle(s,key),runs:s.positions[key]?.textRuns||[]});
 const backgrounds = new Map();
-const images = new Map();
-function imageAsset(src) {
-  if (!images.has(src)) {
-    const image = new Image();
-    const entry = {image,ready:false,promise:null};
-    entry.promise = new Promise(resolve=> { image.onload = ()=>{entry.ready=true;window.dispatchEvent(new Event('frame-images-ready'));resolve();}; image.onerror=()=>resolve(); });
-    image.src=src; images.set(src,entry);
-    if (images.size>100) images.delete(images.keys().next().value);
-  }
-  return images.get(src);
-}
-export async function prepareImages(slides,theme={}) { await Promise.all(slides.flatMap(s=>Object.values(s.elements||{}).filter(e=>e.type==='image'&&e.src).map(e=>imageAsset(svgImageSource(e,theme)).promise))); }
+export async function prepareImages(slides,theme={}) { await Promise.all(slides.flatMap(s=>Object.values(s.elements||{}).flatMap(e=>e.type==='image'&&e.src?[imageAsset(svgImageSource(e,theme)).promise]:e.type==='shape'&&e.imageSrc?[imageAsset(e.imageSrc).promise]:[]))); }
+
 export function imageDrawingRect(p,img,fit='contain') {
   const h=p.h||360, scale=fit==='cover'?Math.max(p.w/img.width,h/img.height):Math.min(p.w/img.width,h/img.height);
   const w=img.width*scale, height=img.height*scale;

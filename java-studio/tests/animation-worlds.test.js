@@ -42,7 +42,7 @@ test("gradient colors and angle interpolate on a scene track without an object",
   assert.equal(mid.config.gradientAngle, 90);
   assert.equal(cfg.color, "#000000");
 });
-test("four worlds share one actor identity and matching boundary poses", () => {
+test("five worlds share one actor identity and matching boundary poses", () => {
   const scenes = makeSlimeDemo().slides;
   assert.deepEqual(
     scenes.map((s) => s.grid),
@@ -51,10 +51,11 @@ test("four worlds share one actor identity and matching boundary poses", () => {
       { x: 1, y: 0 },
       { x: 2, y: 0 },
       { x: 2, y: 1 },
+      { x: 3, y: 1 },
     ],
   );
-  for (let i = 0; i < 3; i++) {
-    const p = animationScene(scenes[i], scenes[i].animation, 10).scene.positions
+  for (let i = 0; i < 4; i++) {
+    const p = animationScene(scenes[i], scenes[i].animation, scenes[i].animation.duration).scene.positions
         .shapeSlime,
       q = animationScene(scenes[i + 1], scenes[i + 1].animation, 0).scene
         .positions.shapeSlime;
