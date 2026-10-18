@@ -51,6 +51,20 @@ const box = computed(() => {
 });
 const poly = computed(() => (t.region?.points || []).map(p => p.x + "," + p.y).join(" "));
 const palette = ref(null), collapsed = ref(false), position = ref({x:14,y:12}), moving = ref(false);
+const storageKey = `frame-drawing-palette:${s.application}`;
+if (props.mode === 'toolbar') {
+  try {
+    const saved = JSON.parse(window.localStorage.getItem(storageKey));
+    if (saved && Number.isFinite(saved.x) && Number.isFinite(saved.y)) {
+      position.value = {x:Math.max(0,saved.x), y:Math.max(0,saved.y)};
+      collapsed.value = saved.collapsed === true;
+    }
+  } catch {}
+}
+function savePalette() {
+  if (props.mode !== 'toolbar') return;
+  try { window.localStorage.setItem(storageKey, JSON.stringify({...position.value,collapsed:collapsed.value})); } catch {}
+}
 let gesture = null, observer;
 function constrain() {
   const el = palette.value, host = el?.parentElement;
@@ -72,14 +86,14 @@ function movePalette(e) {
   position.value = {x:gesture.x + e.clientX - gesture.clientX,y:gesture.y + e.clientY - gesture.clientY};
   constrain();
 }
-function endPalette() { gesture = null; moving.value = false; }
+function endPalette() { gesture = null; moving.value = false; savePalette(); }
 function movePaletteKey(e) {
   const delta = {ArrowLeft:[-16,0],ArrowRight:[16,0],ArrowUp:[0,-16],ArrowDown:[0,16]}[e.key];
   if (!delta) return;
   e.preventDefault();e.stopPropagation();
-  position.value = {x:position.value.x+delta[0],y:position.value.y+delta[1]};constrain();
+  position.value = {x:position.value.x+delta[0],y:position.value.y+delta[1]};constrain();savePalette();
 }
-async function togglePalette() { collapsed.value = !collapsed.value; await nextTick(); constrain(); }
+async function togglePalette() { collapsed.value = !collapsed.value; await nextTick(); constrain();savePalette(); }
 onMounted(() => {
   if (!palette.value) return;
   observer = new ResizeObserver(constrain);
