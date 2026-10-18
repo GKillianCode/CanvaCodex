@@ -8,7 +8,7 @@ const props = defineProps({ studio: Object }),
   <div class="engine-guides">
     <span
       v-for="engine in s.animation.config.engines.filter(
-        (e) => s.current.positions[e.key],
+        (e) => s.animation.editorScene.positions[e.key],
       )"
       :key="engine.id"
       class="engine-guide-icon"
@@ -25,15 +25,15 @@ const props = defineProps({ studio: Object }),
       "
       :style="{
         left:
-          ((s.current.positions[engine.key].x +
-            s.current.positions[engine.key].w / 2 +
+          ((s.animation.editorScene.positions[engine.key].x +
+            s.animation.editorScene.positions[engine.key].w / 2 +
             320) /
             2560) *
             100 +
           '%',
         top:
-          ((s.current.positions[engine.key].y +
-            s.current.positions[engine.key].h / 2 +
+          ((s.animation.editorScene.positions[engine.key].y +
+            s.animation.editorScene.positions[engine.key].h / 2 +
             180) /
             1440) *
             100 +

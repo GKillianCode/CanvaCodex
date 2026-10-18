@@ -34,7 +34,7 @@ export function useAnimationStudio(s) {
   let panCleanup = () => {};
   const time = ref(0),
     playing = ref(false),
-    preview = ref(false),
+    preview = ref(true),
     loop = ref(true),
     selectedClip = ref(""),
     field = ref("x"),
@@ -45,6 +45,9 @@ export function useAnimationStudio(s) {
     exportWidth = ref(1920),
     pathEditing = ref(false),
     activePath = ref("");
+  const construction = ref(true);
+  function setConstruction(value) { stop(); construction.value = value; preview.value = true; }
+  const editorScene = computed(() => preview.value ? animationScene(s.current.value, config.value, time.value).scene : s.current.value);
   const motionPrefs=ref({name:'Mon mouvement',duration:1,motion:'builtin-fade'});
   const keySelection=ref([]),keyClipboard=ref([]);
   const diagnostics=ref({bounds:false,collisions:false,contacts:false,attachments:false,forces:false,camera:false,paths:false});
@@ -111,7 +114,7 @@ export function useAnimationStudio(s) {
     },
     { immediate: true },
   );
-  watch([time, preview, pathEditing], s.requestDraw);
+  watch([time, preview, construction, pathEditing], s.requestDraw);
   watch(diagnostics,s.requestDraw,{deep:true});
   watch(
     () => config.value?.duration,
@@ -135,7 +138,7 @@ export function useAnimationStudio(s) {
   );
   function addEngine(kind, point) {
     stop();
-    preview.value = false;
+    setConstruction(true);
     s.beginGesture();
     try {
       const e = addSceneEngine(
@@ -184,7 +187,7 @@ export function useAnimationStudio(s) {
   }
   function selectEngine(id) {
     stop();
-    preview.value = false;
+    setConstruction(true);
     const e = config.value.engines.find((e) => e.id === id);
     if (e && s.current.value.positions[e.key]) {
       s.selectedKeys.value = [e.key];
@@ -215,7 +218,7 @@ export function useAnimationStudio(s) {
       e.particles = copy(c.particles);
       e.gravity = c.gravity;
       c.particles.enabled = false;
-      preview.value = false;
+      setConstruction(true);
       s.selectedKeys.value = [e.key];
       s.selected.value = e.key;
     } catch (error) {
@@ -398,7 +401,7 @@ export function useAnimationStudio(s) {
     }).clips[0];
     config.value.clips.push(c);
     selectedClip.value = c.id;
-    preview.value = false;
+    setConstruction(true);
   }
   function duplicateClip() {
     if (!clip.value || config.value.clips.length >= 100) return;
@@ -1058,6 +1061,7 @@ export function useAnimationStudio(s) {
     window.removeEventListener("blur", blur);
   });
   return {
+    construction,setConstruction,editorScene,
     motionPrefs,keySelection,keyClipboard,selectKey,keyEntries,copyKeys,pasteKeys,deleteKeys,diagnostics,commitPose,selectedPathPoint,addPathPoint,removePathPoint,
     activeFrame,
     pendingDelete,

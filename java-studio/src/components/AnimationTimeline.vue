@@ -258,17 +258,16 @@ onUnmounted(() => {
         >
         <div
           class="workspace-switch"
-          title="Disposition initiale : disposition hors animation. État animé : rendu à l’instant du curseur."
+          title="Construction : état courant avec repères et éléments hors cadre. État animé : rendu cadré au même instant."
         >
           <button
-            :class="{ active: !a.preview }"
+            :class="{ active: a.construction }"
             @click="
-              a.stop();
-              a.preview = false;
+              a.setConstruction(true);
             "
           >
-            Disposition initiale</button
-          ><button :class="{ active: a.preview }" @click="a.preview = true">
+            Construction</button
+          ><button :class="{ active: !a.construction }" @click="a.setConstruction(false)">
             État animé
           </button>
         </div>
