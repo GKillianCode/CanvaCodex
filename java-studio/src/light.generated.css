@@ -1789,3 +1789,31 @@
 }
 :root[data-appearance="light"] .rotation-handle::after {background:currentColor
 }
+:root[data-appearance="light"] .drawing-tool-palette {background:#eef1f0ee;border:1px solid var(--border);border-radius:10px
+}
+:root[data-appearance="light"] .drawing-tool-palette button {background:transparent;border:1px solid transparent;border-radius:6px;color:var(--muted)
+}
+:root[data-appearance="light"] .drawing-tool-palette button.active {color:var(--mint);background:#a5f3cf12;border-color:#537a6830
+}
+:root[data-appearance="light"] .drawing-tool-palette button:hover {background:#ffffff08;color:inherit
+}
+:root[data-appearance="light"] .drawing-tool-secondary {border-top:1px solid var(--border)
+}
+:root[data-appearance="light"] .drawing-tool-secondary span,:root[data-appearance="light"] .drawing-tool-secondary label {color:var(--muted)
+}
+:root[data-appearance="light"] .drawing-tool-secondary select {border:1px solid var(--border);border-radius:5px;color:inherit;background:transparent
+}
+:root[data-appearance="light"] .drawing-region>* {fill:#3462701c;stroke:#346270
+}
+:root[data-appearance="light"] .drawing-pen-preview path,:root[data-appearance="light"] .drawing-nodes path {fill:none;stroke:#4e6457
+}
+:root[data-appearance="light"] .drawing-pen-preview line,:root[data-appearance="light"] .drawing-nodes line {stroke:#4e6457
+}
+:root[data-appearance="light"] .drawing-pen-preview circle {fill:#17392b;stroke:#496b5b
+}
+:root[data-appearance="light"] .drawing-node-anchor,:root[data-appearance="light"] .drawing-node-handle {fill:#1d302a;stroke:#496b5b
+}
+:root[data-appearance="light"] .drawing-node-anchor.active {fill:#496b5b;stroke:#1d302a
+}
+:root[data-appearance="light"] .drawing-node-handle {fill:#4e6457;stroke:#263a43
+}

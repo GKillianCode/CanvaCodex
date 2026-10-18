@@ -892,8 +892,8 @@ export function useAnimationStudio(s) {
       s.requestDraw();
     }
   }
-  function commitPose(positions, origins) {
-    s.beginGesture();
+  function commitPose(positions, origins, manageHistory = true) {
+    if(manageHistory)s.beginGesture();
     try {
       for (const [key, p] of Object.entries(positions)) {
         const before = origins[key];
@@ -913,7 +913,7 @@ export function useAnimationStudio(s) {
         }
         selectedClip.value=c.id;
       }
-    } finally { s.endGesture(); s.requestDraw(); }
+    } finally { if(manageHistory)s.endGesture(); s.requestDraw(); }
   }
   function toggleProperty(name) {
     const f = keyAt(name);

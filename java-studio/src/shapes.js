@@ -1,3 +1,4 @@
+import {normalizePathNodes,freeformPath} from "./freeform.js";
 import {validShapeImage,imageFitRect} from "./shapeImages.js";
 import {imageAsset} from "./imageCache.js";
 import {normalizeImageEffects,imageFilter} from "./imageEffects.js";
@@ -8,14 +9,15 @@ export const shapes = [
 const clamp=(value,min,max,fallback)=>Number.isFinite(Number(value))?Math.max(min,Math.min(max,Number(value))):fallback;
 const color=(value,fallback)=>/^#[\da-f]{6}$/i.test(value)?value:fallback;
 export function normalizeShape(raw={}) {
- const spec=shapes.find(s=>s.id===raw.shape)||shapes.find(s=>s.id==='rect');
- return {imageSrc:validShapeImage(raw.imageSrc)?raw.imageSrc:'',imageFit:raw.imageFit==='contain'?'contain':'cover',imageOpacity:clamp(raw.imageOpacity,0,100,100),imageEffects:normalizeImageEffects(raw.imageEffects),...(['particles','gravity'].includes(raw.engineKind)?{engineKind:raw.engineKind}:{}),...(Array.isArray(raw.topGap)&&raw.topGap.length===2?{topGap:raw.topGap.map(v=>clamp(v,0,100,0)).sort((a,b)=>a-b)}:{}),type:'shape',custom:raw.custom!==false,template:raw.template===true,fillRole:validColorRole(raw.fillRole),strokeRole:validColorRole(raw.strokeRole),name:String(raw.name||spec.name).slice(0,100),shape:spec.id,fill:color(raw.fill,'#35ff91'),stroke:color(raw.stroke,'#35ff91'),filled:raw.filled!==false,outlined:raw.outlined===true||spec.open,strokeWidth:clamp(raw.strokeWidth,1,60,6),opacity:clamp(raw.opacity,0,100,100),radius:clamp(raw.radius,0,50,spec.id==='rounded'?12:0),roundedCorners:raw.roundedCorners===true,individualCorners:raw.individualCorners===true,cornerRadii:Object.fromEntries(['tl','tr','br','bl'].map(k=>[k,clamp(raw.cornerRadii?.[k],0,50,clamp(raw.radius,0,50,spec.id==='rounded'?12:0))])),points:Math.round(clamp(raw.points,3,12,5)),innerRatio:clamp(raw.innerRatio,.15,.8,.45),direction:['horizontal','vertical','down','up'].includes(raw.direction)?raw.direction:'horizontal',dashed:raw.dashed===true,roundedEnds:raw.roundedEnds!==false};
+ const spec=raw.shape==='freeform'?{id:'freeform',name:'Forme libre',open:raw.closed===false} : shapes.find(s=>s.id===raw.shape)||shapes.find(s=>s.id==='rect');
+ return {...(spec.id==='freeform'?{pathNodes:normalizePathNodes(raw.pathNodes),closed:raw.closed!==false}:{}),imageSrc:validShapeImage(raw.imageSrc)?raw.imageSrc:'',imageFit:raw.imageFit==='contain'?'contain':'cover',imageOpacity:clamp(raw.imageOpacity,0,100,100),imageEffects:normalizeImageEffects(raw.imageEffects),...(['particles','gravity'].includes(raw.engineKind)?{engineKind:raw.engineKind}:{}),...(Array.isArray(raw.topGap)&&raw.topGap.length===2?{topGap:raw.topGap.map(v=>clamp(v,0,100,0)).sort((a,b)=>a-b)}:{}),type:'shape',custom:raw.custom!==false,template:raw.template===true,fillRole:validColorRole(raw.fillRole),strokeRole:validColorRole(raw.strokeRole),name:String(raw.name||spec.name).slice(0,100),shape:spec.id,fill:color(raw.fill,'#35ff91'),stroke:color(raw.stroke,'#35ff91'),filled:raw.filled!==false,outlined:raw.outlined===true||spec.open,strokeWidth:clamp(raw.strokeWidth,1,60,6),opacity:clamp(raw.opacity,0,100,100),radius:clamp(raw.radius,0,50,spec.id==='rounded'?12:0),roundedCorners:raw.roundedCorners===true,individualCorners:raw.individualCorners===true,cornerRadii:Object.fromEntries(['tl','tr','br','bl'].map(k=>[k,clamp(raw.cornerRadii?.[k],0,50,clamp(raw.radius,0,50,spec.id==='rounded'?12:0))])),points:Math.round(clamp(raw.points,3,12,5)),innerRatio:clamp(raw.innerRatio,.15,.8,.45),direction:['horizontal','vertical','down','up'].includes(raw.direction)?raw.direction:'horizontal',dashed:raw.dashed===true,roundedEnds:raw.roundedEnds!==false};
 }
 const polygon=points=>'M '+points.map(p=>p.map(v=>Number(v.toFixed(3))).join(' ')).join(' L ')+' Z';
 function regular(n,inner=1){return polygon(Array.from({length:n},(_,i)=>{const a=-Math.PI/2+i*2*Math.PI/n,r=i%2?inner:1;return [50+50*r*Math.cos(a),50+50*r*Math.sin(a)];}));}
 export function shapePath(shape) {
  const e=normalizeShape(shape);
  switch(e.shape){
+  case 'freeform':return freeformPath(e.pathNodes,e.closed);
   case 'line':return ({horizontal:'M 0 50 L 100 50',vertical:'M 50 0 L 50 100',down:'M 0 0 L 100 100',up:'M 0 100 L 100 0'})[e.direction];
   case 'curve':return 'M 0 100 Q 50 0 100 100';
   case 'rect':case 'square':return e.topGap?`M ${e.topGap[1]} 0 H 100 V 100 H 0 V 0 H ${e.topGap[0]}`:'M 0 0 H 100 V 100 H 0 Z';
@@ -49,18 +51,20 @@ export function shapeBounds(e,p){
  if(e.shape!=='line'||!['horizontal','vertical'].includes(e.direction))return {...p,h:p.h||300};
  const horizontal=e.direction==='horizontal',weight=Math.min(e.strokeWidth,horizontal?p.w:p.h||300);return horizontal?{...p,y:p.y+((p.h||300)-weight)/2,h:weight}:{...p,x:p.x+(p.w-weight)/2,w:weight,h:p.h||300};
 }
+export function isOpenShape(e){return e.shape==='freeform'?e.closed===false:!!shapes.find(s=>s.id===e.shape)?.open;}
 export function shapeGeometry(e,p){
+ if(e.shape==='freeform'){const path=new Path2D();path.addPath(new Path2D(shapePath(e)),new DOMMatrix([p.w/100,0,0,(p.h||300)/100,p.x,p.y]));return path;}
  p=shapeBounds(e,p);const spec=shapes.find(s=>s.id===e.shape),w=p.w,h=p.h||300;
- const stroke=e.outlined||spec?.open,weight=e.shape==='line'&&['horizontal','vertical'].includes(e.direction)?Math.min(e.strokeWidth,e.direction==='horizontal'?w:h):Math.min(e.strokeWidth,Math.min(w,h)/2),inset=stroke?weight/2:0;
+ const stroke=e.outlined||isOpenShape(e),weight=e.shape==='line'&&['horizontal','vertical'].includes(e.direction)?Math.min(e.strokeWidth,e.direction==='horizontal'?w:h):Math.min(e.strokeWidth,Math.min(w,h)/2),inset=stroke?weight/2:0;
  const bounds=shapePathBounds(e),ix=e.shape==='line'&&e.direction==='horizontal'&&e.roundedEnds===false?0:inset,iy=e.shape==='line'&&e.direction==='vertical'&&e.roundedEnds===false?0:inset,sx=(w-2*ix)/bounds.w,sy=(h-2*iy)/bounds.h;
  const path=new Path2D();if(e.shape==='rounded'||['rect','square'].includes(e.shape)&&(e.individualCorners||e.roundedCorners)){const rw=w-2*inset,rh=h-2*inset;path.roundRect(p.x+inset,p.y+inset,rw,rh,cornerPixels(e,rw,rh));}else path.addPath(new Path2D(shapePath(e)),new DOMMatrix([sx,0,0,sy,p.x+ix-bounds.x*sx,p.y+iy-bounds.y*sy]));
  return path;
 }
 export function drawShape(ctx,e,p,theme) {
  p=shapeBounds(e,p);const spec=shapes.find(s=>s.id===e.shape),w=p.w,h=p.h||300;
- const stroke=e.outlined||spec?.open,weight=e.shape==='line'&&['horizontal','vertical'].includes(e.direction)?Math.min(e.strokeWidth,e.direction==='horizontal'?w:h):Math.min(e.strokeWidth,Math.min(w,h)/2),inset=stroke?weight/2:0;
+ const stroke=e.outlined||isOpenShape(e),weight=e.shape==='line'&&['horizontal','vertical'].includes(e.direction)?Math.min(e.strokeWidth,e.direction==='horizontal'?w:h):Math.min(e.strokeWidth,Math.min(w,h)/2),inset=stroke?weight/2:0;
  const path=shapeGeometry(e,p);
- ctx.save();ctx.globalAlpha*=e.opacity/100;ctx.lineJoin='round';ctx.lineCap=e.roundedEnds===false?'butt':'round';if(!spec?.open&&e.filled){ctx.fillStyle=boundColor(e,'fill',theme);ctx.fill(path);}if(!spec?.open&&e.filled&&e.imageSrc){const asset=imageAsset(e.imageSrc);if(asset.ready){const rect=imageFitRect({...p,h},asset.image,e.imageFit);if(rect){ctx.save();ctx.clip(path);ctx.globalAlpha*=(e.imageOpacity??100)/100;ctx.filter=imageFilter(e.imageEffects);ctx.drawImage(asset.image,rect.x,rect.y,rect.w,rect.h);ctx.restore();}}}if(stroke){ctx.strokeStyle=boundColor(e,'stroke',theme);ctx.lineWidth=weight;ctx.setLineDash(e.dashed?[weight*3,weight*2]:[]);ctx.stroke(path);}ctx.restore();
+ ctx.save();ctx.globalAlpha*=e.opacity/100;ctx.lineJoin='round';ctx.lineCap=e.roundedEnds===false?'butt':'round';if(!isOpenShape(e)&&e.filled){ctx.fillStyle=boundColor(e,'fill',theme);ctx.fill(path);}if(!isOpenShape(e)&&e.filled&&e.imageSrc){const asset=imageAsset(e.imageSrc);if(asset.ready){const rect=imageFitRect({...p,h},asset.image,e.imageFit);if(rect){ctx.save();ctx.clip(path);ctx.globalAlpha*=(e.imageOpacity??100)/100;ctx.filter=imageFilter(e.imageEffects);ctx.drawImage(asset.image,rect.x,rect.y,rect.w,rect.h);ctx.restore();}}}if(stroke){ctx.strokeStyle=boundColor(e,'stroke',theme);ctx.lineWidth=weight;ctx.setLineDash(e.dashed?[weight*3,weight*2]:[]);ctx.stroke(path);}ctx.restore();
 }
 
 export function cornerPixels(raw,w,h){const e=normalizeShape(raw),base=Math.min(w,h)/100;return e.individualCorners?['tl','tr','br','bl'].map(k=>base*e.cornerRadii[k]):base*(e.shape==='rounded'||e.roundedCorners?e.radius:0);}

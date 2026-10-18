@@ -5,7 +5,7 @@ import AnimationKeyButton from "./AnimationKeyButton.vue";
 import NumberRange from "./NumberRange.vue";
 import CornerProperties from "./CornerProperties.vue";
 import PaletteColor from "./PaletteColor.vue";
-import { shapes } from "../shapes.js";
+import { shapes, isOpenShape } from "../shapes.js";
 const props = defineProps({
   shape: Object,
   scale: Number,
@@ -81,7 +81,7 @@ const shapeView = new Proxy(
   <div class="shape-properties">
     <template v-if="mode === 'colors'"
       ><div
-        v-if="!['line', 'curve'].includes(shape.shape)"
+        v-if="!isOpenShape(shape)"
         class="animated-color-field"
       >
         <span
@@ -108,17 +108,18 @@ const shapeView = new Proxy(
           label="Contour"
           :theme="theme"
         /></div
-    ><section v-if="studio&&!['line','curve'].includes(shape.shape)" class="shape-image-options"><label class="menu-file">{{shape.imageSrc?'Remplacer l’image de fond':'Image de fond de la forme'}}<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" aria-label="Importer une image dans la forme" @change="studio.uploadShapeImage($event)"></label><template v-if="shape.imageSrc"><img :src="shape.imageSrc" alt="Image de fond" class="shape-image-preview"><label>Ajustement de l’image<select v-model="shape.imageFit"><option value="cover">Remplir la forme</option><option value="contain">Afficher l’image entière</option></select></label><NumberRange label="Opacité de l’image" unit="%" :model-value="shape.imageOpacity??100" @update:model-value="shape.imageOpacity=$event"/><NumberRange v-for="effect in imageEffects" :key="effect.id" :label="effect.label" unit="%" :max="effect.max" :model-value="shape.imageEffects?.[effect.id]??effect.default" @update:model-value="shape.imageEffects={...shape.imageEffects,[effect.id]:$event}"/><button class="btn" @click="shape.imageSrc=''">Retirer l’image de fond</button><p class="field-help">L’image suit le contour de la forme ; sa bordure reste indépendante.</p></template></section></template>
+    ><section v-if="studio&&!isOpenShape(shape)" class="shape-image-options"><label class="menu-file">{{shape.imageSrc?'Remplacer l’image de fond':'Image de fond de la forme'}}<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" aria-label="Importer une image dans la forme" @change="studio.uploadShapeImage($event)"></label><template v-if="shape.imageSrc"><img :src="shape.imageSrc" alt="Image de fond" class="shape-image-preview"><label>Ajustement de l’image<select v-model="shape.imageFit"><option value="cover">Remplir la forme</option><option value="contain">Afficher l’image entière</option></select></label><NumberRange label="Opacité de l’image" unit="%" :model-value="shape.imageOpacity??100" @update:model-value="shape.imageOpacity=$event"/><NumberRange v-for="effect in imageEffects" :key="effect.id" :label="effect.label" unit="%" :max="effect.max" :model-value="shape.imageEffects?.[effect.id]??effect.default" @update:model-value="shape.imageEffects={...shape.imageEffects,[effect.id]:$event}"/><button class="btn" @click="shape.imageSrc=''">Retirer l’image de fond</button><p class="field-help">L’image suit le contour de la forme ; sa bordure reste indépendante.</p></template></section></template>
     <template v-else
       ><label
         >Forme<select v-model="shape.shape" aria-label="Type de forme">
+          <option v-if="shape.shape==='freeform'" value="freeform">Forme libre · plume</option>
           <option v-for="item in shapes" :key="item.id" :value="item.id">
             {{ item.name }}
           </option>
         </select></label
       >
       <label
-        v-if="['line', 'curve'].includes(shape.shape)"
+        v-if="isOpenShape(shape)"
         class="checkbox-label"
         ><input
           type="checkbox"
@@ -134,7 +135,7 @@ const shapeView = new Proxy(
         </select></label
       >
       <label
-        v-if="!['line', 'curve'].includes(shape.shape)"
+        v-if="!isOpenShape(shape)"
         class="checkbox-label"
         ><input
           type="checkbox"
@@ -147,7 +148,7 @@ const shapeView = new Proxy(
           :studio="studio"
           field="fillEnabled" /></label
       ><label
-        v-if="!['line', 'curve'].includes(shape.shape)"
+        v-if="!isOpenShape(shape)"
         class="checkbox-label"
         ><input
           type="checkbox"
@@ -161,7 +162,7 @@ const shapeView = new Proxy(
           field="strokeEnabled"
       /></label>
       <template
-        v-if="shapeView.outlined || ['line', 'curve'].includes(shape.shape)"
+        v-if="shapeView.outlined || isOpenShape(shape)"
         ><label
           >Épaisseur · px<AnimationKeyButton
             v-if="studio"
