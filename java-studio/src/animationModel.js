@@ -4,6 +4,7 @@ import {
   applyEffects,
   normalizeEffect,
   simulateBody,
+  simulateDrivenBody,
 } from "./animationEffects.js";
 import { normalizeShape } from "./shapes.js";
 import { validColorRole } from "./colors.js";
@@ -88,6 +89,8 @@ export function normalizeEngine(raw = {}, i = 0) {
     parent: String(raw?.parent || "").slice(0, 100),
     offsetX: number(raw?.offsetX, 0),
     offsetY: number(raw?.offsetY, 0),
+    followPath: raw?.followPath === true,
+    velocityY: number(raw?.velocityY, 0, -3000, 3000),
     drag: number(raw?.drag, 0, 0, 10),
     bounce: number(raw?.bounce, 0.5, 0, 1),
     friction: number(raw?.friction, 0.15, 0, 1),
@@ -343,6 +346,14 @@ export function animationScene(scene, raw, time) {
         cy = (base.y + (base.h || 0) / 2 - py) * sy;
       p.x = px + cx * Math.cos(rad) - cy * Math.sin(rad) - w / 2 + dx;
       p.y = py + cx * Math.sin(rad) + cy * Math.cos(rad) - h / 2 + dy;
+      // One object's X/Y denote its top-left, independently of its size keys.
+      // Paths instead anchor its pivot, including squash/stretch at landings.
+      if (keys.length === 1) {
+        p.x = point ? point.x - w * clip.pivotX : frameValue(clip.frames, "x", local, base.x);
+        p.y = point ? point.y - h * clip.pivotY : frameValue(clip.frames, "y", local, base.y);
+        if (clip.modifier === "oscillate") p.y += Math.sin(local * clip.frequency * Math.PI * 2) * clip.amplitude;
+        if (clip.modifier === "gravity") p.y += 0.5 * clip.gravity * local * local;
+      }
       if (base.w !== undefined) p.w = w;
       if (base.h !== undefined) p.h = h;
       p.rotation = (base.rotation || 0) + angle;
@@ -413,6 +424,20 @@ export function animationScene(scene, raw, time) {
     const t = Math.min(engine.duration, time - engine.start);
     for (const key of engine.targets) {
       const p = result.positions[key];
+      if (!p || result.elements[key]?.engineKind) continue;
+      const driven = engine.followPath && config.clips.find(c=>c.enabled && c.keys.length===1 && c.keys[0]===key && c.pathId);
+      if(driven) {
+        const path=config.paths.find(p=>p.id===driven.pathId),base=scene.positions[key];
+        const sample=elapsed=>{
+          const local=Math.max(0,Math.min(driven.duration,engine.start+elapsed-driven.start));
+          const progress=frameValue(driven.frames,"progress",local,local/driven.duration);
+          const point=splinePoint(path.points,driven.constantSpeed?splineParameter(path.points,progress,path.closed):progress,path.closed);
+          const w=frameValue(driven.frames,"w",local,base.w),h=frameValue(driven.frames,"h",local,base.h);
+          return {...p,x:point.x-w*driven.pivotX,y:point.y-h*driven.pivotY,w,h};
+        };
+        const floors=config.effects.filter(e=>e.enabled&&e.kind==="collider"&&e.key!==key).map(e=>result.positions[e.key]).filter(Boolean);
+        if(path) result.positions[key]=simulateDrivenBody(sample,t,engine,floors);
+      } else {
       if (p && !result.elements[key]?.engineKind)
         result.positions[key] = simulateBody(
           p,
@@ -423,6 +448,7 @@ export function animationScene(scene, raw, time) {
             .map((e) => result.positions[e.key])
             .filter(Boolean),
         );
+      }
     }
   }
   applyEffects(result, config.effects, time);

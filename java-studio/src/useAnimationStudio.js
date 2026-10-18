@@ -19,6 +19,7 @@ import { prepareImages } from "./render.js";
 import { prepareFonts } from "./fontAssets.js";
 import { pngMovie } from "./pngMovie.js";
 import { ensureVideoEncoder } from "./videoEncoding.js";
+import {makeSlimeDemo} from "./animationSlimeDemo.js";
 import { makeAnimationExample } from "./animationExamples.js";
 const copy = (v) => JSON.parse(JSON.stringify(v));
 export function useAnimationStudio(s) {
@@ -220,7 +221,7 @@ export function useAnimationStudio(s) {
     seek(c.start + key.time);
     preview.value = true;
     s.requestDraw();
-    if (s.panels) s.panels.value.slides = true;
+    if (s.panels) s.panels.value.properties = true;
   }
   function deleteKey(c, key) {
     requestDelete(
@@ -563,6 +564,16 @@ export function useAnimationStudio(s) {
     }
   }
   function example(kind) {
+    if(kind === "slime") {
+      if(s.slides.value.length>97){s.notify("Trois places de scène sont nécessaires.");return;}
+      stop();s.beginGesture();
+      const scenes=makeSlimeDemo().slides;
+      for(const scene of scenes)scene.id=crypto.randomUUID();
+      const first=s.slides.value.length;
+      s.slides.value.push(...scenes);s.index.value=first;
+      s.endGesture();preview.value=true;
+      s.notify("Parcours Slime ajouté : trois scènes, dix secondes chacune.");return;
+    }
     if (s.slides.value.length >= 100) {
       s.notify("Limite de 100 scènes.");
       return;
@@ -871,6 +882,29 @@ export function useAnimationStudio(s) {
       s.requestDraw();
     }
   }
+  function commitPose(positions, origins) {
+    s.beginGesture();
+    try {
+      for (const [key, p] of Object.entries(positions)) {
+        const before = origins[key];
+        if (!before) continue;
+        let c = config.value.clips.find(c => c.keys.length === 1 && c.keys[0] === key);
+        if (!c) {
+          if(config.value.clips.length >= 100) continue;
+          c = normalizeAnimation({clips:[{id:crypto.randomUUID(),name:s.current.value.elements[key]?.name || "Mouvement",keys:[key],duration:config.value.duration}]}).clips[0];
+          config.value.clips.push(c);
+        }
+        const local = Math.max(0, Math.min(c.duration,time.value-c.start));
+        for(const field of ["x","y","w","h","rotation"]) {
+          if(c.pathId && ["x","y"].includes(field)) continue;
+          if(!Number.isFinite(p[field]) || Math.abs(p[field]-(before[field]||0))<0.0001) continue;
+          if(local>0 && !c.frames.some(f=>f.field===field)) addAnimationKey(c,field,0,before[field]||0,c.easing);
+          addAnimationKey(c,field,local,p[field],c.easing);
+        }
+        selectedClip.value=c.id;
+      }
+    } finally { s.endGesture(); s.requestDraw(); }
+  }
   function toggleProperty(name) {
     const f = keyAt(name);
     if (f) deleteKey(clip.value, f);
@@ -994,7 +1028,7 @@ export function useAnimationStudio(s) {
     window.removeEventListener("blur", blur);
   });
   return {
-    selectedPathPoint,addPathPoint,removePathPoint,
+    commitPose,selectedPathPoint,addPathPoint,removePathPoint,
     activeFrame,
     pendingDelete,
     requestDelete,

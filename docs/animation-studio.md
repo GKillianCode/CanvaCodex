@@ -88,3 +88,15 @@ Export réel de deux scènes : MOV qtrle/argb et MKV ffv1/bgra, 1280 × 720, 30 
 Les deux barres de commandes sont centrées. Le bouton Ajouter une image clé et les marqueurs globaux de piste permettent de choisir l’instant avant les propriétés. Les splines sont disponibles dans la barre et dans Animation → Trajectoire spline, même sans séquence préexistante. Séquences, clés, objets, scènes, effets et trajectoires demandent confirmation avant suppression dans Animation ; Annuler ou Échap conserve les données.
 
 Chrome isolé : plateau fini vérifié en clair/sombre, marqueur vide créé puis alimenté par cinq canaux de style, couleurs remplissage/contour séparées, double-clic sans suppression, confirmation/annulation/Échap/annuler l’action, quatre poignées de spline et conservation des marqueurs après rechargement. Les thèmes et Diaporama ont été revérifiés. Publication confirmée sur la branche de test et la PR #127 ; aucune fusion. Un premier envoi avait été interrompu par une limite de la revue automatique, puis a pu être repris.
+
+## Parcours Slime et édition d’un état animé
+
+`animation-slime-trois-scenes.json`, à la racine du dépôt, s’importe dans **Animation → Fichier → Importer un document JSON**. Il remplace le document ouvert dans cet atelier comme les autres imports. Le menu **Exemples → Slime · trois mondes** ajoute plutôt trois scènes au document actuel. Chaque scène dure 10 secondes : prairie, canyon, atelier nocturne. Cocher **Toutes les scènes** dans l’aperçu pour lire/exporter les 30 secondes à la suite.
+
+Les sols sont deux vrais blocs obstacles séparés par un trou. La trajectoire est une spline à trois segments. Un moteur de gravité utilise le nouveau mode **Spline horizontale + saut physique** : X suit la spline, Y vient de l’impulsion verticale initiale et de la gravité, avec arrêt sur les obstacles. Une impulsion négative fait sauter ; son instant est le début du moteur. Le vent et le frottement horizontal ne s’appliquent pas dans ce mode puisque X est imposé par la spline. La physique utilise des pas déterministes de 1/120 seconde, sans IA. Il s’agit d’une simulation 2D simple, pas d’un moteur de corps rigides rotatifs.
+
+Le pivot inférieur conserve les pieds pendant les clés largeur/hauteur : préparation du saut, étirement en l’air, écrasement à l’atterrissage. Les émetteurs liés au personnage produisent de la poussière avant/après le saut ; chaque scène a aussi des particules d’ambiance. Ciel, parallaxe, formes et portique évoluent avec des clés éditables. Tout reste constitué d’objets natifs.
+
+Dans **État animé**, cliquer un objet conserve l’instant affiché. Déplacer/redimensionner l’objet enregistre les coordonnées et dimensions dans ses clés, en conservant sa disposition initiale. Pour un objet seul, **Position X/Y** désignent le coin supérieur gauche indépendamment du redimensionnement. Une spline ancre au contraire le pivot choisi. Le panneau **Image clé** est dans les propriétés à droite et libère la liste des scènes à gauche.
+
+Régénération de la démonstration : `node java-studio/scripts/build-slime-demo.mjs` depuis la racine.

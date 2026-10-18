@@ -244,7 +244,7 @@ function direction(id) {
         id="engine-gravity"
         title="Gravité et objets concernés"
         :icon="ArrowDown"
-        ><label
+        ><label class="checkbox-label"><input type="checkbox" v-model="a.engine.followPath">Spline horizontale + saut physique</label><label v-if="a.engine.followPath">Impulsion verticale · px/s<input type="number" v-model.number="a.engine.velocityY" min="-3000" max="3000" step="10"></label><p v-if="a.engine.followPath" class="field-help">La spline guide X. La gravité et les obstacles pilotent Y à partir du début du moteur ; une impulsion négative fait sauter.</p><label
           >Force de gravité · px/s²<AnimationKeyButton
             :studio="s"
             field="engineGravity" /><input
@@ -265,6 +265,7 @@ function direction(id) {
             ['wind', 'Force du vent · px/s²', -2000, 2000],
           ]"
           :key="key"
+          v-show="!a.engine.followPath || !['wind','friction'].includes(key)"
           >{{ label
           }}<input
             type="number"

@@ -426,8 +426,6 @@
 }
 .animation-key-inspector {
   flex-shrink: 0;
-  max-height: 55%;
-  overflow: auto;
   padding: 12px 0;
   border-top: 1px solid var(--border);
   font-size: 11px;
