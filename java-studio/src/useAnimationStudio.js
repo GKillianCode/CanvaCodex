@@ -1,3 +1,4 @@
+import {editableClip} from "./animationEditing.js";
 import {splitSpline,removeSplinePoint} from "./splines.js";
 import { boundColor } from "./colors.js";
 import { storyboardAt, storyboardDuration } from "./animationStoryboard.js";
@@ -895,7 +896,7 @@ export function useAnimationStudio(s) {
       for (const [key, p] of Object.entries(positions)) {
         const before = origins[key];
         if (!before) continue;
-        let c = config.value.clips.find(c => c.keys.length === 1 && c.keys[0] === key);
+        let c = editableClip(config.value.clips,selectedClip.value,key,time.value);
         if (!c) {
           if(config.value.clips.length >= 100) continue;
           c = normalizeAnimation({clips:[{id:crypto.randomUUID(),name:s.current.value.elements[key]?.name || "Mouvement",keys:[key],duration:config.value.duration}]}).clips[0];

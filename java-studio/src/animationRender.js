@@ -1,3 +1,4 @@
+import {particleOriginSampler} from "./particleHistory.js";
 import {drawAnimationBackground} from "./animationBackground.js";
 import {splineSegments} from "./splines.js";
 import { drawShape, normalizeShape, shapeGeometry } from "./shapes.js";
@@ -113,10 +114,7 @@ export function renderAnimation(
     if (!clip.enabled) continue;
     const p = state.scene.positions[clip.keys[0]];
     if (!p) continue;
-    for (const particle of animationParticles(clip, time, {
-      x: p.x + (p.w || 0) / 2,
-      y: p.y + (p.h || 0) / 2,
-    })) {
+    for (const particle of animationParticles(clip, time, particleOriginSampler(scene,config,clip.keys[0]))) {
       ctx.save();
       ctx.globalAlpha = particle.alpha;
       ctx.fillStyle = boundColor(clip.particles, "color", theme);
@@ -133,7 +131,7 @@ export function renderAnimation(
     for (const particle of animationParticles(
       { ...engine, particles: { ...engine.particles, enabled: true } },
       time,
-      { x: p.x + p.w / 2, y: p.y + p.h / 2 },
+      particleOriginSampler(scene,config,engine.key),
     )) {
       ctx.save();
       ctx.globalAlpha = particle.alpha;

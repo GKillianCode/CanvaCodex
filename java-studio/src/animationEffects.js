@@ -35,10 +35,10 @@ export function normalizeEffect(r = {}, i = 0) {
 export function simulateBody(
   base,
   time,
-  { gravity = 600, wind = 0, drag = 0.1, bounce = 0.5, friction = 0.15 } = {},
+  { gravity = 600, gravityAt, wind = 0, drag = 0.1, bounce = 0.5, friction = 0.15 } = {},
   floors = [],
 ) {
-  if (!floors.length && drag === 0)
+  if (!floors.length && drag === 0 && !gravityAt)
     return {
       ...base,
       x: base.x + 0.5 * wind * time * time,
@@ -56,7 +56,7 @@ export function simulateBody(
       oldX = x,
       oldY = y;
     vx = (vx + wind * dt) * Math.exp(-drag * dt);
-    vy = (vy + gravity * dt) * Math.exp(-drag * dt);
+    vy = (vy + (gravityAt ? gravityAt(i/120) : gravity) * dt) * Math.exp(-drag * dt);
     x += vx * dt;
     y += vy * dt;
     for (const f of floors) {
@@ -150,7 +150,7 @@ export function applyEffects(scene, effects, time) {
 // A spline supplies horizontal intent; vertical motion is integrated from a jump
 // impulse. Resize keeps the feet in place, so landing squash cannot sink in floors.
 export function simulateDrivenBody(sample, time, options = {}, floors = []) {
-  let gravity = options.gravity ?? 600;
+  let gravity = options.gravity ?? 600, contactGravity=null;
   const drag = options.drag ?? 0,
     contacts = new Set();
   let p = { ...sample(0) },
@@ -161,6 +161,7 @@ export function simulateDrivenBody(sample, time, options = {}, floors = []) {
       next = sample(i / 120 + dt);
     const bottom = p.y + p.h,
       top = p.y;
+    gravity=contactGravity ?? (options.gravityAt ? options.gravityAt(i/120) : options.gravity ?? 600);
     vy = (vy + gravity * dt) * Math.exp(-drag * dt);
     p = { ...next, y: (gravity < 0 ? top : bottom - next.h) + vy * dt };
     for (const r of options.triggers || []) {
@@ -173,7 +174,7 @@ export function simulateDrivenBody(sample, time, options = {}, floors = []) {
         p.y <= b.y + b.h
       ) {
         contacts.add(r.id);
-        if (r.gravity != null) gravity = r.gravity;
+        if (r.gravity != null) { gravity = r.gravity;contactGravity=r.gravity; }
         if (r.impulse != null) vy = r.impulse;
       }
     }

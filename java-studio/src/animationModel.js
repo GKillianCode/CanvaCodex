@@ -456,6 +456,7 @@ export function animationScene(scene, raw, time) {
       typingElapsed[key] = local * 1000;
     }
   }
+  const restGravity=new Map(config.engines.map(e=>[e.id,e.gravity]));
   for (const engine of config.engines) {
     for (const c of config.clips.filter(
       (c) => c.enabled && c.keys.includes(engine.key) && time >= c.start,
@@ -481,6 +482,11 @@ export function animationScene(scene, raw, time) {
     if (!engine.enabled || engine.kind !== "gravity" || time < engine.start)
       continue;
     const t = Math.min(engine.duration, time - engine.start);
+    const gravityAt=config.clips.some(c=>c.enabled&&c.keys.includes(engine.key)&&c.frames.some(f=>f.field==='engineGravity'))?elapsed=>{
+      const global=engine.start+elapsed;let value=restGravity.get(engine.id);
+      for(const c of config.clips.filter(c=>c.enabled&&c.keys.includes(engine.key)&&global>=c.start)) value=frameValue(c.frames,'engineGravity',Math.min(c.duration,global-c.start),value);
+      return value;
+    }:undefined;
     for (const key of engine.targets) {
       const p = result.positions[key];
       if (!p || result.elements[key]?.engineKind) continue;
@@ -530,7 +536,7 @@ export function animationScene(scene, raw, time) {
             sample,
             t,
             {
-              ...engine,
+              ...engine,gravityAt,
               triggers: config.triggers
                 .filter((r) => r.enabled && r.actor === key)
                 .map((r) => ({ ...r, bounds: result.positions[r.target] })),
@@ -542,7 +548,7 @@ export function animationScene(scene, raw, time) {
           result.positions[key] = simulateBody(
             p,
             t,
-            engine,
+            {...engine,gravityAt},
             config.effects
               .filter(
                 (e) => e.enabled && e.kind === "collider" && e.key !== key,
@@ -619,9 +625,10 @@ export function animationParticles(clip, time, origin) {
           p.speed *
           p.force
         : Math.sin(a) * v * p.force;
+    const spawn=typeof origin==='function'?origin(time-age):origin;
     out.push({
-      x: origin.x + vx * age,
-      y: origin.y + vy * age + 0.5 * clip.gravity * age * age,
+      x: spawn.x + vx * age,
+      y: spawn.y + vy * age + 0.5 * clip.gravity * age * age,
       size: p.size * (1 - age / p.life),
       alpha: 1 - age / p.life,
       color: p.color,
