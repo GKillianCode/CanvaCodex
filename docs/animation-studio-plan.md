@@ -1,6 +1,6 @@
 # Proposition — Atelier Animation 2D
 
-Statut : proposition à discuter, aucun développement applicatif engagé. 18 octobre 2026.
+Statut : plan initial, développement de la V1 autorisé ensuite par Killian le 18 octobre 2026. Voir `animation-studio.md` pour le périmètre effectivement réalisé et ses limites.
 Suivi : issue #126, branche codex/test-animation-studio. Le prototype précédent est validé et fusionné dans main via #125.
 
 ## Objectif
