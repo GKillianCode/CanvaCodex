@@ -250,4 +250,3 @@ const shapeView = new Proxy(
 
   </div>
 </template>
-
