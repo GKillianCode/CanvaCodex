@@ -13,6 +13,7 @@ const frames = computed(() =>
     : [],
 );
 const labels = {
+  backgroundColor:"Fond · couleur 1",backgroundColor2:"Fond · couleur 2",backgroundAngle:"Fond · angle",
   fillEnabled: "Remplissage activé",
   strokeEnabled: "Contour activé",
   dashed: "Pointillés",
@@ -96,13 +97,13 @@ const labels = {
             @change="f.value = $event.target.checked ? 1 : 0" /><input
             v-else
             :type="
-              ['color', 'strokeColor'].includes(f.field) ? 'color' : 'number'
+              ['color', 'strokeColor', 'backgroundColor', 'backgroundColor2'].includes(f.field) ? 'color' : 'number'
             "
             :disabled="!!a.clip.pathId && ['x', 'y'].includes(f.field)"
             :value="f.value"
             step="0.1"
             @input="
-              f.value = ['color', 'strokeColor'].includes(f.field)
+              f.value = ['color', 'strokeColor', 'backgroundColor', 'backgroundColor2'].includes(f.field)
                 ? $event.target.value
                 : Number($event.target.value)
             " /></label

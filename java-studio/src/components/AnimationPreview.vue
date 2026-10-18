@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, ref, watch, onMounted, onUnmounted, nextTick } from "vue";
 import { Play, Pause, X, Download, SkipBack } from "lucide-vue-next";
+import {renderAnimationStoryboard} from "../animationStoryboardRender.js";
 import { renderAnimation } from "../animationRender.js";
 import { prepareImages } from "../render.js";
 import { prepareFonts } from "../fontAssets.js";
@@ -17,7 +18,8 @@ function draw() {
   if (!canvas.value || !ready.value) return;
   const ctx = canvas.value.getContext("2d");
   ctx.clearRect(0, 0, 1920, 1080);
-  renderAnimation(ctx, s.current, s.theme, a.config, a.time);
+  if(a.allScenes)renderAnimationStoryboard(ctx,s.slides,s.theme,a.playbackTime);
+  else renderAnimation(ctx, s.current, s.theme, a.config, a.time);
 }
 watch(() => [a.time, s.current, s.theme], draw, { deep: true });
 function close() {

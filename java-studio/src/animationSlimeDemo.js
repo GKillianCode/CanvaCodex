@@ -1,3 +1,4 @@
+import {extendSlimeWorlds} from "./animationSlimeWorlds.js";
 import { makeSlide } from "./model.js";
 import { normalizeAnimation } from "./animationModel.js";
 import { normalizeShape } from "./shapes.js";
@@ -624,10 +625,11 @@ export function makeSlimeDemo() {
     });
     return s;
   });
+  extendSlimeWorlds(scenes);
   return applicationFile(
     {
       projectId: "slime-platform-demo",
-      project: "Slime · trois mondes",
+      project: "Slime · quatre mondes",
       slides: scenes,
       themes: normalizeThemes(),
       themeId: "terminal",

@@ -60,6 +60,7 @@ const labels = {
   contentScale: "Échelle du contenu",
   progress: "Progression du chemin",
   color: "Couleur du remplissage",
+  backgroundColor:"Fond · couleur 1",backgroundColor2:"Fond · couleur 2",backgroundAngle:"Fond · angle",
 };
 const easeLabels = {
   linear: "Linéaire",

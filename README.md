@@ -299,3 +299,5 @@ La disponibilité du codec est vérifiée avant une capture. Si l’encodage fin
 ## Atelier Animation — branche de test
 
 Nouvel atelier indépendant sur `codex/test-animation-studio` : propriétés partagées avec Diaporama (dont écriture progressive), timeline/images clés, splines, séquences superposables, références, modifieurs simples et particules déterministes. Exports MOV QTRLE/MKV FFV1 avec alpha et WebM sur fond uni. [Guide de la V1](docs/animation-studio.md). La PR #127 reste en test ; la précédente PR #125 est fusionnée après validation utilisateur.
+
+Démonstration Animation : [Slime · quatre scènes](animation-slime-quatre-scenes.json), à importer dans Animation → Fichier, ou à ajouter depuis Exemples → Slime · quatre mondes. Parcours spatial, chute vers un monde inférieur, gravité inversée, contacts de transformation et fonds dégradés animés ; 44 secondes au total. [Guide](docs/animation-studio.md).

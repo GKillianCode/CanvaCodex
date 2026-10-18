@@ -1,4 +1,5 @@
 <script setup>
+import AnimationContacts from "./AnimationContacts.vue";
 import { reactive, computed, ref } from "vue";
 import {
   Plus,
@@ -199,4 +200,5 @@ const candidates = computed(() =>
     >
     <AnimationProperties :studio="s"
   /></template>
+<AnimationContacts :studio="s"/>
 </template>
