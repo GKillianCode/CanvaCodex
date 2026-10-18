@@ -21,8 +21,9 @@ function draw() {
   if(a.allScenes)renderAnimationStoryboard(ctx,s.slides,s.theme,a.playbackTime);
   else renderAnimation(ctx, s.current, s.theme, a.config, a.time);
 }
-watch(() => [a.time, s.current, s.theme], draw, { deep: true });
+watch(() => [a.time, a.allScenes, s.current, s.theme], draw, { deep: true });
 function close() {
+  if (a.busy) return;
   a.stop();
   a.previewOpen = false;
 }
@@ -34,8 +35,8 @@ function keyboard(e) {
   }
   if (e.key === "Tab") {
     const list = [
-      ...root.value.querySelectorAll("button:not(:disabled),input,select,a"),
-    ].filter((x) => x.getClientRects().length);
+      ...root.value.querySelectorAll("button:not(:disabled),input:not(:disabled),select:not(:disabled),a"),
+    ].filter((x) => !x.matches(":disabled") && x.getClientRects().length);
     if (!list.length) return;
     const first = list[0],
       last = list.at(-1);
@@ -92,11 +93,12 @@ onUnmounted(() => {
           {{ s.resolution.height }}</small
         >
       </div>
-      <button class="icon-btn" aria-label="Fermer l’aperçu" @click="close">
+      <button class="icon-btn" :disabled="a.busy" aria-label="Fermer l’aperçu" @click="close">
         <X :size="20" />
       </button>
     </div>
-    <p v-if="error" role="alert">{{ error }}</p>
+    <p v-if="error || a.exportError" role="alert">{{ error || a.exportError }}</p>
+    <p v-if="a.busy" role="status">{{ a.exportPhase }} {{ Math.round(a.progress * 100) }} %</p>
     <div class="animation-preview-screen">
       <canvas
         ref="canvas"
@@ -105,7 +107,7 @@ onUnmounted(() => {
         aria-label="Rendu de l’animation à l’instant courant"
       />
     </div>
-    <div class="animation-preview-controls">
+    <fieldset class="animation-preview-controls" :disabled="a.busy || !ready || !!error" aria-label="Réglages de l’export" style="border:0;padding:0;margin:0;min-width:0">
       <button
         class="icon-btn"
         title="Revenir au début"
@@ -155,9 +157,8 @@ onUnmounted(() => {
         <option :value="2560">2560 × 1440</option></select
       ><button class="btn" :disabled="a.busy" @click="a.exportVideo()">
         <Download :size="16" />Exporter</button
-      ><button v-if="a.busy" class="btn" @click="a.cancel()">
-        Annuler · {{ Math.round(a.progress * 100) }} %
-      </button>
-    </div>
+      >
+    </fieldset>
+    <button v-if="a.busy" class="btn" @click="a.cancel()">Annuler l’export</button>
   </section>
 </template>

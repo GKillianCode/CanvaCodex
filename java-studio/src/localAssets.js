@@ -7,6 +7,7 @@ export const localAssets = reactive({
   busy: 0,
   error: "",
   paths: {},
+  warnings: {},
   revisions: {},
   version: 0,
 });
@@ -30,6 +31,7 @@ export async function refreshAssets(kinds=["components","themes","motions"]) {
       const result = await response.json();
       token = result.token;
       localAssets[kind] = result.data[kind];
+      localAssets.warnings[kind] = result.data.warning || "";
       if (kind === "themes") localAssets.removed = result.data.removed || [];
       localAssets.paths[kind] = result.path;
       localAssets.revisions[kind] = result.revision;
@@ -89,6 +91,7 @@ export function updateAssets(kind, mutate) {
           }
           const result = await response.json();
           localAssets[kind] = result.data[kind];
+      localAssets.warnings[kind] = result.data.warning || "";
           if (kind === "themes") localAssets.removed = result.data.removed;
           localAssets.paths[kind] = result.path;
           localAssets.revisions[kind] = result.revision;

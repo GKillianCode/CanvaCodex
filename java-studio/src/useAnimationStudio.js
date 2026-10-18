@@ -22,7 +22,7 @@ import {renderAnimationStoryboard} from "./animationStoryboardRender.js";
 import { renderAnimation } from "./animationRender.js";
 import { prepareImages } from "./render.js";
 import { prepareFonts } from "./fontAssets.js";
-import { pngMovie } from "./pngMovie.js";
+import { exportAnimationFrames } from "./animationVideoExport.js";
 import { ensureVideoEncoder } from "./videoEncoding.js";
 import {makeSlimeDemo} from "./animationSlimeDemo.js";
 import { makeAnimationExample } from "./animationExamples.js";
@@ -45,6 +45,7 @@ export function useAnimationStudio(s) {
     exportWidth = ref(1920),
     pathEditing = ref(false),
     activePath = ref("");
+  const exportError = ref(""), exportPhase = ref("");
   const construction = ref(true);
   function setConstruction(value) { stop(); construction.value = value; preview.value = true; }
   const editorScene = computed(() => preview.value ? animationScene(s.current.value, config.value, time.value).scene : s.current.value);
@@ -606,9 +607,11 @@ export function useAnimationStudio(s) {
     if (busy.value || s.videoEncoding.recovery.value) return;
     stop();
     busy.value = true;
+    exportError.value = ""; exportPhase.value = "Préparation…";
     progress.value = 0;
     controller = new AbortController();
     const signal = controller.signal;
+    try {
     const scenes = copy(allScenes.value ? s.slides.value : [s.current.value]),
       scene = scenes[0],
       theme = copy(s.theme.value),
@@ -618,7 +621,6 @@ export function useAnimationStudio(s) {
       },
       outputFormat = format.value,
       width = exportWidth.value;
-    try {
       if (
         outputFormat === "webm" &&
         scenes.some((scene) => scene.animation?.background === "transparent")
@@ -633,6 +635,7 @@ export function useAnimationStudio(s) {
       await ensureVideoEncoder(outputFormat, { signal });
       await prepareFonts(scenes);
       await prepareImages(scenes, theme);
+      if(signal.aborted)throw new DOMException("Export annulé.","AbortError");
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = (canvas.width * 9) / 16;
@@ -644,6 +647,7 @@ export function useAnimationStudio(s) {
           MediaRecorder.isTypeSupported(v),
         );
         if (!mime) throw Error("WebM indisponible.");
+        exportPhase.value="Enregistrement WebM…";
         await new Promise((resolve, reject) => {
           let timer,
             stream,
@@ -712,10 +716,12 @@ export function useAnimationStudio(s) {
                 config.duration,
                 (performance.now() - start) / 1000,
               );
-              draw(t);
-              progress.value = t / config.duration;
-              if (t === config.duration) recorder.stop();
-              else timer = setTimeout(tick, 1000 / config.fps);
+              try {
+                draw(t);
+                progress.value = t / config.duration;
+                if (t === config.duration) recorder.stop();
+                else timer = setTimeout(tick, 1000 / config.fps);
+              } catch(error) { fail(error); }
             }
             tick();
           } catch (e) {
@@ -723,40 +729,13 @@ export function useAnimationStudio(s) {
           }
         });
       } else {
-        const frames = [],
-          count = Math.max(1, Math.round(config.duration * config.fps));
-        let bytes = 0;
-        for (let i = 0; i < count; i++) {
-          if (signal.aborted)
-            throw new DOMException("Export annulé.", "AbortError");
-          draw(i / config.fps);
-          const blob = await new Promise((resolve, reject) =>
-            canvas.toBlob(
-              (b) => (b ? resolve(b) : reject(Error("Image indisponible."))),
-              "image/png",
-            ),
-          );
-          bytes += blob.size;
-          if (bytes > 256 * 1024 * 1024)
-            throw Error(
-              "Capture supérieure à 256 Mo. Réduis la résolution ou la durée.",
-            );
-          frames.push(blob);
-          progress.value = ((i + 1) / count) * 0.85;
-          if (i % 6 === 0)
-            await new Promise((resolve) => setTimeout(resolve, 0));
-        }
-        const source = await pngMovie(frames, {
-          width: canvas.width,
-          height: canvas.height,
-          fps: config.fps,
+        const output = await exportAnimationFrames({
+          canvas, draw, duration: config.duration, fps: config.fps,
+          format: outputFormat, signal,
+          onProgress(value,phase) { progress.value=value; exportPhase.value=phase==='encoding'?'Encodage…':'Création des images…'; },
         });
-        await s.videoEncoding.save(
-          source,
-          outputFormat,
-          "frame-animation." + outputFormat,
-          { signal, preview: false },
-        );
+        if(signal.aborted)throw new DOMException('Export annulé.','AbortError');
+        s.download(output, 'frame-animation.' + outputFormat, false);
       }
       progress.value = 1;
       s.notify("Animation exportée.");
@@ -769,8 +748,10 @@ export function useAnimationStudio(s) {
         ctx.restore();
       }
     } catch (e) {
-      if (e.name !== "AbortError") s.notify(e.message);
+      if (e.name !== "AbortError") { exportError.value=e.message||"L’export a échoué."; s.notify(exportError.value); }
+      else exportError.value="Export annulé.";
     } finally {
+      exportPhase.value="";
       busy.value = false;
       controller = null;
     }
@@ -1061,7 +1042,7 @@ export function useAnimationStudio(s) {
     window.removeEventListener("blur", blur);
   });
   return {
-    construction,setConstruction,editorScene,
+    exportError,exportPhase,construction,setConstruction,editorScene,
     motionPrefs,keySelection,keyClipboard,selectKey,keyEntries,copyKeys,pasteKeys,deleteKeys,diagnostics,commitPose,selectedPathPoint,addPathPoint,removePathPoint,
     activeFrame,
     pendingDelete,

@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import http from "node:http";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { assetLibraryPlugin } from "../scripts/asset-library-plugin.mjs";
@@ -105,4 +105,24 @@ test("local asset files persist atomically, reject stale writes and preserve a b
     await new Promise((r) => server.close(r));
     await rm(directory, { recursive: true, force: true });
   }
+});
+
+test('partial legacy libraries can be read without discarding their original invalid entries', async () => {
+  const {normalizeAssetFile}=await import('../scripts/asset-library-plugin.mjs');
+  const raw={format:'frame-component-library',version:1,components:[{name:'ancien composant',items:[]}]};
+  assert.throws(()=>normalizeAssetFile('components',raw),/Éléments invalides/);
+  const readable=normalizeAssetFile('components',raw,{allowPartial:true});
+  assert.deepEqual(readable.components,[]);assert.match(readable.warning,/1 élément/);assert.equal(raw.components.length,1);
+});
+
+test('reading a partially invalid disk library keeps valid components and refuses destructive rewrites', async () => {
+  const directory=await mkdtemp(join(tmpdir(),'frame-partial-assets-'));let middleware;
+  const plugin=assetLibraryPlugin({directory});plugin.configResolved({root:directory});plugin.configureServer({middlewares:{use(prefix,fn){middleware=fn;}}});
+  const original=JSON.stringify({format:'frame-component-library',version:1,components:[{id:'good',name:'Texte',items:[{id:'text',element:{type:'text',custom:true,text:'Bonjour'},position:{x:0,y:0,w:100,h:50,size:20}}]},{id:'bad',name:'Ancien',items:[]}]});
+  await writeFile(join(directory,'components.json'),original);
+  const server=http.createServer((req,res)=>middleware(req,res));await new Promise(r=>server.listen(0,'127.0.0.1',r));const url='http://127.0.0.1:'+server.address().port;
+  try{
+    const response=await fetch(url+'/components'),value=await response.json();assert.equal(response.status,200);assert.equal(value.data.components.length,1);assert.match(value.data.warning,/1 élément/);
+    const write=await fetch(url+'/components',{method:'PUT',headers:{'Content-Type':'application/json','X-Frame-Assets-Token':value.token,'If-Match':value.revision},body:JSON.stringify(value.data)});assert.equal(write.status,422);assert.equal(await readFile(join(directory,'components.json'),'utf8'),original);
+  }finally{await new Promise(r=>server.close(r));await rm(directory,{recursive:true,force:true});}
 });

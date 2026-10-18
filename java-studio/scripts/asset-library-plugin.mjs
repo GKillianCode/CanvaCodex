@@ -15,7 +15,7 @@ import { normalizeThemes } from "../src/themes.js";
 const max = 64 * 1024 * 1024;
 export const assetRevision = (text) =>
   createHash("sha256").update(text).digest("hex");
-export function normalizeAssetFile(kind, raw) {
+export function normalizeAssetFile(kind, raw, { allowPartial = false } = {}) {
   if (
     !raw ||
     raw.version !== 1 ||
@@ -32,12 +32,13 @@ export function normalizeAssetFile(kind, raw) {
         ? normalizeThemes(list)
         : []
       : kind === "motions" ? normalizeMotionPresets(list) : normalizeComponents(list);
-  if (normalized.length !== list.length)
+  if (!allowPartial && normalized.length !== list.length)
     throw Error("Éléments invalides dans la bibliothèque.");
   return {
     format: raw.format,
     version: 1,
     [kind]: normalized,
+    ...(normalized.length !== list.length ? { warning: `${list.length - normalized.length} élément(s) illisible(s) dans la bibliothèque ${kind}. Le fichier original est conservé ; les autres éléments restent accessibles.` } : {}),
     ...(kind === "themes"
       ? {
           removed: Array.isArray(raw.removed)
@@ -72,7 +73,7 @@ export function assetLibraryPlugin({
         return cache.get(kind).value;
       const text = await readFile(file, "utf8"),
         value = {
-          data: normalizeAssetFile(kind, JSON.parse(text)),
+          data: normalizeAssetFile(kind, JSON.parse(text), {allowPartial:true}),
           revision: assetRevision(text),
         };
       cache.set(kind, { signature, value });
@@ -145,6 +146,7 @@ export function assetLibraryPlugin({
           return json(413, { error: "Bibliothèque supérieure à 64 Mo." });
         const write = async () => {
           const current = await read(kind);
+          if (current.data.warning) return json(422, { error: current.data.warning + " Corrige le fichier avant de modifier cette bibliothèque." });
           if (req.headers["if-match"] !== current.revision)
             return json(409, {
               error: "Le fichier a changé. Actualise avant d’enregistrer.",

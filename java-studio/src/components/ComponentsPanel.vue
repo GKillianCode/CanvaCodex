@@ -58,6 +58,7 @@ async function create() {
       Les nouvelles insertions sont liées au modèle. Édite-le dans un autre
       onglet pour mettre à jour ses instances.
     </p>
+    <p v-if="s.localAssets.warnings.components" role="status" class="library-error">{{ s.localAssets.warnings.components }}</p>
     <p v-if="s.sharedError" role="status" class="library-error">
       {{ s.sharedError }}
     </p>

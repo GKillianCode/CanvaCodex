@@ -146,3 +146,11 @@ Pour examiner le fonctionnement, ouvrir **Animation → Diagnostic visuel** : ac
 ### Construction et état animé au même instant
 
 Le commutateur **Construction / État animé** conserve le temps courant et la pose calculée. Construction affiche les repères des moteurs, les trajectoires et les objets au-delà du cadre ; État animé limite l’affichage à la scène. Sélectionner un moteur ou ajouter une séquence ne rétablit plus la disposition au temps zéro. Les poignées et modifications restent associées à l’état animé courant. L’export reste indépendant de ces repères de construction.
+
+### Export Animation par lots et erreurs visibles
+
+Les exports MOV/MKV d’Animation créent les images par petits lots (12 images maximum, environ16Mo avant envoi), immédiatement matérialisées en octets. Le navigateur ne conserve plus un film entier de PNG en mémoire. Le serveur local les place dans un dossier temporaire privé, puis FFmpeg encode directement la séquence en MOV QTRLE/ARGB ou MKV FFV1/BGRA. Les fichiers temporaires sont nettoyés après téléchargement, erreur, annulation ou expiration d’un export abandonné. Aucun service distant ni bibliothèque personnelle n’intervient dans cet encodage. Limites de cette voie :10min,2560×1440,4Go d’images temporaires et2Go de sortie ; les autres captures conservent leurs limites précédentes.
+
+Pendant l’export, les réglages de toutes les scènes, boucle, format, résolution, lecture et fermeture de l’aperçu sont désactivés. Annuler reste disponible. L’erreur d’export reste affichée dans l’aperçu ; les commandes redeviennent accessibles et une nouvelle tentative est possible. Une scène ou l’ensemble des scènes est figé au lancement.
+
+Une bibliothèque de composants partiellement illisible ne bloque plus la lecture de ses éléments valides. Un avertissement est présenté dans Composants ; l’original reste intact et toute réécriture qui supprimerait implicitement ses entrées illisibles est refusée. Cette lecture partielle n’est pas une réparation automatique du fichier original.
