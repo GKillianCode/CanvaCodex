@@ -1,3 +1,4 @@
+import { drawShape, normalizeShape, shapeGeometry } from "./shapes.js";
 import { boundColor } from "./colors.js";
 import { animationScene, animationParticles } from "./animationModel.js";
 import { renderSlide } from "./render.js";
@@ -15,11 +16,57 @@ export function renderAnimation(
     ctx.fillStyle = boundColor(state.config, "color", theme);
     ctx.fillRect(0, 0, 1920, 1080);
   }
-  renderSlide(ctx, state.scene, theme, {
-    transparent: true,
-    order: Infinity,
-    typingElapsed: state.typingElapsed,
-  });
+  const cutters = state.config.effects
+    .filter(
+      (e) =>
+        e.enabled && ["subtract", "intersect"].includes(e.kind) && e.target,
+    )
+    .map((e) => e.target);
+  renderSlide(
+    ctx,
+    {
+      ...state.scene,
+      hiddenKeys: [...(state.scene.hiddenKeys || []), ...cutters],
+    },
+    theme,
+    {
+      transparent: true,
+      order: Infinity,
+      typingElapsed: state.typingElapsed,
+      beforeObject: (ctx, key) => {
+        for (const effect of state.config.effects.filter(
+          (e) =>
+            e.enabled &&
+            e.key === key &&
+            ["subtract", "intersect"].includes(e.kind),
+        )) {
+          const p = state.scene.positions[effect.target],
+            e = state.scene.elements[effect.target];
+          if (!p || e?.type !== "shape") continue;
+          const path = shapeGeometry(
+              { ...e, outlined: false, filled: true },
+              p,
+            ),
+            transformed = new Path2D(),
+            cx = p.x + p.w / 2,
+            cy = p.y + (p.h || 0) / 2,
+            m = new DOMMatrix()
+              .translate(cx, cy)
+              .rotate(p.rotation || 0)
+              .skewX(p.skewX || 0)
+              .skewY(p.skewY || 0)
+              .translate(-cx, -cy);
+          transformed.addPath(path, m);
+          if (effect.kind === "subtract") {
+            const inverse = new Path2D();
+            inverse.rect(-20000, -20000, 40000, 40000);
+            inverse.addPath(transformed);
+            ctx.clip(inverse, "evenodd");
+          } else ctx.clip(transformed);
+        }
+      },
+    },
+  );
   for (const link of state.config.links) {
     const a = state.scene.positions[link.from],
       b = state.scene.positions[link.to];
@@ -72,7 +119,7 @@ export function renderAnimation(
     })) {
       ctx.save();
       ctx.globalAlpha = particle.alpha;
-      ctx.fillStyle = boundColor(clip.particles,"color",theme);
+      ctx.fillStyle = boundColor(clip.particles, "color", theme);
       ctx.beginPath();
       ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
       ctx.fill();
@@ -90,10 +137,27 @@ export function renderAnimation(
     )) {
       ctx.save();
       ctx.globalAlpha = particle.alpha;
-      ctx.fillStyle = boundColor(engine.particles, "color", theme);
-      ctx.beginPath();
-      ctx.arc(particle.x, particle.y, particle.size, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.translate(particle.x, particle.y);
+      ctx.rotate((engine.particles.rotation * Math.PI) / 180);
+      const shape = normalizeShape({
+        ...engine.particles.shape,
+        fill: boundColor(engine.particles, "color", theme),
+        fillRole: null,
+        stroke: boundColor(engine.particles, "color", theme),
+        strokeRole: null,
+        opacity: 100,
+      });
+      drawShape(
+        ctx,
+        shape,
+        {
+          x: -particle.size * engine.particles.aspect,
+          y: -particle.size,
+          w: particle.size * 2 * engine.particles.aspect,
+          h: particle.size * 2,
+        },
+        theme,
+      );
       ctx.restore();
     }
   }

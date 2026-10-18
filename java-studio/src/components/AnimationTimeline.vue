@@ -10,12 +10,18 @@ import {
   Trash2,
   Copy,
   Diamond,
-  Download,
   Route,
   Maximize2,
-  Minus,
+  Eye,
+  EyeOff,
+  Power,
+  ChevronDown,
 } from "lucide-vue-next";
-import { animationFields, animationEasings } from "../animationModel.js";
+import {
+  animationFields,
+  animationEasings,
+  discreteAnimationFields,
+} from "../animationModel.js";
 import { timelineView, timelineTime } from "../animationTimelineView.js";
 const props = defineProps({ studio: Object }),
   s = reactive(props.studio),
@@ -24,9 +30,24 @@ const props = defineProps({ studio: Object }),
   zoom = ref(100),
   tracks = ref(null),
   world = ref(null),
-  menu = ref(null);
+  menu = ref(null),
+  showHidden = ref(false);
 const view = computed(() => timelineView(a.config.duration, zoom.value));
 const labels = {
+  fillEnabled: "Remplissage activé",
+  strokeEnabled: "Contour activé",
+  dashed: "Pointillés",
+  strokeWidth: "Épaisseur du contour",
+  radius: "Arrondi",
+  points: "Branches",
+  innerRatio: "Profondeur",
+  strokeColor: "Couleur du contour",
+  engineGravity: "Force de gravité",
+  particleForce: "Force d’émission",
+  particleSpeed: "Vitesse des particules",
+  particleSize: "Taille des particules",
+  particleCount: "Quantité de particules",
+  particleLife: "Vie des particules",
   x: "Position X",
   y: "Position Y",
   w: "Largeur",
@@ -38,7 +59,7 @@ const labels = {
   size: "Taille du texte",
   contentScale: "Échelle du contenu",
   progress: "Progression du chemin",
-  color: "Couleur",
+  color: "Couleur du remplissage",
 };
 const easeLabels = {
   linear: "Linéaire",
@@ -89,7 +110,10 @@ function dragKey(event, c, key) {
   });
 }
 function scrub(event) {
-  const rect = event.currentTarget.getBoundingClientRect();
+  event.preventDefault();
+  const rect = (
+    event.currentTarget.closest(".timeline-ruler") || event.currentTarget
+  ).getBoundingClientRect();
   const update = (e) =>
     a.seek(timelineTime(e.clientX, rect.left, rect.width, view.value.span));
   update(event);
@@ -129,14 +153,14 @@ async function zoomAt(value, event) {
     pointer = event ? event.clientX - rect.left : rect.width / 2,
     oldWidth = world.value.getBoundingClientRect().width,
     time =
-      ((el.scrollLeft + pointer - 210) / Math.max(1, oldWidth - 210)) *
+      ((el.scrollLeft + pointer - 280) / Math.max(1, oldWidth - 280)) *
       view.value.span;
   zoom.value = timelineView(a.config.duration, value).zoom;
   await nextTick();
   const width = world.value.getBoundingClientRect().width;
   el.scrollLeft = Math.max(
     0,
-    210 + (time / view.value.span) * (width - 210) - pointer,
+    280 + (time / view.value.span) * (width - 280) - pointer,
   );
 }
 function wheel(event) {
@@ -159,10 +183,24 @@ function context(event, c, key) {
 function outside(event) {
   if (!event.target.closest(".animation-key-context")) menu.value = null;
 }
+function addFrameAt(event, c) {
+  if (event.target.closest("button")) return;
+  const rect = event.currentTarget.getBoundingClientRect();
+  a.selectClip(c.id);
+  a.seek(timelineTime(event.clientX, rect.left, rect.width, view.value.span));
+  a.addFrame();
+}
+function frameTimes(c) {
+  return [
+    ...new Set([...(c.markers || []), ...c.frames.map((f) => f.time)]),
+  ].sort((a, b) => a - b);
+}
 function deleteEvent(event) {
   if (["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)) return;
   event.preventDefault();
   if (a.clip && a.activeKey) a.deleteKey(a.clip, a.activeKey);
+  else if (a.clip && a.activeFrame) a.removeFrame(a.clip, a.activeFrame.time);
+  else if (a.clip) a.removeClip();
 }
 onMounted(() => {
   tracks.value.addEventListener("wheel", wheel, { passive: false });
@@ -200,7 +238,11 @@ onUnmounted(() => {
           @click="a.seek(a.time - 1 / a.config.fps)"
         >
           <ChevronLeft :size="16" /></button
-        ><button class="btn primary" @click="a.play()">
+        ><button
+          class="btn primary"
+          title="Lire ou mettre en pause l’animation"
+          @click="a.play()"
+        >
           <component :is="a.playing ? Pause : Play" :size="16" />{{
             a.playing ? "Pause" : "Lire"
           }}</button
@@ -221,10 +263,12 @@ onUnmounted(() => {
             @change="a.seek($event.target.value)"
           />
           s</label
-        ><label><input type="checkbox" v-model="a.loop" />Boucle</label>
+        ><label title="Recommencer la scène à la fin"
+          ><input type="checkbox" v-model="a.loop" />Boucle</label
+        >
         <div
           class="workspace-switch"
-          title="Base des objets : disposition hors animation. État animé : rendu à l’instant du curseur."
+          title="Disposition initiale : disposition hors animation. État animé : rendu à l’instant du curseur."
         >
           <button
             :class="{ active: !a.preview }"
@@ -233,71 +277,22 @@ onUnmounted(() => {
               a.preview = false;
             "
           >
-            Base des objets</button
+            Disposition initiale</button
           ><button :class="{ active: a.preview }" @click="a.preview = true">
             État animé
           </button>
         </div>
         <button
-          class="btn"
+          class="icon-btn"
+          title="Ouvrir l’aperçu plein écran"
+          aria-label="Aperçu plein écran"
           @click="
             a.preview = true;
             a.previewOpen = true;
           "
         >
-          <Maximize2 :size="15" />Aperçu plein écran
+          <Maximize2 :size="15" />
         </button>
-      </div>
-      <div class="bottom-tools">
-        <button
-          class="icon-btn"
-          aria-label="Dézoomer la timeline"
-          @click="zoomAt(zoom / 1.25)"
-        >
-          <Minus :size="14" /></button
-        ><label
-          ><input
-            type="number"
-            :value="Math.round(zoom)"
-            min="25"
-            max="1600"
-            aria-label="Zoom de la timeline"
-            @change="zoomAt($event.target.value)"
-          />
-          %</label
-        ><button
-          class="icon-btn"
-          aria-label="Zoomer la timeline"
-          @click="zoomAt(zoom * 1.25)"
-        >
-          <Plus :size="14" />
-        </button>
-        <details class="animation-menu">
-          <summary>Export et exemples</summary>
-          <div>
-            <label
-              >Format<select v-model="a.format">
-                <option value="mov">MOV · QTRLE</option>
-                <option value="mkv">MKV · FFV1</option>
-                <option value="webm">WebM · fond uni</option>
-              </select></label
-            ><label
-              >Résolution<select v-model.number="a.exportWidth">
-                <option :value="1280">1280 × 720</option>
-                <option :value="1920">1920 × 1080</option>
-                <option :value="2560">2560 × 1440</option>
-              </select></label
-            ><button class="btn" :disabled="a.busy" @click="a.exportVideo()">
-              <Download :size="14" />Exporter
-            </button>
-            <hr />
-            <button class="btn" @click="a.example('gc')">
-              Exemple Garbage Collector</button
-            ><button class="btn" @click="a.example('pool')">
-              Exemple String Pool
-            </button>
-          </div>
-        </details>
       </div>
     </div>
     <div v-if="a.busy" class="animation-export-progress" role="status">
@@ -308,7 +303,18 @@ onUnmounted(() => {
       ><button class="btn" @click="a.cancel()">Annuler</button>
     </div>
     <div class="animation-key-tools">
-      <button class="btn" @click="a.addClip()">
+      <button
+        class="btn primary"
+        title="Poser une image clé à cet instant, puis lui associer des propriétés avec les losanges"
+        @click="a.addFrame()"
+      >
+        <Diamond :size="14" />Ajouter une image clé
+      </button>
+      <button
+        class="btn"
+        title="Créer une séquence pour les objets sélectionnés"
+        @click="a.addClip()"
+      >
         <Plus :size="14" />Animer la sélection</button
       ><button
         class="icon-btn"
@@ -321,33 +327,25 @@ onUnmounted(() => {
         class="icon-btn"
         :disabled="!a.clip"
         title="Supprimer la séquence"
-        @click="
-          a.removeClip();
-          a.activeKey = null;
-        "
+        @click="a.removeClip()"
       >
         <Trash2 :size="14" /></button
-      ><select v-model="a.field" aria-label="Propriété à animer">
-        <option
-          v-for="f in animationFields"
-          :key="f"
-          :value="f"
-          :disabled="!!a.clip?.pathId && ['x', 'y'].includes(f)"
-        >
-          {{ labels[f] }}
-        </option></select
-      ><select v-model="a.ease" aria-label="Interpolation des nouvelles clés">
-        <option v-for="e in animationEasings" :key="e" :value="e">
-          {{ easeLabels[e] }}
-        </option></select
-      ><button class="btn" @click="a.addKey()">
-        <Diamond :size="14" />Ajouter une clé</button
-      ><button class="btn" @click="a.addLink()">Référence</button
-      ><button class="btn" @click="a.addPath()">
+      ><button
+        class="btn"
+        title="Relier les deux objets sélectionnés par une flèche"
+        @click="a.addLink()"
+      >
+        Référence</button
+      ><button
+        class="btn"
+        title="Créer une trajectoire pour la séquence sélectionnée"
+        @click="a.addPath()"
+      >
         <Route :size="14" />Spline</button
+      ><label title="Réafficher les séquences masquées"
+        ><input type="checkbox" v-model="showHidden" />Pistes masquées</label
       ><span class="field-help"
-        >Double-clic : voir et régler la clé. Clic droit : dupliquer ou
-        supprimer.</span
+        >Losanges dans les propriétés · Ctrl + molette : zoom temporel.</span
       >
     </div>
     <div ref="tracks" class="animation-tracks">
@@ -364,24 +362,81 @@ onUnmounted(() => {
               :key="i"
               :style="{ left: ((i - 1) / 8) * 100 + '%' }"
               >{{ (((i - 1) * view.span) / 8).toFixed(1) }}</span
+            ><button
+              class="playhead-head"
+              :style="{ left: (a.time / view.span) * 100 + '%' }"
+              title="Glisser pour déplacer la tête de lecture"
+              aria-label="Tête de lecture"
+              @pointerdown.stop="scrub"
+            ></button
             ><i :style="{ left: (a.time / view.span) * 100 + '%' }"></i>
           </div>
         </div>
-        <template v-for="c in a.config.clips" :key="c.id"
+        <template
+          v-for="c in a.config.clips.filter((c) => !c.hidden || showHidden)"
+          :key="c.id"
           ><div
-            :class="['animation-track', { active: a.selectedClip === c.id }]"
+            :class="[
+              'animation-track',
+              { active: a.selectedClip === c.id, muted: !c.enabled },
+            ]"
           >
-            <button
-              class="track-name"
-              @click="
-                a.selectClip(c.id);
-                a.activeKey = null;
-              "
+            <div class="track-name" @click="a.selectClip(c.id)">
+              <button
+                class="icon-btn"
+                :title="
+                  c.collapsed
+                    ? 'Déplier les propriétés'
+                    : 'Replier les propriétés'
+                "
+                @click.stop="c.collapsed = !c.collapsed"
+              >
+                <ChevronDown
+                  :size="12"
+                  :style="{ transform: c.collapsed ? 'rotate(-90deg)' : '' }"
+                /></button
+              ><input
+                :aria-label="'Nom de la séquence ' + c.name"
+                v-model="c.name"
+                maxlength="100"
+                title="Renommer la séquence"
+                @pointerdown.stop
+              /><button
+                class="icon-btn"
+                :title="
+                  c.enabled
+                    ? 'Désactiver cette animation'
+                    : 'Réactiver cette animation'
+                "
+                :aria-pressed="c.enabled"
+                @click.stop="c.enabled = !c.enabled"
+              >
+                <Power
+                  :size="12"
+                  :style="{ opacity: c.enabled ? 1 : 0.35 }"
+                /></button
+              ><button
+                class="icon-btn"
+                :title="c.hidden ? 'Réafficher la piste' : 'Masquer la piste'"
+                @click.stop="c.hidden = !c.hidden"
+              >
+                <component :is="c.hidden ? EyeOff : Eye" :size="12" /></button
+              ><button
+                class="icon-btn"
+                title="Supprimer cette séquence"
+                @click.stop="
+                  a.selectClip(c.id);
+                  a.removeClip();
+                "
+              >
+                <Trash2 :size="12" />
+              </button>
+            </div>
+            <div
+              class="track-lane"
+              @pointerdown.self="a.selectClip(c.id)"
+              @dblclick.stop.prevent="addFrameAt($event, c)"
             >
-              <span :class="{ 'track-disabled': !c.enabled }">{{ c.name }}</span
-              ><small>{{ c.keys.length }} objets</small>
-            </button>
-            <div class="track-lane" @pointerdown.self="a.selectClip(c.id)">
               <span
                 class="clip-span"
                 :style="{
@@ -391,13 +446,38 @@ onUnmounted(() => {
                 title="Glisser pour décaler la séquence"
                 @pointerdown="dragClip($event, c)"
               ></span
+              ><button
+                v-for="t in frameTimes(c)"
+                :key="t"
+                class="frame-marker"
+                :class="{
+                  empty: !c.frames.some((f) => Math.abs(f.time - t) < 0.0001),
+                }"
+                :style="{ left: ((c.start + t) / view.span) * 100 + '%' }"
+                :aria-label="'Image clé à ' + t + ' secondes'"
+                :title="
+                  'Image clé · ' + t + ' s · double-clic : afficher cet état'
+                "
+                @pointerdown.stop
+                @click.stop="a.focusFrame(c, t)"
+                @dblclick.stop.prevent="a.focusFrame(c, t)"
+                @contextmenu.prevent.stop="
+                  menu = {
+                    c,
+                    frameTime: t,
+                    x: Math.min(innerWidth - 210, $event.clientX),
+                    y: Math.min(innerHeight - 180, $event.clientY),
+                  }
+                "
+              >
+                ◆</button
               ><i
                 class="track-cursor"
                 :style="{ left: (a.time / view.span) * 100 + '%' }"
               ></i>
             </div>
           </div>
-          <template v-if="a.selectedClip === c.id"
+          <template v-if="a.selectedClip === c.id && !c.collapsed"
             ><div
               v-for="f in animationFields.filter((f) =>
                 c.frames.some((k) => k.field === f),
@@ -405,7 +485,30 @@ onUnmounted(() => {
               :key="f"
               class="animation-property-track"
             >
-              <span class="property-track-label">{{ labels[f] }}</span>
+              <span class="property-track-label"
+                >{{ labels[f]
+                }}<select
+                  :aria-label="'Interpolation · ' + labels[f]"
+                  :value="c.frames.find((k) => k.field === f)?.ease || c.easing"
+                  title="Interpolation de cette propriété"
+                  :disabled="discreteAnimationFields.includes(f)"
+                  @change="
+                    a.beginGesture();
+                    c.frames
+                      .filter((k) => k.field === f)
+                      .forEach((k) => (k.ease = $event.target.value));
+                    a.endGesture();
+                  "
+                >
+                  <option
+                    v-for="ease in animationEasings"
+                    :key="ease"
+                    :value="ease"
+                  >
+                    {{ easeLabels[ease] }}
+                  </option>
+                </select></span
+              >
               <div class="track-lane">
                 <button
                   v-for="(key, n) in c.frames.filter((k) => k.field === f)"
@@ -445,31 +548,51 @@ onUnmounted(() => {
       :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
       @pointerdown.stop
     >
-      <button
-        role="menuitem"
-        @click="
-          a.focusKey(menu.c, menu.key);
-          menu = null;
-        "
+      <template v-if="menu.frameTime !== undefined"
+        ><button
+          role="menuitem"
+          @click="
+            a.focusFrame(menu.c, menu.frameTime);
+            menu = null;
+          "
+        >
+          Afficher cet état</button
+        ><button
+          role="menuitem"
+          @click="
+            a.removeFrame(menu.c, menu.frameTime);
+            menu = null;
+          "
+        >
+          Supprimer l’image clé
+        </button></template
+      ><template v-else
+        ><button
+          role="menuitem"
+          @click="
+            a.focusKey(menu.c, menu.key);
+            menu = null;
+          "
+        >
+          Afficher cet état</button
+        ><button
+          role="menuitem"
+          @click="
+            a.duplicateKey(menu.c, menu.key);
+            menu = null;
+          "
+        >
+          Dupliquer la clé</button
+        ><button
+          role="menuitem"
+          @click="
+            a.deleteKey(menu.c, menu.key);
+            menu = null;
+          "
+        >
+          Supprimer la clé
+        </button></template
       >
-        Afficher cet état</button
-      ><button
-        role="menuitem"
-        @click="
-          a.duplicateKey(menu.c, menu.key);
-          menu = null;
-        "
-      >
-        Dupliquer la clé</button
-      ><button
-        role="menuitem"
-        @click="
-          a.deleteKey(menu.c, menu.key);
-          menu = null;
-        "
-      >
-        Supprimer la clé
-      </button>
     </div>
   </section>
 </template>

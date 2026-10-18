@@ -1,4 +1,6 @@
 <script setup>
+import AnimationKeyButton from "./AnimationKeyButton.vue";
+import { Diamond, Route, Link, Move } from "lucide-vue-next";
 import { reactive } from "vue";
 import InspectorDrawer from "./InspectorDrawer.vue";
 const props = defineProps({ studio: Object }),
@@ -6,7 +8,44 @@ const props = defineProps({ studio: Object }),
   a = s.animation;
 </script>
 <template>
-  <InspectorDrawer id="animation-clip" title="Séquence et mouvement"
+  <InspectorDrawer
+    id="animation-values"
+    title="Propriétés animées"
+    :icon="Diamond"
+    ><p class="field-help">
+      À l’instant du curseur, clique sur un losange pour poser ou retirer une
+      clé. Modifier une valeur crée sa clé.
+    </p>
+    <label
+      v-for="[field, label] in [
+        ['x', 'Position X'],
+        ['y', 'Position Y'],
+        ['w', 'Largeur'],
+        ['h', 'Hauteur'],
+        ['rotation', 'Rotation'],
+        ['opacity', 'Opacité'],
+        ['skewX', 'Inclinaison X'],
+        ['skewY', 'Inclinaison Y'],
+        ['contentScale', 'Échelle du contenu'],
+        ...(a.clip?.pathId ? [['progress', 'Progression du chemin']] : []),
+      ]"
+      :key="field"
+      >{{ label }}<AnimationKeyButton :studio="s" :field="field" /><input
+        type="number"
+        :value="a.propertyValue(field)"
+        :step="field === 'progress' || field === 'contentScale' ? 0.01 : 1"
+        :disabled="!!a.clip?.pathId && ['x', 'y'].includes(field)"
+        @change="a.setProperty(field, $event.target.value)" /></label
+    ><label v-if="!a.engine"
+      >Couleur<AnimationKeyButton :studio="s" field="color" /><input
+        type="color"
+        :value="a.propertyValue('color')"
+        @input="a.setProperty('color', $event.target.value)" /></label
+  ></InspectorDrawer>
+  <InspectorDrawer
+    id="animation-clip"
+    title="Séquence et mouvement"
+    :icon="Move"
     ><button class="btn full" @click="a.addClip()">Animer la sélection</button
     ><template v-if="a.clip"
       ><label>Nom<input v-model="a.clip.name" maxlength="100" /></label>
@@ -39,8 +78,10 @@ const props = defineProps({ studio: Object }),
       </p></template
     ></InspectorDrawer
   >
-  <InspectorDrawer v-if="a.clip" id="animation-path" title="Trajectoire spline"
-    ><label
+  <InspectorDrawer id="animation-path" title="Trajectoire spline" :icon="Route"
+    ><button class="btn full" @click="a.addPath()">
+      <Route :size="14" />Ajouter une spline</button
+    ><label v-if="a.clip"
       >Chemin<select
         v-model="a.clip.pathId"
         @change="a.clip.pathId && (a.field = 'progress')"
@@ -51,17 +92,16 @@ const props = defineProps({ studio: Object }),
         </option>
       </select></label
     >
-    <p v-if="a.clip.pathId" class="field-help">
+    <p v-if="a.clip?.pathId" class="field-help">
       La spline pilote X et Y. Retire le chemin pour retrouver les pistes de
       position.
     </p>
-    <label class="checkbox-label"
+    <label v-if="a.clip" class="checkbox-label"
       ><input type="checkbox" v-model="a.clip.constantSpeed" />Vitesse constante
       le long du chemin</label
-    ><label class="checkbox-label"
+    ><label v-if="a.clip" class="checkbox-label"
       ><input type="checkbox" v-model="a.clip.orient" />Orienter selon le
       chemin</label
-    ><button class="btn" @click="a.addPath()">Créer une spline</button
     ><label class="checkbox-label"
       ><input type="checkbox" v-model="a.pathEditing" />Afficher les
       poignées</label
@@ -93,53 +133,10 @@ const props = defineProps({ studio: Object }),
       </button></template
     ></InspectorDrawer
   >
-  <InspectorDrawer v-if="a.clip" id="animation-modifier" title="Modifieur"
-    ><label
-      >Mouvement<select v-model="a.clip.modifier">
-        <option value="none">Aucun</option>
-        <option value="oscillate">Oscillation</option>
-        <option value="gravity">Gravité</option>
-        <option value="stretch">Écrasement / étirement</option>
-      </select></label
-    ><label v-if="a.clip.modifier === 'gravity'"
-      >Accélération · px/s²<input
-        type="number"
-        v-model.number="a.clip.gravity"
-        min="-2000"
-        max="2000" /></label
-    ><template v-if="['oscillate', 'stretch'].includes(a.clip.modifier)"
-      ><label
-        >Amplitude<input
-          type="number"
-          v-model.number="a.clip.amplitude"
-          min="0"
-          max="1000" /></label
-      ><label
-        >Fréquence · Hz<input
-          type="number"
-          v-model.number="a.clip.frequency"
-          min="0"
-          max="20"
-          step="0.1" /></label
-    ></template>
-    <div class="position-grid">
-      <label
-        >Pivot X · 0 à 1<input
-          type="number"
-          v-model.number="a.clip.pivotX"
-          min="0"
-          max="1"
-          step="0.1" /></label
-      ><label
-        >Pivot Y<input
-          type="number"
-          v-model.number="a.clip.pivotY"
-          min="0"
-          max="1"
-          step="0.1"
-      /></label></div
-  ></InspectorDrawer>
-  <InspectorDrawer id="animation-links" title="Références attachées"
+  <InspectorDrawer
+    id="animation-links"
+    title="Références attachées"
+    :icon="Link"
     ><button class="btn full" @click="a.addLink()">
       Relier les deux objets sélectionnés
     </button>

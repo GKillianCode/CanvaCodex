@@ -254,3 +254,9 @@ Sélectionner un tableau fait apparaître des poignées au-dessus des séparatio
 Dans Modifier les cellules, cocher les cellules à personnaliser. Maj + clic sélectionne un rectangle ; les boutons de ligne/colonne et Tout sélectionner facilitent la sélection. Police, taille, gras, alignements, fond et couleur de texte sont modifiables pour la sélection, avec la palette du thème ou une couleur libre. Reprendre le style du tableau efface les styles spécifiques. Appliquer valide contenu et styles ensemble ; Annuler/Échap conserve le tableau précédent. Les styles restent enregistrés et suivent les copies et les exports.
 
 L’ajustement automatique utilise une taille uniforme pour le corps et une autre pour l’en-tête, calculées à partir des cellules remplies, au lieu de réduire chaque cellule séparément. Augmenter la taille demandée ne réduit plus la police ; une taille atteint simplement la limite nécessaire pour tenir dans le tableau. Désactiver l’ajustement conserve les tailles demandées. Une taille explicitement définie sur une cellule est respectée ; agrandir sa ligne si nécessaire.
+
+## Prototype Animation
+
+L’atelier Animation réutilise les propriétés de Diaporama et ajoute des clés par propriété, pistes désactivables/masquables, effets ajoutables, formes de particules et physique 2D avec obstacles/rebonds. Les scènes se succèdent dans une même animation ; « Animer / Exporter » permet de choisir la scène seule ou toutes les scènes pour MOV/MKV transparents. Les thèmes personnels enregistrés sont disponibles entre ateliers. Voir le [guide Animation](../docs/animation-studio.md) pour les commandes et limites. Branche de test, sans fusion automatique.
+
+La timeline Animation permet de poser une **image clé vide**, puis de lui associer les propriétés au moyen des losanges. Remplissage et contour ont leurs propres couleurs et canaux ; les suppressions demandent confirmation. Les points du plateau s’arrêtent à sa bordure extérieure.

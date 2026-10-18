@@ -1,6 +1,38 @@
+import {
+  applyEffects,
+  normalizeEffect,
+  simulateBody,
+} from "./animationEffects.js";
+import { normalizeShape } from "./shapes.js";
 import { validColorRole } from "./colors.js";
 // Animation data is independent of pedagogical steps. All times are seconds.
+export const engineAnimationFields = {
+  engineGravity: "gravity",
+  particleForce: "force",
+  particleSpeed: "speed",
+  particleSize: "size",
+  particleCount: "count",
+  particleLife: "life",
+};
+export const shapeAnimationFields = {
+  fillEnabled: "filled",
+  strokeEnabled: "outlined",
+  dashed: "dashed",
+  strokeWidth: "strokeWidth",
+  radius: "radius",
+  points: "points",
+  innerRatio: "innerRatio",
+  strokeColor: "stroke",
+};
+export const discreteAnimationFields = [
+  "fillEnabled",
+  "strokeEnabled",
+  "dashed",
+];
+export const colorAnimationFields = ["color", "strokeColor"];
 export const animationFields = [
+  ...Object.keys(shapeAnimationFields),
+  ...Object.keys(engineAnimationFields),
   "x",
   "y",
   "w",
@@ -28,6 +60,10 @@ const list = (v, max) => (Array.isArray(v) ? v.slice(0, max) : []);
 export function normalizeParticles(raw = {}) {
   return {
     enabled: raw?.enabled === true,
+    force: number(raw?.force, 1, 0, 10),
+    aspect: number(raw?.aspect, 1, 0.1, 10),
+    rotation: number(raw?.rotation, 0, -360, 360),
+    shape: normalizeShape(raw?.shape || { shape: "circle" }),
     count: Math.round(number(raw?.count, 40, 1, 200)),
     seed: Math.round(number(raw?.seed, 1, 0, 100000)),
     life: number(raw?.life, 2, 0.1, 10),
@@ -47,6 +83,13 @@ export function normalizeEngine(raw = {}, i = 0) {
     id: String(raw?.id || "engine" + i).slice(0, 100),
     key: String(raw?.key || "").slice(0, 100),
     kind: raw?.kind === "gravity" ? "gravity" : "particles",
+    parent: String(raw?.parent || "").slice(0, 100),
+    offsetX: number(raw?.offsetX, 0),
+    offsetY: number(raw?.offsetY, 0),
+    drag: number(raw?.drag, 0, 0, 10),
+    bounce: number(raw?.bounce, 0.5, 0, 1),
+    friction: number(raw?.friction, 0.15, 0, 1),
+    wind: number(raw?.wind, 0, -2000, 2000),
     enabled: raw?.enabled !== false,
     start: number(raw?.start, 0, 0, 120),
     duration: number(raw?.duration, 8, 0.1, 120),
@@ -59,7 +102,8 @@ export function normalizeEngine(raw = {}, i = 0) {
 }
 export function normalizeAnimation(raw = {}) {
   return {
-    version: 2,
+    version: 3,
+    effects: list(raw?.effects, 100).map(normalizeEffect),
     colorRole: validColorRole(raw?.colorRole),
     engines: list(raw?.engines, 50).map(normalizeEngine),
     duration: number(raw?.duration, 8, 0.1, 120),
@@ -88,8 +132,18 @@ export function normalizeAnimation(raw = {}) {
       id: String(c?.id || "clip" + i).slice(0, 100),
       name: String(c?.name || "Séquence").slice(0, 100),
       enabled: c?.enabled !== false,
+      collapsed: c?.collapsed === true,
+      hidden: c?.hidden === true,
+      easing: animationEasings.includes(c?.easing) ? c.easing : "smooth",
       start: number(c?.start, 0, 0, 120),
       duration: number(c?.duration, 8, 0.1, 120),
+      markers: [
+        ...new Set(
+          list(c?.markers, 1000)
+            .filter((v) => Number.isFinite(Number(v)))
+            .map((v) => number(v, 0, 0, 120)),
+        ),
+      ].sort((a, b) => a - b),
       keys: list(c?.keys, 100).filter(
         (k) => typeof k === "string" && k.length < 100,
       ),
@@ -110,16 +164,21 @@ export function normalizeAnimation(raw = {}) {
           (f) =>
             animationFields.includes(f?.field) &&
             Number.isFinite(Number(f?.time)) &&
-            (f.field === "color"
+            (colorAnimationFields.includes(f.field)
               ? /^#[a-f0-9]{6}$/i.test(f.value)
               : Number.isFinite(Number(f.value))),
         )
         .map((f) => ({
           field: f.field,
           time: number(f.time, 0, 0, 120),
-          value:
-            f.field === "color" ? f.value : number(f.value, 0, -10000, 10000),
-          ease: animationEasings.includes(f.ease) ? f.ease : "smooth",
+          value: colorAnimationFields.includes(f.field)
+            ? f.value
+            : number(f.value, 0, -10000, 10000),
+          ease: discreteAnimationFields.includes(f.field)
+            ? "hold"
+            : animationEasings.includes(f.ease)
+              ? f.ease
+              : "smooth",
           curve: Array.from({ length: 4 }, (_, i) =>
             number(
               f.curve?.[i],
@@ -247,6 +306,8 @@ export function animationScene(scene, raw, time) {
       ...scene,
       positions: { ...scene.positions },
       elements: { ...scene.elements },
+      fragments: { ...scene.fragments },
+      blockKeys: [...(scene.blockKeys || [])],
     },
     typingElapsed = {};
   for (const key of scene.blockKeys || []) {
@@ -350,9 +411,46 @@ export function animationScene(scene, raw, time) {
             fillRole: "",
           };
       }
+      if (
+        result.elements[key]?.type === "shape" &&
+        !result.elements[key]?.engineKind
+      ) {
+        const shape = { ...result.elements[key] };
+        for (const [field, prop] of Object.entries(shapeAnimationFields)) {
+          const frames = clip.frames.filter((f) => f.field === field);
+          if (!frames.length) continue;
+          if (discreteAnimationFields.includes(field)) {
+            const f = frames.filter((f) => f.time <= local).at(-1) || frames[0];
+            shape[prop] = Number(f.value) >= 0.5;
+          } else shape[prop] = frameValue(frames, field, local, shape[prop]);
+          if (field === "strokeColor") shape.strokeRole = null;
+        }
+        result.elements[key] = normalizeShape(shape);
+      }
       result.positions[key] = p;
       typingElapsed[key] = local * 1000;
     }
+  }
+  for (const engine of config.engines) {
+    for (const c of config.clips.filter(
+      (c) => c.enabled && c.keys.includes(engine.key) && time >= c.start,
+    )) {
+      const t = Math.min(c.duration, time - c.start);
+      for (const [field, prop] of Object.entries(engineAnimationFields)) {
+        const target = field === "engineGravity" ? engine : engine.particles;
+        target[prop] = frameValue(c.frames, field, t, target[prop]);
+      }
+      engine.particles.color = frameValue(
+        c.frames,
+        "color",
+        t,
+        engine.particles.color,
+      );
+      if (c.frames.some((f) => colorAnimationFields.includes(f.field)))
+        engine.particles.colorRole = null;
+    }
+    engine.particles = normalizeParticles(engine.particles);
+    engine.gravity = number(engine.gravity, 200, -2000, 2000);
   }
   for (const engine of config.engines) {
     if (!engine.enabled || engine.kind !== "gravity" || time < engine.start)
@@ -361,8 +459,27 @@ export function animationScene(scene, raw, time) {
     for (const key of engine.targets) {
       const p = result.positions[key];
       if (p && !result.elements[key]?.engineKind)
-        result.positions[key] = { ...p, y: p.y + 0.5 * engine.gravity * t * t };
+        result.positions[key] = simulateBody(
+          p,
+          t,
+          engine,
+          config.effects
+            .filter((e) => e.enabled && e.kind === "collider" && e.key !== key)
+            .map((e) => result.positions[e.key])
+            .filter(Boolean),
+        );
     }
+  }
+  applyEffects(result, config.effects, time);
+  for (const engine of config.engines) {
+    const parent = result.positions[engine.parent],
+      p = result.positions[engine.key];
+    if (parent && p)
+      result.positions[engine.key] = {
+        ...p,
+        x: parent.x + parent.w / 2 + engine.offsetX - p.w / 2,
+        y: parent.y + (parent.h || 0) / 2 + engine.offsetY - p.h / 2,
+      };
   }
   return { scene: result, typingElapsed, config };
 }
@@ -392,14 +509,16 @@ export function animationParticles(clip, time, origin) {
       p.direction === "axes"
         ? (Math.min(p.xMin, p.xMax) +
             random(i + cycle * p.count + 251) * Math.abs(p.xMax - p.xMin)) *
-          p.speed
-        : Math.cos(a) * v;
+          p.speed *
+          p.force
+        : Math.cos(a) * v * p.force;
     const vy =
       p.direction === "axes"
         ? (Math.min(p.yMin, p.yMax) +
             random(i + cycle * p.count + 503) * Math.abs(p.yMax - p.yMin)) *
-          p.speed
-        : Math.sin(a) * v;
+          p.speed *
+          p.force
+        : Math.sin(a) * v * p.force;
     out.push({
       x: origin.x + vx * age,
       y: origin.y + vy * age + 0.5 * clip.gravity * age * age,

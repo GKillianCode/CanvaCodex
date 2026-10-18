@@ -56,8 +56,8 @@ onMounted(async () => {
   root.value?.focus();
   window.addEventListener("keydown", keyboard, true);
   try {
-    await prepareFonts([s.current]);
-    await prepareImages([s.current], s.theme);
+    await prepareFonts(s.slides);
+    await prepareImages(s.slides, s.theme);
     if (disposed) return;
     ready.value = true;
     await nextTick();
@@ -104,7 +104,11 @@ onUnmounted(() => {
       />
     </div>
     <div class="animation-preview-controls">
-      <button class="icon-btn" title="Revenir au début" @click="a.seek(0)">
+      <button
+        class="icon-btn"
+        title="Revenir au début"
+        @click="a.seekPlayback(0)"
+      >
         <SkipBack :size="17" /></button
       ><button class="btn primary" @click="a.play()">
         <component :is="a.playing ? Pause : Play" :size="16" />{{
@@ -113,27 +117,40 @@ onUnmounted(() => {
       ><input
         type="range"
         min="0"
-        :max="a.config.duration"
+        :max="a.totalDuration"
         :step="1 / a.config.fps"
-        :value="a.time"
+        :value="a.playbackTime"
         aria-label="Position de lecture"
-        @input="a.seek($event.target.value)"
+        @input="a.seekPlayback($event.target.value)"
       /><label
         ><input
           type="number"
           min="0"
-          :max="a.config.duration"
+          :max="a.totalDuration"
           step=".01"
-          :value="a.time.toFixed(2)"
+          :value="a.playbackTime.toFixed(2)"
           aria-label="Temps de l’aperçu"
-          @change="a.seek($event.target.value)"
+          @change="a.seekPlayback($event.target.value)"
         />
-        / {{ a.config.duration }} s</label
+        / {{ a.totalDuration }} s</label
+      ><label
+        ><input
+          type="checkbox"
+          v-model="a.allScenes"
+          @change="a.stop()"
+        />Toutes les scènes</label
       ><label><input type="checkbox" v-model="a.loop" />Boucle</label
       ><select v-model="a.format" aria-label="Format vidéo de l’aperçu">
         <option value="mov">MOV · QTRLE</option>
         <option value="mkv">MKV · FFV1</option>
         <option value="webm">WebM · fond uni</option></select
+      ><select
+        v-model.number="a.exportWidth"
+        aria-label="Résolution de l’export"
+      >
+        <option :value="1280">1280 × 720</option>
+        <option :value="1920">1920 × 1080</option>
+        <option :value="2560">2560 × 1440</option></select
       ><button class="btn" :disabled="a.busy" @click="a.exportVideo()">
         <Download :size="16" />Exporter</button
       ><button v-if="a.busy" class="btn" @click="a.cancel()">

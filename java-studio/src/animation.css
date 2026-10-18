@@ -584,3 +584,288 @@
   background: #fff;
   color: #25382e;
 }
+
+/* Contextual animation controls share the studio's segmented language. */
+.animation-transport .bottom-tools {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: color-mix(in srgb, var(--panel) 94%, var(--ink));
+}
+.animation-transport .icon-btn,
+.animation-transport .btn {
+  height: 30px;
+  min-width: 30px;
+  border-radius: 6px;
+}
+.animation-transport .workspace-switch {
+  margin-left: 8px;
+}
+.animation-transport .timeline-time {
+  padding: 0 8px;
+}
+.animation-track .track-name {
+  gap: 2px;
+  padding: 4px;
+  cursor: pointer;
+}
+.animation-track .track-name input {
+  width: 66px;
+  min-width: 0;
+  flex: 1;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font-size: 11px;
+  padding: 4px;
+}
+.animation-track .track-name .icon-btn {
+  width: 23px;
+  min-width: 23px;
+  height: 25px;
+  padding: 3px;
+}
+.animation-property-track .property-track-label {
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 12px;
+  opacity: 1;
+}
+.animation-property-track .property-track-label select {
+  max-width: 95px;
+  font-size: 10px;
+}
+.timeline-ruler {
+  cursor: ew-resize;
+  touch-action: none;
+}
+.playhead-head {
+  position: absolute;
+  top: 22px;
+  width: 16px;
+  height: 17px;
+  transform: translateX(-50%);
+  border: 0;
+  border-radius: 4px 4px 6px 6px;
+  background: var(--accent);
+  cursor: ew-resize;
+  z-index: 5;
+  touch-action: none;
+}
+.animation-property-key {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  padding: 4px;
+  cursor: pointer;
+  vertical-align: middle;
+}
+.animation-property-key.animated {
+  color: var(--mint);
+}
+.animation-property-key.keyed {
+  color: #c7994d;
+}
+.effect-group {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin: 7px 0;
+  padding: 5px;
+}
+.effect-group summary,
+.property-details summary {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+}
+.effect-group summary {
+  padding: 7px;
+}
+.effect-group .btn {
+  justify-content: flex-start;
+  margin-top: 5px;
+}
+.animation-examples {
+  position: relative;
+  font-size: 12px;
+}
+.animation-examples summary {
+  cursor: pointer;
+  padding: 9px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+}
+.animation-examples > div {
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 30;
+  background: var(--surface, #191c22);
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+.engine-guides {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.engine-guide-icon {
+  position: absolute;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transform: translate(-50%, -50%);
+  color: var(--mint);
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--surface, #191c22);
+  pointer-events: auto;
+  cursor: move;
+}
+.studio.animation-studio .canvas-space {
+  background-image: radial-gradient(#61756a 1.3px, transparent 1.4px);
+  background-color: #161e1c;
+}
+:root[data-appearance="light"] .studio.animation-studio .canvas-space {
+  background-image: radial-gradient(#a2b1a7 1.3px, transparent 1.4px);
+  background-color: #eff2f0;
+}
+:root[data-appearance="light"] .animation-examples > div {
+  background: #fff;
+}
+
+.animation-ruler,
+.animation-track,
+.animation-property-track {
+  grid-template-columns: 280px minmax(250px, 1fr);
+}
+.animation-track.muted .track-lane {
+  opacity: 0.3;
+}
+.animation-track.muted .track-name input {
+  color: var(--muted);
+}
+.animation-key-tools .btn:not(.primary) {
+  border: 1px solid var(--line);
+  background: color-mix(in srgb, var(--panel) 96%, var(--ink));
+}
+.animation-studio .inspector .animation-property-key {
+  min-height: 22px;
+  min-width: 22px;
+}
+
+/* The dotted board is finite; the workspace around it stays plain. */
+.studio.animation-studio .canvas-space {
+  background-image: none;
+  background-color: #101614;
+}
+.studio.animation-studio .canvas-space .stage-wrap {
+  background-color: #161e1c;
+  background-image: radial-gradient(#61756a 1.3px, transparent 1.4px);
+  background-size: var(--animation-grid-size, 36px)
+    var(--animation-grid-size, 36px);
+  border: 1px solid #53645b;
+}
+:root[data-appearance="light"] .studio.animation-studio .canvas-space {
+  background-image: none;
+  background-color: #e4e9e6;
+}
+:root[data-appearance="light"]
+  .studio.animation-studio
+  .canvas-space
+  .stage-wrap {
+  background-color: #f5f7f5;
+  background-image: radial-gradient(#a2b1a7 1.3px, transparent 1.4px);
+  border-color: #acb9b0;
+}
+.animation-transport,
+.animation-key-tools {
+  justify-content: center;
+}
+
+.frame-marker {
+  position: absolute;
+  top: 11px;
+  transform: translateX(-50%);
+  border: 0;
+  background: none;
+  color: var(--accent);
+  z-index: 2;
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 20px;
+  padding: 0 4px;
+}
+.frame-marker.empty {
+  color: var(--ink);
+  opacity: 0.65;
+}
+.animation-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1600;
+  background: #0007;
+  display: grid;
+  place-items: center;
+  backdrop-filter: blur(3px);
+}
+.animation-confirm {
+  max-width: 440px;
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 15px;
+  background: #191c22;
+  color: #e4e8ec;
+  box-shadow: 0 20px 80px #0005;
+}
+.animation-confirm h2 {
+  font-size: 18px;
+  margin: 12px 0;
+}
+.animation-confirm p {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--muted);
+}
+.animation-confirm > div {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 22px;
+}
+.animation-confirm .danger {
+  background: #9d4242;
+  color: #fff;
+}
+:root[data-appearance="light"] .animation-confirm {
+  background: #fff;
+  color: #25382e;
+}
+.animated-color-field {
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+}
+.animated-color-field > span {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+
+.animation-key-tools .field-help {
+  flex: 0 1 auto;
+}

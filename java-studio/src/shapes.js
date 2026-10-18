@@ -46,11 +46,17 @@ export function shapeBounds(e,p){
  if(e.shape!=='line'||!['horizontal','vertical'].includes(e.direction))return {...p,h:p.h||300};
  const horizontal=e.direction==='horizontal',weight=Math.min(e.strokeWidth,horizontal?p.w:p.h||300);return horizontal?{...p,y:p.y+((p.h||300)-weight)/2,h:weight}:{...p,x:p.x+(p.w-weight)/2,w:weight,h:p.h||300};
 }
-export function drawShape(ctx,e,p,theme) {
+export function shapeGeometry(e,p){
  p=shapeBounds(e,p);const spec=shapes.find(s=>s.id===e.shape),w=p.w,h=p.h||300;
  const stroke=e.outlined||spec?.open,weight=e.shape==='line'&&['horizontal','vertical'].includes(e.direction)?Math.min(e.strokeWidth,e.direction==='horizontal'?w:h):Math.min(e.strokeWidth,Math.min(w,h)/2),inset=stroke?weight/2:0;
  const bounds=shapePathBounds(e),ix=e.shape==='line'&&e.direction==='horizontal'&&e.roundedEnds===false?0:inset,iy=e.shape==='line'&&e.direction==='vertical'&&e.roundedEnds===false?0:inset,sx=(w-2*ix)/bounds.w,sy=(h-2*iy)/bounds.h;
  const path=new Path2D();if(e.shape==='rounded'||['rect','square'].includes(e.shape)&&(e.individualCorners||e.roundedCorners)){const rw=w-2*inset,rh=h-2*inset;path.roundRect(p.x+inset,p.y+inset,rw,rh,cornerPixels(e,rw,rh));}else path.addPath(new Path2D(shapePath(e)),new DOMMatrix([sx,0,0,sy,p.x+ix-bounds.x*sx,p.y+iy-bounds.y*sy]));
+ return path;
+}
+export function drawShape(ctx,e,p,theme) {
+ p=shapeBounds(e,p);const spec=shapes.find(s=>s.id===e.shape),w=p.w,h=p.h||300;
+ const stroke=e.outlined||spec?.open,weight=e.shape==='line'&&['horizontal','vertical'].includes(e.direction)?Math.min(e.strokeWidth,e.direction==='horizontal'?w:h):Math.min(e.strokeWidth,Math.min(w,h)/2),inset=stroke?weight/2:0;
+ const path=shapeGeometry(e,p);
  ctx.save();ctx.globalAlpha*=e.opacity/100;ctx.lineJoin='round';ctx.lineCap=e.roundedEnds===false?'butt':'round';if(!spec?.open&&e.filled){ctx.fillStyle=boundColor(e,'fill',theme);ctx.fill(path);}if(stroke){ctx.strokeStyle=boundColor(e,'stroke',theme);ctx.lineWidth=weight;ctx.setLineDash(e.dashed?[weight*3,weight*2]:[]);ctx.stroke(path);}ctx.restore();
 }
 
