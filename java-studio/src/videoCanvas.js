@@ -1,3 +1,16 @@
+export const CANVAS_GROUP_COLORS = [
+  { id: "sage", label: "Sauge", dark: "#adc0a4", light: "#7c9171" },
+  { id: "blue", label: "Bleu", dark: "#a1b9d3", light: "#718da9" },
+  { id: "violet", label: "Violet", dark: "#baaccd", light: "#9480aa" },
+  { id: "rose", label: "Rose", dark: "#c9a5b5", light: "#aa7e91" },
+  { id: "amber", label: "Ambre", dark: "#caba91", light: "#a28c60" },
+  { id: "cyan", label: "Turquoise", dark: "#9bbfc0", light: "#709798" },
+  { id: "slate", label: "Gris", dark: "#adb8c6", light: "#7c899b" },
+];
+export function canvasGroupColorStyle(color) {
+  const palette = CANVAS_GROUP_COLORS.find((item) => item.id === color) || CANVAS_GROUP_COLORS[0];
+  return { "--group-dark": palette.dark, "--group-light": palette.light };
+}
 export const CANVAS_LIMIT = 1000000;
 export const CANVAS_WIDTH = 12000;
 export const CANVAS_HEIGHT = 8000;
@@ -67,6 +80,7 @@ export function normalizeVideoCanvas(raw = {}) {
     groups.push({
       id: row.id,
       title: String(row.title || "Groupe").slice(0, 200),
+      color: CANVAS_GROUP_COLORS.some((item) => item.id === row.color) ? row.color : "sage",
       members,
       ...(row.bounds &&
       Number.isFinite(Number(row.bounds.width)) &&

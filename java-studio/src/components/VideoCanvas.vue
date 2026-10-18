@@ -19,8 +19,10 @@ import {
 } from "lucide-vue-next";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import LibraryPreview from "./LibraryPreview.vue";
-import { videoStatuses } from "../videoProjects.js";
+import { videoStatuses, videoTypeTitle } from "../videoProjects.js";
 import {
+  CANVAS_GROUP_COLORS,
+  canvasGroupColorStyle,
   normalizeVideoCanvas,
   connectVideoCanvas,
   removeCanvasNode,
@@ -915,6 +917,7 @@ function selectEdge(value) {
               "
               :class="{ selected: selectedGroup === group.id }"
               :style="{
+                ...canvasGroupColorStyle(group.color),
                 left: group.x - world.x + 'px',
                 top: group.y - world.y + 'px',
                 width: group.width + 'px',
@@ -1067,14 +1070,14 @@ function selectEdge(value) {
                   <component :is="node.type==='project'?Flag:Link2" :size="28" /><span>{{node.type==='project'?'DÉBUT DU PROJET':'POINT DU PARCOURS'}}</span>
                 </div>
                 <strong>{{ title(node) }}</strong>
-                <span
-                  v-if="node.type === 'video'"
+                <span v-if="node.type === 'video'" class="canvas-video-badges"><span
                   class="canvas-video-status"
                   :data-status="
                     videoMap.get(node.videoId)?.status || 'preparation'
                   "
                   >{{ statusTitle(videoMap.get(node.videoId)?.status) }}</span
                 >
+                <span class="video-type" :data-video-type="videoMap.get(node.videoId)?.videoType">{{videoTypeTitle(videoMap.get(node.videoId)?.videoType)}}</span></span>
                 <p v-if="node.type !== 'video'">
                   {{ node.text || (node.type==='project'?"Double-clique pour présenter le projet.":"Double-clique pour définir cette étape.") }}
                 </p></button
@@ -1266,12 +1269,18 @@ function selectEdge(value) {
             <X :size="20" />
           </button>
         </header>
-        <label v-if="currentGroup"
+        <template v-if="currentGroup"><label
           >Nom du groupe<input
             v-model="currentGroup.title"
             maxlength="200"
             @input="changed"
         /></label>
+        <fieldset class="canvas-group-palette"><legend>Couleur du groupe</legend>
+          <button v-for="color in CANVAS_GROUP_COLORS" :key="color.id" type="button"
+            :aria-label="color.label" :aria-pressed="(currentGroup.color || 'sage') === color.id"
+            :style="canvasGroupColorStyle(color.id)"
+            @click="currentGroup.color = color.id; changed()"><span />{{ color.label }}</button>
+        </fieldset></template>
         <template v-else
           ><label
             >Titre<input

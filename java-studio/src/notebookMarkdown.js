@@ -2,6 +2,8 @@ import {highlightColors} from './videoWorkflow.js';
 import MarkdownIt from "markdown-it";
 import Prism from "prismjs";
 import "prismjs/components/prism-java.js";
+import "prismjs/components/prism-c.js";
+import "prismjs/components/prism-cpp.js";
 import "prismjs/components/prism-typescript.js";
 import "prismjs/components/prism-python.js";
 import "prismjs/components/prism-bash.js";
@@ -21,6 +23,8 @@ const aliases = {
 };
 const supported = new Set([
   "java",
+  "c",
+  "cpp",
   "javascript",
   "typescript",
   "python",
@@ -78,4 +82,19 @@ conductorMarkdown.renderer.rules.image=(tokens,index,options,env)=>{
  const align=['left','right'].includes(picture.align)?`float:${picture.align};margin:12px 20px 12px 0;`:'display:block;margin:18px auto;';
  return `<img data-frame-image="${esc(id)}" src="${esc(picture.src)}" alt="${esc(picture.alt||'')}" loading="lazy" decoding="async" draggable="true" style="width:${width}%;max-width:100%;height:auto;${align}">`;
 };
-export function renderConductor(value,images=[]){return conductorMarkdown.render(String(value||''),{images});}
+// Private notes are parsed as their own Markdown block, never stripped with a
+// regexp: fenced code remains literal, and an unfinished note stays private.
+conductorMarkdown.block.ruler.before('fence','private_comment',(state,start,end,silent)=>{
+ const line=n=>state.src.slice(state.bMarks[n]+state.tShift[n],state.eMarks[n]);
+ const open=/^(:{3,})comment\s*$/.exec(line(start));if(!open)return false;
+ if(silent)return true;
+ let close=start+1;
+ for(;close<end;close++){const match=/^(:{3,})\s*$/.exec(line(close));if(match&&match[1].length>=open[1].length)break;}
+ const token=state.push('private_comment','aside',0);token.block=true;token.map=[start,Math.min(close+1,end)];
+ token.content=state.getLines(start+1,close,state.blkIndent,false);
+ state.line=Math.min(close+1,end);return true;
+});
+conductorMarkdown.renderer.rules.private_comment=(tokens,index,options,env)=>env.includePrivate
+ ? '<aside data-private-note="true" class="conductor-private-note">'+conductorMarkdown.render(tokens[index].content,env)+'</aside>\n'
+ : '';
+export function renderConductor(value,images=[],{includePrivate=false}={}){return conductorMarkdown.render(String(value||''),{images,includePrivate});}

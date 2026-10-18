@@ -7,7 +7,7 @@ import WorkflowAlerts from './WorkflowAlerts.vue';
 import LibraryPreview from './LibraryPreview.vue';
 import {useVideoWorkflow,downloadText} from '../useVideoWorkflow.js';
 import {normalizeWorkflow,chapterErrors,chaptersText,chaptersFromConductor} from '../videoWorkflow.js';
-const props=defineProps({repository:Object,videoId:String});const emit=defineEmits(['back','workshop','open-creation']);
+const props=defineProps({repository:Object,videoId:String});const emit=defineEmits(['home','back','workshop','open-creation']);
 const {project,data,error,loading,saving,dirty,recovery,storageError,load,save,flush,recover,exportDraft}=useVideoWorkflow(props,'publication');defineExpose({flush});
 const notice=ref(''),templateUndo=ref(null),chapterUndo=ref(null),templateBusy=ref(false);
 const thumbnails=computed(()=>project.value?.creations.filter(c=>c.app==='thumbnails')||[]),thumbnail=computed(()=>thumbnails.value.find(c=>c.id===data.value?.thumbnailId));
@@ -27,7 +27,7 @@ function exportPublication(){downloadText('publication.txt',`TITRE\n${data.value
 </script>
 <template>
  <main class="production-app publication-app" @keydown.ctrl.s.prevent="save().catch(()=>{})" @keydown.meta.s.prevent="save().catch(()=>{})">
-  <WorkspaceHeader title="" back-label="Vidéo" @back="go(()=>emit('back'))"><template #context><span class="creation-context-name">{{project?.name}}</span><span class="production-test">TEST</span></template><template #file><button @click="save().catch(()=>{})">Enregistrer · Ctrl S</button><button :disabled="!data" @click="exportPublication">Exporter les textes de publication</button></template><template #actions><span class="save-state" role="status">{{saving?'Sauvegarde…':dirty?'Modifications en attente':'Enregistré'}}</span><VideoWorkflowNav active="publication" @navigate="name=>go(()=>emit('workshop',name))"/></template></WorkspaceHeader>
+  <WorkspaceHeader title="" back-label="Vidéo" @home="go(() => emit('home'))" @back="go(()=>emit('back'))"><template #context><span class="creation-context-name">{{project?.name}}</span><span class="production-test">TEST</span></template><template #file><button @click="save().catch(()=>{})">Enregistrer · Ctrl S</button><button :disabled="!data" @click="exportPublication">Exporter les textes de publication</button></template><template #actions><span class="save-state" role="status">{{saving?'Sauvegarde…':dirty?'Modifications en attente':'Enregistré'}}</span><VideoWorkflowNav active="publication" @navigate="name=>go(()=>emit('workshop',name))"/></template></WorkspaceHeader>
   <WorkflowAlerts :error="error" :storage-error="storageError" :recovery="!!recovery" @retry="save().catch(()=>{})" @reload="load" @export="exportDraft" @recover="recover"/>
   <p v-if="loading" class="production-loading">Ouverture de la publication…</p>
   <template v-else-if="project&&data">

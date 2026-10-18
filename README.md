@@ -2,7 +2,7 @@
 
 Studio personnel pour préparer des diaporamas, des incrustations vidéo et des miniatures avec une charte graphique commune.
 
-L’application se trouve dans [`java-studio/`](java-studio/README.md). Elle utilise Vue 3 et Vite, sans backend dans cette première version.
+L’application se trouve dans [`java-studio/`](java-studio/README.md). Elle utilise Vue 3 et Vite. Les exports MOV/MKV utilisent un encodeur FFmpeg local intégré au lancement Vite ; les sauvegardes restent dans le navigateur.
 
 ## Démarrer
 
@@ -62,7 +62,8 @@ Les fiches suivent la [spécification Java](https://docs.oracle.com/javase/specs
 
 Dans **Incrustations → Animer** (ou **Fichier → Exporter une incrustation animée**), régler une durée de 2–20 secondes. Choisir les animations d’entrée/sortie et leur durée, puis le décalage entre blocs. Cliquer un bloc ou un groupe pour définir son arrivée, sa fin de sortie et ses effets ; les membres d’un groupe restent synchronisés. Les animations de présentation existantes restent indépendantes. Lire l’aperçu ou déplacer son curseur avant d’exporter.
 
-- **Transparent · MOV sans perte**, choix par défaut : vidéo 30 images/s avec canal alpha, contenant des images PNG RGBA. Le damier de l’aperçu n’est jamais exporté. Export déterministe image par image, sans encodeur externe ni serveur ; fichier plus volumineux, limite 256 Mo. Certains logiciels de montage n’importent pas ce codec et nécessitent une conversion (par exemple vers ProRes 4444).
+- **MOV · QTRLE**, choix par défaut : vidéo30 images/s sans perte avec alpha ARGB, encodée automatiquement avec FFmpeg local pour le montage.
+- **MKV · FFV1** : alternative sans perte avec alpha BGRA, dans un conteneur Matroska. MOV et MKV gardent la transparence avec le fond Transparent ; le damier n’est pas exporté. Ils acceptent aussi un fond de chrominance. La capture intermédiaire PNG/MOV est limitée à256Mo, la sortie encodée à512Mo.
 - **Fond de chrominance · WebM** : fond vert, bleu ou personnalisé à retirer au montage. Choisir une couleur absente des objets ; rester sur l’onglet pendant la capture en temps réel. Export sans audio, aux dimensions du projet. Si MediaRecorder n’est pas disponible, utiliser le MOV.
 
 La progression et l’annulation sont disponibles pendant l’export. Les réglages sont sauvegardés avec le projet et réimportés en JSON. Changer de format conserve le rythme global mais réinitialise les réglages propres aux anciens blocs. Le PNG transparent reste accessible dans Fichier.
@@ -208,3 +209,88 @@ Dans **Publication**, une miniature existante est sélectionnée automatiquement
 Le **Conducteur** s’ouvre sur **Préparer** : pour la partie sélectionnée, deux cartes **Ce que je dis / Mes repères** donnent une vue d’ensemble non modifiable. Clique sur une carte pour ouvrir son éditeur sur toute la page ; Revenir à la partie ou Échap le ferme. Le défilement sur les cartes fait défiler la page, sans capturer la molette dans un canevas.
 
 Dans l’éditeur, le clic droit sur la scène permet d’ajouter un texte ou une image à cet emplacement (sur un texte sélectionné, il garde le menu de surlignage). Les propriétés sont rangées dans trois tiroirs exclusifs : Ajouter et grille, Placement du bloc, Texte et Markdown. La palette de surlignage n’est plus répétée à droite. Le tiroir de texte propose **Visuel / Markdown**, des titres et sous-titres, listes, séparateurs et code coloré (Java, JavaScript/TypeScript, Python, Bash, JSON, SQL, YAML, HTML, CSS). La mise en page reste commune à l’aperçu et à Présenter, avec une scène qui occupe la largeur disponible et s’agrandit sur les grands écrans.
+
+
+### Prototype du workflow global
+
+Le Conducteur et Publication ont été validés et intégrés à `main` via la PR #123. Les deux cartes du Conducteur utilisent maintenant des illustrations SVG locales.
+
+La nouvelle branche de test `codex/test-global-workflow` propose une navigation commune **Ateliers / Ctrl K** depuis tous les espaces : recherche d’un atelier, d’une vidéo ou d’un support lié à la vidéo courante. La fiche vidéo présente **Préparer → Créer les supports → Publier**, avec un filtre des créations par type. L’accueil distingue les projets vidéo des ateliers autonomes. Les changements de vue attendent les sauvegardes ; le studio bloque la sortie pendant un enregistrement, export ou opération de fichier. Les moteurs d’édition et les formats de sauvegarde sont conservés. Le périmètre et l’audit des différentes surfaces figurent dans `docs/UX-workflow.md`. Cette nouvelle branche reste un prototype à valider.
+
+
+Le Conducteur propose une préparation linéaire : texte et instructions (consignes en italique), support associé, puis partie suivante. Les anciens repères sont repris sans perte ; les documents dépassant les limites restent exportables depuis Fichier. L’éditeur conserve l’en-tête et un retour à gauche ; suppression au clic droit/Suppr, annulation disponible. Aperçu et présentation laissent défiler toute la hauteur des pages composées. Prototype sur `codex/test-global-workflow`, PR #125, à valider.
+
+Le Conducteur s’édite désormais comme un document continu directement dans chaque partie, sous son support : `/h1`, `/h2`, listes, citations, code, séparateurs, tableaux et images. Menu filtrable avec flèches/Entrée/Échap, barre de mise en forme et surlignages conservés. Les anciens blocs sont repris dans l’ordre de lecture ; leurs positions libres deviennent un flux de document. Brouillon et parties restent disponibles.
+
+
+Le document du Conducteur n’affiche plus de barre d’outils permanente. Les commandes restent accessibles avec `/` et par clic droit : mise en forme, sous-menus de surlignage, types de blocs, code et réglages d’image. Une poignée apparaît dans la marge au survol pour déplacer un bloc ; elle ouvre aussi les actions Dupliquer/Supprimer. La dernière opération sur les blocs peut être annulée (Ctrl Z), y compris la suppression d’une image.
+
+
+La préparation du Conducteur affiche les limites latérales du document, une marge distincte pour les poignées et des repères discrets entre les blocs. Le code conserve un cadre complet qui grandit avec son contenu ; toutes les lignes, y compris les lignes vides, sont sauvegardées. Ces repères d’édition ne s’ajoutent pas à la présentation.
+
+
+Un bouton soleil/lune dans l’en-tête change l’apparence de toute l’application. Le choix clair/sombre est mémorisé localement, sans modifier les thèmes des créations ni leurs exports. Les styles clairs sont régénérés par `npm run theme:build` (également au lancement et au build).
+
+Dans le Conducteur, clique entre les blocs ou dans la zone vide pour ajouter du texte. Aux limites du code, les flèches permettent de sortir ; `Ctrl+Entrée` ajoute un paragraphe après, `Ctrl+Maj+Entrée` avant (Cmd sur Mac). Les repères du document sont plus discrets.
+
+
+Le Conducteur conserve le même sommaire dans le brouillon et les parties, sur toute la hauteur disponible. Les blocs de code proposent une copie et un sélecteur de langage directement en édition ; ces contrôles restent absents de l’aperçu et de la présentation. Les repères du document sont très légers et le code garde un cadre discret en lecture. Les messages de suppression avec annulation disparaissent après15secondes.
+
+
+La fiche vidéo propose deux cartes illustrées, Préparer et Publier ; les supports restent accessibles juste en dessous. En lecture du Conducteur, le support associé est affiché en haut à côté de la taille du texte. La sélection remontante conserve le curseur et le contenu ; le dépôt des blocs est indiqué par un emplacement entre blocs avec « Déposer ici ».
+
+Les états des vidéos disposent d’une palette dédiée au mode clair : badges et bordures du canvas restent contrastés, sans modifier les couleurs du mode sombre.
+Les groupes du canvas des parcours proposent sept couleurs (double-clic sur leur titre pour les modifier), conservées dans les sauvegardes et adaptées aux deux apparences. Les étapes sont bleues, les projets fil rouge violets.
+
+Les enregistrements de diaporamas proposent MOV QTRLE par défaut, MKV FFV1 et WebM. MOV et MKV acceptent le fond transparent optionnel ; WebM garde le comportement habituel. Les incrustations séparent le format du choix de fond : MOV/MKV préservent l’alpha, WebM utilise la chrominance. Capture limitée à256Mo par prise et arrêt automatique à cette limite ; sortie encodée limitée à512Mo. Le lecteur intégré reste disponible pour WebM ; MOV/MKV se téléchargent pour le montage. Aucun audio n’est enregistré.
+
+La palette du parcours est atténuée : Création bleu grisé, Prêt à tourner olive, groupes très légers en clair et flèches gris bleuté contrastées.
+
+Chaque vidéo peut porter un type **Cours**, **Exercice** ou **Démonstration**, indépendant de son état d’avancement. Le choix se fait à la création ou dans la fiche vidéo et apparaît dans la bibliothèque, les playlists et le canvas. Les anciennes vidéos restent sans type jusqu’à leur classement.
+Les étiquettes d’état et de type partagent un contour fin et des dimensions communes, sans liseré latéral ; elles sont alignées sur les cartes du canvas dans les deux thèmes.
+Les nouvelles vidéos ont le type **Non défini** par défaut. Tous les types utilisent la même étiquette grise dans les deux thèmes ; les couleurs restent réservées aux états d’avancement. Les types déjà attribués sont conservés.
+
+Si le dossier de sauvegarde automatique a été déplacé, le bandeau permet de **Choisir le nouvel emplacement…** (ou **Choisir un autre dossier…**). Sélectionne le dossier qui contient les sous-dossiers portant les ID des vidéos : les sauvegardes en attente sont rejouées après la nouvelle liaison. Les copies du navigateur sont conservées si l’accès au disque échoue.
+
+Dans le Conducteur, **`/comment`** insère une note de travail jaune directement dans le document. Elle reste dans la sauvegarde, mais ne s’affiche ni en Aperçu ni en Présenter. Les parties disposent d’un trait de destination avant/après pendant leur déplacement. Les ateliers liés proposent deux icônes distinctes : retour direct à l’Accueil et retour à la fiche Vidéo.
+
+La navigation Accueil/Vidéo et les menus sont regroupés dans un bloc compact. Les suppressions de parties, blocs du Conducteur et créations affichent des notifications empilées en bas à droite, avec annulation indépendante pendant 15 secondes. Les commentaires privés gardent un contour complet dans les deux thèmes.
+
+
+## J’aime et abonnement animés
+
+Dans **Incrustations → Formats → Social**, choisir **J’aime et abonnement · animé**. Le bandeau apparaît, puis le bouton J’aime (0,9 s), l’abonnement (2,7 s) et le remerciement (4,8 s). Sortie commune en fondu à la fin des huit secondes. **Animer** donne accès à l’aperçu, aux timings par groupe et à l’export MOV transparent, ou WebM avec chrominance. Tous les textes, formes, couleurs et groupes restent éditables. Ce format est une invitation visuelle pour le montage, sans connexion ni action sur YouTube.
+
+
+## États des incrustations
+
+Les incrustations utilisent la même barre **Étapes** et le même gestionnaire que les diaporamas : dupliquer l’état courant, renommer, réordonner ou supprimer une étape (Ctrl Z pour annuler). Chaque état possède ses propres objets, textes, positions, styles et visibilité. Jusqu’à vingt étapes en plus de l’état initial. Le PNG exporte l’état sélectionné.
+
+Dans **Objet → Animation → Transition entre étapes**, cocher **Interpoler la position et la taille**, puis déplacer ou redimensionner cet objet dans une autre étape. Le calcul est commun au diaporama : transition douce de 0,5 s maximum, raccourcie si les étapes sont très rapprochées. Les autres objets passent en fondu.
+
+**Animer → Étapes de l’incrustation** règle le début de chaque état en secondes ; sans réglage, les états sont répartis sur la durée du clip. L’état initial commence à zéro, les autres restent dans l’ordre de l’éditeur. Les entrées/sorties des objets restent des timings globaux du clip, communs aux états : déplacer le curseur sur un état pour accéder à ses objets. Aperçu et exports MOV/WebM utilisent exactement le même rendu des états et des interpolations.
+
+
+## Couleurs et opacité des SVG
+
+Importer un SVG comme image, le sélectionner, puis ouvrir **Objet → Couleurs → Couleurs du SVG**. Chaque couleur détectée dans les attributs de remplissage/contour, les styles directement sur les éléments ou les points du dégradé dispose de la palette du thème et d’un sélecteur personnalisé. Une même couleur remplace toutes ses occurrences. Les liens au thème suivent ses changements ; les références aux dégradés, les zones sans remplissage et l’opacité propre au SVG sont conservés. Le fichier source reste intact et **Restaurer les couleurs du SVG** retire les substitutions.
+
+**Objet → Couleurs → Opacité** règle la transparence globale avec curseur ou saisie du pourcentage, comme pour tous les autres objets. Les réglages SVG sont conservés dans les états, les sauvegardes JSON, les composants réutilisables et les exports PNG/MOV/WebM des trois ateliers. Le remplacement de l’image repart de ses couleurs d’origine. Le SVG doit toujours être autonome : scripts, ressources externes et feuilles de style intégrées restent refusés lors de l’import. Jusqu’à128 couleurs explicites proposées par image ; ce panneau remplace une couleur commune, sans éditer individuellement les chemins.
+
+
+## Outro YouTube · vidéo, playlist et chaîne
+
+Dans **Incrustations → Formats → Vidéo**, choisir **Outro YouTube · vidéo et playlist**. Le gabarit règle la résolution à1920 ×1080 : deux rectangles640 ×360 (16:9), un cercle central294 ×294 pour la chaîne et des légendes alignées sous les zones. Le nom de la playlist est prérempli depuis la vidéo parente si elle en possède une ; dans un atelier autonome, une légende générique reste modifiable. Ce sont des emplacements visuels, sans lecture de vidéo ni liaison YouTube automatique.
+
+Fond vert #00ff00, également présent comme calque de fond verrouillé pour le PNG et l’éditeur (déverrouillable dans Calques). **Animer** utilise15s, apparitions successives vidéo/playlist/chaîne, MOV sur fond de chrominance par défaut ; WebM reste disponible. Les couleurs visibles sont fixes et évitent le vert de découpe, mais chaque objet reste personnalisable. Ctrl Z annule l’application du format, y compris la résolution.
+
+Ajouter ensuite les vrais éléments vidéo, playlist et abonnement dans [YouTube Studio](https://support.google.com/youtube/answer/6388789?hl=fr), sur les5 à20 dernières secondes. La documentation officielle autorise leur repositionnement et ne donne pas de dimensions fixes en pixels :640 ×360 et le cercle294px sont des repères de composition ajustables, pas une garantie de placement exact sur tous les appareils. Il ne s’agit pas de la bannière de chaîne YouTube.
+
+
+## Encodage local pour Kdenlive
+
+Les MOV livrés utilisent maintenant **QTRLE/ARGB**, soit l’équivalent automatique de `ffmpeg -i capture.mov -c:v qtrle -pix_fmt argb sortie.mov`. Le nouveau **MKV utilise FFV1/BGRA**, sans perte et avec alpha. Le conteneur MKV seul ne garantit pas la transparence : c’est le codec/pixel format choisi qui la conserve. Même pipeline pour les incrustations animées et les enregistrements de présentation. WebM reste disponible.
+
+**FFmpeg doit être installé et accessible dans le PATH du processus qui lance Frame** (c’est le cas sur la machine de développement vérifiée). Lancer l’application avec `npm run dev`, ou `npm run build` puis `npm run preview`. Redémarrer le serveur après mise à jour. Un hébergement statique seul conserve WebM mais ne fournit pas les exports QTRLE/FFV1. Ce service se contente d’encoder : aucun changement de port, aucun déplacement ni migration des sauvegardes. Aucun service distant ni IA.
+
+La disponibilité du codec est vérifiée avant une capture. Si l’encodage final échoue après l’enregistrement, une fenêtre conserve la capture source avec **Réessayer**, **Télécharger la capture source** et fermeture explicite. Ne pas fermer l’onglet avant d’avoir récupéré cette capture. Les fichiers temporaires d’encodage sont supprimés après réponse, erreur ou annulation ; un arrêt brutal du processus peut laisser un dossier `frame-video-*` dans le répertoire temporaire système. Une seule conversion à la fois par instance, dix minutes maximum, capture256Mo et sortie512Mo. Les projets et les captures sources utilisateur ne sont pas modifiés.

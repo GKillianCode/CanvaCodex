@@ -223,3 +223,17 @@ test('thread projects preserve their distinct type, links and groups through exp
  const restored=readCanvasDocument(JSON.parse(JSON.stringify(canvasDocument(canvas))));assert.deepEqual(restored,canvas);assert.equal(restored.edges.length,2);assert.deepEqual(restored.groups[0].members,['project','video']);
  assert.equal(normalizeVideoCanvas({nodes:[{id:'p',type:'project'}]}).nodes[0].title,'Projet fil rouge');
 });
+
+test('group color choices survive file roundtrips, invalid and historical colors use sage', async () => {
+  const { CANVAS_GROUP_COLORS, canvasGroupColorStyle, canvasDocument, readCanvasDocument } = await import('../src/videoCanvas.js');
+  const raw = {nodes:[{id:'a'}],groups:[{id:'g',members:['a']}]};
+  assert.equal(normalizeVideoCanvas(raw).groups[0].color,'sage');
+  for (const color of CANVAS_GROUP_COLORS) {
+    raw.groups[0].color = color.id;
+    const restored=readCanvasDocument(JSON.parse(JSON.stringify(canvasDocument(normalizeVideoCanvas(raw)))));
+    assert.equal(restored.groups[0].color,color.id);
+    assert.notEqual(canvasGroupColorStyle(color.id)['--group-dark'],canvasGroupColorStyle(color.id)['--group-light']);
+  }
+  raw.groups[0].color='invalid';
+  assert.equal(normalizeVideoCanvas(raw).groups[0].color,'sage');
+});
