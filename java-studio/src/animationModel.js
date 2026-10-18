@@ -1,3 +1,5 @@
+import {splinePoint,splineAngle,splineParameter} from "./splines.js";
+export {splinePoint,splineAngle,splineParameter} from "./splines.js";
 import {
   applyEffects,
   normalizeEffect,
@@ -123,7 +125,8 @@ export function normalizeAnimation(raw = {}) {
       id: String(p?.id || "path" + i).slice(0, 100),
       name: String(p?.name || "Trajectoire").slice(0, 100),
       visible: p?.visible === true,
-      points: Array.from({ length: 4 }, (_, j) => ({
+      closed:p?.closed===true,
+      points: Array.from({ length:Array.isArray(p?.points)&&p.points.length>=4?Math.min(97,1+3*Math.floor((p.points.length-1)/3)):4 }, (_, j) => ({
         x: number(p?.points?.[j]?.x, 300 + j * 400),
         y: number(p?.points?.[j]?.y, j === 1 ? 150 : 600),
       })),
@@ -252,54 +255,6 @@ export function frameValue(frames, field, time, fallback) {
     }
   return keys.at(-1).value;
 }
-export function splinePoint(points, t) {
-  t = Math.max(0, Math.min(1, t));
-  const u = 1 - t,
-    [a, b, c, d] = points;
-  return {
-    x: u ** 3 * a.x + 3 * u * u * t * b.x + 3 * u * t * t * c.x + t ** 3 * d.x,
-    y: u ** 3 * a.y + 3 * u * u * t * b.y + 3 * u * t * t * c.y + t ** 3 * d.y,
-  };
-}
-export function splineAngle(points, t) {
-  const [a, b, c, d] = points,
-    u = 1 - t;
-  return (
-    (Math.atan2(
-      3 * u * u * (b.y - a.y) +
-        6 * u * t * (c.y - b.y) +
-        3 * t * t * (d.y - c.y),
-      3 * u * u * (b.x - a.x) +
-        6 * u * t * (c.x - b.x) +
-        3 * t * t * (d.x - c.x),
-    ) *
-      180) /
-    Math.PI
-  );
-}
-export function splineParameter(points, progress) {
-  const target = Math.max(0, Math.min(1, progress));
-  let last = points[0],
-    total = 0;
-  const distances = [0];
-  for (let i = 1; i <= 96; i++) {
-    const point = splinePoint(points, i / 96);
-    total += Math.hypot(point.x - last.x, point.y - last.y);
-    distances.push(total);
-    last = point;
-  }
-  if (!total) return target;
-  for (let i = 1; i < distances.length; i++)
-    if (distances[i] >= target * total)
-      return (
-        (i -
-          1 +
-          (target * total - distances[i - 1]) /
-            (distances[i] - distances[i - 1] || 1)) /
-        96
-      );
-  return 1;
-}
 export function animationScene(scene, raw, time) {
   const config = normalizeAnimation(raw),
     result = {
@@ -329,9 +284,9 @@ export function animationScene(scene, raw, time) {
       path = config.paths.find((p) => p.id === clip.pathId),
       parameter =
         path && clip.constantSpeed
-          ? splineParameter(path.points, progress)
+          ? splineParameter(path.points, progress,path.closed)
           : progress,
-      point = path ? splinePoint(path.points, parameter) : null;
+      point = path ? splinePoint(path.points, parameter,path.closed) : null;
     const keys = clip.keys.filter((k) => result.positions[k]),
       anchor = result.positions[keys[0]];
     if (!anchor) continue;
@@ -368,7 +323,7 @@ export function animationScene(scene, raw, time) {
     const angle =
         frameValue(clip.frames, "rotation", local, anchor.rotation || 0) -
         (anchor.rotation || 0) +
-        (clip.orient && path ? splineAngle(path.points, parameter) : 0),
+        (clip.orient && path ? splineAngle(path.points, parameter,path.closed) : 0),
       rad = (angle * Math.PI) / 180;
     let dx = point
         ? point.x - px

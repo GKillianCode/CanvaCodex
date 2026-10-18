@@ -1,3 +1,4 @@
+import {normalizeInstances} from './componentInstances.js';
 import {normalizeAnimation as normalizeAnimationDocument} from './animationModel.js';
 import { normalizeRuns,remapRuns } from './richText.js';
 import {normalizeTypewriter} from './typewriter.js';
@@ -209,6 +210,7 @@ export function normalizeSlide(raw, n = 0) {
   if(s.designVersion===2)materializeTemplate(s);
   separateLabels(s);
   s.groups=normalizeGroups(raw.groups,visibleBlocks(s));
+  s.componentInstances=normalizeInstances(raw.componentInstances,visibleBlocks(s));
   s.hiddenKeys=Array.isArray(raw.hiddenKeys)?raw.hiddenKeys.filter(k=>visibleBlocks(s).includes(k)):[];
   s.emphasisKeys=Array.isArray(raw.emphasisKeys)?raw.emphasisKeys.filter(k=>visibleBlocks(s).includes(k)):[];
   if(['byte','short','int','long','char','float','double','boolean'].includes(raw.primitiveType))s.primitiveType=raw.primitiveType;

@@ -1,3 +1,4 @@
+import {themeSourcesFromRow} from './themeRecovery.js';
 import { normalizeWorkflow,remapWorkflow,updateWorkflowSection } from './videoWorkflow.js';
 import { normalizeVideoCanvas } from "./videoCanvas.js";
 import {
@@ -641,6 +642,7 @@ export function videoRepository(api = globalThis.indexedDB) {
           c.put(clone(row));
         };
       }),
+    recoverThemeSources:()=>transaction('readonly',(p,c,set)=>{const results=[];c.openCursor().onsuccess=e=>{const cursor=e.target.result;if(!cursor){set(results);return;}if(results.length<20)results.push(...themeSourcesFromRow(cursor.value));cursor.continue();};}),
     allCreations: (id) =>
       transaction("readonly", (p, c, set) => {
         c.index("videoId").getAll(id).onsuccess = (e) => set(e.target.result);

@@ -23,3 +23,6 @@ java-studio-recording.jpg
 
 # Dossiers vidéo personnels exportés localement
 /videos/
+
+# Bibliothèques personnelles locales (jamais publiées)
+/.frame-data/
