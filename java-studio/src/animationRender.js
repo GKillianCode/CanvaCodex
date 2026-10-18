@@ -9,9 +9,10 @@ export function renderAnimation(
   theme,
   config,
   time,
-  { guides = false } = {},
+  { guides = false, positions = null } = {},
 ) {
   const state = animationScene(scene, config, time);
+  if(positions) Object.assign(state.scene.positions, positions);
   ctx.save();
   if (state.config.background === "solid") {
     ctx.fillStyle = boundColor(state.config, "color", theme);

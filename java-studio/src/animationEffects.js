@@ -146,3 +146,25 @@ export function applyEffects(scene, effects, time) {
   }
   return scene;
 }
+
+// A spline supplies horizontal intent; vertical motion is integrated from a jump
+// impulse. Resize keeps the feet in place, so landing squash cannot sink in floors.
+export function simulateDrivenBody(sample, time, options = {}, floors = []) {
+  const gravity = options.gravity ?? 600, drag = options.drag ?? 0;
+  let p = {...sample(0)}, vy = options.velocityY || 0;
+  const end = Math.max(0, Math.min(120, time));
+  for(let i=0;i<Math.ceil(end*120);i++) {
+    const dt=Math.min(1/120,end-i/120), next=sample(i/120+dt);
+    const bottom=p.y+p.h;
+    vy=(vy+gravity*dt)*Math.exp(-drag*dt);
+    p={...next,y:bottom-next.h+vy*dt};
+    for(const floor of floors) {
+      if(p.x+p.w>floor.x && p.x<floor.x+floor.w && vy>=0 && bottom<=floor.y+0.001 && p.y+p.h>=floor.y) {
+        p.y=floor.y-p.h;
+        vy=-vy*(options.bounce ?? 0);
+        if(Math.abs(vy)<2)vy=0;
+      }
+    }
+  }
+  return p;
+}
