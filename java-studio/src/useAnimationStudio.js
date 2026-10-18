@@ -1,3 +1,4 @@
+import {splitSpline,removeSplinePoint} from "./splines.js";
 import { boundColor } from "./colors.js";
 import { storyboardAt, storyboardDuration } from "./animationStoryboard.js";
 import { normalizeEffect } from "./animationEffects.js";
@@ -38,6 +39,7 @@ export function useAnimationStudio(s) {
     exportWidth = ref(1920),
     pathEditing = ref(false),
     activePath = ref("");
+  const selectedPathPoint=ref(0);
   const previewOpen = ref(false),
     activeKey = ref(null),
     activeFrame = ref(null),
@@ -538,6 +540,8 @@ export function useAnimationStudio(s) {
     });
     s.requestDraw();
   }
+  function addPathPoint(index=Math.max(0,Math.floor((path.value?.points.length-4)/3)),t=.5){if(!path.value)return;s.beginGesture();const point=splitSpline(path.value,index,t);if(point===false)s.notify('Limite de 32 segments atteinte.');else selectedPathPoint.value=point;s.endGesture();s.requestDraw();}
+  function removePathPoint(index=selectedPathPoint.value){const p=path.value;if(!p||p.points.length<=4){s.notify('Une spline conserve au moins deux points d’ancrage.');return;}requestDelete('ce point de la spline',()=>{s.beginGesture();removeSplinePoint(p,index);selectedPathPoint.value=0;s.endGesture();s.requestDraw();});}
   function removePath(confirmed = false) {
     if (!confirmed) {
       requestDelete("cette spline", () => removePath(true));
@@ -990,6 +994,7 @@ export function useAnimationStudio(s) {
     window.removeEventListener("blur", blur);
   });
   return {
+    selectedPathPoint,addPathPoint,removePathPoint,
     activeFrame,
     pendingDelete,
     requestDelete,

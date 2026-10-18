@@ -112,14 +112,14 @@ const props = defineProps({ studio: Object }),
         </option>
       </select></label
     ><template v-if="a.path"
-      ><label>Nom<input v-model="a.path.name" maxlength="100" /></label
+      ><label>Nom<input v-model="a.path.name" maxlength="100" /></label><label class="checkbox-label"><input type="checkbox" v-model="a.path.closed"/>Fermer la trajectoire · boucle</label><div class="engine-add-actions"><button class="btn" @click="a.addPathPoint()">Ajouter un point</button><button class="btn" :disabled="a.path.points.length<=4" @click="a.removePathPoint()">Supprimer le point sélectionné</button></div>
       ><label class="checkbox-label"
         ><input type="checkbox" v-model="a.path.visible" />Visible dans la
         vidéo</label
       >
       <div v-for="(p, i) in a.path.points" :key="i" class="position-grid">
         <label
-          >{{ ["Départ", "Tangente 1", "Tangente 2", "Arrivée"][i] }} · X<input
+          >{{i%3===0?'Ancrage '+(i/3+1):'Poignée '+(i+1)}} · X<input
             type="number"
             v-model.number="p.x"
             min="-10000"

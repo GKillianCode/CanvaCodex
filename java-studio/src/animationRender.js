@@ -1,3 +1,4 @@
+import {splineSegments} from "./splines.js";
 import { drawShape, normalizeShape, shapeGeometry } from "./shapes.js";
 import { boundColor } from "./colors.js";
 import { animationScene, animationParticles } from "./animationModel.js";
@@ -163,14 +164,14 @@ export function renderAnimation(
   }
   for (const path of state.config.paths)
     if (path.visible || guides) {
-      const [a, b, c, d] = path.points;
+      const segments=splineSegments(path.points,path.closed),a=segments[0][0];
       ctx.save();
       ctx.strokeStyle = theme.accent;
       ctx.lineWidth = 3;
       if (!path.visible) ctx.setLineDash([10, 10]);
       ctx.beginPath();
       ctx.moveTo(a.x, a.y);
-      ctx.bezierCurveTo(b.x, b.y, c.x, c.y, d.x, d.y);
+      for(const [,b,c,d] of segments)ctx.bezierCurveTo(b.x,b.y,c.x,c.y,d.x,d.y);
       ctx.stroke();
       ctx.restore();
     }
