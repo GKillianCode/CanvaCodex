@@ -59,3 +59,9 @@ test('local HTTP encoder rejects foreign origins and unauthenticated input and r
  for(const format of ['mov','mkv']){const response=await fetch(url+'/encode?format='+format,{method:'POST',headers,body:capture()});assert.equal(response.status,200);const file=join(dir,'http.'+format);await writeFile(file,Buffer.from(await response.arrayBuffer()));const codec=execFileSync('ffprobe',['-v','error','-show_entries','stream=codec_name','-of','csv=p=0',file],{encoding:'utf8'}).trim();assert.equal(codec,format==='mov'?'qtrle':'ffv1');}
  }finally{await server?.close();await rm(dir,{recursive:true,force:true});}
 });
+
+test('MP4 export uses H.264, opaque pixels and exact frame timing',async t=>{
+ if(!(await encoderCapabilities()).formats.mp4){t.skip('libx264 absent');return;}
+ const dir=await mkdtemp(join(tmpdir(),'frame-mp4-test-'));
+ try{const input=join(dir,'source.mov'),output=join(dir,'video.mp4');await writeFile(input,new Uint8Array(await capture().arrayBuffer()));await encodeVideoFile(input,output,'mp4',{quality:'balanced'});const metadata=JSON.parse(execFileSync('ffprobe',['-v','error','-count_frames','-show_streams','-show_format','-of','json',output],{encoding:'utf8'}));assert.equal(metadata.streams[0].codec_name,'h264');assert.equal(metadata.streams[0].pix_fmt,'yuv420p');assert.equal(Number(metadata.streams[0].nb_read_frames),30);assert.ok(Math.abs(Number(metadata.format.duration)-1)<.04);}finally{await rm(dir,{recursive:true,force:true});}
+});

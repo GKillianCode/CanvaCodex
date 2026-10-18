@@ -96,6 +96,9 @@ export function videoFrameJobs({ token, binary, available = () => true }) {
           throw Error("Paramètres d’export invalides.");
         Object.assign(current, {
           format: spec.format,
+          quality: ["fine", "balanced", "small"].includes(spec.quality)
+            ? spec.quality
+            : "balanced",
           width: spec.width,
           height: spec.height,
           fps: spec.fps,
@@ -132,7 +135,9 @@ export function videoFrameJobs({ token, binary, available = () => true }) {
         return json(res, 409, { error: "Un lot est déjà en cours." });
       }
       current.locked = true;
-      current.idle = new Promise(resolve => { current.release = resolve; });
+      current.idle = new Promise((resolve) => {
+        current.release = resolve;
+      });
       touch(current);
       abort = () => {
         if (!res.writableEnded) current.controller.abort();
@@ -197,6 +202,7 @@ export function videoFrameJobs({ token, binary, available = () => true }) {
             binary,
             signal: current.controller.signal,
             inputOptions: ["-framerate", String(current.fps)],
+            quality: current.quality,
             maxBytes: 2 * 1024 * 1024 * 1024,
           },
         );

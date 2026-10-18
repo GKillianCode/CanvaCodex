@@ -6,6 +6,7 @@ export async function exportAnimationFrames({
   duration,
   fps,
   format,
+  quality = "balanced",
   signal,
   onProgress = () => {},
   fetcher = globalThis.fetch,
@@ -50,6 +51,7 @@ export async function exportAnimationFrames({
         fps,
         count,
         format,
+        quality,
       }),
     });
     ({ id } = await response.json());

@@ -1,3 +1,4 @@
+import { resolveAnimationFormat } from "./animationExportSettings.js";
 import {makeWorkflowExample} from "./animationWorkflowExample.js";
 import {cameraFields} from "./animationWorkflow.js";
 import {editableClip,copyKeySelection} from "./animationEditing.js";
@@ -39,7 +40,9 @@ export function useAnimationStudio(s) {
     selectedClip = ref(""),
     field = ref("x"),
     ease = ref("smooth"),
-    format = ref("mov"),
+    format = ref("auto"),
+    exportQuality = ref("balanced"),
+    exportBackground = ref("#ffffff"),
     busy = ref(false),
     progress = ref(0),
     exportWidth = ref(1920),
@@ -619,7 +622,9 @@ export function useAnimationStudio(s) {
         ...normalizeAnimation(scene.animation),
         duration: storyboardDuration(scenes),
       },
-      outputFormat = format.value,
+      outputFormat = resolveAnimationFormat(format.value, scenes),
+      quality = exportQuality.value,
+      background = exportBackground.value,
       width = exportWidth.value;
       if (
         outputFormat === "webm" &&
@@ -731,7 +736,7 @@ export function useAnimationStudio(s) {
       } else {
         const output = await exportAnimationFrames({
           canvas, draw, duration: config.duration, fps: config.fps,
-          format: outputFormat, signal,
+          format: outputFormat, quality, signal,
           onProgress(value,phase) { progress.value=value; exportPhase.value=phase==='encoding'?'Encodage…':'Création des images…'; },
         });
         if(signal.aborted)throw new DOMException('Export annulé.','AbortError');
@@ -742,6 +747,7 @@ export function useAnimationStudio(s) {
       function draw(t) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
+        if(outputFormat === "mp4") { ctx.fillStyle=background;ctx.fillRect(0,0,canvas.width,canvas.height); }
         ctx.save();
         ctx.scale(canvas.width / 1920, canvas.height / 1080);
         renderAnimationStoryboard(ctx,scenes,theme,t);
@@ -1042,7 +1048,7 @@ export function useAnimationStudio(s) {
     window.removeEventListener("blur", blur);
   });
   return {
-    exportError,exportPhase,construction,setConstruction,editorScene,
+    exportQuality,exportBackground,exportError,exportPhase,construction,setConstruction,editorScene,
     motionPrefs,keySelection,keyClipboard,selectKey,keyEntries,copyKeys,pasteKeys,deleteKeys,diagnostics,commitPose,selectedPathPoint,addPathPoint,removePathPoint,
     activeFrame,
     pendingDelete,

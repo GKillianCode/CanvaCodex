@@ -66,16 +66,16 @@ La gravité indépendante affecte uniquement les objets cochés, avec force, ré
 
 ## Aperçu, scènes et exports
 
-**Animer / Exporter**, en haut, ouvre un lecteur interne plein écran. L’icône de la timeline ouvre le même lecteur. Échap ferme ; aucune fenêtre externe n’est créée. **Exemples**, en haut également, ajoute une scène GC simplifié ou String Pool (cas absent) sans remplacer les créations.
+**Animer / Exporter**, en haut, ouvre une fenêtre compacte avec aperçu à gauche et réglages à droite. L’icône de la timeline ouvre la même fenêtre. Échap ferme hors export ; aucune fenêtre externe n’est créée. **Exemples**, en haut également, ajoute une scène GC simplifié ou String Pool (cas absent) sans remplacer les créations.
 
 Dans le lecteur :
 
 - **Toutes les scènes** décoché : lecture/export de la scène courante.
 - Coché : scènes successives dans l’ordre de la liste, en une seule vidéo.
 - **Boucle** : recommencer la scène ou l’ensemble choisi ; décoché : arrêt au dernier instant.
-- Format MOV QTRLE/ARGB, MKV FFV1/BGRA ou WebM sur fond uni/vert ; résolution HD, Full HD ou QHD.
+- Format Automatique (MP4 opaque ou MKV transparent), MP4 H.264, MOV QTRLE/ARGB, MKV FFV1/BGRA ou WebM sur fond uni/vert ; résolution HD, Full HD ou QHD.
 
-MOV et MKV conservent la transparence via FFmpeg local. Le rendu et les données sont figés pour tout l’export. Pour plusieurs scènes, le FPS de la première scène sert à toute la vidéo. Limites : dix minutes cumulées, capture 256 Mo et sortie 512 Mo. Annulation et récupération après erreur restent communes aux autres ateliers. PNG exporte l’instant de la scène ; JSON conserve toutes les scènes.
+MOV et MKV conservent la transparence via FFmpeg local. Le rendu et les données sont figés pour tout l’export. Pour plusieurs scènes, le FPS de la première scène sert à toute la vidéo. Limites : dix minutes cumulées ; l’export par lots MOV/MKV/MP4 utilise les limites décrites plus bas, WebM conserve son plafond de256Mo. L’erreur reste dans la fenêtre et une nouvelle tentative est possible. PNG exporte l’instant de la scène ; JSON conserve toutes les scènes.
 
 ## Validation et limites
 
@@ -149,8 +149,19 @@ Le commutateur **Construction / État animé** conserve le temps courant et la p
 
 ### Export Animation par lots et erreurs visibles
 
-Les exports MOV/MKV d’Animation créent les images par petits lots (12 images maximum, environ16Mo avant envoi), immédiatement matérialisées en octets. Le navigateur ne conserve plus un film entier de PNG en mémoire. Le serveur local les place dans un dossier temporaire privé, puis FFmpeg encode directement la séquence en MOV QTRLE/ARGB ou MKV FFV1/BGRA. Les fichiers temporaires sont nettoyés après téléchargement, erreur, annulation ou expiration d’un export abandonné. Aucun service distant ni bibliothèque personnelle n’intervient dans cet encodage. Limites de cette voie :10min,2560×1440,4Go d’images temporaires et2Go de sortie ; les autres captures conservent leurs limites précédentes.
+Les exports MOV/MKV/MP4 d’Animation créent les images par petits lots (12 images maximum, environ16Mo avant envoi), immédiatement matérialisées en octets. Le navigateur ne conserve plus un film entier de PNG en mémoire. Le serveur local les place dans un dossier temporaire privé, puis FFmpeg encode directement la séquence en MOV QTRLE/ARGB ou MKV FFV1/BGRA. Les fichiers temporaires sont nettoyés après téléchargement, erreur, annulation ou expiration d’un export abandonné. Aucun service distant ni bibliothèque personnelle n’intervient dans cet encodage. Limites de cette voie :10min,2560×1440,4Go d’images temporaires et2Go de sortie ; les autres captures conservent leurs limites précédentes.
 
 Pendant l’export, les réglages de toutes les scènes, boucle, format, résolution, lecture et fermeture de l’aperçu sont désactivés. Annuler reste disponible. L’erreur d’export reste affichée dans l’aperçu ; les commandes redeviennent accessibles et une nouvelle tentative est possible. Une scène ou l’ensemble des scènes est figé au lancement.
 
 Une bibliothèque de composants partiellement illisible ne bloque plus la lecture de ses éléments valides. Un avertissement est présenté dans Composants ; l’original reste intact et toute réécriture qui supprimerait implicitement ses entrées illisibles est refusée. Cette lecture partielle n’est pas une réparation automatique du fichier original.
+
+
+### Fenêtre compacte et poids des fichiers
+
+La fenêtre Exporter regroupe l’aperçu, ses commandes de lecture et les informations de durée/scènes à gauche ; Contenu et Fichier vidéo à droite. Progression et bouton Annuler de taille normale restent dans le pied de fenêtre. Mise en page adaptée aux modes clair/sombre et aux petits écrans ; défilement de la page derrière bloqué puis restauré. Les réglages restent verrouillés pendant le travail.
+
+**Automatique**, sélectionné par défaut, choisit MP4/H.264 si toutes les scènes exportées ont un fond uni ou dégradé opaque, et MKV/FFV1 si au moins une scène est transparente (y compris un ancien fond non renseigné). Le choix dépend de la scène seule ou de toutes les scènes selon la case correspondante. Aucun fond n’est perdu silencieusement par ce choix. En MP4 manuel sur une scène transparente, un fond de remplacement réglable est affiché et prévisualisé.
+
+MP4 : compression avec perte, trois qualités (CRF18/21/24 : élevée/équilibrée/compacte), équilibrée par défaut, H.2648bits YUV420/BT709 avec faststart. MKV : FFV1/BGRA sans perte, codeur arithmétique avec table personnalisée et contexte large, alpha exact ; les mêmes réglages améliorent la compression des autres exports MKV existants. MOV conserve QTRLE pour la compatibilité précédemment demandée : il reste volumineux, signalé dans l’interface. WebM reste disponible.
+
+Mesure réelle de la démo Slime5scènes : **54s,1920×1080,30fps,1620images,MP4 équilibré :5997527octets (~6Mo)**. Ce chiffre est propre à cette démo, pas une estimation garantie pour tout contenu. Source de référence : [options d’encodage FFmpeg](https://ffmpeg.org/ffmpeg-codecs.html) et [formats de rendu Kdenlive](https://docs.kdenlive.org/en/exporting/render.html). Aucun test direct du logiciel Kdenlive n’a été effectué.

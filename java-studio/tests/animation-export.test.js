@@ -154,7 +154,7 @@ test("local frame jobs enforce authentication, frame order, completeness and pro
       500,
     );
     assert.equal(jobs.active, false);
-    for (const format of ["mov", "mkv"]) {
+    for (const format of ["mov", "mkv", ...(caps.formats.mp4 ? ["mp4"] : [])]) {
       id = await create(format);
       assert.equal(
         (
@@ -175,7 +175,7 @@ test("local frame jobs enforce authentication, frame order, completeness and pro
       assert.ok(output.length > 100);
       assert.equal(
         response.headers.get("content-type"),
-        format === "mov" ? "video/quicktime" : "video/x-matroska",
+        format === "mov" ? "video/quicktime" : format === "mp4" ? "video/mp4" : "video/x-matroska",
       );
       // Match the client: await release before starting another export.
       assert.equal((await fetch(base + "/" + id, {method:"DELETE",headers})).status,200);
@@ -185,4 +185,12 @@ test("local frame jobs enforce authentication, frame order, completeness and pro
     await jobs.close();
     await new Promise((r) => server.close(r));
   }
+});
+
+test('automatic animation format compresses opaque scenes and preserves transparency when needed', async () => {
+  const {resolveAnimationFormat}=await import('../src/animationExportSettings.js');
+  assert.equal(resolveAnimationFormat('auto',[{animation:{background:'solid'}},{animation:{background:'gradient'}}]),'mp4');
+  assert.equal(resolveAnimationFormat('auto',[{animation:{background:'solid'}},{animation:{background:'transparent'}}]),'mkv');
+  assert.equal(resolveAnimationFormat('auto',[{}]),'mkv');
+  assert.equal(resolveAnimationFormat('mov',[{animation:{background:'solid'}}]),'mov');
 });
