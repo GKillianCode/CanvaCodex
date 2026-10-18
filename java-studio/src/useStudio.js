@@ -464,7 +464,7 @@ export function useStudio(application='slides',creationContext=null) {
     const rest=visibleBlocks(slide).filter(k=>k!==key),white='shapePlaylistBackground';
     slide.blockKeys=rest.includes(white)?[white,key,...rest.filter(k=>k!==white)]:[key,...rest];requestDraw();
   }
-  async function uploadShapeImage(event){const file=event.target.files?.[0],slide=current.value,key=selected.value;event.target.value='';if(!file)return;try{const src=await imageSource(file);if(slide.elements[key]?.type==='shape'){slide.elements[key].imageSrc=src;slide.elements[key].imageFit='cover';slide.elements[key].filled=true;await prepareImages([slide],theme.value);notify('Image intégrée dans la forme ; contour conservé.');}}catch(error){notify(imageImportError(error));}}
+  async function uploadShapeImage(event){const file=event.target.files?.[0],slide=current.value,key=selected.value;event.target.value='';if(!file)return;try{const src=await imageSource(file);if(slide.elements[key]?.type==='shape'){slide.elements[key].imageSrc=src;slide.elements[key].imageFit='cover';slide.elements[key].imageOffsetX=0;slide.elements[key].imageOffsetY=0;slide.elements[key].filled=true;await prepareImages([slide],theme.value);notify('Image intégrée dans la forme ; contour conservé.');}}catch(error){notify(imageImportError(error));}}
   async function uploadImage(event) {
     const file=event.target.files?.[0],slide=current.value,key=selected.value;event.target.value='';if(!file)return;
     try{const src=await imageSource(file);if(slide.elements[key]?.type==='image'){slide.elements[key].src=src;slide.elements[key].svgColors={};}await prepareImages([slide],theme.value);notify('Image intégrée, transparence conservée.');}

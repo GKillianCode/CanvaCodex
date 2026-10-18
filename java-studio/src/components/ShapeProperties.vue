@@ -1,5 +1,4 @@
 <script setup>
-import {imageEffects} from "../imageEffects.js";
 import { computed } from "vue";
 import AnimationKeyButton from "./AnimationKeyButton.vue";
 import NumberRange from "./NumberRange.vue";
@@ -248,8 +247,7 @@ const shapeView = new Proxy(
           :model-value="shapeView.innerRatio"
           @update:model-value="set('innerRatio', $event)" /></template
     ></template>
-    <section v-if="studio&&!isOpenShape(shape)" class="shape-image-options"><label class="menu-file">{{shape.imageSrc?'Remplacer l’image de fond':'Image de fond de la forme'}}<input type="file" accept="image/png,image/jpeg,image/webp,image/svg+xml" aria-label="Importer une image dans la forme" @change="studio.uploadShapeImage($event)"></label><template v-if="shape.imageSrc"><img :src="shape.imageSrc" alt="Image de fond" class="shape-image-preview"><label>Ajustement de l’image<select v-model="shape.imageFit"><option value="cover">Remplir la forme</option><option value="contain">Afficher l’image entière</option></select></label><NumberRange label="Opacité de l’image" unit="%" :model-value="shape.imageOpacity??100" @update:model-value="shape.imageOpacity=$event"/><NumberRange v-for="effect in imageEffects" :key="effect.id" :label="effect.label" unit="%" :max="effect.max" :model-value="shape.imageEffects?.[effect.id]??effect.default" @update:model-value="shape.imageEffects={...shape.imageEffects,[effect.id]:$event}"/><button class="btn" @click="shape.imageSrc=''">Retirer l’image de fond</button><p class="field-help">L’image suit le contour de la forme ; sa bordure reste indépendante.</p></template></section>
+
   </div>
 </template>
 
-<style scoped>.shape-image-options{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}.shape-image-preview{width:100%;max-height:130px;object-fit:contain;border-radius:6px;margin:8px 0}</style>
