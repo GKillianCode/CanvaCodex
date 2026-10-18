@@ -1817,3 +1817,7 @@
 }
 :root[data-appearance="light"] .drawing-node-handle {fill:#4e6457;stroke:#263a43
 }
+:root[data-appearance="light"] .drawing-palette-controls {border-bottom:1px solid var(--border)
+}
+:root[data-appearance="light"] .drawing-tool-palette.is-collapsed .drawing-palette-controls {border-bottom:0
+}

@@ -131,27 +131,6 @@ export function useDrawingTools(s) {
       e.currentTarget.setPointerCapture(e.pointerId);
       return true;
     }
-    if (tool.value === "polygon") {
-      if (!region.value) beginRegion(p, e);
-      else if (
-        region.value.points.length >= 3 &&
-        Math.hypot(
-          p.x - region.value.points[0].x,
-          p.y - region.value.points[0].y,
-        ) < tolerance()
-      ) {
-        finishRegion();
-        return true;
-      } else if (
-        region.value.points.length < 512 &&
-        Math.hypot(
-          p.x - region.value.points.at(-1).x,
-          p.y - region.value.points.at(-1).y,
-        ) > 1
-      )
-        region.value.points.push(canvasPoint(p));
-      return true;
-    }
     beginRegion(p, e);
     drag = { kind: "region" };
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -248,11 +227,6 @@ export function useDrawingTools(s) {
     }
     drag = null;
     return true;
-  }
-  function finishRegion() {
-    if (region.value?.points.length >= 3) regionUpdate();
-    else select(regionBase);
-    region.value = null;
   }
   function finish(closed = false) {
     if (!draft.value) return;
@@ -432,17 +406,9 @@ export function useDrawingTools(s) {
         finish(e.shiftKey);
         return true;
       }
-      if (region.value?.type === "polygon") {
-        finishRegion();
-        return true;
-      }
     }
     if (e.key === "Backspace" && draft.value) {
       draft.value.pop();
-      return true;
-    }
-    if (e.key === "Backspace" && region.value?.type === "polygon") {
-      region.value.points.pop();
       return true;
     }
     if (
@@ -458,7 +424,6 @@ export function useDrawingTools(s) {
       m: "rect",
       e: "ellipse",
       l: "lasso",
-      g: "polygon",
       p: "pen",
       a: "nodes",
     }[e.key.toLowerCase()];
@@ -471,10 +436,6 @@ export function useDrawingTools(s) {
   function doubleClick() {
     if (draft.value) {
       finish(false);
-      return true;
-    }
-    if (region.value?.type === "polygon") {
-      finishRegion();
       return true;
     }
     return false;
@@ -512,7 +473,6 @@ export function useDrawingTools(s) {
     setTool,
     cancel,
     finish,
-    finishRegion,
     startNode,
     addNode,
     removeNode,

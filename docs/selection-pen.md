@@ -1,6 +1,6 @@
 # Outils de sélection et plume — V1 en test
 
-Palette commune au-dessus du canevas dans Diaporamas, Incrustations, Miniatures et Animation. Le Canvas des parcours et les pages de texte ne sont pas concernés par ce lot. Tout est calculé localement, sans IA.
+Palette commune au-dessus du canevas dans Diaporamas, Incrustations, Miniatures et Animation. Le Canvas des parcours et les pages de texte ne sont pas concernés par ce lot. Tout est calculé localement, sans IA. La poignée à points déplace la palette (également avec les flèches du clavier quand elle a le focus) ; le chevron la replie et la déplie. Sa position reste dans la zone de travail quand la fenêtre change de taille.
 
 ## Sélection d’objets
 
@@ -8,7 +8,6 @@ Palette commune au-dessus du canevas dans Diaporamas, Incrustations, Miniatures 
 - **M** : sélection rectangulaire, y compris en démarrant sur un objet.
 - **E** : sélection elliptique.
 - **L** : lasso libre ; maintenir le clic gauche et dessiner la zone.
-- **G** : lasso polygonal ; cliquer les sommets puis Entrée, double-clic ou bouton Valider. Retour arrière retire le dernier sommet.
 
 Les boutons secondaires proposent Remplacer, Ajouter, Retirer et Intersection. Maj/Ctrl au début du geste ajoute ; Alt retire. Échap annule une sélection en cours et retrouve la sélection précédente. Les coordonnées sont limitées à l’écran pour la sélection, même si le geste commence à l’extérieur. Les objets dont la boîte englobante entière est dans la zone sont retenus ; les groupes restent indivisibles et les objets/groupes verrouillés sont exclus. Il s’agit de sélection d’objets, pas de sélection ou retouche de pixels.
 
