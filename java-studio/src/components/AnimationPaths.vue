@@ -36,6 +36,7 @@ onUnmounted(() => cleanup());
     v-if="a.pathEditing && a.path"
     class="animation-path-editor"
     viewBox="-320 -180 2560 1440"
+    preserveAspectRatio="none"
     aria-label="Éditer la spline"
   >
     <path

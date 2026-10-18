@@ -166,6 +166,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
   const motionBounds=new Map();
   for (const key of visibleBlocks(s)) {
     if (options.objectMotion?.[key]?.visible===false || omit === key || s.hiddenKeys?.includes(key)&&!options.showHidden) continue;
+    if(s.elements[key]?.engineKind)continue;
     const f = s.fragments[key];
     if (f.order > order) continue;
     let p = s.positions[key], b = blockBounds(ctx, s, key);const style=richTextStyle(s,key);style.richTheme=theme;style.markerColor=textColor(style.list,theme,textColor(style,theme));

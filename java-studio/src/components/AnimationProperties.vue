@@ -41,13 +41,21 @@ const props = defineProps({ studio: Object }),
   >
   <InspectorDrawer v-if="a.clip" id="animation-path" title="Trajectoire spline"
     ><label
-      >Chemin<select v-model="a.clip.pathId">
+      >Chemin<select
+        v-model="a.clip.pathId"
+        @change="a.clip.pathId && (a.field = 'progress')"
+      >
         <option value="">Aucun</option>
         <option v-for="p in a.config.paths" :value="p.id" :key="p.id">
           {{ p.name }}
         </option>
       </select></label
-    ><label class="checkbox-label"
+    >
+    <p v-if="a.clip.pathId" class="field-help">
+      La spline pilote X et Y. Retire le chemin pour retrouver les pistes de
+      position.
+    </p>
+    <label class="checkbox-label"
       ><input type="checkbox" v-model="a.clip.constantSpeed" />Vitesse constante
       le long du chemin</label
     ><label class="checkbox-label"
@@ -131,62 +139,16 @@ const props = defineProps({ studio: Object }),
           step="0.1"
       /></label></div
   ></InspectorDrawer>
-  <InspectorDrawer v-if="a.clip" id="animation-particles" title="Particules"
-    ><label class="checkbox-label"
-      ><input type="checkbox" v-model="a.clip.particles.enabled" />Émetteur sur
-      le premier objet</label
-    ><template v-if="a.clip.particles.enabled"
-      ><label
-        >Nombre maximal<input
-          type="number"
-          v-model.number="a.clip.particles.count"
-          min="1"
-          max="200" /></label
-      ><label
-        >Graine reproductible<input
-          type="number"
-          v-model.number="a.clip.particles.seed"
-          min="0"
-          max="100000" /></label
-      ><label
-        >Durée de vie · s<input
-          type="number"
-          v-model.number="a.clip.particles.life"
-          min="0.1"
-          max="10"
-          step="0.1" /></label
-      ><label
-        >Vitesse · px/s<input
-          type="number"
-          v-model.number="a.clip.particles.speed"
-          min="0"
-          max="1000" /></label
-      ><label
-        >Taille · px<input
-          type="number"
-          v-model.number="a.clip.particles.size"
-          min="1"
-          max="100" /></label
-      ><label
-        >Couleur<input type="color" v-model="a.clip.particles.color" /></label
-      ><label
-        >Gravité · px/s²<input
-          type="number"
-          v-model.number="a.clip.gravity"
-          min="-2000"
-          max="2000"
-      /></label>
-      <p class="field-help">
-        Dispersion circulaire, diminution de taille et d’opacité. Résultat
-        identique après un retour en arrière.
-      </p></template
-    ></InspectorDrawer
-  >
   <InspectorDrawer id="animation-links" title="Références attachées"
     ><button class="btn full" @click="a.addLink()">
       Relier les deux objets sélectionnés
     </button>
-    <div v-for="link in a.config.links" :key="link.id">
+    <div
+      v-for="link in a.config.links.filter((l) =>
+        s.selectedKeys.some((k) => l.from === k || l.to === k),
+      )"
+      :key="link.id"
+    >
       <label>Couleur<input type="color" v-model="link.color" /></label
       ><label
         >Épaisseur<input
