@@ -1,0 +1,352 @@
+.animation-studio .main-shell {
+  min-height: 0;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+.animation-studio .editor {
+  flex: 1;
+  min-height: 0;
+}
+.animation-studio .canvas-space {
+  overflow: auto;
+  padding: 32px;
+}
+.animation-studio .stage-wrap {
+  flex-shrink: 0;
+  box-shadow: none;
+}
+.animation-studio .stage-wrap canvas {
+  background: repeating-conic-gradient(#80808012 0 25%, transparent 0 50%)
+    0/24px 24px;
+}
+.animation-timeline {
+  flex-shrink: 0;
+  min-height: 180px;
+  max-height: 65dvh;
+  border-top: 1px solid var(--line, #344247);
+  background: var(--panel, #172125);
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  color: var(--ink, #e5eeee);
+  font-size: 12px;
+}
+.timeline-resizer {
+  height: 6px;
+  position: absolute;
+  top: -3px;
+  width: 100%;
+  cursor: ns-resize;
+  background: transparent;
+  z-index: 2;
+  border: 0;
+}
+.animation-transport,
+.animation-key-tools,
+.animation-key-editor {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-bottom: 1px solid var(--line, #344247);
+  flex-wrap: wrap;
+}
+.animation-transport {
+  justify-content: space-between;
+}
+.animation-timeline input[type="number"] {
+  width: 76px;
+  min-height: 28px;
+  padding: 4px;
+}
+.animation-timeline select {
+  width: auto;
+  min-height: 28px;
+  padding: 4px;
+}
+.animation-timeline label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+  font-size: 12px;
+}
+.animation-timeline .btn {
+  font-size: 12px;
+  padding: 6px 10px;
+  min-height: 30px;
+}
+.animation-tracks {
+  flex: 1;
+  overflow: auto;
+  min-height: 60px;
+}
+.animation-ruler,
+.animation-track {
+  display: grid;
+  grid-template-columns: 210px minmax(250px, 1fr);
+  min-height: 44px;
+  border-bottom: 1px solid color-mix(in srgb, currentColor 9%, transparent);
+}
+.animation-ruler > span {
+  padding: 9px 16px;
+}
+.timeline-ruler {
+  position: relative;
+  cursor: crosshair;
+  margin: 0 22px 0 0;
+  min-height: 28px;
+}
+.timeline-ruler > span {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 10px;
+  top: 7px;
+  opacity: 0.6;
+}
+.timeline-ruler > i,
+.track-cursor {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  background: var(--accent, #8cceb5);
+  pointer-events: none;
+}
+.animation-track.active {
+  background: color-mix(in srgb, currentColor 5%, transparent);
+}
+.track-name {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  text-align: left;
+  align-items: center;
+  padding: 7px 12px;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  overflow: hidden;
+}
+.track-name span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.track-name small {
+  font-size: 10px;
+  opacity: 0.6;
+  white-space: nowrap;
+}
+.track-disabled {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+.track-lane {
+  position: relative;
+  margin-right: 22px;
+  min-height: 44px;
+  overflow: hidden;
+}
+.clip-span {
+  position: absolute;
+  top: 4px;
+  bottom: 4px;
+  background: color-mix(in srgb, var(--accent, #8cceb5) 15%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent, #8cceb5) 30%, transparent);
+  border-radius: 5px;
+}
+.key-diamond {
+  position: absolute;
+  transform: translateX(-50%);
+  border: 0;
+  padding: 0;
+  background: transparent;
+  color: var(--accent, #8cceb5);
+  font-size: 14px;
+  cursor: ew-resize;
+  line-height: 18px;
+}
+.key-diamond.selected {
+  color: #e9b659;
+  text-shadow: 0 0 5px #b9873d;
+}
+.animation-empty {
+  padding: 10px 20px;
+  opacity: 0.65;
+}
+.animation-menu {
+  position: relative;
+}
+.animation-menu summary {
+  cursor: pointer;
+  padding: 7px 12px;
+  border: 1px solid var(--line, #344247);
+  border-radius: 7px;
+}
+.animation-menu > div {
+  position: absolute;
+  bottom: calc(100% + 8px);
+  right: 0;
+  z-index: 20;
+  background: var(--panel, #172125);
+  color: inherit;
+  border: 1px solid var(--line, #344247);
+  border-radius: 10px;
+  padding: 14px;
+  width: 280px;
+  display: grid;
+  gap: 10px;
+  box-shadow: 0 14px 45px #0003;
+}
+.animation-menu label {
+  justify-content: space-between;
+}
+.animation-path-editor {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  color: var(--accent, #8cceb5);
+}
+.animation-path-editor circle {
+  pointer-events: all;
+  cursor: move;
+  fill: var(--panel, #172125);
+  stroke: currentColor;
+  stroke-width: 3;
+}
+.animation-export-progress {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 8px 16px;
+}
+.animation-key-editor {
+  border-top: 1px solid var(--line, #344247);
+  border-bottom: 0;
+}
+.animation-key-tools .field-help {
+  margin: 0;
+  flex: 1;
+  font-size: 11px;
+}
+.animation-studio .speaker-note {
+  display: none;
+}
+@media (max-width: 1100px) {
+  .animation-key-tools .field-help {
+    display: none;
+  }
+  .animation-transport {
+    gap: 5px;
+  }
+  .animation-timeline {
+    font-size: 11px;
+  }
+}
+
+.studio.animation-studio:not(.presenting) .editor {
+  min-height: 0;
+  flex: 1;
+  overflow: hidden;
+}
+.studio.animation-studio:not(.presenting) .work-area {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.animation-studio .canvas-space {
+  min-height: 0;
+  flex: 1;
+}
+.animation-studio .slides-panel,
+.animation-studio .inspector {
+  overflow-y: auto;
+  min-height: 0;
+  max-height: none;
+}
+.animation-studio .slide-list {
+  max-height: none;
+  flex: 1;
+}
+.animation-studio .animation-timeline {
+  --panel: #191c22;
+  --ink: #e4e8ec;
+  --line: var(--border);
+  --accent: var(--mint);
+}
+.animation-studio .animation-path-editor {
+  --panel: #191c22;
+  --accent: var(--mint);
+}
+:root[data-appearance="light"] .animation-timeline {
+  --panel: #f6f8f6;
+  --ink: #25382e;
+  --accent: #24794f;
+}
+:root[data-appearance="light"] .animation-path-editor {
+  --panel: #fff;
+  --accent: #24794f;
+}
+.animation-studio .stage-wrap {
+  max-width: none;
+}
+.animation-studio
+  .animation-timeline
+  input:not([type="checkbox"]):not([type="color"]),
+.animation-studio .animation-timeline select {
+  background: color-mix(in srgb, var(--panel) 95%, var(--ink));
+  color: var(--ink);
+  border: 1px solid var(--line);
+  border-radius: 5px;
+}
+
+.shared-frame-tools {
+  display: contents;
+}
+.animation-frame-tools {
+  position: absolute;
+  left: 12.5%;
+  top: 12.5%;
+  width: 75%;
+  height: 75%;
+  pointer-events: none;
+}
+.animation-frame-tools .inline-editor,
+.animation-frame-tools .table-divider {
+  pointer-events: auto;
+}
+.animation-frame-tools .table-dividers {
+  pointer-events: none;
+}
+
+.animation-property-track {
+  display: grid;
+  grid-template-columns: 210px minmax(250px, 1fr);
+  border-bottom: 1px solid color-mix(in srgb, currentColor 5%, transparent);
+}
+.animation-property-track .track-lane {
+  min-height: 30px;
+}
+.property-track-label {
+  padding: 6px 16px 6px 28px;
+  font-size: 11px;
+  opacity: 0.65;
+}
+.animation-track .clip-span {
+  cursor: ew-resize;
+}
+
+.animation-timeline .btn:not(.primary) {
+  background: var(--panel);
+  color: var(--ink);
+  border-color: var(--line);
+}
+.animation-timeline .workspace-switch button.active {
+  background: color-mix(in srgb, var(--accent) 18%, var(--panel));
+  color: var(--accent);
+}

@@ -260,7 +260,7 @@ export function videoRoute(hash) {
   const notebook=String(hash).match(/^#\/videos\/([\w-]+)\/notes$/);
   if(notebook)return {videoId:notebook[1],app:null,creationId:null,workshop:'conductor',reader:false};
   const match = String(hash).match(
-    /^#\/videos\/([\w-]+)(?:\/(slides|banners|thumbnails)\/([\w-]+))?$/,
+    /^#\/videos\/([\w-]+)(?:\/(slides|banners|thumbnails|animation)\/([\w-]+))?$/,
   );
   return match
     ? { videoId: match[1], app: match[2] || null, creationId: match[3] || null }

@@ -673,7 +673,7 @@ onBeforeUnmount(() => {
                     </option>
                   </select></label
                 ><template
-                  v-if="['slides', 'banners'].includes(current.support)"
+                  v-if="['slides', 'banners', 'animation'].includes(current.support)"
                   ><label class="production-field"
                     >Création existante<select
                       v-model="current.creationId"

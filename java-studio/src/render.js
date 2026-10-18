@@ -177,6 +177,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
     const groupBounds=motionBounds.get(groupId);
     ctx.save();ctx.globalAlpha*=state.alpha*objectOpacity(s,key)/100;ctx.translate(state.x,state.y);
     if(state.scale!==1){const cx=groupBounds.x+groupBounds.w/2,cy=groupBounds.y+groupBounds.h/2;ctx.translate(cx,cy);ctx.scale(state.scale,state.scale);ctx.translate(-cx,-cy);}
+    if(p.skewX||p.skewY){const cx=p.x+p.w/2,cy=p.y+(p.h||b.h)/2;ctx.translate(cx,cy);ctx.transform(1,Math.tan(Math.max(-75,Math.min(75,p.skewY||0))*Math.PI/180),Math.tan(Math.max(-75,Math.min(75,p.skewX||0))*Math.PI/180),1,0,0);ctx.translate(-cx,-cy);}
     if(p.rotation){ctx.translate(p.x+p.w/2,p.y+(p.h||b.h)/2);ctx.rotate(p.rotation*Math.PI/180);ctx.translate(-p.x-p.w/2,-p.y-(p.h||b.h)/2);}
     const typingElapsed=options.objectMotion?.[key]?.typingElapsed??options.typingElapsed?.[key];
     const typing=['text','code'].includes(blockType(s,key))?typewriterState(blockType(s,key)==='code'?blockText(s,key).replaceAll('\t','    '):blockText(s,key),p.typewriter,typingElapsed):null;

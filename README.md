@@ -294,3 +294,8 @@ Les MOV livrés utilisent maintenant **QTRLE/ARGB**, soit l’équivalent automa
 **FFmpeg doit être installé et accessible dans le PATH du processus qui lance Frame** (c’est le cas sur la machine de développement vérifiée). Lancer l’application avec `npm run dev`, ou `npm run build` puis `npm run preview`. Redémarrer le serveur après mise à jour. Un hébergement statique seul conserve WebM mais ne fournit pas les exports QTRLE/FFV1. Ce service se contente d’encoder : aucun changement de port, aucun déplacement ni migration des sauvegardes. Aucun service distant ni IA.
 
 La disponibilité du codec est vérifiée avant une capture. Si l’encodage final échoue après l’enregistrement, une fenêtre conserve la capture source avec **Réessayer**, **Télécharger la capture source** et fermeture explicite. Ne pas fermer l’onglet avant d’avoir récupéré cette capture. Les fichiers temporaires d’encodage sont supprimés après réponse, erreur ou annulation ; un arrêt brutal du processus peut laisser un dossier `frame-video-*` dans le répertoire temporaire système. Une seule conversion à la fois par instance, dix minutes maximum, capture256Mo et sortie512Mo. Les projets et les captures sources utilisateur ne sont pas modifiés.
+
+
+## Atelier Animation — branche de test
+
+Nouvel atelier indépendant sur `codex/test-animation-studio` : propriétés partagées avec Diaporama (dont écriture progressive), timeline/images clés, splines, séquences superposables, références, modifieurs simples et particules déterministes. Exports MOV QTRLE/MKV FFV1 avec alpha et WebM sur fond uni. [Guide de la V1](docs/animation-studio.md). La PR #127 reste en test ; la précédente PR #125 est fusionnée après validation utilisateur.

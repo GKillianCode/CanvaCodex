@@ -6,7 +6,7 @@ export function highlightScript(script,start,end,color){if(!Object.hasOwn(highli
 // All production data belongs to one video; supports reference existing creations.
 const text=(v,max)=>typeof v==='string'?v.slice(0,max):'';
 const id=v=>text(v,100);
-export const supportKinds=[['camera','Caméra'],['slides','Diaporama'],['banners','Incrustation'],['ide','IDE / code'],['screen','Capture d’écran'],['none','Sans support']];
+export const supportKinds=[['camera','Caméra'],['slides','Diaporama'],['banners','Incrustation'],['animation','Animation'],['ide','IDE / code'],['screen','Capture d’écran'],['none','Sans support']];
 const revision=v=>Number.isSafeInteger(v)&&v>=0?v:0;
 export function normalizeConductor(raw={}){
  const seen=new Set();return {revision:revision(raw?.revision),sequences:(Array.isArray(raw?.sequences)?raw.sequences:[]).slice(0,100).flatMap(s=>{
