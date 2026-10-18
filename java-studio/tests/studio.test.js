@@ -181,11 +181,11 @@ test('vector shape rendering keeps stroke thickness independent of deformation',
  finally{globalThis.Path2D=previousPath;globalThis.DOMMatrix=previousMatrix;}
 });
 
-test('rotation follows pointer around center and Shift snaps to multiples of 45 degrees',async()=>{
+test('rotation follows pointer around center and Shift snaps to multiples of 90 degrees',async()=>{
  const {rotationFromPointer,normalizeAngle}=await import('../src/editor.js');const b={x:100,y:200,w:400,h:200,rotation:0},start={x:500,y:300};
  assert.equal(rotationFromPointer(b,start,{x:300,y:500}),90);assert.equal(rotationFromPointer(b,start,{x:300,y:100}),270);
- const point={x:300+200*Math.cos(23*Math.PI/180),y:300+200*Math.sin(23*Math.PI/180)};assert.ok(Math.abs(rotationFromPointer(b,start,point)-23)<1e-9);assert.equal(rotationFromPointer(b,start,point,true),45);
- assert.equal(rotationFromPointer({...b,rotation:45},start,{x:300,y:500},true),135);assert.equal(normalizeAngle(-45),315);assert.equal(normalizeAngle(NaN),0);
+ const point={x:300+200*Math.cos(23*Math.PI/180),y:300+200*Math.sin(23*Math.PI/180)};assert.ok(Math.abs(rotationFromPointer(b,start,point)-23)<1e-9);assert.equal(rotationFromPointer(b,start,point,true),0);
+ assert.equal(rotationFromPointer({...b,rotation:45},start,{x:300,y:500},true),180);assert.equal(normalizeAngle(-45),315);assert.equal(normalizeAngle(NaN),0);
 });
 
 test('rotated resize keeps opposite corner fixed and preserves rotation',async()=>{

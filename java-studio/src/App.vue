@@ -10,6 +10,7 @@ import {
 import { useGlobalModalScroll } from "./modalScroll.js";
 import { videoFolderStorage } from "./videoFolders.js";
 import UndoNotifications from "./components/UndoNotifications.vue";
+import ComponentEditorApp from "./components/ComponentEditorApp.vue";
 import StudioApp from "./StudioApp.vue";
 import { workflowNavigation, navigateAfterSave } from "./workflowNavigation.js";
 import VideoLibrary from "./components/VideoLibrary.vue";
@@ -34,7 +35,7 @@ const repository = folders.repository,
   context = shallowRef(null),
   studio = ref(null),
   canvasApp = ref(null),
-  workflowApp = ref(null),
+  workflowApp = ref(null),componentApp=ref(null),componentId=ref(null),
   loading = ref(true),
   error = ref("");
 const navigationProject = ref(null),
@@ -49,7 +50,7 @@ let generation = 0;
 async function navigate(hash) {
   try {
     await navigateAfterSave(
-      [studio.value?.flush, canvasApp.value?.flush, workflowApp.value?.flush],
+      [studio.value?.flush, canvasApp.value?.flush, workflowApp.value?.flush,componentApp.value?.flush],
       () => {
         window.location.hash = hash;
       },
@@ -65,10 +66,13 @@ async function syncRoute() {
   const request = ++generation;
   error.value = "";
   try {
+    if(componentApp.value)await componentApp.value.flush();
     if (studio.value) await studio.value.flush();
     if (canvasApp.value) await canvasApp.value.flush();
     if (workflowApp.value) await workflowApp.value.flush();
     loading.value = true;
+    const componentMatch=window.location.hash.match(/^#\/composants\/([\w-]+)$/);
+    componentId.value=componentMatch?.[1]||null;
     const route = videoRoute(window.location.hash),
       app = applicationFromHash(window.location.hash);
     if (route?.creationId) {
@@ -138,6 +142,7 @@ function home() {
 }
 async function retry() {
   try {
+    if(componentApp.value)await componentApp.value.flush();
     if (studio.value) await studio.value.flush();
     error.value = "";
     await syncRoute();
@@ -169,7 +174,7 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     </button>
   </div>
   <div v-if="loading" class="video-loading">Ouverture de ton espace…</div>
-  <VideoCanvasApp
+  <ComponentEditorApp v-else-if="componentId" ref="componentApp" :id="componentId" :key="componentId"/><VideoCanvasApp
     v-else-if="active === 'canvas'"
     ref="canvasApp"
     :repository="repository"
@@ -180,7 +185,8 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     v-else-if="active"
     ref="studio"
     :key="context?.fileSlot || active"
-    :application="active"
+    :application="active === 'themes' ? 'slides' : active"
+    :initial-view="active === 'themes' ? 'themes' : undefined"
     :creation-context="context"
     @home="home"
     @dashboard="navigate('#/')"

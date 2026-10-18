@@ -1,7 +1,8 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, onMounted, onBeforeUnmount, watch } from "vue";
 import { Film } from "lucide-vue-next";
 import { preferredVideoCreation } from "../videoProjects.js";
+import { localAssets, ensureAssets } from "../localAssets.js";
 import CreationPreview from "./CreationPreview.vue";
 const props = defineProps({
     repository: Object,
@@ -17,12 +18,13 @@ const root = ref(null),
 let observer,
   alive = true,
   visible = false;
-async function load() {
+async function load(force = false) {
   if (loading.value || !visible) return;
   loading.value = true;
   failed.value = false;
   try {
-    const cached = props.creation?.preview;
+    const resolveLinks = force || localAssets.components.length > 0;
+    const cached = !resolveLinks && props.creation?.preview;
     if (cached) image.value = cached;
     else if (props.creation) {
       const data = await props.repository.creation(props.creation.id);
@@ -31,7 +33,7 @@ async function load() {
       const project = await props.repository.get(props.projectId);
       const meta = preferredVideoCreation(project?.creations);
       if (!alive || !visible) return;
-      if (meta?.preview) image.value = meta.preview;
+      if (meta?.preview && !resolveLinks) image.value = meta.preview;
       else if (meta) {
         const data = await props.repository.creation(meta.id);
         if (alive && visible) row.value = data;
@@ -53,7 +55,17 @@ function drawn(value) {
   row.value = null;
   emit("preview", value);
 }
+watch(
+  () => localAssets.revisions.components,
+  () => {
+    if (visible) {
+      image.value = null;
+      load(true);
+    }
+  },
+);
 onMounted(() => {
+  ensureAssets().catch(() => {});
   observer = new IntersectionObserver(
     (entries) => {
       visible = entries[0].isIntersecting;

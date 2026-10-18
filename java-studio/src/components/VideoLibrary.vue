@@ -73,7 +73,7 @@ const projects = ref([]),
   app = ref("slides"),
   copyCurrent = ref(false),
   draft = ref(null),
-  icons = { slides: PanelsTopLeft, banners: Clapperboard, thumbnails: Image };
+  icons = { animation: Clapperboard, slides: PanelsTopLeft, banners: Clapperboard, thumbnails: Image };
 const creationFilter=ref('all'),notices=useUndoNotifications();
 watch(() => props.videoId,()=>notices.clear());
 const newVideoType = ref("");
@@ -298,7 +298,7 @@ async function submit() {
           );
         source = documentFromStorage(
           {
-            [app.value === "thumbnails" ? "frame-thumbnails:" + key : key]: raw,
+            [app.value === "animation" ? "frame-animation:" + key : app.value === "thumbnails" ? "frame-thumbnails:" + key : key]: raw,
           },
           app.value,
         );
@@ -829,7 +829,7 @@ async function importVideo(event) {
         </form>
       </details>
       <VideoWorkflowOverview @workshop="emit('open-workshop',selected.id,$event)"/>
-      <section class="video-assets-heading"><div><span class="eyebrow">SUPPORTS DE LA VIDÉO</span><h2>Toutes tes créations</h2></div><div class="workspace-switch" aria-label="Filtrer les supports"><button v-for="[id,label] in [['all','Tous'],['slides','Diaporamas'],['banners','Incrustations'],['thumbnails','Miniatures']]" :key="id" :class="{active:creationFilter===id}" @click="creationFilter=id">{{label}}</button></div></section>
+      <section class="video-assets-heading"><div><span class="eyebrow">SUPPORTS DE LA VIDÉO</span><h2>Toutes tes créations</h2></div><div class="workspace-switch" aria-label="Filtrer les supports"><button v-for="[id,label] in [['all','Tous'],['animation','Animations'],['slides','Diaporamas'],['banners','Incrustations'],['thumbnails','Miniatures']]" :key="id" :class="{active:creationFilter===id}" @click="creationFilter=id">{{label}}</button></div></section>
       <div class="video-assets-grid">
         <section
           v-for="a in applications.filter(a=>creationFilter==='all'||a.id===creationFilter)"

@@ -1,3 +1,4 @@
+import {imageAsset} from "./imageCache.js";
 import {svgImageSource} from './svgColors.js';
 import { layoutRichText } from './richTextLayout.js';
 import { textSegments } from './richText.js';
@@ -21,18 +22,8 @@ import { WIDTH, HEIGHT, visibleBlocks, blockType, blockText } from './model.js';
 import { javaLines, codeColor } from './code.js';
 const richTextStyle=(s,key)=>({...getTextStyle(s,key),runs:s.positions[key]?.textRuns||[]});
 const backgrounds = new Map();
-const images = new Map();
-function imageAsset(src) {
-  if (!images.has(src)) {
-    const image = new Image();
-    const entry = {image,ready:false,promise:null};
-    entry.promise = new Promise(resolve=> { image.onload = ()=>{entry.ready=true;window.dispatchEvent(new Event('frame-images-ready'));resolve();}; image.onerror=()=>resolve(); });
-    image.src=src; images.set(src,entry);
-    if (images.size>100) images.delete(images.keys().next().value);
-  }
-  return images.get(src);
-}
-export async function prepareImages(slides,theme={}) { await Promise.all(slides.flatMap(s=>Object.values(s.elements||{}).filter(e=>e.type==='image'&&e.src).map(e=>imageAsset(svgImageSource(e,theme)).promise))); }
+export async function prepareImages(slides,theme={}) { await Promise.all(slides.flatMap(s=>Object.values(s.elements||{}).flatMap(e=>e.type==='image'&&e.src?[imageAsset(svgImageSource(e,theme)).promise]:e.type==='shape'&&e.imageSrc?[imageAsset(e.imageSrc).promise]:[]))); }
+
 export function imageDrawingRect(p,img,fit='contain') {
   const h=p.h||360, scale=fit==='cover'?Math.max(p.w/img.width,h/img.height):Math.min(p.w/img.width,h/img.height);
   const w=img.width*scale, height=img.height*scale;
@@ -166,6 +157,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
   const motionBounds=new Map();
   for (const key of visibleBlocks(s)) {
     if (options.objectMotion?.[key]?.visible===false || omit === key || s.hiddenKeys?.includes(key)&&!options.showHidden) continue;
+    if(s.elements[key]?.engineKind)continue;
     const f = s.fragments[key];
     if (f.order > order) continue;
     let p = s.positions[key], b = blockBounds(ctx, s, key);const style=richTextStyle(s,key);style.richTheme=theme;style.markerColor=textColor(style.list,theme,textColor(style,theme));
@@ -175,8 +167,9 @@ export function renderSlide(ctx, s, theme, options = {}) {
     const group=s.groups?.find(g=>g.keys.includes(key)),groupId=group?.id||key;
     if(state.scale!==1&&!motionBounds.has(groupId))motionBounds.set(groupId,enclosingBounds((group?.keys||[key]).filter(k=>s.positions[k]).map(k=>{const measured=blockBounds(ctx,s,k);return {...measured,h:s.positions[k].h||measured.h};})));
     const groupBounds=motionBounds.get(groupId);
-    ctx.save();ctx.globalAlpha*=state.alpha*objectOpacity(s,key)/100;ctx.translate(state.x,state.y);
+    ctx.save();options.beforeObject?.(ctx,key);ctx.globalAlpha*=state.alpha*objectOpacity(s,key)/100;ctx.translate(state.x,state.y);
     if(state.scale!==1){const cx=groupBounds.x+groupBounds.w/2,cy=groupBounds.y+groupBounds.h/2;ctx.translate(cx,cy);ctx.scale(state.scale,state.scale);ctx.translate(-cx,-cy);}
+    if(p.skewX||p.skewY){const cx=p.x+p.w/2,cy=p.y+(p.h||b.h)/2;ctx.translate(cx,cy);ctx.transform(1,Math.tan(Math.max(-75,Math.min(75,p.skewY||0))*Math.PI/180),Math.tan(Math.max(-75,Math.min(75,p.skewX||0))*Math.PI/180),1,0,0);ctx.translate(-cx,-cy);}
     if(p.rotation){ctx.translate(p.x+p.w/2,p.y+(p.h||b.h)/2);ctx.rotate(p.rotation*Math.PI/180);ctx.translate(-p.x-p.w/2,-p.y-(p.h||b.h)/2);}
     const typingElapsed=options.objectMotion?.[key]?.typingElapsed??options.typingElapsed?.[key];
     const typing=['text','code'].includes(blockType(s,key))?typewriterState(blockType(s,key)==='code'?blockText(s,key).replaceAll('\t','    '):blockText(s,key),p.typewriter,typingElapsed):null;
@@ -192,7 +185,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
     else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key,typing);
     else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,textRole(s,key).leading),textColor(style,theme,`${theme.ink}df`),style.weight,fontCss(p.font),textRole(s,key).leading,style,p.autoSize?null:p.h,typing);
     s=original;ctx.restore();
-    if(s.emphasisKeys?.includes(key)){ctx.save();ctx.globalAlpha*=state.alpha*objectOpacity(s,key)/100;const p=s.positions[key],b=blockBounds(ctx,s,key);if(p.rotation){ctx.translate(b.x+b.w/2,b.y+(p.h||b.h)/2);ctx.rotate(p.rotation*Math.PI/180);ctx.translate(-b.x-b.w/2,-b.y-(p.h||b.h)/2);}ctx.strokeStyle=theme.accent;ctx.lineWidth=4;ctx.shadowColor=theme.accent;ctx.shadowBlur=12;ctx.strokeRect(b.x-10,b.y-10,b.w+20,(p.h||b.h)+20);ctx.restore();}
+    if(s.emphasisKeys?.includes(key)){ctx.save();options.beforeObject?.(ctx,key);ctx.globalAlpha*=state.alpha*objectOpacity(s,key)/100;const p=s.positions[key],b=blockBounds(ctx,s,key);if(p.rotation){ctx.translate(b.x+b.w/2,b.y+(p.h||b.h)/2);ctx.rotate(p.rotation*Math.PI/180);ctx.translate(-b.x-b.w/2,-b.y-(p.h||b.h)/2);}ctx.strokeStyle=theme.accent;ctx.lineWidth=4;ctx.shadowColor=theme.accent;ctx.shadowBlur=12;ctx.strokeRect(b.x-10,b.y-10,b.w+20,(p.h||b.h)+20);ctx.restore();}
   }
   if (footer) {
     ctx.strokeStyle = `${theme.ink}18`; ctx.beginPath(); ctx.moveTo(112, 972); ctx.lineTo(1808, 972); ctx.stroke();

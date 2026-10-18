@@ -1,13 +1,20 @@
 <script setup>
-import { ref, onMounted, onBeforeUnmount } from "vue";
+import { ref, inject, onMounted, onBeforeUnmount } from "vue";
 import { Sun, Moon, Home, Clapperboard, ArrowLeft } from "lucide-vue-next";
 import { appearance, setAppearance } from "../appearance.js";
+import { workflowNavigation } from "../workflowNavigation.js";
 import WorkspaceLauncher from "./WorkspaceLauncher.vue";
 const props = defineProps({
   title: String,
   backLabel: { type: String, default: "Accueil" },
 });
 const emit = defineEmits(["back", "home"]);
+const navigation = inject(workflowNavigation, null);
+function openThemes() {
+  active.value = null;
+  if (navigation) navigation.navigate("#/themes").catch(() => {});
+  else window.location.hash = "#/themes";
+}
 const root = ref(null),
   active = ref(null);
 function fileAction(event) {
@@ -51,7 +58,7 @@ onBeforeUnmount(() => {
           <Clapperboard v-if="backLabel === 'Vidéo'" :size="18"/><Home v-else-if="backLabel === 'Accueil'" :size="18"/><ArrowLeft v-else :size="18"/>
         </button>
         <nav class="app-menus" aria-label="Menus de l’application">
-          <div v-if="$slots.file" class="app-menu">
+          <div class="app-menu">
             <button
               class="app-menu-trigger"
               :aria-expanded="active === 'file'"
@@ -65,7 +72,7 @@ onBeforeUnmount(() => {
               @click="fileAction"
               @change="active = null"
             >
-              <slot name="file" />
+              <slot name="file" /><hr v-if="$slots.file"><button @click="openThemes">Thèmes</button>
             </div>
           </div>
           <div v-if="$slots.view" class="app-menu">

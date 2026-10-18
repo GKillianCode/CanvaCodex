@@ -1,3 +1,4 @@
+import {themeSourcesFromRow} from './themeRecovery.js';
 import { normalizeWorkflow,remapWorkflow,updateWorkflowSection } from './videoWorkflow.js';
 import { normalizeVideoCanvas } from "./videoCanvas.js";
 import {
@@ -260,7 +261,7 @@ export function videoRoute(hash) {
   const notebook=String(hash).match(/^#\/videos\/([\w-]+)\/notes$/);
   if(notebook)return {videoId:notebook[1],app:null,creationId:null,workshop:'conductor',reader:false};
   const match = String(hash).match(
-    /^#\/videos\/([\w-]+)(?:\/(slides|banners|thumbnails)\/([\w-]+))?$/,
+    /^#\/videos\/([\w-]+)(?:\/(slides|banners|thumbnails|animation)\/([\w-]+))?$/,
   );
   return match
     ? { videoId: match[1], app: match[2] || null, creationId: match[3] || null }
@@ -641,6 +642,7 @@ export function videoRepository(api = globalThis.indexedDB) {
           c.put(clone(row));
         };
       }),
+    recoverThemeSources:()=>transaction('readonly',(p,c,set)=>{const results=[];c.openCursor().onsuccess=e=>{const cursor=e.target.result;if(!cursor){set(results);return;}if(results.length<20)results.push(...themeSourcesFromRow(cursor.value));cursor.continue();};}),
     allCreations: (id) =>
       transaction("readonly", (p, c, set) => {
         c.index("videoId").getAll(id).onsuccess = (e) => set(e.target.result);
