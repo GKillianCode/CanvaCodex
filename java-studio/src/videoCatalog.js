@@ -79,7 +79,10 @@ export function migrateVideoClassification(
   project,
   catalog,
   applyDefault = false,
+  replacement = null,
 ) {
+  if (replacement && project[replacement.field] === replacement.from)
+    project = { ...project, [replacement.field]: replacement.to };
   const status = catalog.statuses.some(([id]) => id === project.status)
     ? project.status
     : catalog.fallbackStatus;
@@ -105,4 +108,28 @@ export function reorderCatalogRows(rows, id, insertion) {
     row,
   );
   return result;
+}
+
+export function validateVideoReplacement(value, catalog) {
+  if (!value) return null;
+  const { field, from, to } = value,
+    rows =
+      field === "status"
+        ? catalog.statuses
+        : field === "videoType"
+          ? catalog.types
+          : null;
+  if (
+    !rows ||
+    typeof from !== "string" ||
+    typeof to !== "string" ||
+    from === to ||
+    (from !== "" && !validVideoId(from)) ||
+    !(rows.some(([id]) => id === to) || (field === "videoType" && to === "")) ||
+    (field === "status" && !validVideoId(from))
+  )
+    throw Error(
+      "Choisis une valeur à remplacer et une valeur de destination différente.",
+    );
+  return { field, from, to };
 }

@@ -1,4 +1,4 @@
-import {videoTypes,videoStatuses,videoCatalog,validVideoId,normalizeCatalog,migrateVideoClassification,catalogKey} from './videoCatalog.js';
+import {videoTypes,videoStatuses,videoCatalog,validVideoId,normalizeCatalog,migrateVideoClassification,validateVideoReplacement,catalogKey} from './videoCatalog.js';
 import {themeSourcesFromRow} from './themeRecovery.js';
 import { normalizeWorkflow,remapWorkflow,updateWorkflowSection } from './videoWorkflow.js';
 import { normalizeVideoCanvas } from "./videoCanvas.js";
@@ -471,12 +471,14 @@ export function videoRepository(api = globalThis.indexedDB) {
       };
   }
   return {
-    saveVideoCatalog: (raw,applyDefault=false) => transaction('readwrite',(p,c,set,tx,summaries,settings)=>{
+    saveVideoCatalog: (raw,applyDefault=false,replacement=null) => transaction('readwrite',(p,c,set,tx,summaries,settings)=>{
       const catalog=normalizeCatalog(raw),changed=[];
+      replacement=validateVideoReplacement(replacement,catalog);let replaced=0;
       settings.put(catalog,catalogKey);
       p.openCursor().onsuccess=event=>{
-        const cursor=event.target.result;if(!cursor){set({catalog,changed});return;}
-        const project=cursor.value,next=migrateVideoClassification(project,catalog,applyDefault);
+        const cursor=event.target.result;if(!cursor){set({catalog,changed,replaced});return;}
+        const project=cursor.value,next=migrateVideoClassification(project,catalog,applyDefault,replacement);
+        if(replacement&&project[replacement.field]===replacement.from)replaced++;
         if(project.status!==next.status||project.videoType!==next.videoType){Object.assign(project,next);cursor.update(project);summaries.put(videoSummary(project));changed.push(project.id);}
         cursor.continue();
       };

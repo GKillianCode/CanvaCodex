@@ -160,13 +160,24 @@ async function add(kind) {
     ?.focus();
 }
 function remove(kind, id) {
+  for (const field of ["from", "to"])
+    if (replacements.value[kind][field] === id)
+      replacements.value[kind][field] = null;
   draft.value[kind] = draft.value[kind].filter((row) => row[0] !== id);
   if (draft.value.defaultType === id) draft.value.defaultType = "";
   if (draft.value.fallbackStatus === id)
     draft.value.fallbackStatus = draft.value.statuses[0]?.[0] || "";
   message.value = "";
 }
-async function save(apply = false) {
+const replacements = ref({
+  statuses: { from: null, to: null },
+  types: { from: null, to: null },
+});
+function canReplace(kind) {
+  const r = replacements.value[kind];
+  return r.from !== null && r.to !== null && r.from !== r.to;
+}
+async function save(apply = false, kind = null) {
   if (busy.value) return;
   error.value = "";
   message.value = "";
@@ -188,14 +199,22 @@ async function save(apply = false) {
     const result = await props.repository.saveVideoCatalog(
       normalizeCatalog(draft.value),
       apply,
+      kind
+        ? {
+            field: kind === "statuses" ? "status" : "videoType",
+            ...replacements.value[kind],
+          }
+        : null,
     );
     installCatalog(result.catalog);
     draft.value = catalogSnapshot();
     savedDraft.value = JSON.stringify(draft.value);
     emit("saved", result);
-    message.value = apply
-      ? `Paramètres enregistrés · ${result.changed.length} vidéo(s) mise(s) à jour.`
-      : "Paramètres enregistrés.";
+    message.value = kind
+      ? `${result.replaced} vidéo(s) mise(s) à jour · remplacement effectué.`
+      : apply
+        ? `Paramètres enregistrés · ${result.changed.length} vidéo(s) mise(s) à jour.`
+        : "Paramètres enregistrés.";
   } catch (e) {
     error.value = e.message || "Enregistrement impossible.";
   } finally {
@@ -254,7 +273,7 @@ async function save(apply = false) {
                   ? "Les étapes de ton processus de production"
                   : kind === "types"
                     ? "Les catégories de tes vidéos"
-                    : "Nouvelles vidéos et types non définis"
+                    : "Valeurs proposées pour les nouvelles vidéos"
               }}</small></span
             ><span v-if="kind !== 'defaults'" class="video-settings-count">{{
               draft[kind].length
@@ -337,14 +356,53 @@ async function save(apply = false) {
                   kind === "statuses" ? "Ajouter un statut" : "Ajouter un type"
                 }}
               </button>
-              <div v-if="kind === 'statuses'" class="video-settings-note">
+              <div class="video-settings-note">
+                <strong>{{
+                  kind === "statuses"
+                    ? "Remplacer un statut"
+                    : "Remplacer un type de vidéo"
+                }}</strong>
                 <label
-                  >Statut initial et de remplacement<select
-                    v-model="draft.fallbackStatus"
-                    aria-label="Statut de remplacement"
+                  >{{
+                    kind === "statuses"
+                      ? "Statut à remplacer"
+                      : "Type de vidéo à remplacer"
+                  }}<select
+                    v-model="replacements[kind].from"
+                    :aria-label="
+                      kind === 'statuses'
+                        ? 'Statut à remplacer'
+                        : 'Type de vidéo à remplacer'
+                    "
                   >
+                    <option :value="null" disabled>Choisir…</option>
+                    <option v-if="kind === 'types'" value="">Non défini</option>
                     <option
-                      v-for="[id, name] in draft.statuses"
+                      v-for="[id, name] in draft[kind]"
+                      :key="id"
+                      :value="id"
+                    >
+                      {{ name }}
+                    </option>
+                  </select></label
+                >
+                <label
+                  >{{
+                    kind === "statuses"
+                      ? "Remplacer par le statut"
+                      : "Remplacer par le type"
+                  }}<select
+                    v-model="replacements[kind].to"
+                    :aria-label="
+                      kind === 'statuses'
+                        ? 'Remplacer par le statut'
+                        : 'Remplacer par le type'
+                    "
+                  >
+                    <option :value="null" disabled>Choisir…</option>
+                    <option v-if="kind === 'types'" value="">Non défini</option>
+                    <option
+                      v-for="[id, name] in draft[kind]"
                       :key="id"
                       :value="id"
                     >
@@ -353,16 +411,52 @@ async function save(apply = false) {
                   </select></label
                 >
                 <p class="field-help">
-                  Utilisé pour une nouvelle vidéo et pour remplacer un statut
-                  supprimé. L’ordre ci-dessus sert au tri par processus.
+                  Seules les vidéos avec la valeur choisie seront modifiées,
+                  archives comprises. Les autres restent inchangées.
                 </p>
+                <button
+                  class="btn"
+                  :disabled="!canReplace(kind)"
+                  @click="save(false, kind)"
+                >
+                  {{
+                    kind === "statuses"
+                      ? "Remplacer ce statut"
+                      : "Remplacer ce type"
+                  }}
+                </button>
+                <small class="field-help"
+                  >Cette action enregistre aussi les paramètres en cours. Elle
+                  ne supprime aucune étiquette.</small
+                >
               </div>
-              <p v-else class="field-help">
-                Supprimer un type remet ses vidéos en « Non défini ». Les autres
-                types sont conservés.
+              <p class="field-help">
+                {{
+                  kind === "statuses"
+                    ? "L’ordre de la liste sert au tri par processus. Supprimer un statut transfère ses vidéos vers le statut initial."
+                    : "Supprimer un type remet ses vidéos en « Non défini »."
+                }}
               </p>
             </template>
             <template v-else>
+              <label
+                >Statut initial<select
+                  v-model="draft.fallbackStatus"
+                  aria-label="Statut initial"
+                >
+                  <option
+                    v-for="[id, name] in draft.statuses"
+                    :key="id"
+                    :value="id"
+                  >
+                    {{ name }}
+                  </option>
+                </select></label
+              >
+              <p class="field-help">
+                Présélectionné pour les nouvelles vidéos et utilisé si un statut
+                est supprimé.
+              </p>
               <label
                 >Type par défaut<select
                   v-model="draft.defaultType"
@@ -381,22 +475,6 @@ async function save(apply = false) {
               <p class="field-help">
                 Ce type est présélectionné pour les nouvelles vidéos.
               </p>
-              <div class="video-settings-note">
-                <strong>Compléter les vidéos existantes</strong>
-                <p class="field-help">
-                  Attribue ce type aux vidéos « Non défini », archives
-                  comprises. Les types déjà renseignés sont conservés.
-                </p>
-                <button
-                  class="btn"
-                  :disabled="!draft.defaultType"
-                  @click="save(true)"
-                >
-                  Appliquer à tous les « Non défini »</button
-                ><small class="field-help"
-                  >Cette action enregistre aussi les paramètres en cours.</small
-                >
-              </div>
             </template>
           </div>
         </section>

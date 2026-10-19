@@ -199,8 +199,8 @@ export function videoFolderStorage(
     },
     repository: {
       ...repository,
-      async saveVideoCatalog(raw,applyDefault=false) {
-        const result=await repository.saveVideoCatalog(raw,applyDefault);
+      async saveVideoCatalog(raw,applyDefault=false,replacement=null) {
+        const result=await repository.saveVideoCatalog(raw,applyDefault,replacement);
         for(const id of result.changed){const project=await repository.get(id);if(project)await mirror(project,[]);}
         return result;
       },

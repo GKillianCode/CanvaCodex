@@ -128,3 +128,76 @@ test("catalog drag insertion handles upward, downward, endpoints and unchanged g
   assert.deepEqual(ids(rows), ["a", "b", "c", "d"]);
   assert.equal(reorderCatalogRows(rows, "missing", 2), rows);
 });
+
+test("explicit replacements target only the original status or type and validate destinations", async () => {
+  const { validateVideoReplacement } = await import("../src/videoCatalog.js");
+  const c = normalizeCatalog();
+  const status = validateVideoReplacement(
+    { field: "status", from: "ready", to: "editing" },
+    c,
+  );
+  assert.equal(
+    migrateVideoClassification(
+      { status: "ready", videoType: "course" },
+      c,
+      false,
+      status,
+    ).status,
+    "editing",
+  );
+  assert.equal(
+    migrateVideoClassification(
+      { status: "published", videoType: "course" },
+      c,
+      false,
+      status,
+    ).status,
+    "published",
+  );
+  const type = validateVideoReplacement(
+    { field: "videoType", from: "", to: "exercise" },
+    c,
+  );
+  assert.equal(
+    migrateVideoClassification(
+      { status: "ready", videoType: "" },
+      c,
+      false,
+      type,
+    ).videoType,
+    "exercise",
+  );
+  assert.equal(
+    migrateVideoClassification(
+      { status: "ready", videoType: "course" },
+      c,
+      false,
+      type,
+    ).videoType,
+    "course",
+  );
+  assert.equal(
+    migrateVideoClassification(
+      { status: "ready", videoType: "course" },
+      c,
+      false,
+      { field: "videoType", from: "course", to: "" },
+    ).videoType,
+    "",
+  );
+  assert.throws(() =>
+    validateVideoReplacement(
+      { field: "status", from: "ready", to: "ready" },
+      c,
+    ),
+  );
+  assert.throws(() =>
+    validateVideoReplacement(
+      { field: "status", from: "ready", to: "missing" },
+      c,
+    ),
+  );
+  assert.throws(() =>
+    validateVideoReplacement({ field: "name", from: "x", to: "exercise" }, c),
+  );
+});

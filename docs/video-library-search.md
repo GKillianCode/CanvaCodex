@@ -25,15 +25,15 @@ Commencer à taper `play`, `vid` ou `ty` propose le mot-clé correspondant. Le s
 
 Depuis **Fichier → Paramètres des vidéos**, créer, renommer et supprimer les statuts et les types. Leurs identifiants internes restent stables lors d’un renommage : fiches, filtres, recherche, playlists et parcours utilisent les mêmes libellés.
 
-- Conserver au moins un statut. Le statut de remplacement sert aux nouvelles vidéos et remplace les statuts supprimés sur les vidéos existantes.
+- Conserver au moins un statut. Le statut initial sert aux nouvelles vidéos et remplace les statuts supprimés sur les vidéos existantes. Il se choisit dans Valeurs par défaut.
 - Supprimer un type remet ses vidéos en « Non défini » ; les autres types sont conservés.
 - Choisir un type par défaut le présélectionne pour les nouvelles vidéos.
-- **Appliquer à tous les « Non défini »** enregistre les paramètres et attribue ce défaut uniquement aux vidéos sans type, archives comprises. Les types déjà renseignés sont conservés.
+- Pour modifier les vidéos existantes, ouvrir Statuts ou Types de vidéos : choisir **Statut à remplacer / Remplacer par le statut**, ou **Type de vidéo à remplacer / Remplacer par le type**, puis cliquer **Remplacer ce statut/type**. Seules les vidéos avec la valeur source sont modifiées, archives comprises. « Non défini » est proposé comme source et destination pour les types. Une source identique à la destination est refusée. Le remplacement ne supprime aucune étiquette et ne modifie pas les valeurs par défaut ; il enregistre aussi les paramètres en cours.
 
 Les listes sont conservées dans les paramètres IndexedDB de la bibliothèque (`video-catalog`) et chargées avant les fiches. L’enregistrement du catalogue et les changements de classification sont atomiques dans la bibliothèque ; les fichiers vidéo du dossier lié sont ensuite synchronisés par le mécanisme de sauvegarde local habituel. Modifier des paramètres ne change pas la date de dernière modification des vidéos.
 
 ### Organisation des paramètres
 
-La fenêtre propose trois sections fermées au départ : **Statuts**, **Types de vidéos** et **Valeurs par défaut**. Cliquer une section l’ouvre et referme la précédente. Les listes gardent leur nom, leur ajout et leur suppression dans leur propre section ; les actions concernant les types par défaut et les vidéos existantes se trouvent dans Valeurs par défaut.
+La fenêtre propose trois sections fermées au départ : **Statuts**, **Types de vidéos** et **Valeurs par défaut**. Cliquer une section l’ouvre et referme la précédente. Les listes gardent leur nom, leur ajout et leur suppression dans leur propre section ; les choix pour les nouvelles vidéos se trouvent dans Valeurs par défaut. Les remplacements des vidéos existantes restent dans Statuts et Types de vidéos.
 
 Une poignée à gauche de chaque ligne permet de la déplacer. Une ligne de dépôt indique l’emplacement avant le relâchement ; la fenêtre défile automatiquement près de ses bords pendant le déplacement. Sur une poignée au clavier, ↑/↓ déplace d’une ligne et Début/Fin envoie au début/à la fin. Un geste annulé ne modifie pas l’ordre. **Enregistrer les paramètres** conserve le nouvel ordre, utilisé par les listes et le tri par processus. Le bouton reste accessible et indique si des modifications attendent d’être enregistrées.
