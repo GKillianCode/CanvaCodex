@@ -14,6 +14,7 @@ import {
   X,
   Trash2,
   Copy,
+  GripVertical,
 } from "lucide-vue-next";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import ConductorRichEditor from "./ConductorRichEditor.vue";
@@ -44,6 +45,62 @@ const tree = ref([]),
   destination = ref(""),
   linkPicker = ref(false),
   linkQuery = ref("");
+const draggedId = ref(""),
+  dropTarget = ref(null);
+let expandTimer;
+function endDrag() {
+  draggedId.value = "";
+  dropTarget.value = null;
+  clearTimeout(expandTimer);
+}
+function startDrag(event, id) {
+  if (busy.value || saving.value) {
+    event.preventDefault();
+    return;
+  }
+  draggedId.value = id;
+  event.dataTransfer.effectAllowed = "move";
+  event.dataTransfer.setData("application/x-frame-note", id);
+  menu.value = null;
+}
+function dragOver(event, parent) {
+  if (
+    !draggedId.value ||
+    freeDescendants(tree.value, draggedId.value).has(parent)
+  )
+    return;
+  event.preventDefault();
+  event.dataTransfer.dropEffect = "move";
+  if (dropTarget.value !== parent) {
+    clearTimeout(expandTimer);
+    dropTarget.value = parent;
+    if (parent && !expanded.value.includes(parent))
+      expandTimer = setTimeout(() => {
+        expanded.value.push(parent);
+        rememberUI();
+      }, 650);
+  }
+  const sidebar = event.currentTarget.closest(".free-notes-sidebar");
+  if (sidebar) {
+    const bounds = sidebar.getBoundingClientRect();
+    if (event.clientY > bounds.bottom - 45) sidebar.scrollTop += 18;
+    if (event.clientY < bounds.top + 45) sidebar.scrollTop -= 18;
+  }
+}
+async function dropEntry(event, parent) {
+  event.preventDefault();
+  const id = draggedId.value;
+  endDrag();
+  if (!id || freeDescendants(tree.value, id).has(parent)) return;
+  if (tree.value.find((row) => row.id === id)?.parent === parent) return;
+  await run(async () => {
+    tree.value = await props.repository.saveFreeNotesTree(
+      moveFreeEntry(tree.value, id, parent),
+    );
+    if (parent && !expanded.value.includes(parent)) expanded.value.push(parent);
+    rememberUI();
+  });
+}
 const current = computed(() =>
     tree.value.find((row) => row.id === activeId.value),
   ),
@@ -407,6 +464,7 @@ onMounted(async () => {
 });
 onBeforeUnmount(() => {
   clearTimeout(timer);
+  endDrag();
   window.removeEventListener("pointerdown", outside);
   window.removeEventListener("beforeunload", beforeUnload);
   window.removeEventListener("pagehide", pagehide);
@@ -477,16 +535,45 @@ onBeforeUnmount(() => {
             aria-label="Rechercher dans les notes"
             placeholder="Rechercher une page…"
         /></label>
-        <nav aria-label="Arborescence des notes">
+        <div
+          class="free-notes-root-drop"
+          :class="{ targeted: dropTarget === '', dragging: draggedId }"
+          @dragover.stop="dragOver($event, '')"
+          @drop.stop="dropEntry($event, '')"
+        >
+          <Folder :size="14" /> Racine des notes
+          <span :style="{ visibility: draggedId ? 'visible' : 'hidden' }"
+            >Déposer ici pour sortir du dossier</span
+          >
+        </div>
+        <nav aria-label="Arborescence des notes" @dragleave="dropTarget = null">
           <div
             v-for="{ row, depth } in rows"
             :key="row.id"
             class="free-notes-tree-row"
-            :class="{ active: row.id === activeId }"
+            :class="{
+              active: row.id === activeId,
+              'drop-target': dropTarget === row.id,
+              'is-dragging': draggedId === row.id,
+            }"
             :style="{ paddingLeft: 8 + Math.min(depth, 12) * 16 + 'px' }"
             :data-note-id="row.id"
             @contextmenu="showMenu($event, row)"
+            @dragover.stop="dragOver($event, row.id)"
+            @drop.stop="dropEntry($event, row.id)"
           >
+            <button
+              class="icon-btn free-notes-drag"
+              draggable="true"
+              :disabled="busy || saving"
+              :aria-label="'Déplacer ' + row.title"
+              title="Glisser vers un dossier, une note ou la racine · autres options dans le menu"
+              @dragstart="startDrag($event, row.id)"
+              @dragend="endDrag"
+              @click.stop
+            >
+              <GripVertical :size="13" />
+            </button>
             <button
               class="icon-btn free-notes-expand"
               :aria-label="'Déplier ' + row.title"

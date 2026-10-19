@@ -1953,3 +1953,7 @@
 }
 :root[data-appearance="light"] .free-notes-link-choices small {color:var(--muted)
 }
+:root[data-appearance="light"] .free-notes-tree-row.drop-target,:root[data-appearance="light"] .free-notes-root-drop.targeted {outline:2px solid currentColor;outline-offset:-2px;background:color-mix(in srgb,currentColor 9%,transparent)
+}
+:root[data-appearance="light"] .free-notes-root-drop {border:1px dashed color-mix(in srgb,currentColor 18%,transparent);border-radius:6px
+}

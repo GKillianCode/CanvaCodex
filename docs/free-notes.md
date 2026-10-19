@@ -23,3 +23,7 @@ Fichier → Exporter toutes les notes JSON conserve l’arborescence, les conten
 En cas d’erreur d’écriture, le texte reste ouvert. L’export JSON inclut le brouillon courant et l’export Markdown reste disponible pour récupération.
 
 Limites V1 : 5 000 pages/dossiers, 50 000 caractères par note, limites d’images identiques au conducteur, import de sauvegarde jusqu’à 256 Mo. Pas de service distant.
+
+### Déplacer les pages
+
+Glisser la poignée à gauche d’une note ou d’un dossier sur une autre page pour l’y ranger. La zone « Racine des notes » permet de sortir d’un dossier ou d’une sous-note. Les destinations fermées se déplient après un court survol. Une page ne peut pas être déplacée dans ses propres descendants. Le menu « Déplacer vers » reste disponible sans glisser-déposer. Les identifiants et liens entre notes restent inchangés ; les chemins et fils d’Ariane suivent automatiquement la nouvelle organisation.
