@@ -1425,3 +1425,5 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 ## /page global — 2026-10-20
 - Nouvelle demande : le sélecteur /page propose toutes les notes, indépendamment de leur parent (y compris la page actuelle). Libellé « Page » dans slash et clic droit ; aucun filtre de parent. Remplace la restriction précédente aux enfants directs.
 - Validation : tests et compilation.
+
+- Liens de pages : curseur pointer au survol, y compris dans l’éditeur de notes.
