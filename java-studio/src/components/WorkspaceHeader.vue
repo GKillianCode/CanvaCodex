@@ -75,6 +75,10 @@ onBeforeUnmount(() => {
               <slot name="file" /><hr v-if="$slots.file"><button @click="openThemes">Thèmes</button>
             </div>
           </div>
+          <div v-if="$slots.applications" class="app-menu">
+            <button class="app-menu-trigger" :aria-expanded="active==='applications'" @click="active=active==='applications'?null:'applications'">Applications</button>
+            <div v-if="active==='applications'" class="app-menu-popover" @click="fileAction"><slot name="applications"/></div>
+          </div>
           <div v-if="$slots.view" class="app-menu">
             <button
               class="app-menu-trigger"
