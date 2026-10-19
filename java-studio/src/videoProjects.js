@@ -1,3 +1,4 @@
+import {videoTypes,videoStatuses,videoCatalog,validVideoId,normalizeCatalog,migrateVideoClassification,catalogKey} from './videoCatalog.js';
 import {themeSourcesFromRow} from './themeRecovery.js';
 import { normalizeWorkflow,remapWorkflow,updateWorkflowSection } from './videoWorkflow.js';
 import { normalizeVideoCanvas } from "./videoCanvas.js";
@@ -11,19 +12,9 @@ import { normalizeWorkspace, workspaceKeys } from "./workspaceStorage.js";
 import { makeSlide } from "./model.js";
 import { makeThumbnail, thumbnailPalette } from "./thumbnails.js";
 import { makeOverlay } from "./overlays.js";
-export const videoTypes = [["course", "Cours"], ["exercise", "Exercice"], ["demo", "Démonstration"]];
-export const normalizeVideoType = value => videoTypes.some(([id]) => id === value) ? value : "";
-export const videoTypeTitle = value => videoTypes.find(([id]) => id === value)?.[1] || "Non défini";
-export const videoStatuses = [
-  ["backlog", "Idées / Backlog"],
-  ["preparation", "Création"],
-  ["ready", "Prêt à tourner"],
-  ["recording", "Tournage"],
-  ["editing", "Montage"],
-  ["done", "Terminé"],
-  ["publishing", "À publier"],
-  ["published", "Publié"],
-];
+export {videoTypes,videoStatuses} from './videoCatalog.js';
+export const normalizeVideoType = value => validVideoId(value)&&(videoTypes.some(([id])=>id===value)||value.startsWith('custom-')) ? value : '';
+export const videoTypeTitle = value => videoTypes.find(([id])=>id===value)?.[1]||'Non défini';
 export const videoPlaylists = [
   "Java",
   "IA",
@@ -49,8 +40,8 @@ export function makeVideoProject(name = "Nouvelle vidéo") {
     id: uid(),
     name: label(name, "Nouvelle vidéo"),
     playlist: "Java",
-    status: "preparation",
-    videoType: "",
+    status: videoCatalog.fallbackStatus,
+    videoType: videoCatalog.defaultType,
     notes: "",
     workflow: normalizeWorkflow(),
     archived: false,
@@ -72,9 +63,7 @@ export function normalizeVideoProject(raw) {
     id: label(raw.id, uid(), 100),
     playlist:
       typeof raw.playlist === "string" ? raw.playlist.trim().slice(0, 200) : "",
-    status: videoStatuses.some(([id]) => id === raw.status)
-      ? raw.status
-      : "preparation",
+    status: validVideoId(raw.status)&&(videoStatuses.some(([id])=>id===raw.status)||raw.status.startsWith('custom-')) ? raw.status : videoCatalog.fallbackStatus,
     videoType: normalizeVideoType(raw.videoType),
     notes: typeof raw.notes === "string" ? raw.notes.slice(0, 20000) : "",
     workflow: normalizeWorkflow(raw.workflow),
@@ -482,6 +471,16 @@ export function videoRepository(api = globalThis.indexedDB) {
       };
   }
   return {
+    saveVideoCatalog: (raw,applyDefault=false) => transaction('readwrite',(p,c,set,tx,summaries,settings)=>{
+      const catalog=normalizeCatalog(raw),changed=[];
+      settings.put(catalog,catalogKey);
+      p.openCursor().onsuccess=event=>{
+        const cursor=event.target.result;if(!cursor){set({catalog,changed});return;}
+        const project=cursor.value,next=migrateVideoClassification(project,catalog,applyDefault);
+        if(project.status!==next.status||project.videoType!==next.videoType){Object.assign(project,next);cursor.update(project);summaries.put(videoSummary(project));changed.push(project.id);}
+        cursor.continue();
+      };
+    }),
     getSetting: key => transaction("readonly",(p,c,set,tx,s,settings)=>{settings.get(key).onsuccess=e=>set(e.target.result);}),
     setSetting: (key,value) => transaction("readwrite",(p,c,set,tx,s,settings)=>{settings.put(value,key);}),
     canvas: () =>

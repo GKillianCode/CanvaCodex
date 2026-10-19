@@ -1,4 +1,5 @@
 <script setup>
+import {installCatalog,catalogKey} from "./videoCatalog.js";
 import { ref, shallowRef, onMounted, onBeforeUnmount, provide } from "vue";
 import { applicationFromHash, applicationHash } from "./applicationRoutes.js";
 import {
@@ -47,6 +48,8 @@ provide(workflowNavigation, {
   navigate,
 });
 let generation = 0;
+let catalogReady;
+function loadCatalog(){return catalogReady ||= repository.getSetting(catalogKey).then(raw=>installCatalog(raw||{}));}
 async function navigate(hash) {
   try {
     await navigateAfterSave(
@@ -66,6 +69,7 @@ async function syncRoute() {
   const request = ++generation;
   error.value = "";
   try {
+    await loadCatalog();
     if(componentApp.value)await componentApp.value.flush();
     if (studio.value) await studio.value.flush();
     if (canvasApp.value) await canvasApp.value.flush();

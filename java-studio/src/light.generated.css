@@ -1831,3 +1831,15 @@
 }
 :root[data-appearance="light"] .video-filter>.btn {background:transparent;color:inherit;border:1px solid var(--border)
 }
+:root[data-appearance="light"] .video-page-links .btn {background:transparent;color:inherit;border:1px solid var(--border)
+}
+:root[data-appearance="light"] .video-page-links .btn[aria-current=page] {background:#a5f3cf18;border-color:var(--mint);color:var(--mint)
+}
+:root[data-appearance="light"] .video-pagination select.video-page-size {border:1px solid var(--border);border-radius:7px;background:#ecefee;color:inherit
+}
+:root[data-appearance="light"] .video-result-count {color:var(--muted)
+}
+:root[data-appearance="light"] .video-settings fieldset {border:0
+}
+:root[data-appearance="light"] .video-settings-section {border-bottom:1px solid var(--border)
+}

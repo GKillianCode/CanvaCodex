@@ -14,3 +14,20 @@ Exemple : `playlist:"Java" playlist:"IA" type:"Cours" vidéo:"variables"` recher
 Le menu **Applications**, à côté de Fichier, ouvre les ateliers autonomes. Le bouton **Parcours** de l’accueil ouvre directement le canevas. Le sélecteur du bas propose 10,20,30ou50vidéos par page. La recherche travaille sur les résumés de vidéos : elle ne charge pas tous les supports dans la mémoire.
 
 Les préférences d’affichage se trouvent dans `frame-video-library-view` (localStorage). Elles ne changent ni les vidéos ni leurs fichiers. L’ancien choix de tri `frame-video-sort` est repris si aucune préférence complète n’existe.
+
+## Pagination et saisie rapide
+
+Le bas de page affiche le nombre de résultats à gauche, les pages cliquables au centre et le sélecteur du nombre de vidéos à droite, sans libellé visible. La première et la dernière page sont toujours proposées, avec les pages voisines de la page active et des points de suspension si nécessaire.
+
+Commencer à taper `play`, `vid` ou `ty` propose le mot-clé correspondant. Le sélectionner au clic ou avec les flèches et Entrée insère automatiquement `playlist:`, `vidéo:` ou `type:`, puis ouvre les suggestions de valeurs.
+
+## Paramètres des vidéos
+
+Depuis **Fichier → Paramètres des vidéos**, créer, renommer et supprimer les statuts et les types. Leurs identifiants internes restent stables lors d’un renommage : fiches, filtres, recherche, playlists et parcours utilisent les mêmes libellés.
+
+- Conserver au moins un statut. Le statut de remplacement sert aux nouvelles vidéos et remplace les statuts supprimés sur les vidéos existantes.
+- Supprimer un type remet ses vidéos en « Non défini » ; les autres types sont conservés.
+- Choisir un type par défaut le présélectionne pour les nouvelles vidéos.
+- **Appliquer à tous les « Non défini »** enregistre les paramètres et attribue ce défaut uniquement aux vidéos sans type, archives comprises. Les types déjà renseignés sont conservés.
+
+Les listes sont conservées dans les paramètres IndexedDB de la bibliothèque (`video-catalog`) et chargées avant les fiches. L’enregistrement du catalogue et les changements de classification sont atomiques dans la bibliothèque ; les fichiers vidéo du dossier lié sont ensuite synchronisés par le mécanisme de sauvegarde local habituel. Modifier des paramètres ne change pas la date de dernière modification des vidéos.

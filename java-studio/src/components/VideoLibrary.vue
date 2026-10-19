@@ -1,9 +1,13 @@
 <script setup>
-import {libraryPreferenceKey, readLibraryView, parseVideoSearch, matchesVideoSearch, activeSearchField, fold} from '../videoSearch.js';
+import {libraryPreferenceKey, readLibraryView, parseVideoSearch, matchesVideoSearch, activeSearchField, keywordCompletion, paginationItems, fold} from '../videoSearch.js';
+import VideoSettings from './VideoSettings.vue';
+import {videoCatalog} from '../videoCatalog.js';
 import {useUndoNotifications} from "../undoNotifications.js";
 import { ref, computed, watch, onMounted, nextTick } from "vue";
 import {
   Plus,
+  ChevronLeft,
+  ChevronRight,
   ArrowLeft,
   ArrowUpRight,
   PanelsTopLeft,
@@ -71,7 +75,8 @@ const projects = ref([]),
   icons = { animation: Clapperboard, slides: PanelsTopLeft, banners: Clapperboard, thumbnails: Image };
 const creationFilter=ref('all'),notices=useUndoNotifications();
 watch(() => props.videoId,()=>notices.clear());
-const newVideoType = ref("");
+const newVideoType = ref(videoCatalog.defaultType);
+const numberedPages=computed(()=>paginationItems(page.value,pages.value));
 const starterApps = ref(["slides", "banners", "thumbnails"]);
 const browserOnly = ref(false);
 const selected = ref(null),
@@ -112,7 +117,9 @@ watch([query,archives,sortMode,visibleStatuses,pageSize,page],()=>{
  try {localStorage.setItem(libraryPreferenceKey,JSON.stringify({query:query.value,archives:archives.value,sortMode:sortMode.value,visibleStatuses:visibleStatuses.value,pageSize:pageSize.value,page:page.value}));}catch{}
 },{deep:true});
 const activeSearch = computed(()=>activeSearchField(query.value,caret.value));
+const keywordSearch=computed(()=>keywordCompletion(query.value,caret.value));
 const suggestions = computed(()=>{
+ if(keywordSearch.value)return keywordSearch.value.values;
  const active=activeSearch.value;if(!active)return [];
  const values=active.field==='playlist'?[...playlists.value,'Sans playlist']:active.field==='type'?['Non défini',...videoTypes.map(([,title])=>title)]:projects.value.map(p=>p.name);
  return [...new Set(values)].filter(v=>fold(v).includes(active.value)).slice(0,20);
@@ -120,6 +127,11 @@ const suggestions = computed(()=>{
 watch(suggestions,()=>suggestionIndex.value=0);
 function updateCaret(event){caret.value=event.target.selectionStart??query.value.length;}
 async function chooseSuggestion(value){
+ const keyword=keywordSearch.value;
+ if(keyword){
+  const replacement=value+':';query.value=query.value.slice(0,keyword.start)+replacement+query.value.slice(keyword.end);
+  const next=keyword.start+replacement.length;await nextTick();searchInput.value?.focus();searchInput.value?.setSelectionRange(next,next);caret.value=next;return;
+ }
  const active=activeSearch.value;if(!active)return;
  const prefix=active.field==='video'?'vidéo':active.field;
  const replacement=prefix+':'+JSON.stringify(value)+' ';
@@ -152,6 +164,13 @@ const date = (value) =>
   );
 const status = (id) =>
   videoStatuses.find(([key]) => key === id)?.[1] || "Création";
+let catalogStatusIds=new Set(videoStatuses.map(([id])=>id));
+async function catalogSaved(result){
+ const before=new Set(visibleStatuses.value);
+ visibleStatuses.value=videoStatuses.filter(([id])=>before.has(id)||!catalogStatusIds.has(id)).map(([id])=>id);
+ catalogStatusIds=new Set(videoStatuses.map(([id])=>id));
+ newVideoType.value=videoCatalog.defaultType;await run(reload);
+}
 async function savePreview(row, image) {
   try {
     const meta = selected.value?.creations.find((c) => c.id === row.id);
@@ -201,7 +220,7 @@ function newVideo() {
   starterApps.value = ["slides", "banners", "thumbnails"];
   browserOnly.value = false;
   newPlaylist.value = playlists.value[0] || "";
-  newVideoType.value = "";
+  newVideoType.value = videoCatalog.defaultType;
   modal.value = { type: "video" };
 }
 function newCreation(kind) {
@@ -508,7 +527,7 @@ async function importVideo(event) {
       @back="emit('home')"
     >
       <template #file
-        ><label v-if="!videoId" class="menu-file"
+        ><button @click="modal={type:'settings'}">Paramètres des vidéos…</button><hr><label v-if="!videoId" class="menu-file"
           >Importer une vidéo JSON<input
             type="file"
             accept="application/json,.json"
@@ -581,7 +600,7 @@ async function importVideo(event) {
         <div class="video-search-wrap">
           <label class="video-search"><Search :size="16"/><input ref="searchInput" v-model="query" maxlength="4000" role="combobox" :aria-expanded="searchFocused&&suggestions.length>0" aria-controls="video-search-suggestions" :aria-activedescendant="searchFocused&&suggestions.length?'video-suggestion-'+suggestionIndex:undefined" aria-autocomplete="list" placeholder='Rechercher · playlist: · vidéo: · type:' aria-label="Rechercher des vidéos" @focus="searchFocused=true;updateCaret($event)" @blur="searchFocused=false" @input="searchFocused=true;updateCaret($event)" @click="updateCaret" @keyup="updateCaret" @keydown="searchKey"/><button v-if="query" class="icon-btn" title="Effacer la recherche" aria-label="Effacer la recherche" @click="query='';searchInput?.focus()"><X :size="15"/></button></label>
           <div v-if="searchFocused&&suggestions.length" id="video-search-suggestions" class="video-search-suggestions" role="listbox" aria-label="Suggestions de recherche">
-            <button v-for="(value,i) in suggestions" :id="'video-suggestion-'+i" :key="value" role="option" :aria-selected="i===suggestionIndex" :class="{active:i===suggestionIndex}" @pointerdown.prevent @click="chooseSuggestion(value)"><span>{{activeSearch.field==='video'?'vidéo':activeSearch.field}}:</span>{{value}}</button>
+            <button v-for="(value,i) in suggestions" :id="'video-suggestion-'+i" :key="value" role="option" :aria-selected="i===suggestionIndex" :class="{active:i===suggestionIndex}" @pointerdown.prevent @click="chooseSuggestion(value)"><span>{{keywordSearch?'Filtrer par':activeSearch.field==='video'?'vidéo:':activeSearch.field+':'}}</span>{{value}}</button>
           </div>
         </div>
         <details class="library-display">
@@ -734,14 +753,13 @@ async function importVideo(event) {
         class="video-pagination"
         aria-label="Pages de vidéos"
       >
-        <label class="video-page-size">Vidéos par page<select v-model.number="pageSize" aria-label="Vidéos par page"><option v-for="size in [10,20,30,50]" :key="size" :value="size">{{size}}</option></select></label>
-        <button class="btn" :disabled="page === 1" @click="page--">
-          Précédent</button
-        ><span
-          >Page {{ page }} / {{ pages }} · {{ filtered.length }} vidéos</span
-        ><button class="btn" :disabled="page === pages" @click="page++">
-          Suivant
-        </button>
+        <span class="video-result-count">{{filtered.length}} vidéo{{filtered.length>1?'s':''}}</span>
+        <div class="video-page-links">
+          <button class="btn" :disabled="page===1" @click="page--" aria-label="Page précédente" title="Page précédente"><ChevronLeft :size="16"/></button>
+          <template v-for="number in numberedPages" :key="number"><button v-if="typeof number==='number'" class="btn" :class="{active:page===number}" :aria-label="'Page '+number" :aria-current="page===number?'page':undefined" @click="page=number">{{number}}</button><span v-else class="video-page-gap" aria-hidden="true">…</span></template>
+          <button class="btn" :disabled="page===pages" @click="page++" aria-label="Page suivante" title="Page suivante"><ChevronRight :size="16"/></button>
+        </div>
+        <select class="video-page-size" v-model.number="pageSize" aria-label="Vidéos par page" title="Vidéos par page"><option v-for="size in [10,20,30,50]" :key="size" :value="size">{{size}}</option></select>
       </nav>
     </template>
     <template v-else-if="selected && draft"
@@ -810,7 +828,7 @@ async function importVideo(event) {
                 <option v-for="p in playlists" :key="p">{{ p }}</option>
               </select></label
             ><label
-              >Type de vidéo<select v-model="draft.videoType"><option value="">Non défini</option><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label><label
+              >Type de vidéo<select v-model="draft.videoType" aria-label="Type de vidéo"><option value="">Non défini</option><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label><label
               >Statut<select v-model="draft.status">
                 <option
                   v-for="[id, title] in videoStatuses"
@@ -911,10 +929,11 @@ async function importVideo(event) {
       Bibliothèque locale · Sauvegarde une vidéo complète en JSON pour la
       transférer ou la conserver sur ton ordinateur.
     </footer>
+    <VideoSettings v-if="modal?.type==='settings'" :repository="repository" @close="modal=null" @saved="catalogSaved"/>
     <div
       v-if="
         modal &&
-        !['canvas', 'playlists', 'playlist', 'playlist-view'].includes(
+        !['settings','canvas', 'playlists', 'playlist', 'playlist-view'].includes(
           modal.type,
         )
       "
@@ -977,7 +996,7 @@ async function importVideo(event) {
               <option v-for="p in playlists" :key="p">{{ p }}</option>
             </select></label
           >
-          <label>Type de vidéo<select v-model="newVideoType"><option value="">Non défini</option><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label>
+          <label>Type de vidéo<select v-model="newVideoType" aria-label="Type de vidéo"><option value="">Non défini</option><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label>
           <div class="video-folder-setup">
             <strong>{{
               folderState?.name

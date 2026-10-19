@@ -261,3 +261,13 @@ test("changing destination retries pending writes and reports failure rather tha
  await assert.rejects(c.changeFolder(),/Disque plein/);
  assert.equal(states.at(-1).status,"error");assert.deepEqual(settings["video-folder-pending"],[p.id]);assert.ok(await base.get(p.id));
 });
+
+test('catalog changes mirror affected video metadata into the linked folder',async()=>{
+ const files=new Map(),root=directory('Frame',files),base=repository(),project=makeVideoProject('Court');
+ await base.put(project);
+ base.saveVideoCatalog=async()=>{project.videoType='custom-short';await base.put(project);return {catalog:{},changed:[project.id]};};
+ const controller=videoFolderStorage(base,{showDirectoryPicker:async()=>root});
+ await controller.ready;await controller.authorize();
+ await controller.repository.saveVideoCatalog({},true);
+ assert.equal(JSON.parse(files.get(project.id+'/video.frame.json')).videoType,'custom-short');
+});

@@ -125,3 +125,33 @@ export function readLibraryView(storage) {
     return normalizeLibraryView();
   }
 }
+
+export function paginationItems(page, total) {
+  const selected = new Set(
+    [1, total, page - 1, page, page + 1].filter((n) => n >= 1 && n <= total),
+  );
+  const result = [];
+  let previous = 0;
+  for (const n of [...selected].sort((a, b) => a - b)) {
+    if (previous && n - previous === 2) result.push(previous + 1);
+    else if (previous && n - previous > 2) result.push("gap-" + previous);
+    result.push(n);
+    previous = n;
+  }
+  return result;
+}
+export function keywordCompletion(query, caret = query.length) {
+  if (activeSearchField(query, caret)) return null;
+  const before = query.slice(0, caret),
+    match = /(?:^|\s)([\p{L}]+)$/u.exec(before);
+  if (!match) return null;
+  const word = fold(match[1]),
+    values = ["playlist", "vidéo", "type"].filter(
+      (value) =>
+        fold(value).startsWith(word) || (word === "video" && value === "vidéo"),
+    );
+  if (!values.length) return null;
+  const start = caret - match[1].length,
+    tail = /^[\p{L}]*:?\s*/u.exec(query.slice(caret))?.[0] || "";
+  return { start, end: caret + tail.length, values };
+}
