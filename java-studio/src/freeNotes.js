@@ -185,3 +185,16 @@ export function freeEntryPath(tree, id) {
   }
   return names.join(" / ");
 }
+
+// Retire aussi les descendants : aucune note contenue dans un ancien dossier ne survit.
+export function notesWithoutFolders(raw) {
+  const tree = normalizeFreeTree(raw),
+    removed = new Set();
+  for (const row of tree)
+    if (row.kind === "folder")
+      for (const id of freeDescendants(tree, row.id)) removed.add(id);
+  return { tree: tree.filter((row) => !removed.has(row.id)), removed };
+}
+export function directChildNotes(tree, parent) {
+  return tree.filter((row) => row.kind === "note" && row.parent === parent);
+}

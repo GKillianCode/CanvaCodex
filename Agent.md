@@ -1412,3 +1412,8 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Poignée de glisser-déposer par page/dossier, destination surlignée, dépôt à la racine, ouverture au survol et défilement près des bords. Déplacement des descendants en bloc, cycles refusés, sauvegarde préalable du contenu actif.
 - Conserver les UUID et href #/notes/id : déplacements sans réécriture ni perte de liens ; chemins recalculés depuis les parents.
 - Vérification : 404 tests et build réussis ; événements DnD testés dans Chrome isolé (dossier, sous-note, racine, refus de cycle, rechargement, contenu et backlinks).
+
+## Notes sans dossiers et /page — 2026-10-20
+- Demande explicite : suppression des dossiers existants ET de tous leurs contenus. Lecture de l’arbre en transaction readwrite : purge des métadonnées et corps de notes descendants ; même filtrage lors des imports. Création de dossiers interdite.
+- Plus de liste de sous-pages au pied du document. /page propose uniquement les notes enfants directes ; conserve les href UUID et affiche une étiquette documentaire distincte. Hiérarchie de notes et glisser-déposer conservés.
+- Validation : 405 tests réussis, compilation réussie ; test navigateur /page avec enfant et petit-enfant.

@@ -106,3 +106,20 @@ test("links ignore code and stale tree writes cannot delete new notes or restore
   assert.equal(merged[0].title, "Renommée");
   assert.deepEqual(merged[0].links, ["real"]);
 });
+
+test('folder removal deletes its entire subtree and page choices contain direct children only', async () => {
+  const { notesWithoutFolders, directChildNotes } = await import('../src/freeNotes.js');
+  const rows = [
+    {id:'root',kind:'note',title:'Racine',parent:''},
+    {id:'child',kind:'note',title:'Enfant',parent:'root'},
+    {id:'grandchild',kind:'note',title:'Petit-enfant',parent:'child'},
+    {id:'folder',kind:'folder',title:'Dossier',parent:''},
+    {id:'nested',kind:'folder',title:'Sous-dossier',parent:'folder'},
+    {id:'deleted',kind:'note',title:'Supprimée',parent:'nested'},
+  ];
+  const result = notesWithoutFolders(rows);
+  assert.deepEqual(result.tree.map(row=>row.id), ['root','child','grandchild']);
+  assert.deepEqual([...result.removed].sort(), ['deleted','folder','nested']);
+  assert.deepEqual(directChildNotes(result.tree,'root').map(row=>row.id), ['child']);
+  assert.deepEqual(directChildNotes(result.tree,'child').map(row=>row.id), ['grandchild']);
+});

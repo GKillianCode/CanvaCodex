@@ -62,7 +62,7 @@ const slash = ref(null),
   imageInput = ref(null);
 const slashItems = computed(() => {
  const query=(slash.value?.query||'').toLowerCase(),base=findConductorCommands(query);
- if(props.noteLinks&&['lien','note','note-link','link','page'].some(word=>word.includes(query))){const command=['note-link','Lien vers une note','note lien'];return query?[command,...base]:[...base,command];}
+ if(props.noteLinks&&['lien','note','note-link','link','page'].some(word=>word.includes(query))){const command=['note-link','Page enfant','page sous-note'];return query?[command,...base]:[...base,command];}
  return base;
 });
 const windowWidth = ref(window.innerWidth);
@@ -1486,7 +1486,7 @@ onBeforeUnmount(() => {
         >
           Ajouter un lien
         </button>
-        <button v-if="noteLinks" role="menuitem" @click="menu=null;emit('request-note-link')">Lien vers une note…</button>
+        <button v-if="noteLinks" role="menuitem" @click="menu=null;emit('request-note-link')">Page enfant…</button>
         <hr />
         <button
           role="menuitem"

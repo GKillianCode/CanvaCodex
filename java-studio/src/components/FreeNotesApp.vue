@@ -2,7 +2,6 @@
 import { ref, computed, onMounted, onBeforeUnmount, nextTick } from "vue";
 import {
   Plus,
-  FolderPlus,
   Folder,
   FileText,
   ChevronRight,
@@ -19,6 +18,7 @@ import {
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import ConductorRichEditor from "./ConductorRichEditor.vue";
 import {
+  directChildNotes,
   freeTreeRows,
   freeDescendants,
   moveFreeEntry,
@@ -105,16 +105,11 @@ const current = computed(() =>
     tree.value.find((row) => row.id === activeId.value),
   ),
   rows = computed(() => freeTreeRows(tree.value, expanded.value, search.value)),
-  children = computed(() =>
-    tree.value.filter((row) => row.parent === activeId.value),
-  ),
   noteChoices = computed(() =>
-    tree.value.filter(
-      (row) =>
-        row.kind === "note" &&
-        row.title
-          .toLocaleLowerCase()
-          .includes(linkQuery.value.toLocaleLowerCase()),
+    directChildNotes(tree.value, activeId.value).filter((row) =>
+      row.title
+        .toLocaleLowerCase()
+        .includes(linkQuery.value.toLocaleLowerCase()),
     ),
   ),
   backlinks = computed(() =>
@@ -250,7 +245,7 @@ async function create(kind, parent = "") {
     const entry = {
       id: crypto.randomUUID(),
       kind,
-      title: kind === "folder" ? "Nouveau dossier" : "Nouvelle note",
+      title: "Nouvelle note",
       parent,
       links: [],
       updatedAt: Date.now(),
@@ -518,15 +513,7 @@ onBeforeUnmount(() => {
             :disabled="busy || loading"
             @click="create('note')"
           >
-            <Plus :size="17" /></button
-          ><button
-            class="icon-btn"
-            title="Nouveau dossier à la racine"
-            aria-label="Nouveau dossier"
-            :disabled="busy || loading"
-            @click="create('folder')"
-          >
-            <FolderPlus :size="17" />
+            <Plus :size="17" />
           </button>
         </div>
         <label class="free-notes-search"
@@ -543,7 +530,7 @@ onBeforeUnmount(() => {
         >
           <Folder :size="14" /> Racine des notes
           <span :style="{ visibility: draggedId ? 'visible' : 'hidden' }"
-            >Déposer ici pour sortir du dossier</span
+            >Déposer ici pour revenir à la racine</span
           >
         </div>
         <nav aria-label="Arborescence des notes" @dragleave="dropTarget = null">
@@ -567,7 +554,7 @@ onBeforeUnmount(() => {
               draggable="true"
               :disabled="busy || saving"
               :aria-label="'Déplacer ' + row.title"
-              title="Glisser vers un dossier, une note ou la racine · autres options dans le menu"
+              title="Glisser vers une note ou la racine · autres options dans le menu"
               @dragstart="startDrag($event, row.id)"
               @dragend="endDrag"
               @click.stop
@@ -597,10 +584,7 @@ onBeforeUnmount(() => {
               :aria-current="row.id === activeId ? 'page' : undefined"
               @click="open(row.id)"
             >
-              <Folder v-if="row.kind === 'folder'" :size="16" /><FileText
-                v-else
-                :size="16"
-              /><span>{{ row.title }}</span></button
+              <FileText :size="16" /><span>{{ row.title }}</span></button
             ><button
               class="icon-btn free-note-menu-trigger"
               :aria-label="'Options de ' + row.title"
@@ -628,9 +612,7 @@ onBeforeUnmount(() => {
                 ><span>/</span></template
               >
             </nav>
-            <span class="eyebrow">{{
-              current.kind === "folder" ? "DOSSIER" : "NOTE LIBRE"
-            }}</span
+            <span class="eyebrow">NOTE LIBRE</span
             ><input
               v-model="current.title"
               class="free-notes-title"
@@ -646,20 +628,7 @@ onBeforeUnmount(() => {
                 :disabled="busy"
                 @click="create('note', current.id)"
               >
-                <Plus :size="15" />Sous-note</button
-              ><button
-                class="btn"
-                :disabled="busy"
-                @click="create('folder', current.id)"
-              >
-                <FolderPlus :size="15" />Sous-dossier</button
-              ><button
-                v-if="current.kind === 'note'"
-                class="btn"
-                @mousedown.prevent
-                @click="requestLink"
-              >
-                <Link2 :size="15" />Lien vers une note
+                <Plus :size="15" />Sous-note
               </button>
             </div>
           </div>
@@ -678,21 +647,6 @@ onBeforeUnmount(() => {
             @request-note-link="requestLink"
             @error="error = $event"
           />
-          <div
-            v-if="children.length || current.kind === 'folder'"
-            class="free-notes-children"
-          >
-            <h3>Sous-pages</h3>
-            <button v-for="row in children" :key="row.id" @click="open(row.id)">
-              <Folder v-if="row.kind === 'folder'" :size="17" /><FileText
-                v-else
-                :size="17"
-              />{{ row.title }}
-            </button>
-            <p v-if="!children.length" class="field-help">
-              Ajoute une sous-note ou un sous-dossier pour organiser cet espace.
-            </p>
-          </div>
           <div v-if="backlinks.length" class="free-notes-backlinks">
             <h3>Liens entrants</h3>
             <button
@@ -736,33 +690,7 @@ onBeforeUnmount(() => {
           menu = null;
         "
       >
-        Ajouter une sous-note</button
-      ><button
-        role="menuitem"
-        @click="
-          create('folder', menu.id);
-          menu = null;
-        "
-      >
-        Ajouter un sous-dossier</button
-      ><button
-        v-if="tree.find((row) => row.id === menu.id)?.kind === 'note'"
-        role="menuitem"
-        @click="duplicate"
-      >
-        <Copy :size="14" />Dupliquer la note</button
-      ><button
-        role="menuitem"
-        @click="
-          destination = tree.find((row) => row.id === menu.id)?.parent || '';
-          moving = true;
-        "
-      >
-        Déplacer vers…</button
-      ><button role="menuitem" @click="reorder(-1)">
-        <ArrowUp :size="14" />Monter</button
-      ><button role="menuitem" @click="reorder(1)">
-        <ArrowDown :size="14" />Descendre
+        Ajouter une sous-note
       </button>
       <hr />
       <button role="menuitem" @click="remove">
@@ -787,7 +715,7 @@ onBeforeUnmount(() => {
         class="video-modal free-notes-picker"
         role="dialog"
         aria-modal="true"
-        :aria-label="moving ? 'Déplacer la page' : 'Lien vers une note'"
+        :aria-label="moving ? 'Déplacer la page' : 'Lien vers une sous-note'"
       >
         <button
           class="icon-btn video-modal-close"
@@ -800,16 +728,16 @@ onBeforeUnmount(() => {
         >
           <X :size="18" />
         </button>
-        <h2>{{ moving ? "Déplacer la page" : "Lien vers une note" }}</h2>
+        <h2>{{ moving ? "Déplacer la page" : "Lien vers une sous-note" }}</h2>
         <template v-if="moving"
           ><label
             >Destination<select
               v-model="destination"
-              aria-label="Dossier ou note de destination"
+              aria-label="Note de destination"
             >
               <option value="">Racine des notes</option>
               <option v-for="row in moveChoices" :key="row.id" :value="row.id">
-                {{ row.kind === "folder" ? "Dossier" : "Note" }} ·
+                Note ·
                 {{ freeEntryPath(tree, row.id) }}
               </option>
             </select></label
@@ -834,7 +762,8 @@ onBeforeUnmount(() => {
               >
             </button>
             <p v-if="!noteChoices.length" class="field-help">
-              Aucune note correspondante.
+              Aucune sous-note directe correspondante. Ajoute une sous-note
+              depuis le bouton en haut de la page.
             </p>
           </div></template
         >

@@ -1957,3 +1957,7 @@
 }
 :root[data-appearance="light"] .free-notes-root-drop {border:1px dashed color-mix(in srgb,currentColor 18%,transparent);border-radius:6px
 }
+:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"] {border:1px solid color-mix(in srgb,currentColor 20%,transparent);border-radius:6px;background:color-mix(in srgb,currentColor 6%,transparent);color:inherit
+}
+:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"]:hover {background:color-mix(in srgb,currentColor 12%,transparent);border-color:currentColor
+}
