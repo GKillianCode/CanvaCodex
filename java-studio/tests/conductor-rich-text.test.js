@@ -144,3 +144,31 @@ test('unfinished comments stay private, code examples remain literal, HTML stays
  const source=richMarkdown(node('div',[node('aside',[node('p',[text(':::')])],{'data-private-note':'true'})]));
  assert.match(source,/::::comment/);assert.equal(renderConductor(source),'');
 });
+
+test('nested lists from browser indentation do not create a phantom parent bullet',()=>{
+ const nested=node('ul',[node('li',[text('Sous-liste 1')]),node('li',[text('Sous-liste 2')])]);
+ for(const child of [nested,node('li',[nested])]){
+  const source=richMarkdown(node('div',[node('ul',[node('li',[text('Parent')]),child,node('li',[text('Suivant')])])]));
+  const html=renderConductor(source);
+  assert.equal((html.match(/<li>/g)||[]).length,4);
+  assert.match(html,/<li>\s*(?:<p>)?Parent[\s\S]*<ul>/);
+  assert.doesNotMatch(source,/^-\s*$/m);
+ }
+});
+test('ordered nested lists preserve numbering and indentation beyond nine items',()=>{
+ const children=Array.from({length:10},(_,i)=>node('li',[text('Point '+(i+1)),...(i===9?[node('ul',[node('li',[text('Enfant')])])]:[])]));
+ const source=richMarkdown(node('div',[node('ol',children)]));
+ const html=renderConductor(source);
+ assert.equal((html.match(/<li>/g)||[]).length,11);
+ assert.match(html,/<li>\s*(?:<p>)?Point 10[\s\S]*<ul>/);
+});
+
+test('legacy empty parent wrappers render as a sublist in both Markdown surfaces',async()=>{
+ const {renderNotebook}=await import('../src/notebookMarkdown.js');
+ for(const render of [renderConductor,renderNotebook]){
+  const html=render('- Parent\n- \n  - Enfant A\n  - Enfant B\n- Suivant');
+  assert.equal((html.match(/<li>/g)||[]).length,4);
+  assert.match(html,/<li>Parent\s*<ul>/);
+  assert.equal((render('- Parent\n- Un vrai item\n  - Enfant').match(/<li>/g)||[]).length,3);
+ }
+});
