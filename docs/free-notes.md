@@ -31,3 +31,5 @@ Glisser la poignée à gauche d’une note ou d’un dossier sur une autre page 
 ### Organisation simplifiée (20 octobre 2026)
 
 Les dossiers sont retirés. Au chargement, les anciens dossiers et tous leurs descendants sont supprimés du stockage, y compris les contenus des notes. Les imports appliquent la même règle. Seules les notes et sous-notes restent disponibles. La liste des sous-pages en bas du document est supprimée : utiliser `/page` dans le texte pour insérer une étiquette cliquable vers une sous-note directe. Les petits-enfants ne sont pas proposés ; ouvrir leur parent pour les lier. Le glisser-déposer entre notes et vers la racine est conservé. Ces règles remplacent les indications précédentes sur les dossiers et le sélecteur global de liens.
+
+Mise à jour : `/page` propose désormais toutes les notes, quel que soit leur niveau dans l’arborescence. La commande et le menu contextuel portent le libellé « Page ».

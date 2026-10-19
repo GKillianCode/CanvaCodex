@@ -18,7 +18,6 @@ import {
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import ConductorRichEditor from "./ConductorRichEditor.vue";
 import {
-  directChildNotes,
   freeTreeRows,
   freeDescendants,
   moveFreeEntry,
@@ -106,10 +105,12 @@ const current = computed(() =>
   ),
   rows = computed(() => freeTreeRows(tree.value, expanded.value, search.value)),
   noteChoices = computed(() =>
-    directChildNotes(tree.value, activeId.value).filter((row) =>
-      row.title
-        .toLocaleLowerCase()
-        .includes(linkQuery.value.toLocaleLowerCase()),
+    tree.value.filter(
+      (row) =>
+        row.kind === "note" &&
+        row.title
+          .toLocaleLowerCase()
+          .includes(linkQuery.value.toLocaleLowerCase()),
     ),
   ),
   backlinks = computed(() =>
@@ -715,7 +716,7 @@ onBeforeUnmount(() => {
         class="video-modal free-notes-picker"
         role="dialog"
         aria-modal="true"
-        :aria-label="moving ? 'Déplacer la page' : 'Lien vers une sous-note'"
+        :aria-label="moving ? 'Déplacer la page' : 'Page'"
       >
         <button
           class="icon-btn video-modal-close"
@@ -728,7 +729,7 @@ onBeforeUnmount(() => {
         >
           <X :size="18" />
         </button>
-        <h2>{{ moving ? "Déplacer la page" : "Lien vers une sous-note" }}</h2>
+        <h2>{{ moving ? "Déplacer la page" : "Page" }}</h2>
         <template v-if="moving"
           ><label
             >Destination<select
@@ -747,8 +748,8 @@ onBeforeUnmount(() => {
         ><template v-else
           ><input
             v-model="linkQuery"
-            aria-label="Rechercher une note à lier"
-            placeholder="Titre de la note…"
+            aria-label="Rechercher une page à lier"
+            placeholder="Titre de la page…"
           />
           <div class="free-notes-link-choices">
             <button
@@ -762,8 +763,7 @@ onBeforeUnmount(() => {
               >
             </button>
             <p v-if="!noteChoices.length" class="field-help">
-              Aucune sous-note directe correspondante. Ajoute une sous-note
-              depuis le bouton en haut de la page.
+              Aucune page correspondante.
             </p>
           </div></template
         >

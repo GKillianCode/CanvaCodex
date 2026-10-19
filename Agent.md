@@ -1421,3 +1421,7 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 ## Liens /page minimalistes — 2026-10-20
 - Retrait du fond, du cadre et de la graisse des étiquettes. Lien de même typographie que le texte, soulignement discret et icône de document SVG en trait fin (masque CSS currentColor pour clair/sombre), remplaçant le glyphe ▤.
 - Validation : compilation et génération du thème clair.
+
+## /page global — 2026-10-20
+- Nouvelle demande : le sélecteur /page propose toutes les notes, indépendamment de leur parent (y compris la page actuelle). Libellé « Page » dans slash et clic droit ; aucun filtre de parent. Remplace la restriction précédente aux enfants directs.
+- Validation : tests et compilation.
