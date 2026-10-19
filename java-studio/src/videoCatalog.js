@@ -89,3 +89,20 @@ export function migrateVideoClassification(
   if (applyDefault && !videoType) videoType = catalog.defaultType;
   return { status, videoType };
 }
+
+// insertion is a gap index in the original list (0 = before the first row).
+export function reorderCatalogRows(rows, id, insertion) {
+  const source = rows.findIndex((row) => row[0] === id);
+  if (source < 0 || !Number.isInteger(insertion)) return rows;
+  const result = [...rows],
+    [row] = result.splice(source, 1);
+  result.splice(
+    Math.max(
+      0,
+      Math.min(result.length, insertion - (source < insertion ? 1 : 0)),
+    ),
+    0,
+    row,
+  );
+  return result;
+}

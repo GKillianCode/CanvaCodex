@@ -31,3 +31,9 @@ Depuis **Fichier → Paramètres des vidéos**, créer, renommer et supprimer le
 - **Appliquer à tous les « Non défini »** enregistre les paramètres et attribue ce défaut uniquement aux vidéos sans type, archives comprises. Les types déjà renseignés sont conservés.
 
 Les listes sont conservées dans les paramètres IndexedDB de la bibliothèque (`video-catalog`) et chargées avant les fiches. L’enregistrement du catalogue et les changements de classification sont atomiques dans la bibliothèque ; les fichiers vidéo du dossier lié sont ensuite synchronisés par le mécanisme de sauvegarde local habituel. Modifier des paramètres ne change pas la date de dernière modification des vidéos.
+
+### Organisation des paramètres
+
+La fenêtre propose trois sections fermées au départ : **Statuts**, **Types de vidéos** et **Valeurs par défaut**. Cliquer une section l’ouvre et referme la précédente. Les listes gardent leur nom, leur ajout et leur suppression dans leur propre section ; les actions concernant les types par défaut et les vidéos existantes se trouvent dans Valeurs par défaut.
+
+Une poignée à gauche de chaque ligne permet de la déplacer. Une ligne de dépôt indique l’emplacement avant le relâchement ; la fenêtre défile automatiquement près de ses bords pendant le déplacement. Sur une poignée au clavier, ↑/↓ déplace d’une ligne et Début/Fin envoie au début/à la fin. Un geste annulé ne modifie pas l’ordre. **Enregistrer les paramètres** conserve le nouvel ordre, utilisé par les listes et le tri par processus. Le bouton reste accessible et indique si des modifications attendent d’être enregistrées.

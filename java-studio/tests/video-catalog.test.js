@@ -111,3 +111,20 @@ test("numeric pagination includes endpoints, neighbors and stable ellipses", () 
   assert.deepEqual(paginationItems(5, 12), [1, "gap-1", 4, 5, 6, "gap-6", 12]);
   assert.deepEqual(paginationItems(1, 8), [1, 2, "gap-2", 8]);
 });
+
+test("catalog drag insertion handles upward, downward, endpoints and unchanged gaps", async () => {
+  const { reorderCatalogRows } = await import("../src/videoCatalog.js");
+  const rows = [
+      ["a", "A"],
+      ["b", "B"],
+      ["c", "C"],
+      ["d", "D"],
+    ],
+    ids = (value) => value.map((row) => row[0]);
+  assert.deepEqual(ids(reorderCatalogRows(rows, "d", 0)), ["d", "a", "b", "c"]);
+  assert.deepEqual(ids(reorderCatalogRows(rows, "a", 4)), ["b", "c", "d", "a"]);
+  assert.deepEqual(ids(reorderCatalogRows(rows, "d", 2)), ["a", "b", "d", "c"]);
+  assert.deepEqual(ids(reorderCatalogRows(rows, "b", 2)), ["a", "b", "c", "d"]);
+  assert.deepEqual(ids(rows), ["a", "b", "c", "d"]);
+  assert.equal(reorderCatalogRows(rows, "missing", 2), rows);
+});

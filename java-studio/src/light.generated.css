@@ -1843,3 +1843,27 @@
 }
 :root[data-appearance="light"] .video-settings-section {border-bottom:1px solid var(--border)
 }
+:root[data-appearance="light"] .video-settings-group {border:1px solid var(--border);border-radius:10px
+}
+:root[data-appearance="light"] .video-settings-group-trigger {border:0;background:transparent;color:inherit
+}
+:root[data-appearance="light"] .video-settings-group-trigger small {color:var(--muted)
+}
+:root[data-appearance="light"] .video-settings-count {color:var(--muted);border:1px solid var(--border);border-radius:6px
+}
+:root[data-appearance="light"] .video-settings-group-body {border-top:1px solid var(--border)
+}
+:root[data-appearance="light"] .video-settings-row.is-dragging {background:#a5f3cf0a;border-radius:6px
+}
+:root[data-appearance="light"] .video-settings-row.drop-before::before,:root[data-appearance="light"] .video-settings-row.drop-after::after {background:var(--mint);border-radius:3px
+}
+:root[data-appearance="light"] .video-settings-grip {border:1px solid var(--border)
+}
+:root[data-appearance="light"] .video-settings-note {border:1px solid var(--border);border-radius:8px;background:#ffffff03
+}
+:root[data-appearance="light"] .video-settings-footer {border-top:1px solid var(--border);background:#eef1f0
+}
+:root[data-appearance="light"] .video-settings-footer>span {color:var(--muted)
+}
+:root[data-appearance="light"] .video-settings-feedback {color:var(--mint)
+}
