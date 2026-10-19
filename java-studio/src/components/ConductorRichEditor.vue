@@ -25,6 +25,7 @@ import { imageSource, imageImportError } from "../imageImport.js";
 import { findConductorCommands } from "../conductorCommands.js";
 const props = defineProps({
   documentMode: Boolean,
+  noteLinks: Boolean,
   modelValue: { type: String, default: "" },
   images: { type: Array, default: () => [] },
   otherContent: { type: String, default: "" },
@@ -40,6 +41,7 @@ const emit = defineEmits([
   "update:images",
   "error",
   "resize",
+  "request-note-link",
 ]);
 const colorNames = {
   yellow: "Jaune",
@@ -58,9 +60,11 @@ const editor = ref(null),
 const slash = ref(null),
   slashIndex = ref(0),
   imageInput = ref(null);
-const slashItems = computed(() =>
-  findConductorCommands(slash.value?.query || ""),
-);
+const slashItems = computed(() => {
+ const query=(slash.value?.query||'').toLowerCase(),base=findConductorCommands(query);
+ if(props.noteLinks&&['lien','note','note-link','link','page'].some(word=>word.includes(query))){const command=['note-link','Lien vers une note','note lien'];return query?[command,...base]:[...base,command];}
+ return base;
+});
 const windowWidth = ref(window.innerWidth);
 const documentMenu = ref(null);
 const documentShell = ref(null),
@@ -501,6 +505,7 @@ function runSlash(id) {
     imageInput.value?.click();
     return;
   }
+  if(id==='note-link'){changed();emit('request-note-link');return;}
   if (id === "comment") privateComment();
   else if (id === "code") code();
   else if (id === "hr") separator();
@@ -919,7 +924,14 @@ function keys(event) {
 async function flush() {
   if (upload) await upload;
 }
-defineExpose({ flush });
+function insertNoteLink(note){
+ if(!note?.id||!/^[-\w]{1,100}$/.test(note.id))return;
+ restore();const selection=window.getSelection();
+ if(range&&selection&&!selection.isCollapsed)document.execCommand('createLink',false,'#/notes/'+note.id);
+ else{if(!range){const r=document.createRange();r.selectNodeContents(editor.value);r.collapse(false);selection.removeAllRanges();selection.addRange(r);}const label=String(note.title||'Sans titre').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');document.execCommand('insertHTML',false,` <a href="#/notes/${note.id}">${label}</a> `);}
+ changed();
+}
+defineExpose({ flush, insertNoteLink });
 onMounted(() => {
   draw();
   if (props.documentMode) {
@@ -1474,6 +1486,7 @@ onBeforeUnmount(() => {
         >
           Ajouter un lien
         </button>
+        <button v-if="noteLinks" role="menuitem" @click="menu=null;emit('request-note-link')">Lien vers une note…</button>
         <hr />
         <button
           role="menuitem"

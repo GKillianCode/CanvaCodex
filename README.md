@@ -305,3 +305,7 @@ Démonstration Animation : [Slime · quatre scènes](animation-slime-cinq-scenes
 Prototype de construction d’animations : attaches et flèches, événements, courbes Bézier, sélection/copie de plusieurs clés, caméra animée, mouvements sur disque et diagnostic visuel. Exemple : [Référence Java](animation-workflow-reference-java.json). Rotation Maj par paliers de 90°, redimensionnement proportionnel Maj et images découpées dans les formes sont partagés par les quatre éditeurs.
 
 La branche de test `codex/test-selection-pen` ajoute une palette de sélection d’objets (rectangle, ellipse, lasso libre, opérations de sélection) et une plume Bézier commune aux quatre éditeurs. Voir le [guide sélection et plume](docs/selection-pen.md).
+
+### Notes libres
+
+Une application indépendante des vidéos : dossiers et sous-pages, éditeur visuel partagé avec le conducteur, liens internes et liens entrants, sauvegarde automatique locale et export/import JSON complet. Voir le [guide Notes libres](docs/free-notes.md).

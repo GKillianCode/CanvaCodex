@@ -671,6 +671,7 @@ async function importVideo(event) {
         <button class="btn" @click="modal = { type: 'playlists' }">
           Playlists
         </button>
+        <button class="btn" @click="emit('open-app','notes')">Notes libres</button>
         <button class="btn" @click="emit('open-app','canvas')"><PanelsTopLeft :size="16"/>Parcours</button>
       </section>
       <p class="video-search-help">Combine les filtres : playlist:"Java" playlist:"IA" type:"Cours" · vidéo: recherche dans le titre. Plusieurs playlists ou types élargissent la sélection.</p>

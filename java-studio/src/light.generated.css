@@ -1905,3 +1905,51 @@
 }
 :root[data-appearance="light"] .new-video-dialog .video-modal-actions {background:#eef1f0;border-top:1px solid var(--border)
 }
+:root[data-appearance="light"] .free-notes-app {background:#f1f4f3;color:#25382e
+}
+:root[data-appearance="light"] .free-notes-sidebar {border-right:1px solid var(--border);background:#eff2f1
+}
+:root[data-appearance="light"] .free-notes-sidebar-heading>span {color:var(--muted)
+}
+:root[data-appearance="light"] .free-notes-search {border:1px solid var(--border);border-radius:7px;color:var(--muted)
+}
+:root[data-appearance="light"] .free-notes-search input {border:0;background:transparent;color:inherit;outline:0
+}
+:root[data-appearance="light"] .free-notes-tree-row {border-radius:6px
+}
+:root[data-appearance="light"] .free-notes-tree-row.active {background:#a5f3cf12;color:var(--mint)
+}
+:root[data-appearance="light"] .free-note-open {border:0;background:transparent;color:inherit
+}
+:root[data-appearance="light"] .free-notes-title {background:transparent;border:0;border-radius:5px;color:inherit
+}
+:root[data-appearance="light"] .free-notes-children,:root[data-appearance="light"] .free-notes-backlinks {border-top:1px solid var(--border)
+}
+:root[data-appearance="light"] .free-notes-children h3,:root[data-appearance="light"] .free-notes-backlinks h3 {color:var(--muted)
+}
+:root[data-appearance="light"] .free-notes-children>button,:root[data-appearance="light"] .free-notes-backlinks>button,:root[data-appearance="light"] .free-notes-link-choices>button {background:transparent;border:1px solid var(--border);border-radius:7px;color:inherit
+}
+:root[data-appearance="light"] .free-notes-empty {color:var(--muted)
+}
+:root[data-appearance="light"] .free-notes-empty h1 {color:#25382e
+}
+:root[data-appearance="light"] .free-note-link {color:var(--mint)
+}
+:root[data-appearance="light"] .free-notes-content .free-notes-title:focus {outline:0
+}
+@media (max-width:560px) {
+:root[data-appearance="light"] .free-notes-sidebar {border-right:0;border-bottom:1px solid var(--border)
+}
+}
+:root[data-appearance="light"] .free-notes-app .btn {background:transparent;color:inherit;border:1px solid var(--border)
+}
+:root[data-appearance="light"] .free-notes-app .btn.primary {background:#a5f3cf;color:#192822;border-color:#537a68
+}
+:root[data-appearance="light"] .free-notes-app>p[role=status] {color:var(--muted);border-bottom:1px solid var(--border)
+}
+:root[data-appearance="light"] .free-notes-breadcrumb {color:var(--muted)
+}
+:root[data-appearance="light"] .free-notes-breadcrumb button {background:transparent;color:inherit;border:0
+}
+:root[data-appearance="light"] .free-notes-link-choices small {color:var(--muted)
+}
