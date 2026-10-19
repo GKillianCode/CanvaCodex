@@ -17,7 +17,7 @@ export function normalizeConductor(raw={}){
  })};
 }
 export function normalizePublication(raw={}){
- const seen=new Set();return {revision:revision(raw?.revision),title:text(raw?.title,200),description:text(raw?.description,20000),comment:text(raw?.comment,20000),thumbnailId:id(raw?.thumbnailId),chapters:(Array.isArray(raw?.chapters)?raw.chapters:[]).slice(0,100).flatMap(c=>{
+ const seen=new Set();return {revision:revision(raw?.revision),title:text(raw?.title,200),description:text(raw?.description,20000),comment:text(raw?.comment,20000),thumbnailId:id(raw?.thumbnailId),musicIds:[...new Set((Array.isArray(raw?.musicIds)?raw.musicIds:[]).filter(value=>typeof value==='string'&&/^[\w-]{1,100}$/.test(value)))].slice(0,500),chapters:(Array.isArray(raw?.chapters)?raw.chapters:[]).slice(0,100).flatMap(c=>{
   if(!c||!id(c.id)||seen.has(id(c.id)))return [];seen.add(id(c.id));return [{id:id(c.id),sequenceId:id(c.sequenceId),title:text(c.title,200),time:text(c.time,12)}];
  })};
 }

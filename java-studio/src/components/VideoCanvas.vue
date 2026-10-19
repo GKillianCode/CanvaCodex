@@ -26,6 +26,8 @@ import {
   normalizeVideoCanvas,
   connectVideoCanvas,
   removeCanvasNode,
+  canvasSelectionCopy,
+  pasteCanvasSelection,
   canvasEdgePath,
   freeCanvasPosition,
   CANVAS_WIDTH,
@@ -135,8 +137,24 @@ function editable(event) {
     event.target?.isContentEditable
   );
 }
+let localClipboard=null,pasteOffset=0;
+function copyCards(event){
+ if(editable(event)||picker.value||editingCard.value)return;
+ const payload=canvasSelectionCopy(canvas.value,selectedIds.value.length?selectedIds.value:[selected.value],selectedGroup.value);
+ if(!payload.nodes.length&&!payload.groups.length)return;
+ localClipboard=payload;pasteOffset=0;
+ if(event?.clipboardData){event.preventDefault();event.clipboardData.setData('text/plain',JSON.stringify({format:'frame-canvas-selection',...payload}));}
+}
+function pasteCards(event){
+ if(editable(event)||picker.value||editingCard.value)return;
+ let payload=localClipboard;
+ if(event?.clipboardData){const text=event.clipboardData.getData('text/plain');try{const raw=JSON.parse(text);if(raw.format==='frame-canvas-selection')payload=raw;else return;}catch{if(text)return;}}
+ if(!payload)return;event?.preventDefault();
+ try{pasteOffset+=32;const result=pasteCanvasSelection(canvas.value,payload,pasteOffset);canvas.value=result.canvas;selectedIds.value=result.ids;selected.value=result.ids[0]||null;selectedGroup.value=null;edge.value=null;changed();}catch(e){error.value=e.message;}
+}
 function canvasKey(event) {
   if (editable(event) || picker.value || editingCard.value) return;
+  if((event.ctrlKey||event.metaKey)&&event.key.toLowerCase()==='d'){event.preventDefault();copyCards(event);pasteCards(event);return;}
   if (event.code === "Space") {
     event.preventDefault();
     space.value = true;
@@ -467,6 +485,7 @@ function warnUnsaved(event) {
 onMounted(() => {
   window.addEventListener("beforeunload", warnUnsaved);
   window.addEventListener("keydown", canvasKey);
+  window.addEventListener("copy",copyCards);window.addEventListener("paste",pasteCards);
   window.addEventListener("keyup", releaseKey);
   window.addEventListener("blur", resetPointer);
   panel.value?.focus();
@@ -475,6 +494,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   window.removeEventListener("beforeunload", warnUnsaved);
   window.removeEventListener("keydown", canvasKey);
+  window.removeEventListener("copy",copyCards);window.removeEventListener("paste",pasteCards);
   window.removeEventListener("keyup", releaseKey);
   window.removeEventListener("blur", resetPointer);
   endResize();

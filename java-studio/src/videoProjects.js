@@ -1,7 +1,7 @@
 import {videoTypes,videoStatuses,videoCatalog,validVideoId,normalizeCatalog,migrateVideoClassification,validateVideoReplacement,catalogKey} from './videoCatalog.js';
 import {themeSourcesFromRow} from './themeRecovery.js';
 import { normalizeWorkflow,remapWorkflow,updateWorkflowSection } from './videoWorkflow.js';
-import { normalizeVideoCanvas } from "./videoCanvas.js";
+import { normalizeVideoCanvas, removeCanvasNode } from "./videoCanvas.js";
 import {
   applications,
   applicationStorage,
@@ -612,6 +612,13 @@ export function videoRepository(api = globalThis.indexedDB) {
           catch(error){set(error);tx.abort();}
         };
       }),
+    removeVideo: id=>transaction('readwrite',(p,c,set,tx,s,settings)=>{
+      p.delete(id);s.delete(id);
+      c.index('videoId').openCursor(id).onsuccess=e=>{const cursor=e.target.result;if(cursor){cursor.delete();cursor.continue();}};
+      settings.get('video-order').onsuccess=e=>settings.put((e.target.result||[]).filter(key=>key!==id),'video-order');
+      settings.get('learning-canvas').onsuccess=e=>{let canvas=normalizeVideoCanvas(e.target.result||{});for(const node of canvas.nodes.filter(n=>n.type==='video'&&n.videoId===id))canvas=removeCanvasNode(canvas,node.id);settings.put(canvas,'learning-canvas');};
+      set(id);
+    }),
     removeCreation: (videoId, id) =>
       transaction("readwrite",(p,c,set,tx,s,settings)=>{
         p.get(videoId).onsuccess=e=>{

@@ -287,3 +287,16 @@ export function readCanvasDocument(raw) {
     throw Error("Ce fichier n’est pas un parcours Frame.");
   return normalizeVideoCanvas(raw.canvas);
 }
+
+export function canvasSelectionCopy(canvas,ids,groupId=null){
+ const chosen=new Set(ids),group=canvas.groups.find(g=>g.id===groupId);group?.members.forEach(id=>chosen.add(id));
+ return normalizeVideoCanvas({nodes:canvas.nodes.filter(n=>chosen.has(n.id)),edges:canvas.edges.filter(e=>chosen.has(e.from)&&chosen.has(e.to)),groups:canvas.groups.filter(g=>(g.id===groupId||g.members.length&&g.members.every(id=>chosen.has(id))))});
+}
+export function pasteCanvasSelection(canvas,raw,offset=32){
+ const source=normalizeVideoCanvas(raw);if(!source.nodes.length&&!source.groups.length)return {canvas,ids:[]};
+ if(canvas.nodes.length+source.nodes.length>500)throw Error('Limite de 500 cartes atteinte.');
+ if(canvas.groups.length+source.groups.length>500||canvas.edges.length+source.edges.length>2000)throw Error('La limite de groupes ou de liens du parcours est atteinte.');
+ const map=new Map(source.nodes.map(n=>[n.id,crypto.randomUUID()])),nodes=source.nodes.map(n=>({...n,id:map.get(n.id),x:n.x+offset,y:n.y+offset}));
+ const groups=source.groups.map(g=>({...g,id:crypto.randomUUID(),members:g.members.map(id=>map.get(id)),...(g.bounds?{bounds:{...g.bounds,x:g.bounds.x+offset,y:g.bounds.y+offset}}:{})}));
+ return {canvas:normalizeVideoCanvas({nodes:[...canvas.nodes,...nodes],edges:[...canvas.edges,...source.edges.map(e=>({from:map.get(e.from),to:map.get(e.to)}))],groups:[...canvas.groups,...groups]}),ids:nodes.map(n=>n.id)};
+}

@@ -3,6 +3,7 @@ import { ref, inject, onMounted, onBeforeUnmount } from "vue";
 import { Sun, Moon, Home, Clapperboard, ArrowLeft } from "lucide-vue-next";
 import { appearance, setAppearance } from "../appearance.js";
 import { workflowNavigation } from "../workflowNavigation.js";
+import ApplicationsMenu from './ApplicationsMenu.vue';
 import WorkspaceLauncher from "./WorkspaceLauncher.vue";
 const props = defineProps({
   title: String,
@@ -72,13 +73,10 @@ onBeforeUnmount(() => {
               @click="fileAction"
               @change="active = null"
             >
-              <slot name="file" /><hr v-if="$slots.file"><button @click="openThemes">Thèmes</button>
+              <slot name="file" /><hr v-if="$slots.file"><button @click="openThemes">Thèmes</button><template v-if="$slots['file-bottom']"><hr><slot name="file-bottom"/></template>
             </div>
           </div>
-          <div v-if="$slots.applications" class="app-menu">
-            <button class="app-menu-trigger" :aria-expanded="active==='applications'" @click="active=active==='applications'?null:'applications'">Applications</button>
-            <div v-if="active==='applications'" class="app-menu-popover" @click="fileAction"><slot name="applications"/></div>
-          </div>
+          <ApplicationsMenu @open="active=null"/>
           <div v-if="$slots.view" class="app-menu">
             <button
               class="app-menu-trigger"

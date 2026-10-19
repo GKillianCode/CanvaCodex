@@ -204,6 +204,7 @@ export function videoFolderStorage(
         for(const id of result.changed){const project=await repository.get(id);if(project)await mirror(project,[]);}
         return result;
       },
+      async removeVideo(id){await repository.removeVideo(id);pending.delete(id);pendingIds.delete(id);recoveryIds.delete(id);await repository.setSetting('video-folder-pending',[...pendingIds]);},
       async put(project, rows = []) {
         await repository.put(project, rows);
         await mirror(project, rows);

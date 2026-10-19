@@ -1867,3 +1867,41 @@
 }
 :root[data-appearance="light"] .video-settings-feedback {color:var(--mint)
 }
+:root[data-appearance="light"] .new-video-documents {border:1px solid var(--border);border-radius:10px
+}
+:root[data-appearance="light"] .new-video-documents>summary span {color:var(--muted)
+}
+:root[data-appearance="light"] .new-video-continue {border-top:1px solid var(--border)
+}
+:root[data-appearance="light"] .publication-music-choices>label {border:1px solid var(--border);border-radius:7px
+}
+:root[data-appearance="light"] .publication-music-choices small {color:var(--muted)
+}
+:root[data-appearance="light"] .publication-music-manager fieldset {border:0
+}
+:root[data-appearance="light"] .publication-music-entry {border:1px solid var(--border);border-radius:8px
+}
+:root[data-appearance="light"] .new-video-storage {border:1px solid var(--border);border-radius:9px
+}
+:root[data-appearance="light"] .new-video-storage>summary {color:var(--muted)
+}
+:root[data-appearance="light"] .new-video-support-grid .starter-application {border:1px solid var(--border);border-radius:9px
+}
+:root[data-appearance="light"] .new-video-support-grid .starter-application.selected {border-color:#c9d7cf;background:#a5f3cf0a
+}
+:root[data-appearance="light"] .new-video-support-choice small {color:var(--muted)
+}
+:root[data-appearance="light"] .new-video-support-grid .starter-import {border-top:1px solid var(--border)
+}
+:root[data-appearance="light"] .new-creation-fields {border:0
+}
+:root[data-appearance="light"] .publication-music-picker>summary>span {color:var(--muted)
+}
+:root[data-appearance="light"] .new-video-support-grid .starter-import {border:1px solid var(--border);border-radius:6px;color:var(--muted)
+}
+:root[data-appearance="light"] .new-video-support-grid .starter-import:focus-within {outline:2px solid var(--mint);outline-offset:2px
+}
+:root[data-appearance="light"] .new-video-support-grid .starter-import input {border:0
+}
+:root[data-appearance="light"] .new-video-dialog .video-modal-actions {background:#eef1f0;border-top:1px solid var(--border)
+}

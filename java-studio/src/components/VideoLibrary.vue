@@ -3,7 +3,7 @@ import {libraryPreferenceKey, readLibraryView, parseVideoSearch, matchesVideoSea
 import VideoSettings from './VideoSettings.vue';
 import {videoCatalog} from '../videoCatalog.js';
 import {useUndoNotifications} from "../undoNotifications.js";
-import { ref, computed, watch, onMounted, nextTick } from "vue";
+import { ref, computed, watch, onMounted, onBeforeUnmount, nextTick } from "vue";
 import {
   Plus,
   ChevronLeft,
@@ -75,9 +75,13 @@ const projects = ref([]),
   icons = { animation: Clapperboard, slides: PanelsTopLeft, banners: Clapperboard, thumbnails: Image };
 const creationFilter=ref('all'),notices=useUndoNotifications();
 watch(() => props.videoId,()=>notices.clear());
+const messageNewVideo=ref('');
 const newVideoType = ref(videoCatalog.defaultType);
 const numberedPages=computed(()=>paginationItems(page.value,pages.value));
-const starterApps = ref(["slides", "banners", "thumbnails"]);
+const starterApps = ref([]);
+const createAnother=ref(false),displayRoot=ref(null);
+function closeDisplay(event){if(displayRoot.value&&!displayRoot.value.contains(event.target))displayRoot.value.open=false;}
+onMounted(()=>document.addEventListener("pointerdown",closeDisplay));onBeforeUnmount(()=>document.removeEventListener("pointerdown",closeDisplay));
 const browserOnly = ref(false);
 const selected = ref(null),
   playlists = ref([]),
@@ -215,9 +219,11 @@ watch(
   () => run(reload),
 );
 function newVideo() {
+  messageNewVideo.value="";
   name.value = "";
   importFiles.value = {};
-  starterApps.value = ["slides", "banners", "thumbnails"];
+  starterApps.value = [];
+  createAnother.value=false;
   browserOnly.value = false;
   newPlaylist.value = playlists.value[0] || "";
   newVideoType.value = videoCatalog.defaultType;
@@ -281,7 +287,7 @@ async function savePlaylist() {
       : { type: "playlists" };
   });
 }
-async function submit() {
+async function submit(another = false) {
   await run(async () => {
     if (!name.value.trim()) throw Error("Donne un nom à ta création.");
     if (
@@ -298,6 +304,7 @@ async function submit() {
       project.videoType = newVideoType.value;
       const rows = [];
       for (const a of applications) {
+        if(!starterApps.value.includes(a.id))continue;
         if (importFiles.value[a.id])
           rows.push(
             await importDocument(importFiles.value[a.id], project, a.id),
@@ -311,8 +318,8 @@ async function submit() {
       await props.repository.put(project, rows);
       modal.value = null;
       importFiles.value = {};
-      emit("open-video", project.id);
       await reload();
+      if(another){const playlist=newPlaylist.value,type=newVideoType.value,only=browserOnly.value;newVideo();newPlaylist.value=playlist;newVideoType.value=type;browserOnly.value=only;createAnother.value=true;messageNewVideo.value='« '+project.name+' » créée.';}else emit("open-video",project.id);
     } else if (modal.value.type === "video-rename") {
       const original = modal.value,
         project = await props.repository.get(original.row.id);
@@ -428,6 +435,10 @@ async function saveDetails() {
     await reload();
   });
 }
+async function deleteVideo(project){
+ if(busy.value||!window.confirm(`Supprimer « ${project.name} » et tous ses supports de la bibliothèque ? Les fichiers déjà enregistrés sur ton ordinateur seront conservés.`))return;
+ await run(async()=>{await props.repository.removeVideo(project.id);if(props.videoId===project.id)emit('home');await reload();});
+}
 async function archive(project) {
   await run(async () => {
     const current = await props.repository.get(project.id);
@@ -527,7 +538,7 @@ async function importVideo(event) {
       @back="emit('home')"
     >
       <template #file
-        ><button @click="modal={type:'settings'}">Paramètres des vidéos…</button><hr><label v-if="!videoId" class="menu-file"
+        ><label v-if="!videoId" class="menu-file"
           >Importer une vidéo JSON<input
             type="file"
             accept="application/json,.json"
@@ -565,10 +576,7 @@ async function importVideo(event) {
             : "Sauvegarde dans le navigateur"
         }}</small></template
       >
-      <template #applications>
-        <button v-for="a in applications" :key="a.id" @click="emit('open-app',a.id)"><component :is="icons[a.id]" :size="16"/>{{a.name}}</button>
-        <hr><button @click="emit('open-app','canvas')"><PanelsTopLeft :size="16"/>Canevas des parcours</button>
-      </template>
+      <template #file-bottom><button @click="modal={type:'settings'}">Paramètres des vidéos…</button></template>
       <template #actions
         ><span class="save-state">{{
           folderState?.name ? folderState.name : "Bibliothèque locale"
@@ -603,7 +611,7 @@ async function importVideo(event) {
             <button v-for="(value,i) in suggestions" :id="'video-suggestion-'+i" :key="value" role="option" :aria-selected="i===suggestionIndex" :class="{active:i===suggestionIndex}" @pointerdown.prevent @click="chooseSuggestion(value)"><span>{{keywordSearch?'Filtrer par':activeSearch.field==='video'?'vidéo:':activeSearch.field+':'}}</span>{{value}}</button>
           </div>
         </div>
-        <details class="library-display">
+        <details ref="displayRoot" class="library-display">
           <summary class="btn">
             Affichage
             <span>{{
@@ -721,6 +729,7 @@ async function importVideo(event) {
             >
               <Archive :size="15" />{{ p.archived ? "Restaurer" : "Archiver" }}
             </button>
+            <button :disabled="busy" :aria-label="'Supprimer '+p.name" @click="deleteVideo(p)"><Trash2 :size="15"/>Supprimer</button>
           </div>
         </article>
       </section>
@@ -809,6 +818,7 @@ async function importVideo(event) {
               </button>
             </div>
           </details>
+          <button class="btn" :disabled="busy" @click="deleteVideo(selected)"><Trash2 :size="15"/>Supprimer la vidéo</button>
         </div>
       </section>
       <details class="video-details">
@@ -938,10 +948,11 @@ async function importVideo(event) {
         )
       "
       class="modal-backdrop"
-      @click.self="modal = null"
+      @click.self="!busy&&(modal = null)"
     >
       <form
         class="video-modal"
+        :class="{'new-video-dialog':modal.type==='video'}"
         role="dialog"
         aria-modal="true"
         :aria-label="
@@ -953,13 +964,14 @@ async function importVideo(event) {
                 ? 'Renommer la création'
                 : 'Nouvelle création'
         "
-        @submit.prevent="submit"
-        @keydown.esc="modal = null"
+        @submit.prevent="submit(createAnother)"
+        @keydown.esc="!busy&&(modal = null)"
       >
         <button
           type="button"
           class="icon-btn video-modal-close"
           aria-label="Fermer"
+          :disabled="busy"
           @click="modal = null"
         >
           <X :size="19" /></button
@@ -977,7 +989,7 @@ async function importVideo(event) {
                   : "Nouvelle création"
           }}
         </h2>
-        <label
+        <fieldset :disabled="busy" class="new-creation-fields"><label
           >Nom<input
             v-model="name"
             maxlength="200"
@@ -990,14 +1002,14 @@ async function importVideo(event) {
             "
             aria-label="Nom de la nouvelle création" /></label
         ><template v-if="modal.type === 'video'"
-          ><label
-            >Playlist<select v-model="newPlaylist">
+          ><div class="new-video-identity"><label
+            >Playlist<select v-model="newPlaylist" aria-label="Playlist de la nouvelle vidéo">
               <option value="">Sans playlist</option>
               <option v-for="p in playlists" :key="p">{{ p }}</option>
             </select></label
           >
-          <label>Type de vidéo<select v-model="newVideoType" aria-label="Type de vidéo"><option value="">Non défini</option><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label>
-          <div class="video-folder-setup">
+          <label>Type de vidéo<select v-model="newVideoType" aria-label="Type de vidéo"><option value="">Non défini</option><option v-for="[id,title] in videoTypes" :key="id" :value="id">{{title}}</option></select></label></div>
+          <details class="new-video-storage"><summary>Emplacement de sauvegarde · {{folderState?.name||'Navigateur'}}</summary><div class="video-folder-setup">
             <strong>{{
               folderState?.name
                 ? "Fichiers automatiques dans " + folderState.name
@@ -1022,34 +1034,21 @@ async function importVideo(event) {
               >Ce navigateur conserve les créations localement ; export JSON
               disponible.</small
             >
-          </div>
+          </div></details>
           <label
             v-if="folderState?.supported && !folderState.name"
             class="video-check"
             ><input type="checkbox" v-model="browserOnly" />Conserver uniquement
             dans le navigateur pour le moment</label
           >
-          <h3>Ateliers de départ</h3>
+<details class="new-video-documents"><summary>Supports de départ <span>{{starterApps.length}} sélectionné{{starterApps.length>1?'s':''}}</span></summary>
           <p>
             Crée les documents maintenant ou utilise tes fichiers existants.
           </p>
-          <label
-            v-for="a in applications"
-            :key="a.id"
-            class="starter-application"
-          >
-            <span
-              ><input type="checkbox" v-model="starterApps" :value="a.id" />{{
-                a.name
-              }}</span
-            ><span class="starter-import"
-              >Importer un JSON existant<input
-                type="file"
-                accept="application/json,.json"
-                :aria-label="'Document existant : ' + a.name"
-                @change="
-                  (event) => (importFiles[a.id] = event.target.files?.[0])
-                " /></span></label></template
+          <div class="new-video-support-grid"><div v-for="a in applications" :key="a.id" class="starter-application" :class="{selected:starterApps.includes(a.id)}">
+            <label class="new-video-support-choice"><input type="checkbox" v-model="starterApps" :value="a.id" :aria-label="'Créer un support '+a.name"><component :is="icons[a.id]" :size="23"/><span><strong>{{a.name}}</strong><small>{{a.tag}}</small></span></label>
+            <label class="starter-import">{{importFiles[a.id]?.name||'Importer un JSON existant'}}<input type="file" accept="application/json,.json" :aria-label="'Document existant : '+a.name" @change="event=>{importFiles[a.id]=event.target.files?.[0];if(importFiles[a.id]&&!starterApps.includes(a.id))starterApps.push(a.id);}"/></label>
+          </div></div></details><p class="field-help">Les supports sont facultatifs : tu peux les créer plus tard depuis la fiche vidéo.</p><label class="video-check new-video-continue"><input type="checkbox" v-model="createAnother">Créer une autre vidéo ensuite</label><p v-if="messageNewVideo" role="status">{{messageNewVideo}}</p></template
         ><template v-if="modal.type === 'creation'"
           ><label
             >Atelier<select v-model="app">
@@ -1074,10 +1073,11 @@ async function importVideo(event) {
             {{
               ["rename", "video-rename"].includes(modal.type)
                 ? "Enregistrer"
-                : "Créer"
+                : modal.type==='video'&&createAnother?"Créer et continuer":"Créer"
             }}
           </button>
         </div>
+        </fieldset>
       </form>
     </div>
     <div
