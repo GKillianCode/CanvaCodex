@@ -1957,7 +1957,9 @@
 }
 :root[data-appearance="light"] .free-notes-root-drop {border:1px dashed color-mix(in srgb,currentColor 18%,transparent);border-radius:6px
 }
-:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"] {border:1px solid color-mix(in srgb,currentColor 20%,transparent);border-radius:6px;background:color-mix(in srgb,currentColor 6%,transparent);color:inherit
+:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"] {border:0;border-radius:0;background:transparent;color:inherit;text-decoration-color:color-mix(in srgb,currentColor 25%,transparent)
 }
-:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"]:hover {background:color-mix(in srgb,currentColor 12%,transparent);border-color:currentColor
+:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"]::before {background:currentColor
+}
+:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"]:hover,:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"]:focus-visible {background:transparent;text-decoration-color:currentColor
 }

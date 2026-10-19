@@ -1417,3 +1417,7 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Demande explicite : suppression des dossiers existants ET de tous leurs contenus. Lecture de l’arbre en transaction readwrite : purge des métadonnées et corps de notes descendants ; même filtrage lors des imports. Création de dossiers interdite.
 - Plus de liste de sous-pages au pied du document. /page propose uniquement les notes enfants directes ; conserve les href UUID et affiche une étiquette documentaire distincte. Hiérarchie de notes et glisser-déposer conservés.
 - Validation : 405 tests réussis, compilation réussie ; test navigateur /page avec enfant et petit-enfant.
+
+## Liens /page minimalistes — 2026-10-20
+- Retrait du fond, du cadre et de la graisse des étiquettes. Lien de même typographie que le texte, soulignement discret et icône de document SVG en trait fin (masque CSS currentColor pour clair/sombre), remplaçant le glyphe ▤.
+- Validation : compilation et génération du thème clair.
