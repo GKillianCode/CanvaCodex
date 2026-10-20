@@ -53,3 +53,7 @@ Les noms des notes sont limités à 80 caractères sur une seule ligne. Les anci
 La vue s’appelle désormais « Réseau de notes ». Les groupes connectés sont organisés automatiquement dans des zones séparées ; chaque note dispose d’une cellule réservant de la place à son titre. Les libellés se raccourcissent selon le zoom et leur taille reste lisible à l’écran. Survoler un point affiche le titre complet.
 
 À très faible zoom, seuls les libellés de la note active ou survolée restent affichés pour éviter la superposition ; zoomer révèle les autres titres.
+
+### Exploration par niveaux
+
+Le Réseau de notes s’ouvre désormais sur les notes racines. Cliquer sur une note (ou Entrée au clavier) montre cette note et uniquement ses sous-notes directes. Cliquer sur une sous-note descend encore d’un niveau. Le fil d’Ariane permet de remonter jusqu’à la racine, et « Ouvrir la note » ouvre le document exploré. Les liens et la recherche concernent uniquement le niveau affiché ; aucune modification de l’arborescence n’est réalisée par cette navigation.

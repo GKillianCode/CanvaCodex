@@ -2037,3 +2037,11 @@
 }
 :root[data-appearance="light"] .free-notes-app a[href^="#/notes/"]:hover {border:0;background:color-mix(in srgb,currentColor 5%,transparent)
 }
+:root[data-appearance="light"] .notes-graph-levels {border-bottom:1px solid var(--border)
+}
+:root[data-appearance="light"] .notes-graph-levels>button:not(.btn) {border:0;background:transparent;color:inherit;border-radius:4px
+}
+:root[data-appearance="light"] .notes-graph-levels>button[aria-current="page"] {background:color-mix(in srgb,currentColor 7%,transparent)
+}
+:root[data-appearance="light"] .notes-graph-levels>span,:root[data-appearance="light"] .notes-graph-levels small {color:var(--muted)
+}

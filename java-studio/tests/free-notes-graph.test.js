@@ -20,3 +20,13 @@ test('large networks reserve disjoint label cells and separate disconnected grou
  }
  const label=graphNoteLabel('Long '.repeat(30));assert(label.text.length<=28);assert.equal(label.size,10);
 });
+
+test('progressive graph shows roots then only direct children of the focused page',async()=>{
+ const {noteGraphLevel}=await import('../src/freeNotesGraph.js');
+ const tree=[{id:'a',kind:'note',parent:''},{id:'b',kind:'note',parent:'a'},{id:'c',kind:'note',parent:'b'},{id:'other',kind:'note',parent:''}];
+ assert.deepEqual(noteGraphLevel(tree).map(n=>n.id),['a','other']);
+ assert.deepEqual(noteGraphLevel(tree,'a').map(n=>n.id),['a','b']);
+ assert.deepEqual(noteGraphLevel(tree,'b').map(n=>n.id),['b','c']);
+ assert.deepEqual(noteGraphLevel(tree,'c').map(n=>n.id),['c']);
+ assert.deepEqual(noteGraphLevel(tree,'deleted').map(n=>n.id),['a','other']);
+});

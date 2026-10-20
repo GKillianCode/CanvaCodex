@@ -107,3 +107,14 @@ export function graphNoteLabel(title, zoom = 1) {
     size: screenSize / zoom,
   };
 }
+
+export function noteGraphLevel(tree, focus = "") {
+  const notes = tree.filter((row) => row.kind === "note"),
+    ids = new Set(notes.map((row) => row.id));
+  if (focus && !ids.has(focus)) focus = "";
+  return notes.filter((row) =>
+    focus
+      ? row.id === focus || row.parent === focus
+      : !row.parent || !ids.has(row.parent),
+  );
+}

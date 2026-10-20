@@ -1468,3 +1468,9 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Titres adaptatifs au zoom : taille écran minimale, ellipsis selon place, titre complet accessible au survol. Points restent visibles en vue d’ensemble.
 - Documentation yWorks consultée : https://www.yworks.com/pages/automatic-label-placement-in-diagrams ; implémentation locale sans dépendance ni IA.
 - QA : 408 tests et build réussis ; tests géométriques jusqu’à 1000 notes, Chrome 120 notes longues/courtes, liens isolés, limite des noms, 0 chevauchement SVG mesuré, clair/sombre inspectés. Capture /tmp/network-120-light.png.
+
+## Réseau de notes par niveaux — 2026-10-20
+- Vue globale remplacée par navigation progressive : racines, puis note explorée et ses enfants directs uniquement. Clic/Entrée descend dans le niveau ; fil d’Ariane pour remonter. Bouton séparé Ouvrir la note.
+- Parenté activée par défaut ; liens textuels visibles uniquement entre notes présentes au niveau courant. Recherche et filtres restent locaux au niveau ; recherche réinitialisée à chaque descente.
+- Zone de clic SVG transparente couvre point et libellé pour éviter les clics perdus entre les deux. Aucun déplacement ni changement de parenté dans les données.
+- Validation : 409 tests réussis, build ; Chrome confirme racine/enfant/petit-enfant, exclusion des niveaux plus profonds, clic souris, fil d’Ariane et ouverture indépendante.

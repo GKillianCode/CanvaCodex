@@ -12,11 +12,13 @@ import {
   noteGraph,
   layoutNoteGraph,
   graphNoteLabel,
+  noteGraphLevel,
 } from "../freeNotesGraph.js";
 const props = defineProps({ tree: Array, activeId: String });
 const emit = defineEmits(["open"]);
 const query = ref(""),
-  parents = ref(false),
+  parents = ref(true),
+  level = ref(""),
   orphans = ref(true),
   hover = ref(""),
   svg = ref(null),
@@ -24,7 +26,34 @@ const query = ref(""),
   width = ref(1000),
   height = ref(650),
   camera = ref({ x: 500, y: 325, z: 1 });
-const graph = computed(() => noteGraph(props.tree, parents.value));
+const levelNotes = computed(() => noteGraphLevel(props.tree, level.value));
+const graph = computed(() => noteGraph(levelNotes.value, parents.value));
+const focused = computed(() =>
+  props.tree.find((row) => row.id === level.value),
+);
+const breadcrumb = computed(() => {
+  const result = [],
+    seen = new Set();
+  let row = focused.value;
+  while (row && !seen.has(row.id)) {
+    seen.add(row.id);
+    result.unshift(row);
+    row = props.tree.find((parent) => parent.id === row.parent);
+  }
+  return result;
+});
+function enterLevel(id) {
+  level.value = id;
+  query.value = "";
+  hover.value = "";
+}
+watch(
+  () => props.tree,
+  () => {
+    if (level.value && !props.tree.some((row) => row.id === level.value))
+      enterLevel("");
+  },
+);
 const fold = (value) =>
   value
     .normalize("NFD")
@@ -33,7 +62,7 @@ const fold = (value) =>
 const visible = computed(() =>
   points.value.filter(
     (node) =>
-      (orphans.value || node.degree) &&
+      (orphans.value || node.degree || node.id === level.value) &&
       fold(node.title).includes(fold(query.value)),
   ),
 );
@@ -137,7 +166,7 @@ function up(event) {
   if (!gesture || gesture.id !== event.pointerId) return;
   const { node, moved } = gesture;
   gesture = null;
-  if (node && !moved) emit("open", node.id);
+  if (node && !moved) enterLevel(node.id);
 }
 onMounted(() => {
   observer = new ResizeObserver((entries) => {
@@ -165,6 +194,35 @@ onBeforeUnmount(() => observer?.disconnect());
       <label><input v-model="orphans" type="checkbox" />Notes isolées</label>
       <label><input v-model="parents" type="checkbox" />Parenté</label>
     </div>
+    <nav class="notes-graph-levels" aria-label="Niveau du réseau">
+      <button
+        @click="enterLevel('')"
+        :aria-current="!level ? 'page' : undefined"
+      >
+        Racine
+      </button>
+      <template v-for="row in breadcrumb" :key="row.id"
+        ><span>/</span
+        ><button
+          @click="enterLevel(row.id)"
+          :aria-current="row.id === level ? 'page' : undefined"
+        >
+          {{ row.title }}
+        </button></template
+      >
+      <button
+        v-if="focused"
+        class="btn notes-graph-open"
+        @click="emit('open', focused.id)"
+      >
+        Ouvrir la note
+      </button>
+      <small>{{
+        level
+          ? Math.max(0, levelNotes.length - 1) + " sous-notes directes"
+          : "Notes de premier niveau"
+      }}</small>
+    </nav>
     <svg
       ref="svg"
       class="notes-graph-stage"
@@ -203,21 +261,22 @@ onBeforeUnmount(() => observer?.disconnect());
           :transform="`translate(${node.x} ${node.y})`"
           class="notes-graph-node"
           :class="{
-            active: node.id === activeId,
+            active: node.id === level,
             highlighted: hover === node.id,
             dimmed: hover && !neighbors.has(node.id),
           }"
           role="button"
           tabindex="0"
-          :aria-label="'Ouvrir ' + node.title"
+          :aria-label="'Explorer ' + node.title"
           @pointerdown.stop="down($event, node)"
           @mouseenter="hover = node.id"
           @mouseleave="hover = ''"
           @focus="hover = node.id"
           @blur="hover = ''"
-          @keydown.enter.prevent="emit('open', node.id)"
+          @keydown.enter.prevent="enterLevel(node.id)"
         >
           <title>{{ node.title }} · {{ node.degree }} relations</title>
+          <rect x="-100" y="-20" width="200" height="64" fill="transparent" pointer-events="all" />
           <circle
             :r="
               Math.max(
@@ -227,7 +286,7 @@ onBeforeUnmount(() => observer?.disconnect());
             "
           />
           <text
-            v-show="camera.z >= 0.22 || hover === node.id || activeId === node.id"
+            v-show="camera.z >= 0.22 || hover === node.id || level === node.id"
             y="29"
             text-anchor="middle"
             :style="{
@@ -248,7 +307,8 @@ onBeforeUnmount(() => observer?.disconnect());
     </div>
     <footer class="notes-graph-footer">
       <span
-        >Glisser pour déplacer · molette pour zoomer · cliquer pour ouvrir</span
+        >Glisser pour déplacer · molette pour zoomer · cliquer pour explorer les
+        sous-notes</span
       >
       <div>
         <button
