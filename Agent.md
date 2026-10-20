@@ -1480,3 +1480,9 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Transitions entre niveaux (caméra, positions partagées, apparition/disparition), désactivées pendant déplacement manuel et avec prefers-reduced-motion.
 - Une barre contextuelle : retour, chemin compact, recherche, options dans menu refermable au clic extérieur, ouverture de la note. Compteurs en pied ; état feuille avec invitation à enrichir la note.
 - Validation : 410 tests réussis dont 300 notes en constellation sans collisions ; build et QA Chrome (clic/Entrée, parent, filtres et clic extérieur, ouverture note), captures clair/sombre inspectées.
+
+## Aperçu de l’étage suivant et navigation Notes — 2026-10-20
+- Le réseau montre les enfants du niveau actif en aperçu très atténué : une seule génération supplémentaire, non interactive, sans exposer tous les descendants. Recalcul local des positions et cadre incluant ces aperçus. Les nœuds du niveau courant restent explorables.
+- « Toutes les notes » renommé « Racine ». Bouton Notes/Réseau déplacé dans le contexte gauche de WorkspaceHeader, libellé Bloc-notes depuis le graphe, sans bouton principal au centre.
+- Slot utilities ajouté au header partagé ; les Notes y placent Enregistré/Sauvegarde près du bouton de thème à droite. Aucun changement des actions des autres applications.
+- Validation : 411 tests et build ; Chrome vérifie profondeur d’aperçu, racine, retour Bloc-notes, bouton à gauche et sauvegarde immédiatement avant thème. Captures clair/sombre inspectées.

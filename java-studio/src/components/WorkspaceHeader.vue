@@ -96,6 +96,7 @@ onBeforeUnmount(() => {
       <div class="app-header-right"><slot name="actions" /></div>
     </slot>
     <div class="workspace-utilities">
+      <slot name="utilities" />
       <button
         class="icon-btn appearance-toggle"
         :aria-label="

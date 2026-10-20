@@ -15,6 +15,7 @@ import {
   Copy,
   GripVertical,
   Network,
+  NotebookPen,
 } from "lucide-vue-next";
 import FreeNotesGraph from "./FreeNotesGraph.vue";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
@@ -577,27 +578,33 @@ onBeforeUnmount(() => {
         ><button v-if="document" :disabled="busy" @click="exportCurrent">
           Exporter cette note Markdown
         </button></template
-      ><template #actions>
+      ><template #context>
         <button
-          class="btn"
-          :class="{ primary: graphVisible }"
-          data-notes-graph-toggle
+          class="notes-view-toggle"
           :disabled="busy || loading"
           @click="graphVisible ? (graphVisible = false) : showGraph()"
+          :title="
+            graphVisible
+              ? 'Revenir au bloc-notes'
+              : 'Explorer le réseau de notes'
+          "
         >
-          <Network :size="16" />{{
-            graphVisible ? "Retour à la note" : "Réseau de notes"
-          }}
-        </button>
-        <span class="save-state" role="status">{{
+          <NotebookPen v-if="graphVisible" :size="15" /><Network
+            v-else
+            :size="15"
+          />
+          {{ graphVisible ? "Bloc-notes" : "Réseau de notes" }}
+        </button> </template
+      ><template #utilities>
+        <span class="notes-save-state" role="status">{{
           saving
             ? "Sauvegarde…"
             : dirty
               ? "Modifications en attente"
               : "Enregistré"
-        }}</span></template
-      ></WorkspaceHeader
-    >
+        }}</span>
+      </template>
+    </WorkspaceHeader>
     <p v-if="error" role="alert" class="video-alert">
       {{ error }}
       <button class="btn" @click="flush().catch(() => {})">Réessayer</button>

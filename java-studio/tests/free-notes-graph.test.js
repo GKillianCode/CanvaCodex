@@ -39,3 +39,10 @@ test('organic exploration preserves a central focus and label clearance at scale
  assert.deepEqual(layoutFocusedNotes(graph,'n0'),result);
  assert.deepEqual(layoutFocusedNotes(noteGraph([])),[]);
 });
+
+test('preview reveals exactly the next generation without changing primary nodes',async()=>{
+ const {previewNoteLevel}=await import('../src/freeNotesGraph.js');
+ const tree=[{id:'a',title:'A',kind:'note',parent:''},{id:'b',title:'B',kind:'note',parent:'a'},{id:'c',title:'C',kind:'note',parent:'b'},{id:'d',title:'D',kind:'note',parent:'c'}];
+ const primary=[{id:'a',x:0,y:0}];assert.deepEqual(previewNoteLevel(tree,primary).map(n=>n.id),['b']);
+ const second=[{id:'a',x:0,y:0},{id:'b',x:300,y:0}];const preview=previewNoteLevel(tree,second);assert.deepEqual(preview.map(n=>n.id),['c']);assert(preview.every(n=>Number.isFinite(n.x)&&Number.isFinite(n.y)));assert.deepEqual(primary,[{id:'a',x:0,y:0}]);
+});

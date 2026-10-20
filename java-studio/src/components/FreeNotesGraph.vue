@@ -22,6 +22,7 @@ import {
   layoutFocusedNotes,
   graphNoteLabel,
   noteGraphLevel,
+  previewNoteLevel,
 } from "../freeNotesGraph.js";
 const props = defineProps({ tree: Array, activeId: String });
 const emit = defineEmits(["open"]);
@@ -82,6 +83,7 @@ const visible = computed(() =>
       fold(node.title).includes(fold(query.value)),
   ),
 );
+const preview = computed(() => previewNoteLevel(props.tree, visible.value));
 const ids = computed(() => new Set(visible.value.map((node) => node.id)));
 const byId = computed(
   () => new Map(points.value.map((node) => [node.id, node])),
@@ -101,7 +103,7 @@ const neighbors = computed(() => {
   return result;
 });
 function fit() {
-  const nodes = visible.value;
+  const nodes = [...visible.value, ...preview.value];
   if (!nodes.length) return;
   const xs = nodes.map((n) => n.x),
     ys = nodes.map((n) => n.y),
@@ -225,7 +227,7 @@ onBeforeUnmount(() => {
           @click="enterLevel('')"
           :aria-current="!level ? 'page' : undefined"
         >
-          Toutes les notes
+          Racine
         </button>
         <template v-for="row in breadcrumb" :key="row.id"
           ><ChevronRight :size="12" /><button
@@ -292,6 +294,33 @@ onBeforeUnmount(() => {
         :transform="`translate(${camera.x} ${camera.y}) scale(${camera.z})`"
       >
         <circle v-if="level" class="notes-explorer-focus-glow" r="95" />
+        <g class="notes-explorer-preview" aria-hidden="true">
+          <line
+            v-for="node in preview"
+            :key="'preview-edge-' + node.id"
+            :x1="byId.get(node.parent).x"
+            :y1="byId.get(node.parent).y"
+            :x2="node.x"
+            :y2="node.y"
+          />
+          <g
+            v-for="node in preview"
+            :key="node.id"
+            :transform="`translate(${node.x} ${node.y})`"
+          >
+            <circle :r="Math.max(3, 2.5 / camera.z)" />
+            <text
+              v-if="camera.z >= 0.4"
+              y="18"
+              text-anchor="middle"
+              :style="{
+                fontSize: graphNoteLabel(node.title, camera.z).size + 'px',
+              }"
+            >
+              {{ graphNoteLabel(node.title, camera.z).text }}
+            </text>
+          </g>
+        </g>
         <line
           v-for="edge in edges"
           :key="edge.key"
@@ -383,7 +412,12 @@ onBeforeUnmount(() => {
       <span
         >{{ visible.length }} {{ visible.length > 1 ? "notes" : "note"
         }}<span class="notes-explorer-count-separator">·</span
-        >{{ edges.length }} relations</span
+        >{{ edges.length }} relations<span
+          v-if="preview.length"
+          class="notes-explorer-preview-legend"
+        >
+          · {{ preview.length }} au niveau suivant</span
+        ></span
       >
       <div>
         <button

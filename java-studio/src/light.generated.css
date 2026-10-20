@@ -2079,3 +2079,15 @@
 }
 :root[data-appearance="light"] .notes-explorer .notes-graph-stage:focus-visible {outline:1px solid var(--border);outline-offset:-1px
 }
+:root[data-appearance="light"] .notes-view-toggle {border:0;border-left:1px solid var(--border);border-radius:0;background:transparent;color:var(--muted)
+}
+:root[data-appearance="light"] .notes-view-toggle:hover {color:inherit
+}
+:root[data-appearance="light"] .notes-save-state {color:var(--muted)
+}
+:root[data-appearance="light"] .notes-explorer-preview line {stroke:currentColor
+}
+:root[data-appearance="light"] .notes-explorer-preview circle {fill:currentColor;stroke:none
+}
+:root[data-appearance="light"] .notes-explorer-preview text {fill:currentColor;stroke:var(--notes-graph-surface)
+}

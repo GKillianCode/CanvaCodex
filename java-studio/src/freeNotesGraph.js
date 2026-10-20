@@ -159,3 +159,39 @@ export function layoutFocusedNotes(graph, focus = "") {
   });
   return result;
 }
+
+// Only one additional generation is previewed, never the whole descendant tree.
+export function previewNoteLevel(tree, primary) {
+  const ids = new Set(primary.map((node) => node.id)),
+    byParent = new Map();
+  for (const row of tree)
+    if (row.kind === "note" && !ids.has(row.id) && ids.has(row.parent)) {
+      if (!byParent.has(row.parent)) byParent.set(row.parent, []);
+      byParent.get(row.parent).push(row);
+    }
+  const points = [],
+    occupied = [...primary];
+  for (const parent of primary) {
+    const children = byParent.get(parent.id) || [],
+      outward = Math.atan2(parent.y, parent.x);
+    children.forEach((row, index) => {
+      const angle = outward + (index - (children.length - 1) / 2) * 0.45;
+      let radius = 130 + Math.floor(index / 7) * 35,
+        x = parent.x + Math.cos(angle) * radius,
+        y = parent.y + Math.sin(angle) * radius;
+      while (
+        occupied.some(
+          (other) => Math.abs(other.x - x) < 110 && Math.abs(other.y - y) < 42,
+        )
+      ) {
+        radius += 24;
+        x = parent.x + Math.cos(angle) * radius;
+        y = parent.y + Math.sin(angle) * radius;
+      }
+      const point = { id: row.id, title: row.title, parent: parent.id, x, y };
+      points.push(point);
+      occupied.push(point);
+    });
+  }
+  return points;
+}
