@@ -81,3 +81,7 @@
 :root[data-appearance="light"] .undo-notification{color:#294435;background:#f5faf6;border-color:#c0d6c7;box-shadow:0 8px 30px #18332416}
 :root[data-appearance="light"] .undo-notification .text-action{color:#286644}
 :root[data-appearance="light"] .undo-notification small{color:#9b3c35}
+
+/* Graph label halos are surfaces, not text ink. */
+:root[data-appearance="light"] .free-notes-graph{--notes-graph-surface:#f1f4f3}
+:root[data-appearance="light"] .free-notes-app .btn.primary{background:#24794f;border-color:#24794f;color:#ffffff}

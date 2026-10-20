@@ -2023,7 +2023,7 @@
 }
 :root[data-appearance="light"] .notes-graph-node.active circle,:root[data-appearance="light"] .notes-graph-node.highlighted circle,:root[data-appearance="light"] .notes-graph-node:focus circle {fill:var(--mint);stroke:currentColor
 }
-:root[data-appearance="light"] .notes-graph-node text {fill:currentColor;stroke:var(--bg,#11181c)
+:root[data-appearance="light"] .notes-graph-node text {fill:currentColor;stroke:var(--notes-graph-surface)
 }
 :root[data-appearance="light"] .notes-graph-footer {border-top:1px solid var(--border);color:var(--muted)
 }

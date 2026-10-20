@@ -1456,3 +1456,7 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Placement déterministe par relaxation bornée avec grille spatiale ; SVG interactif, déplacement des points et caméra, zoom ancré à la souris, recherche, connexions au survol, ouverture clic/Entrée. Aucune IA/dépendance ni lecture des corps/images. Positions temporaires, pas de modification des notes.
 - Ouverture après flush du document ; éditeur conservé masqué pour retour à la note. Liens entrants retirés du document.
 - Validation : 406 tests passants et build ; Chrome isolé sans erreur confirme notes/liens, parenté, notes isolées, recherche, zoom/recentrage et navigation clavier. Capture /tmp/frame-notes-graph.png inspectée.
+
+## Contraste du graphe en mode clair — 2026-10-20
+- Le halo SVG des titres était converti comme une couleur de texte et devenait sombre autour de lettres sombres. Variable sémantique --notes-graph-surface : halo assorti au fond en clair/sombre, couleur des lettres héritée du thème. Évite la conversion automatique ink appliquée à stroke.
+- Boutons principaux des Notes en clair : vert soutenu et texte blanc, plutôt que texte blanc sur vert pâle. QA Chrome : titres rgb(37,56,46), halo rgb(241,244,243), capture /tmp/graph-light-fixed.png inspectée. Compilation validée.
