@@ -25,60 +25,85 @@ export function noteGraph(tree, includeParents = false) {
   }
   return { nodes, edges };
 }
+// Arrange connected components independently. Label-sized cells prevent overlap,
+// then shelf packing keeps disconnected groups apart rather than piling at the center.
 export function layoutNoteGraph(graph) {
-  const nodes = graph.nodes.map((node, i) => {
-    const angle = i * 2.39996323,
-      r = 36 * Math.sqrt(i);
-    return { ...node, x: Math.cos(angle) * r, y: Math.sin(angle) * r };
-  });
-  const byId = new Map(nodes.map((node) => [node.id, node]));
-  // Bounded relaxation with spatial buckets, avoiding all-pairs repulsion.
-  for (let step = 0; step < 90; step++) {
-    const buckets = new Map(),
-      forces = new Map(
-        nodes.map((node) => [
-          node.id,
-          { x: -node.x * 0.001, y: -node.y * 0.001 },
-        ]),
-      );
-    for (const node of nodes) {
-      const key = Math.floor(node.x / 160) + "," + Math.floor(node.y / 160);
-      if (!buckets.has(key)) buckets.set(key, []);
-      buckets.get(key).push(node);
-    }
-    for (const node of nodes) {
-      const bx = Math.floor(node.x / 160),
-        by = Math.floor(node.y / 160),
-        f = forces.get(node.id);
-      for (let x = bx - 1; x <= bx + 1; x++)
-        for (let y = by - 1; y <= by + 1; y++)
-          for (const other of buckets.get(x + "," + y) || []) {
-            if (node === other) continue;
-            let dx = node.x - other.x,
-              dy = node.y - other.y,
-              d = Math.max(1, Math.hypot(dx, dy));
-            const strength = 1500 / (d * d);
-            f.x += (dx / d) * strength;
-            f.y += (dy / d) * strength;
-          }
-    }
-    for (const edge of graph.edges) {
-      const a = byId.get(edge.source),
-        b = byId.get(edge.target),
-        dx = b.x - a.x,
-        dy = b.y - a.y,
-        d = Math.max(1, Math.hypot(dx, dy)),
-        f = (d - 140) * 0.018;
-      forces.get(a.id).x += (dx / d) * f;
-      forces.get(a.id).y += (dy / d) * f;
-      forces.get(b.id).x -= (dx / d) * f;
-      forces.get(b.id).y -= (dy / d) * f;
-    }
-    for (const node of nodes) {
-      const f = forces.get(node.id);
-      node.x += Math.max(-12, Math.min(12, f.x));
-      node.y += Math.max(-12, Math.min(12, f.y));
-    }
+  const byId = new Map(graph.nodes.map((node) => [node.id, node]));
+  const adjacency = new Map(graph.nodes.map((node) => [node.id, new Set()]));
+  for (const edge of graph.edges) {
+    adjacency.get(edge.source)?.add(edge.target);
+    adjacency.get(edge.target)?.add(edge.source);
   }
-  return nodes;
+  const visited = new Set(),
+    components = [];
+  const roots = [...graph.nodes].sort(
+    (a, b) => b.degree - a.degree || a.id.localeCompare(b.id),
+  );
+  for (const root of roots) {
+    if (visited.has(root.id)) continue;
+    const queue = [{ id: root.id, depth: 0 }],
+      layers = [];
+    visited.add(root.id);
+    for (let i = 0; i < queue.length; i++) {
+      const { id, depth } = queue[i];
+      (layers[depth] ||= []).push(byId.get(id));
+      for (const neighbor of adjacency.get(id))
+        if (!visited.has(neighbor)) {
+          visited.add(neighbor);
+          queue.push({ id: neighbor, depth: depth + 1 });
+        }
+    }
+    const ordered = layers.flat();
+    const cols = Math.max(1, Math.ceil(Math.sqrt(ordered.length)));
+    const rows = Math.ceil(ordered.length / cols);
+    components.push({
+      width: cols * 240,
+      height: rows * 100 + 60,
+      ordered,
+      cols,
+      rows,
+    });
+  }
+  const targetWidth = Math.max(
+    720,
+    Math.sqrt(components.reduce((sum, c) => sum + c.width * c.height, 0)) * 1.4,
+  );
+  let x = 0,
+    y = 0,
+    shelfHeight = 0;
+  const result = [];
+  for (const component of components) {
+    if (x && x + component.width > targetWidth) {
+      x = 0;
+      y += shelfHeight + 100;
+      shelfHeight = 0;
+    }
+    component.ordered.forEach((node, index) => {
+      const row = Math.floor(index / component.cols),
+        col = index % component.cols;
+      result.push({
+        ...node,
+        x: x + (row % 2 ? component.cols - 1 - col : col) * 240 + 120,
+        y: y + row * 100 + 30,
+      });
+    });
+    x += component.width + 100;
+    shelfHeight = Math.max(shelfHeight, component.height);
+  }
+  return result;
+}
+export function graphNoteLabel(title, zoom = 1) {
+  const chars = Array.from(title),
+    screenSize = Math.max(10, (chars.length > 22 ? 10 : 12) * zoom);
+  const capacity = Math.max(
+    4,
+    Math.min(28, Math.floor((200 * zoom) / (screenSize * 0.7))),
+  );
+  return {
+    text:
+      chars.length > capacity
+        ? chars.slice(0, capacity - 1).join("") + "…"
+        : title,
+    size: screenSize / zoom,
+  };
 }

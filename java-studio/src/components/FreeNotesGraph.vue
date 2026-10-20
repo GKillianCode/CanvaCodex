@@ -8,7 +8,11 @@ import {
   nextTick,
 } from "vue";
 import { Search, LocateFixed, Plus, Minus, Network } from "lucide-vue-next";
-import { noteGraph, layoutNoteGraph } from "../freeNotesGraph.js";
+import {
+  noteGraph,
+  layoutNoteGraph,
+  graphNoteLabel,
+} from "../freeNotesGraph.js";
 const props = defineProps({ tree: Array, activeId: String });
 const emit = defineEmits(["open"]);
 const query = ref(""),
@@ -146,10 +150,10 @@ onMounted(() => {
 onBeforeUnmount(() => observer?.disconnect());
 </script>
 <template>
-  <section class="free-notes-graph" aria-label="Carte des notes">
+  <section class="free-notes-graph" aria-label="Réseau de notes">
     <div class="notes-graph-tools">
       <div>
-        <Network :size="19" /><strong>Carte des notes</strong
+        <Network :size="19" /><strong>Réseau de notes</strong
         ><span>{{ visible.length }} notes · {{ edges.length }} relations</span>
       </div>
       <label class="notes-graph-search"
@@ -214,13 +218,23 @@ onBeforeUnmount(() => observer?.disconnect());
           @keydown.enter.prevent="emit('open', node.id)"
         >
           <title>{{ node.title }} · {{ node.degree }} relations</title>
-          <circle :r="6 + Math.min(10, Math.sqrt(node.degree) * 2)" />
-          <text y="29" text-anchor="middle">
-            {{
-              node.title.length > 44
-                ? node.title.slice(0, 43) + "…"
-                : node.title
-            }}
+          <circle
+            :r="
+              Math.max(
+                3 / camera.z,
+                6 + Math.min(10, Math.sqrt(node.degree) * 2),
+              )
+            "
+          />
+          <text
+            v-show="camera.z >= 0.22 || hover === node.id || activeId === node.id"
+            y="29"
+            text-anchor="middle"
+            :style="{
+              fontSize: graphNoteLabel(node.title, camera.z).size + 'px',
+            }"
+          >
+            {{ graphNoteLabel(node.title, camera.z).text }}
           </text>
         </g>
       </g>

@@ -1460,3 +1460,11 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 ## Contraste du graphe en mode clair — 2026-10-20
 - Le halo SVG des titres était converti comme une couleur de texte et devenait sombre autour de lettres sombres. Variable sémantique --notes-graph-surface : halo assorti au fond en clair/sombre, couleur des lettres héritée du thème. Évite la conversion automatique ink appliquée à stroke.
 - Boutons principaux des Notes en clair : vert soutenu et texte blanc, plutôt que texte blanc sur vert pâle. QA Chrome : titres rgb(37,56,46), halo rgb(241,244,243), capture /tmp/graph-light-fixed.png inspectée. Compilation validée.
+
+## Réseau de notes et titres — 2026-10-20
+- Liens /page allégés (texte souligné, icône et croix, pas de gros bouton), un lien par bloc/ligne. Normalisation DOM sépare les anciens liens regroupés et préserve le texte autour ; styles ellipsis sur les longs libellés.
+- Noms limités à 80 caractères, espaces normalisés, même règle dans les imports, modèle et champs. UUID inchangés.
+- Carte renommée Réseau de notes. Placement déterministe par composantes connexes, parcours en largeur puis cellules réservant la place aux titres et rangement compact des groupes. Pas de regroupement au centre ni chevauchement de libellés.
+- Titres adaptatifs au zoom : taille écran minimale, ellipsis selon place, titre complet accessible au survol. Points restent visibles en vue d’ensemble.
+- Documentation yWorks consultée : https://www.yworks.com/pages/automatic-label-placement-in-diagrams ; implémentation locale sans dépendance ni IA.
+- QA : 408 tests et build réussis ; tests géométriques jusqu’à 1000 notes, Chrome 120 notes longues/courtes, liens isolés, limite des noms, 0 chevauchement SVG mesuré, clair/sombre inspectés. Capture /tmp/network-120-light.png.

@@ -9,3 +9,14 @@ test('note graph includes isolated notes and deduplicates existing bidirectional
  const positions=layoutNoteGraph(graph);assert(positions.every(n=>Number.isFinite(n.x)&&Number.isFinite(n.y)));assert.deepEqual(layoutNoteGraph(graph),positions);assert.deepEqual(layoutNoteGraph(noteGraph([])),[]);
  assert.equal(tree[0].x,undefined);
 });
+
+test('large networks reserve disjoint label cells and separate disconnected groups', async()=>{
+ const {graphNoteLabel}=await import('../src/freeNotesGraph.js');
+ for(const count of [1,30,300,1000]) {
+  const tree=Array.from({length:count},(_,i)=>({id:'n'+i,title:i%2?'Titre très long '.repeat(6):'Court',kind:'note',links:i%7&&i?['n'+(i-1)]:[]}));
+  const result=layoutNoteGraph(noteGraph(tree));
+  assert.equal(result.length,count);
+  for(let i=0;i<result.length;i++)for(let j=i+1;j<result.length;j++)assert(Math.abs(result[i].x-result[j].x)>=220 || Math.abs(result[i].y-result[j].y)>=90);
+ }
+ const label=graphNoteLabel('Long '.repeat(30));assert(label.text.length<=28);assert.equal(label.size,10);
+});

@@ -123,3 +123,11 @@ test('folder removal deletes its entire subtree and page choices contain direct 
   assert.deepEqual(directChildNotes(result.tree,'root').map(row=>row.id), ['child']);
   assert.deepEqual(directChildNotes(result.tree,'child').map(row=>row.id), ['grandchild']);
 });
+
+test('note titles have a bounded single-line name including imported metadata', async()=>{
+ const {freeNoteTitle,FREE_NOTE_TITLE_LIMIT}=await import('../src/freeNotes.js');
+ assert.equal(FREE_NOTE_TITLE_LIMIT,80);
+ assert.equal(freeNoteTitle('A'.repeat(1000)).length,80);
+ assert.equal(freeNoteTitle(' Test\n\tavec espaces '),'Test avec espaces');
+ assert.equal(normalizeFreeTree([{id:'long',kind:'note',title:'X'.repeat(1000)}])[0].title.length,80);
+});

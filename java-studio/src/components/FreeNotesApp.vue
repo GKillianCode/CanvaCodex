@@ -94,7 +94,7 @@ async function createLinkedChild() {
     const row = {
       id: crypto.randomUUID(),
       kind: "note",
-      title: pageTitle.value.trim().slice(0, 200),
+      title: pageTitle.value.trim().slice(0, 80),
       parent: activeId.value,
       links: [],
       updatedAt: Date.now(),
@@ -581,11 +581,12 @@ onBeforeUnmount(() => {
         <button
           class="btn"
           :class="{ primary: graphVisible }"
+          data-notes-graph-toggle
           :disabled="busy || loading"
           @click="graphVisible ? (graphVisible = false) : showGraph()"
         >
           <Network :size="16" />{{
-            graphVisible ? "Retour à la note" : "Carte des notes"
+            graphVisible ? "Retour à la note" : "Réseau de notes"
           }}
         </button>
         <span class="save-state" role="status">{{
@@ -754,7 +755,7 @@ onBeforeUnmount(() => {
               v-model="current.title"
               class="free-notes-title"
               aria-label="Titre de la page"
-              maxlength="200"
+              maxlength="80"
               :disabled="busy"
               placeholder="Sans titre"
               @input="changeTitle"
@@ -907,7 +908,7 @@ onBeforeUnmount(() => {
             <input
               id="new-page-title"
               v-model="pageTitle"
-              maxlength="200"
+              maxlength="80"
               placeholder="Donne un titre à ta note…"
               :disabled="busy"
             />

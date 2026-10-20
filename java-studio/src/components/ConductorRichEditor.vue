@@ -524,7 +524,23 @@ function inputChanged() {
   changed();
   trackSlash();
 }
+function isolatePageRows() {
+  if (!props.noteLinks || !editor.value) return;
+  for (const link of [...editor.value.querySelectorAll('a[href^="#/notes/"]')]) {
+    const block = topBlock(link);
+    if (!block) continue;
+    if (block === link) { const row=document.createElement('p'); link.before(row); row.append(link); continue; }
+    if (!['P','DIV','H1','H2','H3','H4','H5','H6'].includes(block.tagName)) continue;
+    if (block.childNodes.length === 1 && block.firstChild === link) continue;
+    const before = document.createRange(); before.selectNodeContents(block); before.setEndBefore(link);
+    const fragment = before.extractContents();
+    if (fragment.textContent.trim() || fragment.querySelector?.('img')) { const row=document.createElement('p');row.append(fragment);block.before(row); }
+    const row=document.createElement('p');block.before(row);row.append(link);
+    if (!block.textContent.trim() && !block.querySelector('img,a')) block.remove();
+  }
+}
 function decoratePageLinks() {
+  isolatePageRows();
   if (!props.noteLinks || !editor.value) return;
   for (const link of editor.value.querySelectorAll('a[href^="#/notes/"]')) {
     const id = link.getAttribute('href').slice(8);

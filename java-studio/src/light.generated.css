@@ -2029,3 +2029,11 @@
 }
 :root[data-appearance="light"] .notes-graph-empty {color:var(--muted)
 }
+:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"] {border:0;border-radius:3px;background:transparent;text-decoration-color:color-mix(in srgb,currentColor 25%,transparent)
+}
+:root[data-appearance="light"] .free-notes-app a.note-page-child {background:transparent;color:var(--mint)
+}
+:root[data-appearance="light"] .free-notes-app a.note-page-associated {background:transparent;color:inherit
+}
+:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"]:hover {border:0;background:color-mix(in srgb,currentColor 5%,transparent)
+}

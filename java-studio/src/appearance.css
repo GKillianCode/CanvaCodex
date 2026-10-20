@@ -84,4 +84,6 @@
 
 /* Graph label halos are surfaces, not text ink. */
 :root[data-appearance="light"] .free-notes-graph{--notes-graph-surface:#f1f4f3}
-:root[data-appearance="light"] .free-notes-app .btn.primary{background:#24794f;border-color:#24794f;color:#ffffff}
+:root[data-appearance="light"] .free-notes-app .btn.primary{background:#24794f!important;border-color:#24794f!important;color:#ffffff!important}
+
+:root[data-appearance="light"] [data-notes-graph-toggle].primary{background:#24794f!important;border-color:#24794f!important;color:#ffffff!important}

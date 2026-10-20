@@ -1,6 +1,12 @@
 import MarkdownIt from "markdown-it";
 const linksMarkdown = new MarkdownIt({ html: false });
 import { normalizeConductorImages } from "./videoWorkflow.js";
+export const FREE_NOTE_TITLE_LIMIT = 80;
+export const freeNoteTitle = (value) =>
+  String(value || "Sans titre")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, FREE_NOTE_TITLE_LIMIT) || "Sans titre";
 export const freeNotesTreeKey = "free-notes-tree";
 export const freeNoteKey = (id) => "free-note:" + id;
 export const validFreeNoteId = (id) =>
@@ -14,7 +20,7 @@ export function normalizeFreeTree(raw) {
     rows.push({
       id: item.id,
       kind: item.kind === "folder" ? "folder" : "note",
-      title: String(item.title || "Sans titre").slice(0, 200),
+      title: freeNoteTitle(item.title),
       parent: validFreeNoteId(item.parent) ? item.parent : "",
       links: [
         ...new Set(

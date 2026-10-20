@@ -45,3 +45,11 @@ Les liens de page sont non éditables : leur libellé est toujours le titre actu
 Le bouton « Carte des notes » dans l’en-tête ouvre un graphe global. Chaque point représente une note ; chaque trait correspond à un lien /page entre deux notes existantes. Les doublons et liens réciproques sont regroupés. Les notes isolées restent affichables. L’option « Parenté » ajoute en pointillés les relations parent/enfant, indépendamment des liens du texte.
 
 Molette pour zoomer, glisser dans le fond pour déplacer la vue, glisser un point pour le déplacer ; cliquer sur un point (ou Entrée au clavier) ouvre la note. Survoler un point met en évidence ses connexions. Recherche par titre, zoom et recentrage sont disponibles. Le placement est calculé localement, sans IA ni dépendance supplémentaire, à partir des métadonnées ; les corps et images des notes ne sont pas chargés. Les positions déplacées dans le graphe sont temporaires. La section « Liens entrants » des documents est supprimée.
+
+### Lisibilité du réseau et des liens
+
+Les noms des notes sont limités à 80 caractères sur une seule ligne. Les anciennes valeurs et les imports sont normalisés selon cette limite. Les liens de page sont des lignes discrètes et indépendantes : un seul lien par bloc, avec titre raccourci si nécessaire et croix de retrait. Le texte autour des anciens liens est conservé.
+
+La vue s’appelle désormais « Réseau de notes ». Les groupes connectés sont organisés automatiquement dans des zones séparées ; chaque note dispose d’une cellule réservant de la place à son titre. Les libellés se raccourcissent selon le zoom et leur taille reste lisible à l’écran. Survoler un point affiche le titre complet.
+
+À très faible zoom, seuls les libellés de la note active ou survolée restent affichés pour éviter la superposition ; zoomer révèle les autres titres.
