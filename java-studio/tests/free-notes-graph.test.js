@@ -30,3 +30,12 @@ test('progressive graph shows roots then only direct children of the focused pag
  assert.deepEqual(noteGraphLevel(tree,'c').map(n=>n.id),['c']);
  assert.deepEqual(noteGraphLevel(tree,'deleted').map(n=>n.id),['a','other']);
 });
+
+test('organic exploration preserves a central focus and label clearance at scale',async()=>{
+ const {layoutFocusedNotes}=await import('../src/freeNotesGraph.js');
+ const graph=noteGraph(Array.from({length:300},(_,i)=>({id:'n'+i,title:'Note '+i,kind:'note',links:i?['n0']:[]})));
+ const result=layoutFocusedNotes(graph,'n0');assert.equal(result.length,300);assert.equal(result[0].id,'n0');assert.equal(result[0].x,0);assert.equal(result[0].y,0);
+ for(let i=0;i<result.length;i++)for(let j=i+1;j<result.length;j++)assert(Math.abs(result[i].x-result[j].x)>=235||Math.abs(result[i].y-result[j].y)>=94);
+ assert.deepEqual(layoutFocusedNotes(graph,'n0'),result);
+ assert.deepEqual(layoutFocusedNotes(noteGraph([])),[]);
+});

@@ -118,3 +118,44 @@ export function noteGraphLevel(tree, focus = "") {
       : !row.parent || !ids.has(row.parent),
   );
 }
+
+// A relaxed constellation: label-sized collision cells keep the organic layout readable.
+export function layoutFocusedNotes(graph, focus = "") {
+  const ordered = [...graph.nodes].sort(
+    (a, b) =>
+      (b.id === focus) - (a.id === focus) ||
+      b.degree - a.degree ||
+      a.id.localeCompare(b.id),
+  );
+  const result = [],
+    buckets = new Map();
+  const near = (x, y) => {
+    const bx = Math.floor(x / 240),
+      by = Math.floor(y / 100);
+    for (let dx = -1; dx <= 1; dx++)
+      for (let dy = -1; dy <= 1; dy++)
+        for (const node of buckets.get(bx + dx + "," + (by + dy)) || [])
+          if (Math.abs(node.x - x) < 235 && Math.abs(node.y - y) < 94)
+            return true;
+    return false;
+  };
+  ordered.forEach((node, index) => {
+    let angle = index * 2.39996323,
+      radius =
+        node.id === focus ? 0 : (focus ? 270 : 0) + 90 * Math.sqrt(index);
+    let x = Math.cos(angle) * radius,
+      y = Math.sin(angle) * radius * 0.75;
+    while (near(x, y)) {
+      angle += 0.17;
+      radius += 18;
+      x = Math.cos(angle) * radius;
+      y = Math.sin(angle) * radius * 0.75;
+    }
+    const placed = { ...node, x, y };
+    result.push(placed);
+    const key = Math.floor(x / 240) + "," + Math.floor(y / 100);
+    if (!buckets.has(key)) buckets.set(key, []);
+    buckets.get(key).push(placed);
+  });
+  return result;
+}

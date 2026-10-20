@@ -1474,3 +1474,9 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Parenté activée par défaut ; liens textuels visibles uniquement entre notes présentes au niveau courant. Recherche et filtres restent locaux au niveau ; recherche réinitialisée à chaque descente.
 - Zone de clic SVG transparente couvre point et libellé pour éviter les clics perdus entre les deux. Aucun déplacement ni changement de parenté dans les données.
 - Validation : 409 tests réussis, build ; Chrome confirme racine/enfant/petit-enfant, exclusion des niveaux plus profonds, clic souris, fil d’Ariane et ouverture indépendante.
+
+## Exploration organique du réseau — 2026-10-20
+- Carte blanche UI/UX : constellation plutôt que grille scolaire, note explorée centrée avec halo discret ; placement déterministe local et cellules de collision pour conserver l’espace des libellés. Pas de changement dans la structure des notes.
+- Transitions entre niveaux (caméra, positions partagées, apparition/disparition), désactivées pendant déplacement manuel et avec prefers-reduced-motion.
+- Une barre contextuelle : retour, chemin compact, recherche, options dans menu refermable au clic extérieur, ouverture de la note. Compteurs en pied ; état feuille avec invitation à enrichir la note.
+- Validation : 410 tests réussis dont 300 notes en constellation sans collisions ; build et QA Chrome (clic/Entrée, parent, filtres et clic extérieur, ouverture note), captures clair/sombre inspectées.

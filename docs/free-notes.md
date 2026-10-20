@@ -57,3 +57,5 @@ La vue s’appelle désormais « Réseau de notes ». Les groupes connectés son
 ### Exploration par niveaux
 
 Le Réseau de notes s’ouvre désormais sur les notes racines. Cliquer sur une note (ou Entrée au clavier) montre cette note et uniquement ses sous-notes directes. Cliquer sur une sous-note descend encore d’un niveau. Le fil d’Ariane permet de remonter jusqu’à la racine, et « Ouvrir la note » ouvre le document exploré. Les liens et la recherche concernent uniquement le niveau affiché ; aucune modification de l’arborescence n’est réalisée par cette navigation.
+
+L’exploration par niveaux utilise une constellation : la note choisie se place au centre, ses sous-notes se répartissent autour avec des espaces réservés aux titres. Les transitions accompagnent les changements de niveau ; elles respectent le réglage système de réduction des animations. Le chemin, le retour et la recherche sont réunis dans une barre compacte. Les filtres se trouvent dans « Options d’affichage ».

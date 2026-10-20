@@ -2045,3 +2045,37 @@
 }
 :root[data-appearance="light"] .notes-graph-levels>span,:root[data-appearance="light"] .notes-graph-levels small {color:var(--muted)
 }
+:root[data-appearance="light"] .notes-explorer-toolbar {border-bottom:1px solid var(--border)
+}
+:root[data-appearance="light"] .notes-explorer-breadcrumb>button {border:0;background:transparent;color:var(--muted);border-radius:4px
+}
+:root[data-appearance="light"] .notes-explorer-breadcrumb>button[aria-current="page"] {color:inherit
+}
+:root[data-appearance="light"] .notes-explorer-breadcrumb>svg {color:var(--muted)
+}
+:root[data-appearance="light"] .notes-explorer .notes-graph-search {border:0;background:color-mix(in srgb,currentColor 4%,transparent)
+}
+:root[data-appearance="light"] .notes-explorer-filters>div {background:#eff2f1;border:1px solid var(--border);border-radius:10px
+}
+:root[data-appearance="light"] .notes-explorer .notes-explorer-open {background:transparent;color:inherit;border-color:var(--border)
+}
+:root[data-appearance="light"] .notes-explorer .notes-graph-stage {background-image:radial-gradient(color-mix(in srgb,currentColor 6%,transparent) 1px,transparent 1px)
+}
+:root[data-appearance="light"] .notes-explorer .notes-graph-node .notes-explorer-node-ring {fill:transparent;stroke:currentColor
+}
+:root[data-appearance="light"] .notes-explorer-focus-glow {fill:var(--mint);stroke:none
+}
+:root[data-appearance="light"] .notes-explorer .notes-graph-footer {border-top:0
+}
+:root[data-appearance="light"] .notes-explorer-leaf {color:var(--muted)
+}
+:root[data-appearance="light"] .notes-explorer-leaf strong {color:inherit
+}
+:root[data-appearance="light"] .notes-explorer-leaf button {border:0;background:transparent;color:inherit
+}
+:root[data-appearance="light"] .notes-explorer-leaf button:hover {color:var(--mint)
+}
+:root[data-appearance="light"] .notes-explorer .notes-graph-stage:focus {outline:none
+}
+:root[data-appearance="light"] .notes-explorer .notes-graph-stage:focus-visible {outline:1px solid var(--border);outline-offset:-1px
+}

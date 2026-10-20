@@ -7,15 +7,27 @@ import {
   onBeforeUnmount,
   nextTick,
 } from "vue";
-import { Search, LocateFixed, Plus, Minus, Network } from "lucide-vue-next";
+import {
+  Search,
+  LocateFixed,
+  Plus,
+  Minus,
+  ArrowLeft,
+  ArrowUpRight,
+  SlidersHorizontal,
+  ChevronRight,
+} from "lucide-vue-next";
 import {
   noteGraph,
-  layoutNoteGraph,
+  layoutFocusedNotes,
   graphNoteLabel,
   noteGraphLevel,
 } from "../freeNotesGraph.js";
 const props = defineProps({ tree: Array, activeId: String });
 const emit = defineEmits(["open"]);
+const navigating = ref(false),
+  filters = ref(null);
+let navigationTimer;
 const query = ref(""),
   parents = ref(true),
   level = ref(""),
@@ -43,6 +55,10 @@ const breadcrumb = computed(() => {
   return result;
 });
 function enterLevel(id) {
+  if (id === level.value) return;
+  navigating.value = true;
+  clearTimeout(navigationTimer);
+  navigationTimer = setTimeout(() => (navigating.value = false), 480);
   level.value = id;
   query.value = "";
   hover.value = "";
@@ -95,7 +111,7 @@ function fit() {
     bottom = Math.max(...ys) + 70;
   const z = Math.max(
     0.03,
-    Math.min(1.8, width.value / (right - left), height.value / (bottom - top)),
+    Math.min(1.25, width.value / (right - left), height.value / (bottom - top)),
   );
   camera.value = {
     x: width.value / 2 - ((left + right) / 2) * z,
@@ -106,7 +122,7 @@ function fit() {
 watch(
   graph,
   () => {
-    points.value = layoutNoteGraph(graph.value);
+    points.value = layoutFocusedNotes(graph.value, level.value);
     nextTick(fit);
   },
   { immediate: true },
@@ -131,6 +147,7 @@ function wheel(event) {
 let gesture = null,
   observer;
 function down(event, node) {
+  navigating.value = false;
   if (event.button !== 0 && event.button !== 1) return;
   event.preventDefault();
   svg.value.focus();
@@ -168,7 +185,12 @@ function up(event) {
   gesture = null;
   if (node && !moved) enterLevel(node.id);
 }
+function closeFilters(event) {
+  if (filters.value && !filters.value.contains(event.target))
+    filters.value.open = false;
+}
 onMounted(() => {
+  window.addEventListener("pointerdown", closeFilters);
   observer = new ResizeObserver((entries) => {
     width.value = entries[0].contentRect.width;
     height.value = entries[0].contentRect.height;
@@ -176,53 +198,79 @@ onMounted(() => {
   });
   observer.observe(svg.value);
 });
-onBeforeUnmount(() => observer?.disconnect());
+onBeforeUnmount(() => {
+  observer?.disconnect();
+  clearTimeout(navigationTimer);
+  window.removeEventListener("pointerdown", closeFilters);
+});
 </script>
 <template>
-  <section class="free-notes-graph" aria-label="Réseau de notes">
-    <div class="notes-graph-tools">
-      <div>
-        <Network :size="19" /><strong>Réseau de notes</strong
-        ><span>{{ visible.length }} notes · {{ edges.length }} relations</span>
-      </div>
+  <section
+    class="free-notes-graph notes-explorer"
+    :class="{ 'is-navigating': navigating }"
+    aria-label="Réseau de notes"
+  >
+    <div class="notes-explorer-toolbar">
+      <button
+        class="icon-btn"
+        :disabled="!level"
+        title="Revenir au niveau précédent"
+        aria-label="Niveau précédent"
+        @click="enterLevel(focused?.parent || '')"
+      >
+        <ArrowLeft :size="18" />
+      </button>
+      <nav class="notes-explorer-breadcrumb" aria-label="Niveau du réseau">
+        <button
+          @click="enterLevel('')"
+          :aria-current="!level ? 'page' : undefined"
+        >
+          Toutes les notes
+        </button>
+        <template v-for="row in breadcrumb" :key="row.id"
+          ><ChevronRight :size="12" /><button
+            @click="enterLevel(row.id)"
+            :title="row.title"
+            :aria-current="row.id === level ? 'page' : undefined"
+          >
+            {{ row.title }}
+          </button></template
+        >
+      </nav>
       <label class="notes-graph-search"
         ><Search :size="15" /><input
           v-model="query"
-          placeholder="Rechercher une note…"
+          placeholder="Rechercher à ce niveau…"
           aria-label="Rechercher dans la carte"
       /></label>
-      <label><input v-model="orphans" type="checkbox" />Notes isolées</label>
-      <label><input v-model="parents" type="checkbox" />Parenté</label>
-    </div>
-    <nav class="notes-graph-levels" aria-label="Niveau du réseau">
-      <button
-        @click="enterLevel('')"
-        :aria-current="!level ? 'page' : undefined"
+      <details
+        ref="filters"
+        class="notes-explorer-filters"
+        @keydown.esc="filters.open = false"
       >
-        Racine
-      </button>
-      <template v-for="row in breadcrumb" :key="row.id"
-        ><span>/</span
-        ><button
-          @click="enterLevel(row.id)"
-          :aria-current="row.id === level ? 'page' : undefined"
+        <summary
+          class="icon-btn"
+          title="Options d’affichage"
+          aria-label="Options d’affichage"
         >
-          {{ row.title }}
-        </button></template
-      >
+          <SlidersHorizontal :size="17" />
+        </summary>
+        <div>
+          <label><input v-model="orphans" type="checkbox" />Notes isolées</label
+          ><label
+            ><input v-model="parents" type="checkbox" />Relations
+            parent/enfant</label
+          >
+        </div>
+      </details>
       <button
         v-if="focused"
-        class="btn notes-graph-open"
+        class="btn notes-explorer-open"
         @click="emit('open', focused.id)"
       >
-        Ouvrir la note
+        Ouvrir la note<ArrowUpRight :size="15" />
       </button>
-      <small>{{
-        level
-          ? Math.max(0, levelNotes.length - 1) + " sous-notes directes"
-          : "Notes de premier niveau"
-      }}</small>
-    </nav>
+    </div>
     <svg
       ref="svg"
       class="notes-graph-stage"
@@ -239,7 +287,11 @@ onBeforeUnmount(() => observer?.disconnect());
       @keydown.minus.prevent="zoom(1 / 1.2)"
       @keydown.escape="hover = ''"
     >
-      <g :transform="`translate(${camera.x} ${camera.y}) scale(${camera.z})`">
+      <g
+        class="notes-graph-camera"
+        :transform="`translate(${camera.x} ${camera.y}) scale(${camera.z})`"
+      >
+        <circle v-if="level" class="notes-explorer-focus-glow" r="95" />
         <line
           v-for="edge in edges"
           :key="edge.key"
@@ -255,47 +307,59 @@ onBeforeUnmount(() => observer?.disconnect());
             dimmed: hover && !neighbors.has(edge.source),
           }"
         />
-        <g
-          v-for="node in visible"
-          :key="node.id"
-          :transform="`translate(${node.x} ${node.y})`"
-          class="notes-graph-node"
-          :class="{
-            active: node.id === level,
-            highlighted: hover === node.id,
-            dimmed: hover && !neighbors.has(node.id),
-          }"
-          role="button"
-          tabindex="0"
-          :aria-label="'Explorer ' + node.title"
-          @pointerdown.stop="down($event, node)"
-          @mouseenter="hover = node.id"
-          @mouseleave="hover = ''"
-          @focus="hover = node.id"
-          @blur="hover = ''"
-          @keydown.enter.prevent="enterLevel(node.id)"
-        >
-          <title>{{ node.title }} · {{ node.degree }} relations</title>
-          <rect x="-100" y="-20" width="200" height="64" fill="transparent" pointer-events="all" />
-          <circle
-            :r="
-              Math.max(
-                3 / camera.z,
-                6 + Math.min(10, Math.sqrt(node.degree) * 2),
-              )
-            "
-          />
-          <text
-            v-show="camera.z >= 0.22 || hover === node.id || level === node.id"
-            y="29"
-            text-anchor="middle"
-            :style="{
-              fontSize: graphNoteLabel(node.title, camera.z).size + 'px',
+        <TransitionGroup name="notes-constellation" tag="g">
+          <g
+            v-for="node in visible"
+            :key="node.id"
+            :transform="`translate(${node.x} ${node.y})`"
+            class="notes-graph-node"
+            :class="{
+              active: node.id === level,
+              highlighted: hover === node.id,
+              dimmed: hover && !neighbors.has(node.id),
             }"
+            role="button"
+            tabindex="0"
+            :aria-label="'Explorer ' + node.title"
+            @pointerdown.stop="down($event, node)"
+            @mouseenter="hover = node.id"
+            @mouseleave="hover = ''"
+            @focus="hover = node.id"
+            @blur="hover = ''"
+            @keydown.enter.prevent="enterLevel(node.id)"
           >
-            {{ graphNoteLabel(node.title, camera.z).text }}
-          </text>
-        </g>
+            <title>{{ node.title }} · {{ node.degree }} relations</title>
+            <rect
+              x="-100"
+              y="-20"
+              width="200"
+              height="64"
+              fill="transparent"
+              pointer-events="all"
+            />
+            <circle class="notes-explorer-node-ring" r="24" />
+            <circle
+              :r="
+                Math.max(
+                  3 / camera.z,
+                  6 + Math.min(10, Math.sqrt(node.degree) * 2),
+                )
+              "
+            />
+            <text
+              v-show="
+                camera.z >= 0.22 || hover === node.id || level === node.id
+              "
+              y="29"
+              text-anchor="middle"
+              :style="{
+                fontSize: graphNoteLabel(node.title, camera.z).size + 'px',
+              }"
+            >
+              {{ graphNoteLabel(node.title, camera.z).text }}
+            </text>
+          </g>
+        </TransitionGroup>
       </g>
     </svg>
     <div v-if="!visible.length" class="notes-graph-empty">
@@ -305,10 +369,21 @@ onBeforeUnmount(() => observer?.disconnect());
           : "Crée des notes et relie-les avec /page pour construire ta carte."
       }}
     </div>
+    <div
+      v-if="focused && levelNotes.length === 1 && !query"
+      class="notes-explorer-leaf"
+    >
+      <strong>{{ focused.title }}</strong
+      ><span>Cette note n’a pas encore de sous-notes.</span
+      ><button @click="emit('open', focused.id)">
+        Lire ou enrichir cette note <ArrowUpRight :size="14" />
+      </button>
+    </div>
     <footer class="notes-graph-footer">
       <span
-        >Glisser pour déplacer · molette pour zoomer · cliquer pour explorer les
-        sous-notes</span
+        >{{ visible.length }} {{ visible.length > 1 ? "notes" : "note"
+        }}<span class="notes-explorer-count-separator">·</span
+        >{{ edges.length }} relations</span
       >
       <div>
         <button
