@@ -1503,3 +1503,7 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - centerNoteCamera pure, test de transformation sans mutation. QA Chrome sur trois niveaux consécutifs, panoramique molette, retour et commande Recentrer.
 - Variables --workspace-dot-color et --workspace-dotted-surface dans appearance.css. Points partagés renforcés clair/sombre : parcours canvas-world, diaporama deck-surface, feuille conducteur à grille, réseau, zone finie Animation stage-wrap. Ne pas réactiver la grille dans l’extérieur de la zone finie Animation. Les gradients existants utilisent la variable pour résister à l’ordre de chargement CSS.
 - QA Chrome : mêmes couleurs réellement calculées sur cinq surfaces dans les deux thèmes, extérieur Animation toujours uni. Tests et build validés.
+
+## Fond pointillé — contraste intermédiaire (2026-10-20)
+- Retour utilisateur : grille trop lumineuse devant les relations. Couleurs partagées atténuées : sombre #4b6056 (au lieu de #738b7f), clair #becbc3 (au lieu de #91aa9c). Taille/espacement conservés ; même réglage sur tous les canevas utilisant --workspace-dot-color.
+- Vérification : compilation et diff check ; changement purement visuel des deux variables.
