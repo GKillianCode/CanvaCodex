@@ -37,3 +37,5 @@ Mise à jour : `/page` propose désormais toutes les notes, quel que soit leur n
 La barre latérale s’étire depuis son bord droit et conserve sa largeur. Les longues arborescences disposent d’un défilement horizontal. `/page` propose « Associer une note » pour choisir parmi toutes les pages, ou « Créer une note enfant » pour saisir un titre et créer une sous-note avec son lien dans le texte, sans quitter le document.
 
 Les actions du sélecteur sont verticales. Suppr dans l’arborescence demande confirmation avant de supprimer une note et ses descendants. Les liens de page possèdent une croix qui retire seulement le lien du document : la page cible reste intacte. Leur teinte distingue les enfants directs des autres pages associées, selon l’organisation actuelle.
+
+Les liens de page sont non éditables : leur libellé est toujours le titre actuel de la page cible, résolu par son identifiant. Renommer la page met à jour le titre affiché dans ses liens lors de leur chargement. La croix retire le lien sans supprimer la page.

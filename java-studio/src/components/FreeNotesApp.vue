@@ -758,6 +758,7 @@ onBeforeUnmount(() => {
             document-mode
             hide-tools
             note-links
+            :note-pages="tree"
             :child-note-ids="
               tree.filter((row) => row.parent === activeId).map((row) => row.id)
             "

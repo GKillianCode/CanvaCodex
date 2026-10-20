@@ -27,6 +27,7 @@ const props = defineProps({
   documentMode: Boolean,
   noteLinks: Boolean,
   childNoteIds: { type: Array, default: () => [] },
+  notePages: { type: Array, default: () => [] },
   modelValue: { type: String, default: "" },
   images: { type: Array, default: () => [] },
   otherContent: { type: String, default: "" },
@@ -527,6 +528,22 @@ function decoratePageLinks() {
   if (!props.noteLinks || !editor.value) return;
   for (const link of editor.value.querySelectorAll('a[href^="#/notes/"]')) {
     const id = link.getAttribute('href').slice(8);
+    const page = props.notePages.find(page => page.id === id);
+    const title = page ? (page.title || 'Sans titre') : 'Page introuvable';
+    link.setAttribute('contenteditable', 'false');
+    link.setAttribute('draggable', 'false');
+    let label = link.querySelector('[data-page-label]');
+    if (!label) {
+      const oldButton = link.querySelector('[data-page-unlink]');
+      link.replaceChildren();
+      label = document.createElement('span');
+      label.setAttribute('data-page-label', '');
+      link.append(label);
+      if (oldButton) link.append(oldButton);
+    }
+    if (label.textContent !== title) label.textContent = title;
+    const existingButton = link.querySelector('[data-page-unlink]');
+    existingButton?.setAttribute('aria-label', 'Retirer le lien vers ' + title);
     link.classList.toggle('note-page-child', props.childNoteIds.includes(id));
     link.classList.toggle('note-page-associated', !props.childNoteIds.includes(id));
     link.title = props.childNoteIds.includes(id) ? 'Sous-note directe' : 'Page associée';
@@ -546,8 +563,9 @@ function decoratePageLinks() {
     link.append(button);
   }
 }
-watch(() => props.childNoteIds, () => nextTick(decoratePageLinks), {deep:true});
+watch(() => [props.childNoteIds, props.notePages], () => nextTick(decoratePageLinks), {deep:true});
 function changed() {
+  decoratePageLinks();
   const value = richMarkdown(editor.value);
   if (value.length > props.maxLength) {
     emit(

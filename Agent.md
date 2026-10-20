@@ -1443,3 +1443,9 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 ## Poignée des blocs avec liens de page — 2026-10-20
 - Centrer verticalement la poignée de déplacement de 28px sur la hauteur mesurée du bloc contenant un lien /page dans Notes. Recalcul par le moteur existant de mesure/resize, sans déplacer les poignées des autres blocs.
 - Validation : compilation Vue et diff check.
+
+## Liens de page immuables — 2026-10-20
+- Ancres /page contenteditable=false et draggable=false : composant atomique, impossible de retoucher le titre ou de scinder le lien par Entrée. Croix de retrait conservée.
+- Libellé résolu depuis le titre actuel de la page cible (UUID), y compris anciens liens personnalisés ; watcher des métadonnées et résolution au chargement. Renommer la page est la seule façon de changer son libellé. Cible absente : Page introuvable.
+- Décoration avant sérialisation pour conserver un Markdown cohérent sans croix.
+- Vérification : 405 tests et compilation réussis ; Chrome isolé confirme ancien libellé remplacé par le titre réel, ancre non éditable, titre actualisé après renommage/navigation et croix conservée.
