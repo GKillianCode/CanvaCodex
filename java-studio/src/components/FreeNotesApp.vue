@@ -14,7 +14,9 @@ import {
   Trash2,
   Copy,
   GripVertical,
+  Network,
 } from "lucide-vue-next";
+import FreeNotesGraph from "./FreeNotesGraph.vue";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import ConductorRichEditor from "./ConductorRichEditor.vue";
 import {
@@ -44,6 +46,12 @@ const tree = ref([]),
   destination = ref(""),
   linkPicker = ref(false),
   linkQuery = ref("");
+const graphVisible = ref(false);
+async function showGraph() {
+  await run(async () => {
+    graphVisible.value = true;
+  });
+}
 const sidebarWidth = ref(270),
   pageAction = ref(""),
   pageTitle = ref("");
@@ -168,14 +176,6 @@ const current = computed(() =>
           .includes(linkQuery.value.toLocaleLowerCase()),
     ),
   ),
-  backlinks = computed(() =>
-    tree.value.filter(
-      (row) =>
-        row.kind === "note" &&
-        row.id !== activeId.value &&
-        row.links.includes(activeId.value),
-    ),
-  ),
   moveChoices = computed(() => {
     const excluded = freeDescendants(tree.value, menu.value?.id);
     return tree.value.filter((row) => !excluded.has(row.id));
@@ -280,6 +280,7 @@ function toggle(id) {
   rememberUI();
 }
 function open(id) {
+  graphVisible.value = false;
   menu.value = null;
   emit("open", id);
 }
@@ -576,8 +577,18 @@ onBeforeUnmount(() => {
         ><button v-if="document" :disabled="busy" @click="exportCurrent">
           Exporter cette note Markdown
         </button></template
-      ><template #actions
-        ><span class="save-state" role="status">{{
+      ><template #actions>
+        <button
+          class="btn"
+          :class="{ primary: graphVisible }"
+          :disabled="busy || loading"
+          @click="graphVisible ? (graphVisible = false) : showGraph()"
+        >
+          <Network :size="16" />{{
+            graphVisible ? "Retour à la note" : "Carte des notes"
+          }}
+        </button>
+        <span class="save-state" role="status">{{
           saving
             ? "Sauvegarde…"
             : dirty
@@ -591,7 +602,14 @@ onBeforeUnmount(() => {
       <button class="btn" @click="flush().catch(() => {})">Réessayer</button>
     </p>
     <p v-if="notice" role="status">{{ notice }}</p>
+    <FreeNotesGraph
+      v-if="graphVisible"
+      :tree="tree"
+      :active-id="activeId"
+      @open="open"
+    />
     <div
+      v-show="!graphVisible"
       class="free-notes-layout"
       :style="{ '--notes-sidebar-width': sidebarWidth + 'px' }"
     >
@@ -770,16 +788,6 @@ onBeforeUnmount(() => {
             @request-note-link="requestLink"
             @error="error = $event"
           />
-          <div v-if="backlinks.length" class="free-notes-backlinks">
-            <h3>Liens entrants</h3>
-            <button
-              v-for="row in backlinks"
-              :key="row.id"
-              @click="open(row.id)"
-            >
-              <Link2 :size="14" />{{ row.title }}
-            </button>
-          </div>
         </template>
         <div v-else class="free-notes-empty">
           <FileText :size="42" />

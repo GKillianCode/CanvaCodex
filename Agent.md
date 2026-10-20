@@ -1449,3 +1449,10 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Libellé résolu depuis le titre actuel de la page cible (UUID), y compris anciens liens personnalisés ; watcher des métadonnées et résolution au chargement. Renommer la page est la seule façon de changer son libellé. Cible absente : Page introuvable.
 - Décoration avant sérialisation pour conserver un Markdown cohérent sans croix.
 - Vérification : 405 tests et compilation réussis ; Chrome isolé confirme ancien libellé remplacé par le titre réel, ancre non éditable, titre actualisé après renommage/navigation et croix conservée.
+
+## Carte des notes — 2026-10-20
+- Demande utilisateur : retirer Liens entrants et créer une vue graphe inspirée d’Obsidian (documentation consultée https://obsidian.md/help/plugins/graph).
+- FreeNotesGraph + freeNotesGraph.js : notes/relations depuis métadonnées, dédoublonnage des liens réciproques, exclusion des cibles absentes et boucles sur soi. Parenté optionnelle en pointillés et notes isolées filtrables.
+- Placement déterministe par relaxation bornée avec grille spatiale ; SVG interactif, déplacement des points et caméra, zoom ancré à la souris, recherche, connexions au survol, ouverture clic/Entrée. Aucune IA/dépendance ni lecture des corps/images. Positions temporaires, pas de modification des notes.
+- Ouverture après flush du document ; éditeur conservé masqué pour retour à la note. Liens entrants retirés du document.
+- Validation : 406 tests passants et build ; Chrome isolé sans erreur confirme notes/liens, parenté, notes isolées, recherche, zoom/recentrage et navigation clavier. Capture /tmp/frame-notes-graph.png inspectée.

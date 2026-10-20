@@ -2001,3 +2001,31 @@
 }
 :root[data-appearance="light"] .free-notes-app a[href^="#/notes/"] [data-page-unlink]:hover {background:color-mix(in srgb,currentColor 12%,transparent)
 }
+:root[data-appearance="light"] .free-notes-graph {color:inherit
+}
+:root[data-appearance="light"] .notes-graph-tools {border-bottom:1px solid var(--border)
+}
+:root[data-appearance="light"] .notes-graph-tools span {color:var(--muted)
+}
+:root[data-appearance="light"] .notes-graph-search {border:1px solid var(--border);border-radius:6px
+}
+:root[data-appearance="light"] .notes-graph-search input {border:0;background:transparent;color:inherit;outline:0
+}
+:root[data-appearance="light"] .notes-graph-stage {background-image:radial-gradient(color-mix(in srgb,currentColor 12%,transparent) 1px,transparent 1px)
+}
+:root[data-appearance="light"] .notes-graph-edge {stroke:currentColor
+}
+:root[data-appearance="light"] .notes-graph-edge.highlighted {stroke:var(--mint)
+}
+:root[data-appearance="light"] .notes-graph-node {outline:none
+}
+:root[data-appearance="light"] .notes-graph-node circle {fill:var(--muted);stroke:var(--border)
+}
+:root[data-appearance="light"] .notes-graph-node.active circle,:root[data-appearance="light"] .notes-graph-node.highlighted circle,:root[data-appearance="light"] .notes-graph-node:focus circle {fill:var(--mint);stroke:currentColor
+}
+:root[data-appearance="light"] .notes-graph-node text {fill:currentColor;stroke:var(--bg,#11181c)
+}
+:root[data-appearance="light"] .notes-graph-footer {border-top:1px solid var(--border);color:var(--muted)
+}
+:root[data-appearance="light"] .notes-graph-empty {color:var(--muted)
+}

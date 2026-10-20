@@ -39,3 +39,9 @@ La barre latérale s’étire depuis son bord droit et conserve sa largeur. Les 
 Les actions du sélecteur sont verticales. Suppr dans l’arborescence demande confirmation avant de supprimer une note et ses descendants. Les liens de page possèdent une croix qui retire seulement le lien du document : la page cible reste intacte. Leur teinte distingue les enfants directs des autres pages associées, selon l’organisation actuelle.
 
 Les liens de page sont non éditables : leur libellé est toujours le titre actuel de la page cible, résolu par son identifiant. Renommer la page met à jour le titre affiché dans ses liens lors de leur chargement. La croix retire le lien sans supprimer la page.
+
+### Carte des notes
+
+Le bouton « Carte des notes » dans l’en-tête ouvre un graphe global. Chaque point représente une note ; chaque trait correspond à un lien /page entre deux notes existantes. Les doublons et liens réciproques sont regroupés. Les notes isolées restent affichables. L’option « Parenté » ajoute en pointillés les relations parent/enfant, indépendamment des liens du texte.
+
+Molette pour zoomer, glisser dans le fond pour déplacer la vue, glisser un point pour le déplacer ; cliquer sur un point (ou Entrée au clavier) ouvre la note. Survoler un point met en évidence ses connexions. Recherche par titre, zoom et recentrage sont disponibles. Le placement est calculé localement, sans IA ni dépendance supplémentaire, à partir des métadonnées ; les corps et images des notes ne sont pas chargés. Les positions déplacées dans le graphe sont temporaires. La section « Liens entrants » des documents est supprimée.
