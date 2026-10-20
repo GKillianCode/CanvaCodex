@@ -211,3 +211,8 @@ export function centerNoteCamera(camera, point, width, height) {
     y: height / 2 - point.y * camera.z,
   };
 }
+
+export function initialNoteGraphLevel(tree) {
+  const roots = noteGraphLevel(tree);
+  return roots.length === 1 ? roots[0].id : "";
+}

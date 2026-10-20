@@ -63,3 +63,12 @@ test('camera centers the explored note without changing zoom or stored positions
  assert.equal(point.x*next.z+next.x,720);assert.equal(point.y*next.z+next.y,450);assert.equal(next.z,.8);
  assert.deepEqual(point,{x:730,y:-210});assert.deepEqual(camera,{x:12,y:95,z:.8});
 });
+
+test('network starts inside the sole root but keeps an overview for several roots',async()=>{
+ const {initialNoteGraphLevel,noteGraphLevel}=await import('../src/freeNotesGraph.js');
+ const tree=[{id:'java',kind:'note',parent:''},{id:'child',kind:'note',parent:'java'},{id:'deep',kind:'note',parent:'child'}];
+ assert.equal(initialNoteGraphLevel(tree),'java');
+ assert.deepEqual(noteGraphLevel(tree,initialNoteGraphLevel(tree)).map(n=>n.id),['java','child']);
+ assert.equal(initialNoteGraphLevel([...tree,{id:'other',kind:'note',parent:''}]),'');
+ assert.equal(initialNoteGraphLevel([]),'');
+});

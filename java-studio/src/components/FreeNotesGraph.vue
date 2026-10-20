@@ -24,6 +24,7 @@ import {
   noteGraphLevel,
   previewNoteLevel,
   centerNoteCamera,
+  initialNoteGraphLevel,
 } from "../freeNotesGraph.js";
 const props = defineProps({ tree: Array, activeId: String });
 const emit = defineEmits(["open"]);
@@ -34,7 +35,7 @@ const positions = new Map();
 let previousLevel = null;
 const query = ref(""),
   parents = ref(true),
-  level = ref(""),
+  level = ref(initialNoteGraphLevel(props.tree)),
   orphans = ref(true),
   hover = ref(""),
   svg = ref(null),

@@ -1507,3 +1507,7 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 ## Fond pointillé — contraste intermédiaire (2026-10-20)
 - Retour utilisateur : grille trop lumineuse devant les relations. Couleurs partagées atténuées : sombre #4b6056 (au lieu de #738b7f), clair #becbc3 (au lieu de #91aa9c). Taille/espacement conservés ; même réglage sur tous les canevas utilisant --workspace-dot-color.
 - Vérification : compilation et diff check ; changement purement visuel des deux variables.
+
+## Réseau — présélection de l’unique racine (2026-10-20)
+- Au montage du réseau : s’il existe exactement une note racine, initialiser le niveau sur cette note, donc afficher immédiatement ses enfants directs. Plusieurs racines : conserver la vue d’ensemble. Aucun parcours automatique des étages suivants.
+- initialNoteGraphLevel pure, cas vide/unique/multiple testés ; QA Chrome confirme enfants accessibles directement et vue racines conservée lorsqu’il y en a plusieurs.
