@@ -55,3 +55,11 @@ test('next-level previews reuse remembered coordinates rather than recalculating
  assert.deepEqual(previewNoteLevel(tree,[{id:'a',x:300,y:400}],saved).map(n=>({id:n.id,x:n.x,y:n.y})),first.map(n=>({id:n.id,x:n.x,y:n.y})));
  assert(Math.hypot(first[0].x-first[1].x,first[0].y-first[1].y)<350);
 });
+
+test('camera centers the explored note without changing zoom or stored positions',async()=>{
+ const {centerNoteCamera}=await import('../src/freeNotesGraph.js');
+ const point={x:730,y:-210},camera={x:12,y:95,z:.8};
+ const next=centerNoteCamera(camera,point,1440,900);
+ assert.equal(point.x*next.z+next.x,720);assert.equal(point.y*next.z+next.y,450);assert.equal(next.z,.8);
+ assert.deepEqual(point,{x:730,y:-210});assert.deepEqual(camera,{x:12,y:95,z:.8});
+});

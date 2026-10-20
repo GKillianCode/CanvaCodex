@@ -67,3 +67,5 @@ Les notes finales, sans sous-note, ne permettent plus de descendre dans le rése
 Les positions d’aperçu sont conservées lorsqu’on explore le niveau suivant et lorsqu’on revient en arrière, pendant la session du réseau. Les petits groupes sont rapprochés. La caméra garde son cadrage autant que possible ; « Recentrer » reste disponible pour ajuster volontairement la vue.
 
 La croix de retrait d’un lien demande confirmation. Annuler conserve le lien ; confirmer retire uniquement le lien du document et conserve la note cible.
+
+La note explorée est recentrée à chaque changement de niveau, sans réorganiser les positions relatives des notes. Le zoom courant est conservé et le déplacement reste libre ensuite. Le fond pointillé partage désormais les couleurs des parcours et des autres canevas, avec une visibilité renforcée en clair et sombre.

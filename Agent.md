@@ -1497,3 +1497,9 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Petits groupes rapprochés : rayon réduit et aperçus distribués dans un secteur commun, avec la même réserve de place pour les titres lorsqu’ils deviennent actifs.
 - Croix /page : confirmation explicite avant retrait, précise que la note cible est conservée. Annuler ne change rien.
 - QA Chrome : coordonnées monde identiques preview→niveau, stabilité écran et retour, paire compacte ; annulation/confirmation croix et préservation de la cible. Tests et compilation validés.
+
+## Centrage du niveau et fond pointillé partagé — 2026-10-20
+- Nouvelle consigne : à chaque navigation le focus exploré est placé au centre exact de la zone de dessin, au zoom actuel. Positions monde préservées (preview/niveau/retour) ; déplacement manuel libre ensuite. Recentrer et resize centrent aussi le focus ; racine sans focus ajuste l’ensemble. Remplace la consigne précédente de cadrage inchangé à la descente.
+- centerNoteCamera pure, test de transformation sans mutation. QA Chrome sur trois niveaux consécutifs, panoramique molette, retour et commande Recentrer.
+- Variables --workspace-dot-color et --workspace-dotted-surface dans appearance.css. Points partagés renforcés clair/sombre : parcours canvas-world, diaporama deck-surface, feuille conducteur à grille, réseau, zone finie Animation stage-wrap. Ne pas réactiver la grille dans l’extérieur de la zone finie Animation. Les gradients existants utilisent la variable pour résister à l’ordre de chargement CSS.
+- QA Chrome : mêmes couleurs réellement calculées sur cinq surfaces dans les deux thèmes, extérieur Animation toujours uni. Tests et build validés.

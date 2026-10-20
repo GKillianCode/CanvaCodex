@@ -353,13 +353,13 @@
 /* The viewport is a shared dotted workspace; only the inner video frame is painted. */
 .studio.animation-studio .canvas-space {
   background-color: #131b20;
-  background-image: radial-gradient(#5b716544 1px, transparent 1px);
+  background-image: radial-gradient(var(--workspace-dot-color) 1.1px, transparent 1.25px);
   background-size: var(--animation-grid-size, 24px)
     var(--animation-grid-size, 24px);
 }
 :root[data-appearance="light"] .studio.animation-studio .canvas-space {
   background-color: #f1f5f2;
-  background-image: radial-gradient(#49655635 1px, transparent 1px);
+  background-image: radial-gradient(var(--workspace-dot-color) 1.1px, transparent 1.25px);
 }
 .studio.animation-studio .stage-wrap {
   background: transparent;
@@ -735,11 +735,11 @@
   cursor: move;
 }
 .studio.animation-studio .canvas-space {
-  background-image: radial-gradient(#61756a 1.3px, transparent 1.4px);
+  background-image: radial-gradient(var(--workspace-dot-color) 1.1px, transparent 1.25px);
   background-color: #161e1c;
 }
 :root[data-appearance="light"] .studio.animation-studio .canvas-space {
-  background-image: radial-gradient(#a2b1a7 1.3px, transparent 1.4px);
+  background-image: radial-gradient(var(--workspace-dot-color) 1.1px, transparent 1.25px);
   background-color: #eff2f0;
 }
 :root[data-appearance="light"] .animation-examples > div {
@@ -773,7 +773,7 @@
 }
 .studio.animation-studio .canvas-space .stage-wrap {
   background-color: #161e1c;
-  background-image: radial-gradient(#61756a 1.3px, transparent 1.4px);
+  background-image: radial-gradient(var(--workspace-dot-color) 1.1px, transparent 1.25px);
   background-size: var(--animation-grid-size, 36px)
     var(--animation-grid-size, 36px);
   border: 1px solid #53645b;
@@ -787,7 +787,7 @@
   .canvas-space
   .stage-wrap {
   background-color: #f5f7f5;
-  background-image: radial-gradient(#a2b1a7 1.3px, transparent 1.4px);
+  background-image: radial-gradient(var(--workspace-dot-color) 1.1px, transparent 1.25px);
   border-color: #acb9b0;
 }
 .animation-transport,

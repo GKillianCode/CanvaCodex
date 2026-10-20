@@ -23,6 +23,7 @@ import {
   graphNoteLabel,
   noteGraphLevel,
   previewNoteLevel,
+  centerNoteCamera,
 } from "../freeNotesGraph.js";
 const props = defineProps({ tree: Array, activeId: String });
 const emit = defineEmits(["open"]);
@@ -126,40 +127,28 @@ function fit() {
     right = Math.max(...xs) + 100,
     top = Math.min(...ys) - 70,
     bottom = Math.max(...ys) + 70;
+  const focus = byId.value.get(level.value);
+  const center = focus || { x: (left + right) / 2, y: (top + bottom) / 2 };
+  const spanX = Math.max(center.x - left, right - center.x) * 2;
+  const spanY = Math.max(center.y - top, bottom - center.y) * 2;
   const z = Math.max(
     0.03,
-    Math.min(1.25, width.value / (right - left), height.value / (bottom - top)),
+    Math.min(1.25, width.value / spanX, height.value / spanY),
   );
-  camera.value = {
-    x: width.value / 2 - ((left + right) / 2) * z,
-    y: height.value / 2 - ((top + bottom) / 2) * z,
-    z,
-  };
+  camera.value = centerNoteCamera({ z }, center, width.value, height.value);
 }
-function keepFrame() {
-  const nodes = visible.value;
-  if (!nodes.length) return;
-  const padding = 80,
-    xs = nodes.map((n) => n.x),
-    ys = nodes.map((n) => n.y);
-  const minX = Math.min(...xs),
-    maxX = Math.max(...xs),
-    minY = Math.min(...ys),
-    maxY = Math.max(...ys);
-  const z = Math.min(
-    camera.value.z,
-    (width.value - padding * 2) / Math.max(1, maxX - minX),
-    (height.value - padding * 2) / Math.max(1, maxY - minY),
+function centerFocusedNote() {
+  const point = byId.value.get(level.value);
+  if (!point) {
+    fit();
+    return;
+  }
+  camera.value = centerNoteCamera(
+    camera.value,
+    point,
+    width.value,
+    height.value,
   );
-  let x = camera.value.x,
-    y = camera.value.y;
-  if (minX * z + x < padding) x = padding - minX * z;
-  if (maxX * z + x > width.value - padding)
-    x = width.value - padding - maxX * z;
-  if (minY * z + y < padding) y = padding - minY * z;
-  if (maxY * z + y > height.value - padding)
-    y = height.value - padding - maxY * z;
-  camera.value = { x, y, z: Math.max(0.03, z) };
 }
 watch(
   graph,
@@ -173,7 +162,7 @@ watch(
     for (const node of points.value)
       positions.set(node.id, { x: node.x, y: node.y });
     previousLevel = level.value;
-    nextTick(initial ? fit : keepFrame);
+    nextTick(initial ? fit : centerFocusedNote);
   },
   { immediate: true },
 );

@@ -279,7 +279,7 @@
 }
 :root[data-appearance="light"] .deck-toolbar {border-bottom:1px solid #c9d7cf
 }
-:root[data-appearance="light"] .deck-surface {background-image:radial-gradient(#546b6a70 1px,transparent 1px)
+:root[data-appearance="light"] .deck-surface {background-image:radial-gradient(var(--workspace-dot-color) 1.1px,transparent 1.25px)
 }
 :root[data-appearance="light"] .deck-node {background:#edf0ef;border:1px solid #c9d7cf;border-radius:11px
 }
@@ -1041,7 +1041,7 @@
 }
 :root[data-appearance="light"] .canvas-toolbar label {color:#4e6457
 }
-:root[data-appearance="light"] .canvas-viewport {background-color:#f0f3f2;background-image:radial-gradient(#e6e9e8 1px,transparent 1px)
+:root[data-appearance="light"] .canvas-viewport {background-color:#f0f3f2;background-image:radial-gradient(var(--workspace-dot-color) 1.1px,transparent 1.25px)
 }
 :root[data-appearance="light"] .canvas-link {fill:none;stroke:#49665a
 }
@@ -1079,7 +1079,7 @@
 }
 :root[data-appearance="light"] .canvas-viewport {background-image:none
 }
-:root[data-appearance="light"] .canvas-world {background-image:radial-gradient(#e6e9e8 1px,transparent 1px)
+:root[data-appearance="light"] .canvas-world {background-image:radial-gradient(var(--workspace-dot-color) 1.1px,transparent 1.25px)
 }
 :root[data-appearance="light"] .canvas-node-handle {border-radius:14px 14px 0 0
 }
@@ -1429,7 +1429,7 @@
 }
 :root[data-appearance="light"] .page-sheet {background:#eef1f0
 }
-:root[data-appearance="light"] .page-sheet.page-grid {background-image:radial-gradient(#a5f3cf20 1px,transparent 1px)
+:root[data-appearance="light"] .page-sheet.page-grid {background-image:radial-gradient(var(--workspace-dot-color) 1.1px,transparent 1.25px)
 }
 :root[data-appearance="light"] .page-block {outline:1px solid transparent
 }
@@ -2011,7 +2011,7 @@
 }
 :root[data-appearance="light"] .notes-graph-search input {border:0;background:transparent;color:inherit;outline:0
 }
-:root[data-appearance="light"] .notes-graph-stage {background-image:radial-gradient(color-mix(in srgb,currentColor 12%,transparent) 1px,transparent 1px)
+:root[data-appearance="light"] .notes-graph-stage {background-image:radial-gradient(var(--workspace-dot-color) 1.1px,transparent 1.25px)
 }
 :root[data-appearance="light"] .notes-graph-edge {stroke:currentColor
 }
@@ -2059,7 +2059,7 @@
 }
 :root[data-appearance="light"] .notes-explorer .notes-explorer-open {background:transparent;color:inherit;border-color:var(--border)
 }
-:root[data-appearance="light"] .notes-explorer .notes-graph-stage {background-image:radial-gradient(color-mix(in srgb,currentColor 6%,transparent) 1px,transparent 1px)
+:root[data-appearance="light"] .notes-explorer .notes-graph-stage {background-image:radial-gradient(var(--workspace-dot-color) 1.1px,transparent 1.25px)
 }
 :root[data-appearance="light"] .notes-explorer .notes-graph-node .notes-explorer-node-ring {fill:transparent;stroke:currentColor
 }

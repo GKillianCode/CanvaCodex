@@ -203,3 +203,11 @@ export function previewNoteLevel(tree, primary, positions = new Map()) {
   }
   return points;
 }
+
+export function centerNoteCamera(camera, point, width, height) {
+  return {
+    ...camera,
+    x: width / 2 - point.x * camera.z,
+    y: height / 2 - point.y * camera.z,
+  };
+}
