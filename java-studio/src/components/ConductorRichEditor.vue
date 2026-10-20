@@ -574,6 +574,7 @@ function decoratePageLinks() {
     button.onpointerdown = event => { event.preventDefault(); event.stopPropagation(); };
     button.onclick = event => {
       event.preventDefault(); event.stopPropagation();
+      if (!window.confirm('Retirer le lien vers « ' + (label.textContent || 'Sans titre') + ' » de cette page ? La note liée sera conservée.')) return;
       link.remove(); range = null; changed();
     };
     link.append(button);

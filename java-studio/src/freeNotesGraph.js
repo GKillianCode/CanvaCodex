@@ -142,7 +142,7 @@ export function layoutFocusedNotes(graph, focus = "") {
   ordered.forEach((node, index) => {
     let angle = index * 2.39996323,
       radius =
-        node.id === focus ? 0 : (focus ? 270 : 0) + 90 * Math.sqrt(index);
+        node.id === focus ? 0 : (focus ? 150 : 0) + 65 * Math.sqrt(index);
     let x = Math.cos(angle) * radius,
       y = Math.sin(angle) * radius * 0.75;
     while (near(x, y)) {
@@ -161,7 +161,7 @@ export function layoutFocusedNotes(graph, focus = "") {
 }
 
 // Only one additional generation is previewed, never the whole descendant tree.
-export function previewNoteLevel(tree, primary) {
+export function previewNoteLevel(tree, primary, positions = new Map()) {
   const ids = new Set(primary.map((node) => node.id)),
     byParent = new Map();
   for (const row of tree)
@@ -175,20 +175,28 @@ export function previewNoteLevel(tree, primary) {
     const children = byParent.get(parent.id) || [],
       outward = Math.atan2(parent.y, parent.x);
     children.forEach((row, index) => {
-      const angle = outward + (index - (children.length - 1) / 2) * 0.45;
-      let radius = 130 + Math.floor(index / 7) * 35,
+      const angle = outward + (index - (children.length - 1) / 2) * 0.55;
+      const saved = positions.get(row.id);
+      let radius = 180 + Math.floor(index / 7) * 30,
         x = parent.x + Math.cos(angle) * radius,
         y = parent.y + Math.sin(angle) * radius;
       while (
+        !saved &&
         occupied.some(
-          (other) => Math.abs(other.x - x) < 110 && Math.abs(other.y - y) < 42,
+          (other) => Math.abs(other.x - x) < 235 && Math.abs(other.y - y) < 94,
         )
       ) {
         radius += 24;
         x = parent.x + Math.cos(angle) * radius;
         y = parent.y + Math.sin(angle) * radius;
       }
-      const point = { id: row.id, title: row.title, parent: parent.id, x, y };
+      const point = {
+        id: row.id,
+        title: row.title,
+        parent: parent.id,
+        x: saved?.x ?? x,
+        y: saved?.y ?? y,
+      };
       points.push(point);
       occupied.push(point);
     });

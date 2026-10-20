@@ -29,6 +29,8 @@ const emit = defineEmits(["open"]);
 const navigating = ref(false),
   filters = ref(null);
 let navigationTimer;
+const positions = new Map();
+let previousLevel = null;
 const query = ref(""),
   parents = ref(true),
   level = ref(""),
@@ -66,6 +68,8 @@ const breadcrumb = computed(() => {
 });
 function enterLevel(id) {
   if (id === level.value || (id && !canExplore(id))) return;
+  for (const node of [...points.value, ...preview.value])
+    positions.set(node.id, { x: node.x, y: node.y });
   navigating.value = true;
   clearTimeout(navigationTimer);
   navigationTimer = setTimeout(() => (navigating.value = false), 480);
@@ -92,7 +96,9 @@ const visible = computed(() =>
       fold(node.title).includes(fold(query.value)),
   ),
 );
-const preview = computed(() => previewNoteLevel(props.tree, visible.value));
+const preview = computed(() =>
+  previewNoteLevel(props.tree, visible.value, positions),
+);
 const ids = computed(() => new Set(visible.value.map((node) => node.id)));
 const byId = computed(
   () => new Map(points.value.map((node) => [node.id, node])),
@@ -130,11 +136,44 @@ function fit() {
     z,
   };
 }
+function keepFrame() {
+  const nodes = visible.value;
+  if (!nodes.length) return;
+  const padding = 80,
+    xs = nodes.map((n) => n.x),
+    ys = nodes.map((n) => n.y);
+  const minX = Math.min(...xs),
+    maxX = Math.max(...xs),
+    minY = Math.min(...ys),
+    maxY = Math.max(...ys);
+  const z = Math.min(
+    camera.value.z,
+    (width.value - padding * 2) / Math.max(1, maxX - minX),
+    (height.value - padding * 2) / Math.max(1, maxY - minY),
+  );
+  let x = camera.value.x,
+    y = camera.value.y;
+  if (minX * z + x < padding) x = padding - minX * z;
+  if (maxX * z + x > width.value - padding)
+    x = width.value - padding - maxX * z;
+  if (minY * z + y < padding) y = padding - minY * z;
+  if (maxY * z + y > height.value - padding)
+    y = height.value - padding - maxY * z;
+  camera.value = { x, y, z: Math.max(0.03, z) };
+}
 watch(
   graph,
   () => {
-    points.value = layoutFocusedNotes(graph.value, level.value);
-    nextTick(fit);
+    const initial = previousLevel === null;
+    const fallback = layoutFocusedNotes(graph.value, level.value);
+    points.value = fallback.map((node) => ({
+      ...node,
+      ...positions.get(node.id),
+    }));
+    for (const node of points.value)
+      positions.set(node.id, { x: node.x, y: node.y });
+    previousLevel = level.value;
+    nextTick(initial ? fit : keepFrame);
   },
   { immediate: true },
 );
@@ -183,6 +222,7 @@ function move(event) {
   if (gesture.node) {
     gesture.node.x += dx / camera.value.z;
     gesture.node.y += dy / camera.value.z;
+    positions.set(gesture.node.id, { x: gesture.node.x, y: gesture.node.y });
   } else {
     camera.value.x += dx;
     camera.value.y += dy;
@@ -302,7 +342,13 @@ onBeforeUnmount(() => {
         class="notes-graph-camera"
         :transform="`translate(${camera.x} ${camera.y}) scale(${camera.z})`"
       >
-        <circle v-if="level" class="notes-explorer-focus-glow" r="95" />
+        <circle
+          v-if="level"
+          class="notes-explorer-focus-glow"
+          :cx="byId.get(level)?.x || 0"
+          :cy="byId.get(level)?.y || 0"
+          r="95"
+        />
         <g class="notes-explorer-preview" aria-hidden="true">
           <line
             v-for="node in preview"

@@ -46,3 +46,12 @@ test('preview reveals exactly the next generation without changing primary nodes
  const primary=[{id:'a',x:0,y:0}];assert.deepEqual(previewNoteLevel(tree,primary).map(n=>n.id),['b']);
  const second=[{id:'a',x:0,y:0},{id:'b',x:300,y:0}];const preview=previewNoteLevel(tree,second);assert.deepEqual(preview.map(n=>n.id),['c']);assert(preview.every(n=>Number.isFinite(n.x)&&Number.isFinite(n.y)));assert.deepEqual(primary,[{id:'a',x:0,y:0}]);
 });
+
+test('next-level previews reuse remembered coordinates rather than recalculating them',async()=>{
+ const {previewNoteLevel}=await import('../src/freeNotesGraph.js');
+ const tree=[{id:'a',title:'A',kind:'note',parent:''},{id:'b',title:'B',kind:'note',parent:'a'},{id:'c',title:'C',kind:'note',parent:'a'}];
+ const primary=[{id:'a',x:0,y:0}], first=previewNoteLevel(tree,primary);
+ const saved=new Map(first.map(n=>[n.id,{x:n.x,y:n.y}]));
+ assert.deepEqual(previewNoteLevel(tree,[{id:'a',x:300,y:400}],saved).map(n=>({id:n.id,x:n.x,y:n.y})),first.map(n=>({id:n.id,x:n.x,y:n.y})));
+ assert(Math.hypot(first[0].x-first[1].x,first[0].y-first[1].y)<350);
+});

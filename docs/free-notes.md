@@ -63,3 +63,7 @@ L’exploration par niveaux utilise une constellation : la note choisie se place
 Le niveau suivant apparaît désormais très légèrement en transparence autour des notes du niveau courant. Ces aperçus ne sont pas cliquables ; explorer leur parent les fait passer au premier plan. Le chemin commence par « Racine ». Le lien « Bloc-notes » à gauche de l’en-tête revient à l’édition ; depuis celle-ci, « Réseau de notes » ouvre l’explorateur. L’état de sauvegarde se trouve à droite, près du thème.
 
 Les notes finales, sans sous-note, ne permettent plus de descendre dans le réseau : clic et Entrée restent sans effet et le curseur est neutre. Elles restent visibles et leurs documents sont accessibles depuis le bloc-notes.
+
+Les positions d’aperçu sont conservées lorsqu’on explore le niveau suivant et lorsqu’on revient en arrière, pendant la session du réseau. Les petits groupes sont rapprochés. La caméra garde son cadrage autant que possible ; « Recentrer » reste disponible pour ajuster volontairement la vue.
+
+La croix de retrait d’un lien demande confirmation. Annuler conserve le lien ; confirmer retire uniquement le lien du document et conserve la note cible.

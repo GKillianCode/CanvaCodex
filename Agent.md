@@ -1491,3 +1491,9 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Notes sans enfant direct : pas de descente au clic/Entrée, curseur neutre, rôle informatif et retrait du parcours clavier des boutons. Infobulle Aucune sous-note. Garde dans enterLevel et pointerup pour éviter les niveaux vides.
 - Les notes restent visibles et déplaçables dans la constellation ; ouverture du document depuis le bloc-notes conservée.
 - Vérification : 411 tests et build réussis ; Chrome confirme clic et Entrée sur feuille sans descente, curseur neutre et maintien du niveau parent.
+
+## Continuité spatiale et retrait confirmé — 2026-10-20
+- Cache de coordonnées local à la session du graphe : les positions des previews sont promues telles quelles au niveau principal, conservées au retour et après déplacement manuel. L’aperçu réutilise aussi les coordonnées déjà connues. Aucun recentrage/agrandissement systématique à la descente ; ajustement minimal seulement si les notes du niveau sortent de l’écran. Halo suit la position réelle du focus.
+- Petits groupes rapprochés : rayon réduit et aperçus distribués dans un secteur commun, avec la même réserve de place pour les titres lorsqu’ils deviennent actifs.
+- Croix /page : confirmation explicite avant retrait, précise que la note cible est conservée. Annuler ne change rien.
+- QA Chrome : coordonnées monde identiques preview→niveau, stabilité écran et retour, paire compacte ; annulation/confirmation croix et préservation de la cible. Tests et compilation validés.
