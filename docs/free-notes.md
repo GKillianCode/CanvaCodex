@@ -61,3 +61,5 @@ Le Réseau de notes s’ouvre désormais sur les notes racines. Cliquer sur une 
 L’exploration par niveaux utilise une constellation : la note choisie se place au centre, ses sous-notes se répartissent autour avec des espaces réservés aux titres. Les transitions accompagnent les changements de niveau ; elles respectent le réglage système de réduction des animations. Le chemin, le retour et la recherche sont réunis dans une barre compacte. Les filtres se trouvent dans « Options d’affichage ».
 
 Le niveau suivant apparaît désormais très légèrement en transparence autour des notes du niveau courant. Ces aperçus ne sont pas cliquables ; explorer leur parent les fait passer au premier plan. Le chemin commence par « Racine ». Le lien « Bloc-notes » à gauche de l’en-tête revient à l’édition ; depuis celle-ci, « Réseau de notes » ouvre l’explorateur. L’état de sauvegarde se trouve à droite, près du thème.
+
+Les notes finales, sans sous-note, ne permettent plus de descendre dans le réseau : clic et Entrée restent sans effet et le curseur est neutre. Elles restent visibles et leurs documents sont accessibles depuis le bloc-notes.

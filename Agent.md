@@ -1486,3 +1486,8 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - « Toutes les notes » renommé « Racine ». Bouton Notes/Réseau déplacé dans le contexte gauche de WorkspaceHeader, libellé Bloc-notes depuis le graphe, sans bouton principal au centre.
 - Slot utilities ajouté au header partagé ; les Notes y placent Enregistré/Sauvegarde près du bouton de thème à droite. Aucun changement des actions des autres applications.
 - Validation : 411 tests et build ; Chrome vérifie profondeur d’aperçu, racine, retour Bloc-notes, bouton à gauche et sauvegarde immédiatement avant thème. Captures clair/sombre inspectées.
+
+## Réseau — notes finales non explorables (2026-10-20)
+- Notes sans enfant direct : pas de descente au clic/Entrée, curseur neutre, rôle informatif et retrait du parcours clavier des boutons. Infobulle Aucune sous-note. Garde dans enterLevel et pointerup pour éviter les niveaux vides.
+- Les notes restent visibles et déplaçables dans la constellation ; ouverture du document depuis le bloc-notes conservée.
+- Vérification : 411 tests et build réussis ; Chrome confirme clic et Entrée sur feuille sans descente, curseur neutre et maintien du niveau parent.

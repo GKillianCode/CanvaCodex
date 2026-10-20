@@ -41,6 +41,15 @@ const query = ref(""),
   camera = ref({ x: 500, y: 325, z: 1 });
 const levelNotes = computed(() => noteGraphLevel(props.tree, level.value));
 const graph = computed(() => noteGraph(levelNotes.value, parents.value));
+const branches = computed(
+  () =>
+    new Set(
+      props.tree
+        .filter((row) => row.kind === "note" && row.parent)
+        .map((row) => row.parent),
+    ),
+);
+const canExplore = (id) => branches.value.has(id);
 const focused = computed(() =>
   props.tree.find((row) => row.id === level.value),
 );
@@ -56,7 +65,7 @@ const breadcrumb = computed(() => {
   return result;
 });
 function enterLevel(id) {
-  if (id === level.value) return;
+  if (id === level.value || (id && !canExplore(id))) return;
   navigating.value = true;
   clearTimeout(navigationTimer);
   navigationTimer = setTimeout(() => (navigating.value = false), 480);
@@ -185,7 +194,7 @@ function up(event) {
   if (!gesture || gesture.id !== event.pointerId) return;
   const { node, moved } = gesture;
   gesture = null;
-  if (node && !moved) enterLevel(node.id);
+  if (node && !moved && canExplore(node.id)) enterLevel(node.id);
 }
 function closeFilters(event) {
   if (filters.value && !filters.value.contains(event.target))
@@ -344,12 +353,17 @@ onBeforeUnmount(() => {
             class="notes-graph-node"
             :class="{
               active: node.id === level,
+              'is-leaf': !canExplore(node.id),
               highlighted: hover === node.id,
               dimmed: hover && !neighbors.has(node.id),
             }"
-            role="button"
-            tabindex="0"
-            :aria-label="'Explorer ' + node.title"
+            :role="canExplore(node.id) ? 'button' : 'img'"
+            :tabindex="canExplore(node.id) ? 0 : -1"
+            :aria-disabled="!canExplore(node.id) || undefined"
+            :aria-label="
+              (canExplore(node.id) ? 'Explorer ' : 'Note finale : ') +
+              node.title
+            "
             @pointerdown.stop="down($event, node)"
             @mouseenter="hover = node.id"
             @mouseleave="hover = ''"
@@ -357,7 +371,14 @@ onBeforeUnmount(() => {
             @blur="hover = ''"
             @keydown.enter.prevent="enterLevel(node.id)"
           >
-            <title>{{ node.title }} · {{ node.degree }} relations</title>
+            <title>
+              {{ node.title }} ·
+              {{
+                canExplore(node.id)
+                  ? "Explorer les sous-notes"
+                  : "Aucune sous-note"
+              }}
+            </title>
             <rect
               x="-100"
               y="-20"
