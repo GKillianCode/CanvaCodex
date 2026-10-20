@@ -320,8 +320,28 @@ function showMenu(event, row) {
     y: Math.max(8, Math.min(event.clientY, window.innerHeight - 320)),
   };
 }
-async function remove() {
-  const row = tree.value.find((row) => row.id === menu.value?.id);
+function deleteSelected(event) {
+  if (
+    event.key !== "Delete" ||
+    busy.value ||
+    loading.value ||
+    moving.value ||
+    linkPicker.value
+  )
+    return;
+  if (
+    event.target.closest(
+      'input,textarea,select,[contenteditable="true"],[role="dialog"]',
+    )
+  )
+    return;
+  if (!event.target.closest(".free-notes-sidebar") || !activeId.value) return;
+  event.preventDefault();
+  remove(activeId.value);
+}
+async function remove(selectedId) {
+  const id = typeof selectedId === "string" ? selectedId : menu.value?.id;
+  const row = tree.value.find((row) => row.id === id);
   if (!row) return;
   const ids = freeDescendants(tree.value, row.id);
   if (
@@ -447,6 +467,7 @@ async function exportCurrent() {
   }
 }
 function noteClick(event) {
+  if (event.target.closest("[data-page-unlink]")) return;
   const a = event.target.closest('a[href^="#/notes/"]');
   if (!a) return;
   const id = a.getAttribute("href").match(/^#\/notes\/([\w-]+)$/)?.[1];
@@ -517,6 +538,11 @@ onMounted(async () => {
     error.value = e.message;
   } finally {
     loading.value = false;
+    await nextTick();
+    if (props.noteId)
+      window.document
+        .querySelector(".free-notes-tree-row.active .free-note-open")
+        ?.focus({ preventScroll: true });
   }
 });
 onBeforeUnmount(() => {
@@ -570,7 +596,12 @@ onBeforeUnmount(() => {
       :style="{ '--notes-sidebar-width': sidebarWidth + 'px' }"
     >
       <div class="free-notes-sidebar-shell">
-        <aside class="free-notes-sidebar">
+        <aside
+          class="free-notes-sidebar"
+          tabindex="0"
+          aria-label="Notes et sous-notes"
+          @keydown="deleteSelected"
+        >
           <div class="free-notes-sidebar-heading">
             <span>MON ESPACE DE NOTES</span
             ><button
@@ -727,6 +758,9 @@ onBeforeUnmount(() => {
             document-mode
             hide-tools
             note-links
+            :child-note-ids="
+              tree.filter((row) => row.parent === activeId).map((row) => row.id)
+            "
             :model-value="document.content"
             :images="document.images"
             label="Contenu de la note"
@@ -839,14 +873,20 @@ onBeforeUnmount(() => {
               :class="{ primary: pageAction === 'associate' }"
               @click="choosePageAction('associate')"
             >
-              <Link2 :size="16" />Associer une note
+              <Link2 :size="18" /><span
+                ><strong>Associer une note</strong
+                ><small>Insérer un lien vers une page existante</small></span
+              ><ChevronRight :size="16" />
             </button>
             <button
               class="btn"
               :class="{ primary: pageAction === 'create' }"
               @click="choosePageAction('create')"
             >
-              <Plus :size="16" />Créer une note enfant
+              <Plus :size="18" /><span
+                ><strong>Créer une note enfant</strong
+                ><small>Créer une sous-note et l’associer ici</small></span
+              ><ChevronRight :size="16" />
             </button>
           </div>
           <form

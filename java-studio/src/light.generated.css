@@ -1977,3 +1977,27 @@
 }
 :root[data-appearance="light"] .free-notes-title:hover {background:color-mix(in srgb,currentColor 3%,transparent)
 }
+:root[data-appearance="light"] .free-notes-page-actions>.btn {border-radius:8px
+}
+:root[data-appearance="light"] .free-notes-picker label.free-notes-page-search {background:transparent
+}
+:root[data-appearance="light"] .free-notes-picker .free-notes-page-search>input {border:0;color:inherit
+}
+:root[data-appearance="light"] .free-notes-picker .free-notes-link-choices>button {border:0;border-radius:6px
+}
+:root[data-appearance="light"] .free-notes-link-choices>button:hover {background:color-mix(in srgb,currentColor 6%,transparent)
+}
+:root[data-appearance="light"] .free-notes-sidebar:focus {outline:none
+}
+:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"] {border:1px solid color-mix(in srgb,currentColor 14%,transparent);border-radius:5px;background:color-mix(in srgb,currentColor 5%,transparent)
+}
+:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"]:hover,:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"]:focus-visible {background:color-mix(in srgb,currentColor 10%,transparent);border-color:color-mix(in srgb,currentColor 30%,transparent)
+}
+:root[data-appearance="light"] .free-notes-app a.note-page-child {background:color-mix(in srgb,var(--mint) 9%,transparent);border-color:color-mix(in srgb,var(--mint) 27%,transparent)
+}
+:root[data-appearance="light"] .free-notes-app a.note-page-associated {background:color-mix(in srgb,#7399c4 10%,transparent);border-color:color-mix(in srgb,#3a4d62 30%,transparent)
+}
+:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"] [data-page-unlink] {border:0;border-radius:3px;background:transparent;color:inherit
+}
+:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"] [data-page-unlink]:hover {background:color-mix(in srgb,currentColor 12%,transparent)
+}

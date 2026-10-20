@@ -1432,3 +1432,10 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Barre latérale redimensionnable par séparateur (200–650 px), largeur enregistrée localement ; navigation clavier par flèches. Arborescence sans plafonnement de profondeur visuelle, largeur intrinsèque et scroll horizontal dans la barre. Mobile : barre empilée sans séparateur.
 - /page ouvre deux actions explicites : Associer une note (recherche globale), Créer une note enfant (titre requis, création et insertion du lien dans la note courante sans navigation). Champs de titre et recherche harmonisés, clair/sombre.
 - Vérification Chrome isolé : glisser du séparateur, largeur conservée au rechargement, débordement horizontal sur 22 niveaux, création /page et lien persisté. Tests et compilation vérifiés.
+
+## Notes — sélecteur, Suppr et liens retirable (2026-10-20)
+- Pop-up /page : actions verticales avec sous-titres, recherche flex à largeur stable, résultats compacts. Liens documentaires encadrés plus visibles.
+- Suppr depuis l’arborescence : confirmation nominative incluant les sous-pages, annulation sans effet ; ne pas intercepter les champs ni le contenu éditable. Focus de la note restauré après navigation.
+- Croix sur chaque lien /page : enlève seulement le composant de lien, jamais la note cible. Décoration DOM de l’éditeur exclue du Markdown par data-page-unlink ; garde les href UUID.
+- Styles calculés selon la parenté actuelle : enfant direct teinté thème, page associée externe légèrement bleutée ; watcher met à jour après déplacement.
+- QA Chrome isolé : actions verticales, recherche/association, Suppr annulé et confirmé, variantes des liens, retrait persistant sans suppression cible ni navigation. Tests et build vérifiés.

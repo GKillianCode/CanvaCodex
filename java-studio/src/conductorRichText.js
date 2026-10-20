@@ -13,6 +13,7 @@ export function richMarkdown(root) {
             .join("\n")
         : value;
     }
+    if (node.hasAttribute?.("data-page-unlink")) return "";
     const tag = node.tagName?.toLowerCase(),
       inside = () =>
         Array.from(node.childNodes || [])

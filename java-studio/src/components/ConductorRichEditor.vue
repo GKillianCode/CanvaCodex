@@ -26,6 +26,7 @@ import { findConductorCommands } from "../conductorCommands.js";
 const props = defineProps({
   documentMode: Boolean,
   noteLinks: Boolean,
+  childNoteIds: { type: Array, default: () => [] },
   modelValue: { type: String, default: "" },
   images: { type: Array, default: () => [] },
   otherContent: { type: String, default: "" },
@@ -518,6 +519,30 @@ function inputChanged() {
   changed();
   trackSlash();
 }
+function decoratePageLinks() {
+  if (!props.noteLinks || !editor.value) return;
+  for (const link of editor.value.querySelectorAll('a[href^="#/notes/"]')) {
+    const id = link.getAttribute('href').slice(8);
+    link.classList.toggle('note-page-child', props.childNoteIds.includes(id));
+    link.classList.toggle('note-page-associated', !props.childNoteIds.includes(id));
+    link.title = props.childNoteIds.includes(id) ? 'Sous-note directe' : 'Page associée';
+    if (link.querySelector('[data-page-unlink]')) continue;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.setAttribute('data-page-unlink', '');
+    button.setAttribute('contenteditable', 'false');
+    button.setAttribute('aria-label', 'Retirer le lien vers ' + link.textContent);
+    button.title = 'Retirer ce lien sans supprimer la note';
+    button.textContent = '×';
+    button.onpointerdown = event => { event.preventDefault(); event.stopPropagation(); };
+    button.onclick = event => {
+      event.preventDefault(); event.stopPropagation();
+      link.remove(); range = null; changed();
+    };
+    link.append(button);
+  }
+}
+watch(() => props.childNoteIds, () => nextTick(decoratePageLinks), {deep:true});
 function changed() {
   const value = richMarkdown(editor.value);
   if (value.length > props.maxLength) {
@@ -535,6 +560,7 @@ function changed() {
     used.includes("(frame-image:" + image.id + ")"),
   );
   if (images.length !== props.images.length) emit("update:images", images);
+  decoratePageLinks();
   remember();
   scheduleBlocks();
 }
@@ -544,6 +570,7 @@ function draw() {
   editor.value.innerHTML = renderConductor(last, props.images) || "<p><br></p>";
   for (const node of editor.value.querySelectorAll("pre"))
     node.spellcheck = false;
+  decoratePageLinks();
   picture.value = null;
   range = null;
   scheduleBlocks();
