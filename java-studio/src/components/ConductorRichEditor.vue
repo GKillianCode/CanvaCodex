@@ -89,6 +89,10 @@ function topBlock(node) {
     element = element.parentElement;
   return element?.parentElement === editor.value ? element : null;
 }
+function blockGripTop(row) {
+  const hasPage = props.noteLinks && row.node.querySelector('a[href^="#/notes/"]');
+  return (hasPage ? (row.top + row.bottom) / 2 - 14 : row.top) + 'px';
+}
 function measureBlocks() {
   if (!props.documentMode || !editor.value || !documentShell.value) return;
   const rect = documentShell.value.getBoundingClientRect();
@@ -1251,7 +1255,7 @@ onBeforeUnmount(() => {
           :key="row.index"
           class="document-block-grip"
           :class="{ visible: hoveredBlock === row.node }"
-          :style="{ top: row.top + 'px' }"
+          :style="{ top: blockGripTop(row) }"
           contenteditable="false"
           draggable="true"
           :aria-label="'Options et déplacement du bloc ' + (row.index + 1)"

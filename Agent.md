@@ -1439,3 +1439,7 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Croix sur chaque lien /page : enlève seulement le composant de lien, jamais la note cible. Décoration DOM de l’éditeur exclue du Markdown par data-page-unlink ; garde les href UUID.
 - Styles calculés selon la parenté actuelle : enfant direct teinté thème, page associée externe légèrement bleutée ; watcher met à jour après déplacement.
 - QA Chrome isolé : actions verticales, recherche/association, Suppr annulé et confirmé, variantes des liens, retrait persistant sans suppression cible ni navigation. Tests et build vérifiés.
+
+## Poignée des blocs avec liens de page — 2026-10-20
+- Centrer verticalement la poignée de déplacement de 28px sur la hauteur mesurée du bloc contenant un lien /page dans Notes. Recalcul par le moteur existant de mesure/resize, sans déplacer les poignées des autres blocs.
+- Validation : compilation Vue et diff check.
