@@ -1963,3 +1963,17 @@
 }
 :root[data-appearance="light"] .free-notes-app a[href^="#/notes/"]:hover,:root[data-appearance="light"] .free-notes-app a[href^="#/notes/"]:focus-visible {background:transparent;text-decoration-color:currentColor
 }
+:root[data-appearance="light"] .free-notes-sidebar-resizer:hover,:root[data-appearance="light"] .free-notes-sidebar-resizer:focus-visible {background:color-mix(in srgb,currentColor 15%,transparent)
+}
+:root[data-appearance="light"] .free-notes-page-search {border:1px solid var(--border);border-radius:8px;color:var(--muted)
+}
+:root[data-appearance="light"] .free-notes-page-search input {border:0!important;background:transparent!important;color:inherit;outline:none
+}
+:root[data-appearance="light"] .free-notes-create-page label {color:var(--muted)
+}
+:root[data-appearance="light"] .free-notes-create-page input {border:1px solid var(--border);border-radius:8px;background:transparent;color:inherit
+}
+:root[data-appearance="light"] .free-notes-create-page input:focus,:root[data-appearance="light"] .free-notes-page-search:focus-within {outline:1px solid currentColor;outline-offset:2px
+}
+:root[data-appearance="light"] .free-notes-title:hover {background:color-mix(in srgb,currentColor 3%,transparent)
+}

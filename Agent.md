@@ -1427,3 +1427,8 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Validation : tests et compilation.
 
 - Liens de pages : curseur pointer au survol, y compris dans l’éditeur de notes.
+
+## Notes — arborescence et insertion /page (2026-10-20)
+- Barre latérale redimensionnable par séparateur (200–650 px), largeur enregistrée localement ; navigation clavier par flèches. Arborescence sans plafonnement de profondeur visuelle, largeur intrinsèque et scroll horizontal dans la barre. Mobile : barre empilée sans séparateur.
+- /page ouvre deux actions explicites : Associer une note (recherche globale), Créer une note enfant (titre requis, création et insertion du lien dans la note courante sans navigation). Champs de titre et recherche harmonisés, clair/sombre.
+- Vérification Chrome isolé : glisser du séparateur, largeur conservée au rechargement, débordement horizontal sur 22 niveaux, création /page et lien persisté. Tests et compilation vérifiés.

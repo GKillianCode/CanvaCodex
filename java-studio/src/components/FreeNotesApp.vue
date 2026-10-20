@@ -44,6 +44,61 @@ const tree = ref([]),
   destination = ref(""),
   linkPicker = ref(false),
   linkQuery = ref("");
+const sidebarWidth = ref(270),
+  pageAction = ref(""),
+  pageTitle = ref("");
+let stopResize;
+function resizeSidebar(event) {
+  if (event.button !== 0) return;
+  event.preventDefault();
+  stopResize?.();
+  const start = event.clientX,
+    width = sidebarWidth.value;
+  const move = (e) => {
+    sidebarWidth.value = Math.max(
+      200,
+      Math.min(650, window.innerWidth - 250, width + e.clientX - start),
+    );
+  };
+  const end = () => {
+    window.removeEventListener("pointermove", move);
+    window.removeEventListener("pointerup", end);
+    window.removeEventListener("pointercancel", end);
+    try {
+      localStorage.setItem("frame-notes-sidebar-width", sidebarWidth.value);
+    } catch {}
+    stopResize = null;
+  };
+  stopResize = end;
+  window.addEventListener("pointermove", move);
+  window.addEventListener("pointerup", end);
+  window.addEventListener("pointercancel", end);
+}
+function choosePageAction(action) {
+  pageAction.value = action;
+  nextTick(() =>
+    window.document.querySelector(".free-notes-picker input")?.focus(),
+  );
+}
+async function createLinkedChild() {
+  if (!pageTitle.value.trim()) return;
+  await run(async () => {
+    const row = {
+      id: crypto.randomUUID(),
+      kind: "note",
+      title: pageTitle.value.trim().slice(0, 200),
+      parent: activeId.value,
+      links: [],
+      updatedAt: Date.now(),
+    };
+    tree.value = await props.repository.createFreeNote(row);
+    if (!expanded.value.includes(activeId.value))
+      expanded.value.push(activeId.value);
+    rememberUI();
+    await insertLink(row);
+    await flush();
+  });
+}
 const draggedId = ref(""),
   dropTarget = ref(null);
 let expandTimer;
@@ -402,6 +457,8 @@ function noteClick(event) {
 }
 function requestLink() {
   linkQuery.value = "";
+  pageAction.value = "";
+  pageTitle.value = "";
   linkPicker.value = true;
   nextTick(() =>
     window.document.querySelector(".free-notes-picker input")?.focus(),
@@ -431,6 +488,10 @@ onMounted(async () => {
   window.addEventListener("beforeunload", beforeUnload);
   window.addEventListener("pagehide", pagehide);
   try {
+    try {
+      const width = Number(localStorage.getItem("frame-notes-sidebar-width"));
+      if (width >= 200 && width <= 650) sidebarWidth.value = width;
+    } catch {}
     tree.value = await props.repository.freeNotesTree();
     let last = "";
     try {
@@ -461,6 +522,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   clearTimeout(timer);
   endDrag();
+  stopResize?.();
   window.removeEventListener("pointerdown", outside);
   window.removeEventListener("beforeunload", beforeUnload);
   window.removeEventListener("pagehide", pagehide);
@@ -503,102 +565,127 @@ onBeforeUnmount(() => {
       <button class="btn" @click="flush().catch(() => {})">Réessayer</button>
     </p>
     <p v-if="notice" role="status">{{ notice }}</p>
-    <div class="free-notes-layout">
-      <aside class="free-notes-sidebar">
-        <div class="free-notes-sidebar-heading">
-          <span>MON ESPACE DE NOTES</span
-          ><button
-            class="icon-btn"
-            title="Nouvelle note à la racine"
-            aria-label="Nouvelle note"
-            :disabled="busy || loading"
-            @click="create('note')"
-          >
-            <Plus :size="17" />
-          </button>
-        </div>
-        <label class="free-notes-search"
-          ><Search :size="15" /><input
-            v-model="search"
-            aria-label="Rechercher dans les notes"
-            placeholder="Rechercher une page…"
-        /></label>
-        <div
-          class="free-notes-root-drop"
-          :class="{ targeted: dropTarget === '', dragging: draggedId }"
-          @dragover.stop="dragOver($event, '')"
-          @drop.stop="dropEntry($event, '')"
-        >
-          <Folder :size="14" /> Racine des notes
-          <span :style="{ visibility: draggedId ? 'visible' : 'hidden' }"
-            >Déposer ici pour revenir à la racine</span
-          >
-        </div>
-        <nav aria-label="Arborescence des notes" @dragleave="dropTarget = null">
-          <div
-            v-for="{ row, depth } in rows"
-            :key="row.id"
-            class="free-notes-tree-row"
-            :class="{
-              active: row.id === activeId,
-              'drop-target': dropTarget === row.id,
-              'is-dragging': draggedId === row.id,
-            }"
-            :style="{ paddingLeft: 8 + Math.min(depth, 12) * 16 + 'px' }"
-            :data-note-id="row.id"
-            @contextmenu="showMenu($event, row)"
-            @dragover.stop="dragOver($event, row.id)"
-            @drop.stop="dropEntry($event, row.id)"
-          >
-            <button
-              class="icon-btn free-notes-drag"
-              draggable="true"
-              :disabled="busy || saving"
-              :aria-label="'Déplacer ' + row.title"
-              title="Glisser vers une note ou la racine · autres options dans le menu"
-              @dragstart="startDrag($event, row.id)"
-              @dragend="endDrag"
-              @click.stop
-            >
-              <GripVertical :size="13" />
-            </button>
-            <button
-              class="icon-btn free-notes-expand"
-              :aria-label="'Déplier ' + row.title"
-              :aria-expanded="expanded.includes(row.id)"
-              @click="toggle(row.id)"
-            >
-              <ChevronRight
-                :size="13"
-                :style="{
-                  transform: expanded.includes(row.id)
-                    ? 'rotate(90deg)'
-                    : undefined,
-                  opacity: tree.some((item) => item.parent === row.id)
-                    ? 1
-                    : 0.2,
-                }"
-              /></button
+    <div
+      class="free-notes-layout"
+      :style="{ '--notes-sidebar-width': sidebarWidth + 'px' }"
+    >
+      <div class="free-notes-sidebar-shell">
+        <aside class="free-notes-sidebar">
+          <div class="free-notes-sidebar-heading">
+            <span>MON ESPACE DE NOTES</span
             ><button
-              class="free-note-open"
-              :title="row.title"
-              :aria-current="row.id === activeId ? 'page' : undefined"
-              @click="open(row.id)"
+              class="icon-btn"
+              title="Nouvelle note à la racine"
+              aria-label="Nouvelle note"
+              :disabled="busy || loading"
+              @click="create('note')"
             >
-              <FileText :size="16" /><span>{{ row.title }}</span></button
-            ><button
-              class="icon-btn free-note-menu-trigger"
-              :aria-label="'Options de ' + row.title"
-              @click="showMenu($event, row)"
-            >
-              <MoreHorizontal :size="15" />
+              <Plus :size="17" />
             </button>
           </div>
-        </nav>
-        <p v-if="!tree.length && !loading" class="field-help">
-          Un espace pour tes idées, sans vidéo à créer.
-        </p>
-      </aside>
+          <label class="free-notes-search"
+            ><Search :size="15" /><input
+              v-model="search"
+              aria-label="Rechercher dans les notes"
+              placeholder="Rechercher une page…"
+          /></label>
+          <div
+            class="free-notes-root-drop"
+            :class="{ targeted: dropTarget === '', dragging: draggedId }"
+            @dragover.stop="dragOver($event, '')"
+            @drop.stop="dropEntry($event, '')"
+          >
+            <Folder :size="14" /> Racine des notes
+            <span :style="{ visibility: draggedId ? 'visible' : 'hidden' }"
+              >Déposer ici pour revenir à la racine</span
+            >
+          </div>
+          <nav
+            aria-label="Arborescence des notes"
+            @dragleave="dropTarget = null"
+          >
+            <div
+              v-for="{ row, depth } in rows"
+              :key="row.id"
+              class="free-notes-tree-row"
+              :class="{
+                active: row.id === activeId,
+                'drop-target': dropTarget === row.id,
+                'is-dragging': draggedId === row.id,
+              }"
+              :style="{ paddingLeft: 8 + depth * 16 + 'px' }"
+              :data-note-id="row.id"
+              @contextmenu="showMenu($event, row)"
+              @dragover.stop="dragOver($event, row.id)"
+              @drop.stop="dropEntry($event, row.id)"
+            >
+              <button
+                class="icon-btn free-notes-drag"
+                draggable="true"
+                :disabled="busy || saving"
+                :aria-label="'Déplacer ' + row.title"
+                title="Glisser vers une note ou la racine · autres options dans le menu"
+                @dragstart="startDrag($event, row.id)"
+                @dragend="endDrag"
+                @click.stop
+              >
+                <GripVertical :size="13" />
+              </button>
+              <button
+                class="icon-btn free-notes-expand"
+                :aria-label="'Déplier ' + row.title"
+                :aria-expanded="expanded.includes(row.id)"
+                @click="toggle(row.id)"
+              >
+                <ChevronRight
+                  :size="13"
+                  :style="{
+                    transform: expanded.includes(row.id)
+                      ? 'rotate(90deg)'
+                      : undefined,
+                    opacity: tree.some((item) => item.parent === row.id)
+                      ? 1
+                      : 0.2,
+                  }"
+                /></button
+              ><button
+                class="free-note-open"
+                :title="row.title"
+                :aria-current="row.id === activeId ? 'page' : undefined"
+                @click="open(row.id)"
+              >
+                <FileText :size="16" /><span>{{ row.title }}</span></button
+              ><button
+                class="icon-btn free-note-menu-trigger"
+                :aria-label="'Options de ' + row.title"
+                @click="showMenu($event, row)"
+              >
+                <MoreHorizontal :size="15" />
+              </button>
+            </div>
+          </nav>
+          <p v-if="!tree.length && !loading" class="field-help">
+            Un espace pour tes idées, sans vidéo à créer.
+          </p>
+        </aside>
+        <div
+          class="free-notes-sidebar-resizer"
+          role="separator"
+          tabindex="0"
+          aria-label="Largeur de la barre des notes"
+          aria-orientation="vertical"
+          :aria-valuenow="sidebarWidth"
+          aria-valuemin="200"
+          aria-valuemax="650"
+          @pointerdown="resizeSidebar"
+          @keydown.left.prevent="
+            sidebarWidth = Math.max(200, sidebarWidth - 20)
+          "
+          @keydown.right.prevent="
+            sidebarWidth = Math.min(650, sidebarWidth + 20)
+          "
+        />
+      </div>
       <section class="free-notes-content" @click.capture="noteClick">
         <p v-if="loading">Ouverture des notes…</p>
         <template v-else-if="current"
@@ -745,27 +832,63 @@ onBeforeUnmount(() => {
           ><button class="btn primary" :disabled="busy" @click="move">
             Déplacer
           </button></template
-        ><template v-else
-          ><input
-            v-model="linkQuery"
-            aria-label="Rechercher une page à lier"
-            placeholder="Titre de la page…"
-          />
-          <div class="free-notes-link-choices">
+        ><template v-else>
+          <div class="free-notes-page-actions">
             <button
-              v-for="row in noteChoices"
-              :key="row.id"
-              @click="insertLink(row)"
+              class="btn"
+              :class="{ primary: pageAction === 'associate' }"
+              @click="choosePageAction('associate')"
             >
-              <FileText :size="16" /><span
-                >{{ row.title
-                }}<small>{{ freeEntryPath(tree, row.id) }}</small></span
-              >
+              <Link2 :size="16" />Associer une note
             </button>
-            <p v-if="!noteChoices.length" class="field-help">
-              Aucune page correspondante.
-            </p>
-          </div></template
+            <button
+              class="btn"
+              :class="{ primary: pageAction === 'create' }"
+              @click="choosePageAction('create')"
+            >
+              <Plus :size="16" />Créer une note enfant
+            </button>
+          </div>
+          <form
+            v-if="pageAction === 'create'"
+            class="free-notes-create-page"
+            @submit.prevent="createLinkedChild"
+          >
+            <label for="new-page-title">Titre de la page</label>
+            <input
+              id="new-page-title"
+              v-model="pageTitle"
+              maxlength="200"
+              placeholder="Donne un titre à ta note…"
+              :disabled="busy"
+            />
+            <button class="btn primary" :disabled="busy || !pageTitle.trim()">
+              Créer et associer
+            </button>
+          </form>
+          <template v-if="pageAction === 'associate'">
+            <label class="free-notes-page-search"
+              ><Search :size="16" /><input
+                v-model="linkQuery"
+                aria-label="Rechercher une page à lier"
+                placeholder="Rechercher une note…"
+            /></label>
+            <div class="free-notes-link-choices">
+              <button
+                v-for="row in noteChoices"
+                :key="row.id"
+                @click="insertLink(row)"
+              >
+                <FileText :size="16" /><span
+                  >{{ row.title
+                  }}<small>{{ freeEntryPath(tree, row.id) }}</small></span
+                >
+              </button>
+              <p v-if="!noteChoices.length" class="field-help">
+                Aucune page correspondante.
+              </p>
+            </div></template
+          ></template
         >
       </section>
     </div>
