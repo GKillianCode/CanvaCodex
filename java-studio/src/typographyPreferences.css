@@ -1,0 +1,103 @@
+:root {
+  font-family: var(--frame-interface-font, "DM Sans", sans-serif);
+}
+:root:where([data-interface-font]:not([data-interface-font="default"]))
+  :is(button, input, textarea, select) {
+  font-family: var(--frame-interface-font);
+}
+:root .publication-app textarea,
+:root .publication-app .publication-final-text,
+:root .publication-app .publication-chapter input,
+:root .resource-app textarea,
+:root .description-example-paper,
+:root .notes-input-label textarea,
+:root .markdown-notes,
+:root .rich-document,
+:root .reader-script,
+:root .typography-writing-preview {
+  font-family: var(--frame-writing-font, inherit);
+  font-variant-numeric: var(--frame-number-variant, tabular-nums);
+}
+:root .publication-app .publication-chapter input {
+  font-variant-numeric: var(--frame-number-variant, tabular-nums);
+}
+.typography-preferences {
+  margin-bottom: 20px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+}
+.typography-preferences h3 {
+  font-size: 14px;
+  margin: 0 0 8px;
+}
+.typography-preferences p {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.7;
+}
+.typography-preference-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin: 18px 0;
+}
+.typography-preference-fields label {
+  display: grid;
+  gap: 9px;
+  font-size: 12px;
+}
+.typography-preference-fields select {
+  width: 100%;
+  min-width: 0;
+  background: transparent;
+  color: inherit;
+  padding: 10px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.typography-preferences .typography-numbers {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  margin-bottom: 16px;
+}
+.typography-writing-preview {
+  white-space: pre-wrap;
+  border: 1px solid var(--border);
+  padding: 16px;
+  border-radius: 6px;
+  line-height: 1.9;
+  font-size: 14px;
+}
+@media (max-width: 600px) {
+  .typography-preference-fields {
+    grid-template-columns: 1fr;
+  }
+}
+.video-settings .typography-preferences {
+  margin: 0;
+  border: 0;
+  border-top: 1px solid var(--border);
+  border-radius: 0;
+}
+.video-settings .typography-preferences .typography-numbers,
+.video-settings .interface-preference {
+  flex-direction: row;
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.video-settings .typography-numbers input,
+.video-settings .interface-preference input {
+  width: auto;
+  flex: none;
+}
+:root:where([data-interface-font]:not([data-interface-font="default"]))
+  :is(.production-app, .resource-app, .notes-app, .video-library) {
+  font-family: var(--frame-interface-font);
+}
+.video-settings label.interface-preference {
+  flex-direction: row;
+}
