@@ -559,8 +559,8 @@ onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
           >
             <h2>Styles des titres</h2>
             <p class="field-help">
-              Choisis le style par défaut. Chaque vidéo peut utiliser un autre
-              pack. Les signes et emojis font partie du texte copié et exporté.
+              Choisis le style commun à toutes les vidéos utilisant un modèle.
+              Les signes et emojis font partie du texte copié et exporté.
             </p>
             <div class="publication-pack-options">
               <button

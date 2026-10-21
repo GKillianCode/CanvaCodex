@@ -1,7 +1,6 @@
 <script setup>
 import { inject, computed } from "vue";
 import { Settings2, Blocks } from "lucide-vue-next";
-import { formatPublicationHeading } from "../publicationTemplates.js";
 import { workflowNavigation } from "../workflowNavigation.js";
 const props = defineProps({
   publication: Object,
@@ -96,49 +95,6 @@ function choice(slot) {
       Ton texte existant reste inchangé. Choisis un modèle pour composer la
       description automatiquement.
     </p>
-    <div
-      v-if="publication.descriptionMode === 'template'"
-      class="publication-heading-packs"
-    >
-      <div class="publication-pack-heading">
-        <span>Style des titres</span
-        ><button
-          class="text-action"
-          @click="publication.details.headingPackId = ''"
-          :disabled="!publication.details.headingPackId"
-        >
-          Suivre le style par défaut
-        </button>
-      </div>
-      <div class="publication-pack-options">
-        <button
-          v-for="pack in library.settings.headingPacks"
-          :key="pack.id"
-          type="button"
-          :aria-label="'Style ' + pack.name"
-          :aria-pressed="
-            (publication.details.headingPackId ||
-              library.settings.defaultHeadingPack) === pack.id
-          "
-          :class="{
-            active:
-              (publication.details.headingPackId ||
-                library.settings.defaultHeadingPack) === pack.id,
-          }"
-          @click="publication.details.headingPackId = pack.id"
-        >
-          <strong>{{ pack.name }}</strong
-          ><span>{{
-            formatPublicationHeading(
-              "Chapitres",
-              "chapitrage",
-              library.settings,
-              pack.id,
-            )
-          }}</span>
-        </button>
-      </div>
-    </div>
     <template
       v-if="
         publication.descriptionMode === 'template' && current?.slots?.length

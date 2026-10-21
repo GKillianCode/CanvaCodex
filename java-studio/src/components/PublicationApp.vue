@@ -310,7 +310,7 @@ async function exportPublication() {
               Utiliser le nom de la vidéo
             </button>
           </PublicationDrawer>
-          <PublicationDrawer title="Modèle et style" section-key="model">
+          <PublicationDrawer title="Modèle de description" section-key="model">
             <PublicationTemplateForm
               :publication="data"
               :templates="descriptionTemplates"

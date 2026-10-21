@@ -332,16 +332,39 @@ try {
     .getByLabel("Modèle de description", { exact: true })
     .selectOption("audit-model");
   await page.getByRole("button", { name: "Aperçu", exact: true }).click();
-  // One-click heading packs change the real output and survive reload.
+  // Styles are configured once in the shared library, never per video.
   await page.getByRole("button", { name: "Préparer", exact: true }).click();
-  await page
-    .getByRole("button", { name: "Style Encadré", exact: true })
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Style Encadré", exact: true })
+      .count(),
+    0,
+  );
+  await libraryPage
+    .getByRole("button", { name: "Rubriques et chaîne", exact: true })
     .click();
+  await libraryPage
+    .getByRole("button", {
+      name: "Modifier les réglages partagés",
+      exact: true,
+    })
+    .click();
+  await libraryPage
+    .getByRole("button", { name: "Apparence", exact: true })
+    .click();
+  await libraryPage
+    .getByRole("button", { name: "Style par défaut Encadré", exact: true })
+    .click();
+  await libraryPage
+    .getByRole("button", { name: "Enregistrer", exact: true })
+    .click();
+  await libraryPage
+    .getByText("Bibliothèque enregistrée.", { exact: true })
+    .waitFor();
   await page.getByRole("button", { name: "Aperçu", exact: true }).click();
   await final
     .filter({ hasText: "=== Ce que vous allez apprendre ===" })
     .waitFor();
-  assert.match(await final.innerText(), /=== Ma rubrique libre ===/);
   await page.getByRole("button", { name: "Préparer", exact: true }).click();
   await page.screenshot({
     path: "/tmp/frame-publication-editor.png",
@@ -378,7 +401,7 @@ try {
   await page.reload();
   await page.getByRole("button", { name: "Aperçu", exact: true }).click();
   assert.equal(await final.innerText(), text);
-  // A shared custom pack updates followers while preserving an explicit video override.
+  // A shared custom pack updates every templated video.
   await libraryPage
     .getByRole("button", { name: "Rubriques et chaîne", exact: true })
     .click();
@@ -413,7 +436,9 @@ try {
     .locator(".publication-final-text")
     .filter({ hasText: ">>> Ce que vous allez apprendre <<<" })
     .waitFor();
-  assert.match(await final.innerText(), /=== Ce que vous allez apprendre ===/);
+  await final
+    .filter({ hasText: ">>> Ce que vous allez apprendre <<<" })
+    .waitFor();
   await libraryPage.evaluate(async () =>
     (await import("/src/appearance.js")).setAppearance("light"),
   );
@@ -466,7 +491,7 @@ try {
     document
       .querySelector(".publication-final-text")
       ?.textContent.trim()
-      .startsWith("=== Chapitres ==="),
+      .startsWith(">>> Chapitres <<<"),
   );
   await libraryPage.reload();
   await libraryPage
@@ -510,6 +535,27 @@ try {
     await libraryPage.evaluate(
       () => document.documentElement.scrollWidth <= innerWidth,
     ),
+  );
+  const freshId = await page.evaluate(async () => {
+    const { videoRepository, makeVideoProject } =
+      await import("/src/videoProjects.js");
+    const p = makeVideoProject("Publication neuve");
+    await videoRepository().put(p);
+    return p.id;
+  });
+  await page.goto(route(freshId));
+  await page.getByLabel("Modèle de description", { exact: true }).waitFor();
+  assert.equal(
+    await page
+      .getByLabel("Modèle de description", { exact: true })
+      .inputValue(),
+    "frame-course-default",
+  );
+  assert.equal(
+    await page
+      .getByRole("button", { name: "Style Encadré", exact: true })
+      .count(),
+    0,
   );
   assert.deepEqual(errors, []);
   console.log(

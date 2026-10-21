@@ -290,7 +290,7 @@ test("new publication data survives normalization and long generated description
     "manual",
   );
 });
-test("heading packs decorate actual output and per-video choices override the shared default", () => {
+test("heading packs decorate actual output and ignore legacy per-video overrides", () => {
   const l = library({
     settings: {
       defaultHeadingPack: "equals",
@@ -308,7 +308,7 @@ test("heading packs decorate actual output and per-video choices override the sh
       publication({ details: { programme: "Sujet", headingPackId: "stars" } }),
       l,
     ).description,
-    "*** Au programme ***\n• Sujet",
+    "=== Au programme ===\n• Sujet",
   );
   const custom = library({
     settings: {
@@ -334,11 +334,12 @@ test("heading packs decorate actual output and per-video choices override the sh
     "→ 📚 AU PROGRAMME ←\n• Sujet",
   );
 });
-test("heading packs cover reusable blocks and custom parts and survive normalization", () => {
+test("shared heading packs cover reusable blocks and discard legacy per-video settings", () => {
   const t = structuredTemplate("personal");
   t.body = "{{bloc:b}}\n\n{{partie:p}}";
   t.slots = [{ id: "p", label: "Objectif" }];
   const l = library({
+    settings: { defaultHeadingPack: "equals" },
     templates: [t],
     blocks: [{ id: "b", heading: "À retenir", content: "Important" }],
   });
@@ -355,11 +356,35 @@ test("heading packs cover reusable blocks and custom parts and survive normaliza
   );
   assert.equal(
     normalizeWorkflow({ publication: p }).publication.details.headingPackId,
-    "equals",
+    undefined,
   );
   const missing = composePublication(
     publication({ details: { headingPackId: "removed", programme: "Sujet" } }),
     l,
   );
-  assert.match(missing.warnings.join(), /style|Style/);
+  assert.ok(!missing.warnings.join().includes("style"));
+});
+
+test("new publications default to the structured model without replacing existing free writing", () => {
+  assert.equal(normalizePublication().descriptionMode, "template");
+  assert.equal(
+    normalizePublication().descriptionRecipe.templateId,
+    "frame-course-default",
+  );
+  assert.equal(
+    normalizePublication({ description: "Texte existant" }).descriptionMode,
+    "manual",
+  );
+  assert.equal(
+    normalizePublication({ descriptionMode: "manual", description: "" })
+      .descriptionMode,
+    "manual",
+  );
+  assert.equal(
+    normalizePublication({
+      descriptionMode: "template",
+      descriptionRecipe: { templateId: "custom" },
+    }).descriptionRecipe.templateId,
+    "custom",
+  );
 });
