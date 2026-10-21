@@ -1521,3 +1521,12 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - Noms de supports facultatifs (y compris input required) : nextCreationName utilise le premier numéro libre par app dans la vidéo et makeCreation utilise ce fallback ; nom explicite prioritaire. Animation a son bouton correctement nommé.
 - Dictée locale : demande de faisabilité seulement, réponse basée sur whisper.cpp/faster-whisper officiels. Aucune dépendance IA ni modèle installé ; aucun moteur de dictée intégré dans ce chantier.
 - Documentation : docs/publication-libraries.md. QA Chrome isolé : statut/Tab/persistance ; musiques CRUD/recherche/sauvegarde ; édition via crayons pour musiques/modèles/blocs et verrouillage au reload ; composition de description puis persistance, chapitres DnD et crédits ; cinq créations de supports sans nom sur quatre ateliers ; préférence de flèches persistante. Captures clair/sombre inspectées. Tests et compilation vérifiés.
+
+## 21 octobre 2026 — revue transversale et sortie du test
+
+- Dictée vocale abandonnée à la demande utilisateur. Branche de travail standard `codex/revue-application` créée depuis fd6d5c2, fonctionnalités conservées, aucune fusion des PR 127/129.
+- Analyse uniquement : voir [rapport](docs/revue-application-2026-10-21.md). Deux risques reproduits au niveau du stockage : écrasement silencieux des notes entre deux onglets et des bibliothèques de publication entre copies concurrentes. Aucun correctif livré dans ce lot.
+- Sauvegarde complète multi-ateliers à proposer ; les exports/mirroirs par vidéo ne comprennent pas tout Frame. Ne pas présenter les thèmes comme uniquement dans le navigateur : ils ont déjà un stockage de fichiers séparé.
+- 417 tests et build réussis. Dix routes chargées dans Chrome headless isolé sans exception JavaScript. Données fictives sur 127.0.0.1:5289, aucune donnée utilisateur touchée ; aucun nouvel essai export/Kdenlive.
+- Avis : consolider fiabilité/restauration avant d’ajouter des applications. Bibliothèque médias partagée, préflight et recherche étendue sont des propositions, pas des fonctionnalités commandées.
+- Suivi : https://github.com/GKillianCode/CanvaCodex/issues/130.
