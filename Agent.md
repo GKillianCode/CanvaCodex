@@ -1602,3 +1602,5 @@ Branche `fix/workflow-header-navigation`, basée sur `fix/publication-shared-sty
 Publication reprend l’ordre de Conducteur : navigation Conducteur/Publication avant Préparer/Aperçu. Présenter et les conditions de lecture/brouillon de Conducteur restent conservés. Styles du bouton partagés dans le composant pour fonctionner aussi lorsque Conducteur est ouvert directement sans avoir chargé Publication.
 
 Validation : 446 tests Node réussis, build Vite réussi. Test navigateur isolé : retour par le titre et par l’icône depuis chaque atelier, vérification de la bonne vidéo cible et des saisies enregistrées avant navigation, changement d’atelier et ordre réel des groupes, bouton Présenter conservé. Captures des en-têtes dark/light inspectées. Serveur de test 5289 indépendant, données localhost:5173 préservées. Aucun changement fusionné automatiquement.
+
+Publication confirmée : commit `626c483`, [PR #145](https://github.com/GKillianCode/CanvaCodex/pull/145) ouverte vers `fix/publication-shared-style-default`, liée à l’issue #144. Aucune fusion automatique.
