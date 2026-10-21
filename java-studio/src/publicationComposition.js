@@ -19,7 +19,6 @@ export function normalizePublicationDetails(raw = {}) {
     });
   };
   return {
-    headingPackId: id(raw.headingPackId),
     introduction: text(raw.introduction, 5000),
     programme: text(raw.programme, 10000),
     videoUrl: text(raw.videoUrl, 2000),
@@ -100,14 +99,7 @@ export function composePublication(
     settings = library.settings,
     warnings = [];
   const heading = (key, title = settings.titles[key]) =>
-    formatPublicationHeading(title, key, settings, details.headingPackId);
-  if (
-    details.headingPackId &&
-    !settings.headingPacks.some((pack) => pack.id === details.headingPackId)
-  )
-    warnings.push(
-      "Le style choisi a été retiré. Le style par défaut est utilisé.",
-    );
+    formatPublicationHeading(title, key, settings);
   const template = availableDescriptionTemplates(library).find(
     (t) => t.id === publication.descriptionRecipe?.templateId,
   );

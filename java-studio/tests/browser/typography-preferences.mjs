@@ -66,6 +66,7 @@ try {
       await import("/src/videoProjects.js");
     const r = videoRepository(),
       p = makeVideoProject("Test police");
+    p.workflow.publication.descriptionMode = "manual";
     p.workflow.publication.description =
       "00:00 Introduction\n11:11 Explication";
     await r.put(p);

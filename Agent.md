@@ -1584,3 +1584,13 @@ Feedback immédiat intégré : suppression du pseudo-chevron hérité qui créai
 Validation : 445 tests Node, build Vite ; scénario navigateur avec 13 chapitres, fermeture/réouverture au clavier, modification enregistrée avant actualisation, persistance de l’état et contenu de l’aperçu conservé ; vérification d’une seule flèche. Parcours de composition/export et typographie rejoués ; captures dark/light inspectées. Aucun serveur ni stockage utilisateur touché. Tests isolés sur 5289.
 
 Publication confirmée : commit `09e0b69`, [PR #141](https://github.com/GKillianCode/CanvaCodex/pull/141) ouverte vers `feat/writing-font-preferences`, issue #140. PR #139 et précédentes laissées ouvertes ; aucune fusion automatique.
+
+## 21 octobre 2026 — Style de titres unique et description structurée par défaut
+
+Branche `fix/publication-shared-style-default`, [issue #142](https://github.com/GKillianCode/CanvaCodex/issues/142), basée sur `feat/publication-collapsible-sections` (PR #141 conservée ouverte). Le sélecteur de styles est retiré des vidéos. Seul le style commun défini dans Fichier → Modèles de description → Rubriques et chaîne → Apparence est utilisé pour toutes les publications composées. Les anciennes dérogations `details.headingPackId` sont ignorées et éliminées lors de la normalisation ; cette décision remplace le fonctionnement par vidéo documenté historiquement ci-dessus.
+
+Nouvelles publications : mode template avec `frame-course-default` présélectionné. Les descriptions libres existantes sans mode restent manuelles si elles contiennent du texte ; un choix explicite de rédaction libre, même vide, est conservé. Les modèles personnalisés existants restent sélectionnés. Le tiroir de la vidéo devient « Modèle de description ».
+
+Tests Node : 446 réussis, build Vite réussi. Tests adaptés pour vérifier les anciens styles individuels ignorés, les blocs/parties au style partagé, le défaut structuré et la conservation des descriptions libres. Parcours navigateur de deux publications utilisant le même réglage commun, absence de sélecteur local et présélection dans une nouvelle vidéo. Aucune fusion automatique.
+
+Publication confirmée : commit `d6aeff4`, [PR #143](https://github.com/GKillianCode/CanvaCodex/pull/143) ouverte vers `feat/publication-collapsible-sections`, liée à l’issue #142. Aucune fusion automatique.
