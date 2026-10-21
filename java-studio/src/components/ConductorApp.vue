@@ -23,6 +23,7 @@ import ConductorPage from "./ConductorPage.vue";
 import ConductorRichEditor from "./ConductorRichEditor.vue";
 import { pageMarkdown } from "../conductorPage.js";
 import VideoWorkflowNav from "./VideoWorkflowNav.vue";
+import VideoContextReturn from "./VideoContextReturn.vue";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import WorkflowAlerts from "./WorkflowAlerts.vue";
 import LibraryPreview from "./LibraryPreview.vue";
@@ -335,8 +336,7 @@ onBeforeUnmount(() => {
   >
     <WorkspaceHeader title="" back-label="Vidéo" @home="go(() => emit('home'))" @back="go(() => emit('back'))">
       <template #context
-        ><span class="creation-context-name">{{ project?.name }}</span
-        ><span class="production-test">TEST</span></template
+        ><VideoContextReturn :name="project?.name" @back="go(() => emit('back'))" /><span class="production-test">TEST</span></template
       >
       <template #file
         ><button
@@ -374,7 +374,7 @@ onBeforeUnmount(() => {
           active="conductor"
           @navigate="(name) => go(() => emit('workshop', name))"
         />
-        <div v-if="!reader && !draftSelected" class="workspace-switch">
+        <div v-if="!reader && !draftSelected" class="workspace-switch" aria-label="Mode du conducteur">
           <button :class="{ active: !reading }" @click="reading = false">
             Préparer</button
           ><button

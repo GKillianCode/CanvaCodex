@@ -25,6 +25,7 @@ import {
   musicCredits,
 } from "../publicationMusic.js";
 import VideoWorkflowNav from "./VideoWorkflowNav.vue";
+import VideoContextReturn from "./VideoContextReturn.vue";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import WorkflowAlerts from "./WorkflowAlerts.vue";
 import LibraryPreview from "./LibraryPreview.vue";
@@ -206,8 +207,10 @@ async function exportPublication() {
       @home="go(() => emit('home'))"
       @back="go(() => emit('back'))"
       ><template #context
-        ><span class="creation-context-name">{{ project?.name }}</span
-        ><span class="production-test">TEST</span></template
+        ><VideoContextReturn
+          :name="project?.name"
+          @back="go(() => emit('back'))"
+        /><span class="production-test">TEST</span></template
       ><template #file
         ><button @click="flush().catch(() => {})">Enregistrer · Ctrl S</button
         ><button :disabled="!data" @click="exportPublication">
@@ -221,6 +224,10 @@ async function exportPublication() {
               ? "Modifications en attente"
               : "Enregistré"
         }}</span>
+        <VideoWorkflowNav
+          active="publication"
+          @navigate="(name) => go(() => emit('workshop', name))"
+        />
         <div class="workspace-switch" aria-label="Mode de publication">
           <button
             :class="{ active: !reading }"
@@ -236,10 +243,8 @@ async function exportPublication() {
             Aperçu
           </button>
         </div>
-        <VideoWorkflowNav
-          active="publication"
-          @navigate="(name) => go(() => emit('workshop', name))" /></template
-    ></WorkspaceHeader>
+      </template></WorkspaceHeader
+    >
     <WorkflowAlerts
       :error="error"
       :storage-error="storageError"
