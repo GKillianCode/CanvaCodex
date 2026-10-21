@@ -1582,3 +1582,5 @@ Branche `feat/publication-collapsible-sections`, basée sur `feat/writing-font-p
 Feedback immédiat intégré : suppression du pseudo-chevron hérité qui créait une double flèche, une seule flèche à droite (droite fermé / bas ouvert), icônes fixes par section, en-têtes compacts, compteurs discrets, focus clavier et variantes dark/light cohérentes. Les tiroirs s’ouvrent indépendamment ; aucun nouveau réglage dans le document vidéo.
 
 Validation : 445 tests Node, build Vite ; scénario navigateur avec 13 chapitres, fermeture/réouverture au clavier, modification enregistrée avant actualisation, persistance de l’état et contenu de l’aperçu conservé ; vérification d’une seule flèche. Parcours de composition/export et typographie rejoués ; captures dark/light inspectées. Aucun serveur ni stockage utilisateur touché. Tests isolés sur 5289.
+
+Publication confirmée : commit `09e0b69`, [PR #141](https://github.com/GKillianCode/CanvaCodex/pull/141) ouverte vers `feat/writing-font-preferences`, issue #140. PR #139 et précédentes laissées ouvertes ; aucune fusion automatique.
