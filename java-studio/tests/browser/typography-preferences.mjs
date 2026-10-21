@@ -72,6 +72,10 @@ try {
     return p.id;
   });
   await page.goto(url + "/#/videos/" + id + "/publication");
+  await page
+    .locator(".publication-drawer > summary")
+    .filter({ hasText: /^Description$/ })
+    .click();
   assert.match(
     await page
       .getByLabel("Description YouTube", { exact: true })

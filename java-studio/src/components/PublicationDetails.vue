@@ -8,6 +8,7 @@ import {
   Hash,
   FileText,
 } from "lucide-vue-next";
+import PublicationDrawer from "./PublicationDrawer.vue";
 const props = defineProps({
   publication: Object,
   videos: Array,
@@ -21,11 +22,11 @@ const add = (key, value) => {
 };
 </script>
 <template>
-  <article
+  <PublicationDrawer
     v-if="part === 'intro' && publication.descriptionMode === 'template'"
-    class="production-card publication-detail-card"
+    title="Introduction"
+    section-key="intro"
   >
-    <h2><FileText :size="17" />Le contenu de cette vidéo</h2>
     <label
       >Introduction<textarea
         v-model="publication.details.introduction"
@@ -33,7 +34,13 @@ const add = (key, value) => {
         rows="3"
         maxlength="5000"
         placeholder="Présente le sujet et ce que la vidéo apporte…"
-      /></label
+      />
+    </label>
+  </PublicationDrawer>
+  <PublicationDrawer
+    v-if="part === 'intro' && publication.descriptionMode === 'template'"
+    title="Programme"
+    section-key="programme"
     ><label
       >Programme<textarea
         v-model="publication.details.programme"
@@ -47,17 +54,13 @@ const add = (key, value) => {
       Le programme décrit ce que l’on va apprendre. Les chapitres ci-dessous
       indiquent les horaires de la vidéo montée.
     </p>
-  </article>
+  </PublicationDrawer>
   <template v-if="part === 'details'">
-    <details
-      class="publication-detail-card"
-      :open="publication.details.technical.length > 0"
+    <PublicationDrawer
+      title="Informations techniques"
+      section-key="technical"
+      :count="publication.details.technical.length"
     >
-      <summary>
-        <Code2 :size="17" />Informations techniques<span>{{
-          publication.details.technical.length || ""
-        }}</span>
-      </summary>
       <div>
         <p class="field-help">
           Renseigne les notions et leurs versions Java. Aucun numéro de version
@@ -133,9 +136,11 @@ const add = (key, value) => {
           <Plus :size="14" />Ajouter une notion
         </button>
       </div>
-    </details>
-    <details class="publication-detail-card">
-      <summary><BookOpen :size="17" />Poursuivre l’apprentissage</summary>
+    </PublicationDrawer>
+    <PublicationDrawer
+      title="Poursuivre l’apprentissage"
+      section-key="learning"
+    >
       <div>
         <p class="field-help">
           L’ordre automatique suit la playlist de la vidéo. Un lien absent reste
@@ -197,16 +202,12 @@ const add = (key, value) => {
           Le lien de cette vidéo servira aux autres vidéos qui la recommandent.
         </p>
       </div>
-    </details>
-    <details
-      class="publication-detail-card"
-      :open="publication.details.resources.length > 0"
+    </PublicationDrawer>
+    <PublicationDrawer
+      title="Ressources complémentaires"
+      section-key="resources"
+      :count="publication.details.resources.length"
     >
-      <summary>
-        <Link2 :size="17" />Ressources complémentaires<span>{{
-          publication.details.resources.length || ""
-        }}</span>
-      </summary>
       <div>
         <p class="field-help">
           Les liens sont ajoutés au commentaire épinglé. La description affiche
@@ -243,9 +244,11 @@ const add = (key, value) => {
           <Plus :size="14" />Ajouter une ressource
         </button>
       </div>
-    </details>
-    <details class="publication-detail-card">
-      <summary><Hash :size="17" />Hashtags et mots-clés · facultatifs</summary>
+    </PublicationDrawer>
+    <PublicationDrawer
+      title="Hashtags et mots-clés · facultatifs"
+      section-key="tags"
+    >
       <div>
         <label
           >Hashtags dans la description<input
@@ -274,6 +277,6 @@ const add = (key, value) => {
           >À quoi servent les tags ? · YouTube</a
         >
       </div>
-    </details>
+    </PublicationDrawer>
   </template>
 </template>

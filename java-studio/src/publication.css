@@ -872,3 +872,143 @@
   letter-spacing: -0.5px;
   margin: 0;
 }
+.publication-drawer {
+  margin-bottom: 14px;
+  border: 1px solid var(--pub-line);
+  border-radius: 10px;
+  background: var(--pub-surface);
+  color: var(--pub-text);
+  min-width: 0;
+  overflow: hidden;
+}
+.publication-drawer > summary {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 17px 20px;
+  list-style: none;
+  font-size: 13px;
+  font-weight: 550;
+  cursor: pointer;
+  user-select: none;
+}
+.publication-drawer > summary::-webkit-details-marker {
+  display: none;
+}
+.publication-drawer > summary > svg {
+  margin-left: auto;
+  transition: transform 0.15s;
+  color: var(--pub-muted);
+}
+.publication-drawer[open] > summary > svg {
+  transform: rotate(180deg);
+}
+.publication-drawer-count {
+  font-variant-numeric: tabular-nums;
+  min-width: 23px;
+  text-align: center;
+  padding: 2px 7px;
+  border: 1px solid var(--pub-line);
+  border-radius: 5px;
+  font-size: 11px;
+  color: var(--pub-muted);
+}
+.publication-drawer[open] > summary {
+  border-bottom: 1px solid var(--pub-line);
+}
+.publication-drawer > .publication-drawer-body {
+  padding: 20px;
+}
+.publication-drawer-body > .publication-template-form {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: transparent;
+}
+.publication-drawer-body > .publication-field-label {
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+.publication-drawer-body > .publication-field-label > label,
+.publication-drawer-body > .publication-field-label > #chapters-label {
+  display: none;
+}
+.publication-drawer-body > input,
+.publication-drawer-body > textarea {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid var(--pub-line);
+  border-radius: 7px;
+  background: var(--pub-soft);
+  color: var(--pub-text);
+  font: inherit;
+  line-height: 1.7;
+}
+.publication-texts {
+  background: transparent;
+  border: 0;
+  padding: 0;
+}
+.publication-drawer .publication-music > .publication-field-label {
+  justify-content: flex-end;
+}
+.publication-drawer .publication-music > .publication-field-label > span,
+.publication-visual .publication-drawer-body > .publication-field-label {
+  display: none;
+}
+/* Use one icon-based disclosure indicator; suppress the old card chevron. */
+.publication-detail-card.publication-drawer > summary::after,
+.publication-detail-card.publication-drawer > summary::before {
+  content: none;
+  display: none;
+}
+.publication-drawer > summary::marker {
+  content: "";
+}
+.publication-detail-card.publication-drawer > summary {
+  min-height: 54px;
+  padding: 15px 19px;
+  gap: 11px;
+  transition: background 0.15s;
+}
+.publication-detail-card.publication-drawer > summary:hover {
+  background: var(--pub-soft);
+}
+.publication-detail-card.publication-drawer > summary:focus-visible {
+  outline: 2px solid var(--pub-accent);
+  outline-offset: -3px;
+  border-radius: 8px;
+}
+.publication-detail-card.publication-drawer
+  > summary
+  > .publication-drawer-title {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 550;
+  color: var(--pub-text);
+}
+.publication-drawer > summary > .publication-drawer-icon {
+  margin: 0;
+  transform: none;
+  color: var(--pub-muted);
+  flex-shrink: 0;
+}
+.publication-drawer > summary > .publication-drawer-chevron {
+  margin: 0;
+  transform: none;
+  color: var(--pub-muted);
+  flex-shrink: 0;
+}
+.publication-drawer[open] > summary > .publication-drawer-chevron {
+  transform: rotate(90deg);
+}
+.publication-drawer > summary > .publication-drawer-count {
+  font-size: 11px;
+  background: var(--pub-soft);
+  padding: 2px 7px;
+  border-color: var(--pub-line);
+}
+.publication-drawer[open] > summary > .publication-drawer-icon {
+  transform: none;
+  margin: 0;
+}

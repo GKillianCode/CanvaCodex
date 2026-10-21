@@ -20,6 +20,17 @@ try {
   page.on("pageerror", (e) => errors.push(e.message));
   await page.goto(url);
   const ids = await page.evaluate(async () => {
+    for (const key of [
+      "title",
+      "model",
+      "intro",
+      "programme",
+      "description",
+      "chapters",
+      "music",
+      "comment",
+    ])
+      localStorage.setItem("frame-publication-drawer:" + key, "true");
     const { videoRepository, makeVideoProject } =
         await import("/src/videoProjects.js"),
       { normalizePublication } = await import("/src/videoWorkflow.js"),
