@@ -21,6 +21,7 @@ import FreeNotesGraph from "./FreeNotesGraph.vue";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import ConductorRichEditor from "./ConductorRichEditor.vue";
 import {
+  freeTreeSignature,
   freeTreeRows,
   freeDescendants,
   moveFreeEntry,
@@ -47,6 +48,7 @@ const tree = ref([]),
   destination = ref(""),
   linkPicker = ref(false),
   linkQuery = ref("");
+const conflict = ref(false);
 const graphVisible = ref(false);
 async function showGraph() {
   await run(async () => {
@@ -101,6 +103,7 @@ async function createLinkedChild() {
       updatedAt: Date.now(),
     };
     tree.value = await props.repository.createFreeNote(row);
+    treeExpected = freeTreeSignature(tree.value);
     if (!expanded.value.includes(activeId.value))
       expanded.value.push(activeId.value);
     rememberUI();
@@ -157,7 +160,7 @@ async function dropEntry(event, parent) {
   if (!id || freeDescendants(tree.value, id).has(parent)) return;
   if (tree.value.find((row) => row.id === id)?.parent === parent) return;
   await run(async () => {
-    tree.value = await props.repository.saveFreeNotesTree(
+    tree.value = await saveTree(
       moveFreeEntry(tree.value, id, parent),
     );
     if (parent && !expanded.value.includes(parent)) expanded.value.push(parent);
@@ -192,6 +195,12 @@ const ancestors = computed(() => {
   }
   return rows;
 });
+let treeExpected = freeTreeSignature([]);
+async function saveTree(value) {
+  const saved = await props.repository.saveFreeNotesTree(value, treeExpected);
+  treeExpected = freeTreeSignature(saved);
+  return saved;
+}
 let bodyVersion = 0,
   bodySaved = 0,
   treeVersion = 0,
@@ -229,6 +238,7 @@ async function flush() {
     if (dirtyFlag.value) return flush();
     return;
   }
+  if (conflict.value) throw Object.assign(Error('Les notes ont changé dans un autre onglet. Télécharge ton brouillon puis recharge la version enregistrée.'), {code:'FRAME_CONFLICT'});
   if (bodyVersion === bodySaved && treeVersion === treeSaved) return;
   const save = async () => {
     saving.value = true;
@@ -237,7 +247,7 @@ async function flush() {
       while (bodyVersion !== bodySaved || treeVersion !== treeSaved) {
         if (treeVersion !== treeSaved) {
           const version = treeVersion;
-          await props.repository.saveFreeNotesTree(
+          await saveTree(
             JSON.parse(JSON.stringify(tree.value)),
           );
           treeSaved = version;
@@ -245,12 +255,14 @@ async function flush() {
         if (document.value && bodyVersion !== bodySaved) {
           const version = bodyVersion,
             snapshot = JSON.parse(JSON.stringify(document.value));
-          await props.repository.saveFreeNote(snapshot);
+          const saved = await props.repository.saveFreeNote(snapshot);
+          document.value.revision = saved.revision;
           bodySaved = version;
         }
       }
       dirtyFlag.value = false;
     } catch (e) {
+      conflict.value = e.code === "FRAME_CONFLICT";
       error.value = e.message || "Impossible d’enregistrer la note.";
       throw e;
     } finally {
@@ -265,6 +277,27 @@ async function flush() {
   }
 }
 defineExpose({ flush });
+async function exportDraft() {
+  await editor.value?.flush();
+  if (!document.value || !current.value) return;
+  downloadText('frame-note-brouillon.json', JSON.stringify({format:'frame-free-notes',version:1,tree:[{...current.value,parent:''}],notes:[document.value]},null,2),'application/json');
+}
+async function reloadNote() {
+  if (!window.confirm("Recharger la version enregistrée ? Télécharge d’abord ton brouillon si tu souhaites le garder.")) return;
+  try {
+    clearTimeout(timer);
+    const [freshTree, freshNote] = await Promise.all([props.repository.freeNotesTree(), props.repository.freeNote(activeId.value)]);
+    tree.value = freshTree;
+    treeExpected = freeTreeSignature(freshTree);
+    document.value = freshNote;
+    bodyVersion = bodySaved = treeVersion = treeSaved = 0;
+    dirtyFlag.value = false;
+    conflict.value = false;
+    error.value = "";
+    notice.value = freshNote ? "Version enregistrée rechargée." : "La note a été supprimée dans un autre onglet.";
+    if (!freshNote) { await nextTick(); emit("open", freshTree[0]?.id || ""); }
+  } catch (e) { error.value = e.message; }
+}
 function rememberUI() {
   try {
     localStorage.setItem(
@@ -293,6 +326,7 @@ async function run(action) {
     await flush();
     await action();
   } catch (e) {
+    conflict.value = e.code === "FRAME_CONFLICT";
     error.value = e.message || "Opération impossible.";
   } finally {
     busy.value = false;
@@ -309,6 +343,7 @@ async function create(kind, parent = "") {
       updatedAt: Date.now(),
     };
     tree.value = await props.repository.createFreeNote(entry);
+    treeExpected = freeTreeSignature(tree.value);
     if (parent && !expanded.value.includes(parent)) expanded.value.push(parent);
     rememberUI();
     open(entry.id);
@@ -355,6 +390,7 @@ async function remove(selectedId) {
   menu.value = null;
   await run(async () => {
     tree.value = await props.repository.removeFreeNotes(row.id);
+    treeExpected = freeTreeSignature(tree.value);
     if (ids.has(activeId.value)) emit("open", tree.value[0]?.id || "");
   });
 }
@@ -371,15 +407,16 @@ async function duplicate() {
         updatedAt: Date.now(),
       };
     tree.value = await props.repository.createFreeNote(entry);
+    treeExpected = freeTreeSignature(tree.value);
     if (source)
-      await props.repository.saveFreeNote({ ...source, id: entry.id });
+      await props.repository.saveFreeNote({ ...source, id: entry.id, revision: 0 });
     open(entry.id);
   });
 }
 async function move() {
   const id = menu.value?.id;
   await run(async () => {
-    tree.value = await props.repository.saveFreeNotesTree(
+    tree.value = await saveTree(
       moveFreeEntry(tree.value, id, destination.value),
     );
     moving.value = false;
@@ -401,7 +438,7 @@ async function reorder(delta) {
     const target = tree.value.findIndex((item) => item.id === siblings[to].id),
       next = [...tree.value];
     [next[index], next[target]] = [next[target], next[index]];
-    tree.value = await props.repository.saveFreeNotesTree(next);
+    tree.value = await saveTree(next);
   });
 }
 async function exportAll() {
@@ -453,6 +490,7 @@ async function importAll(event) {
     tree.value = await props.repository.importFreeNotes(
       JSON.parse(await file.text()),
     );
+    treeExpected = freeTreeSignature(tree.value);
     notice.value = "Notes importées sans remplacer les notes existantes.";
   });
 }
@@ -516,6 +554,7 @@ onMounted(async () => {
       if (width >= 200 && width <= 650) sidebarWidth.value = width;
     } catch {}
     tree.value = await props.repository.freeNotesTree();
+    treeExpected = freeTreeSignature(tree.value);
     let last = "";
     try {
       expanded.value = JSON.parse(
@@ -607,7 +646,7 @@ onBeforeUnmount(() => {
     </WorkspaceHeader>
     <p v-if="error" role="alert" class="video-alert">
       {{ error }}
-      <button class="btn" @click="flush().catch(() => {})">Réessayer</button>
+      <template v-if="conflict"><button class="btn" @click="exportDraft">Télécharger mon brouillon</button><button class="btn" @click="reloadNote">Recharger la version enregistrée</button></template><button v-else class="btn" @click="flush().catch(() => {})">Réessayer</button>
     </p>
     <p v-if="notice" role="status">{{ notice }}</p>
     <FreeNotesGraph

@@ -49,6 +49,7 @@ export function normalizeFreeNote(raw = {}) {
   if (!validFreeNoteId(raw.id)) throw Error("Identifiant de note invalide.");
   return {
     id: raw.id,
+    revision: Number.isSafeInteger(raw.revision) && raw.revision >= 0 ? raw.revision : 0,
     content: typeof raw.content === "string" ? raw.content.slice(0, 50000) : "",
     images: normalizeConductorImages(raw.images),
   };
@@ -204,3 +205,6 @@ export function notesWithoutFolders(raw) {
 export function directChildNotes(tree, parent) {
   return tree.filter((row) => row.kind === "note" && row.parent === parent);
 }
+
+// Ignore body-derived links/timestamps: text autosave must not conflict with a rename.
+export const freeTreeSignature = tree => JSON.stringify(normalizeFreeTree(tree).map(({id,title,parent})=>({id,title,parent})));

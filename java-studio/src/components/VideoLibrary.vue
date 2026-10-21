@@ -49,6 +49,7 @@ import VideoWorkflowOverview from "./VideoWorkflowOverview.vue";
 const props = defineProps({
     repository: Object,
     videoId: String,
+    showPlaylists: Boolean,
     folders: Object,
     folderState: Object,
   }),
@@ -74,6 +75,8 @@ const projects = ref([]),
   copyCurrent = ref(false),
   draft = ref(null),
   icons = { animation: Clapperboard, slides: PanelsTopLeft, banners: Clapperboard, thumbnails: Image };
+watch(()=>props.showPlaylists,show=>{if(show)modal.value={type:'playlists'};},{immediate:true});
+watch(modal,value=>{if(!value&&props.showPlaylists)emit('home');});
 const creationFilter=ref('all'),notices=useUndoNotifications();
 watch(() => props.videoId,()=>notices.clear());
 const messageNewVideo=ref('');
@@ -575,7 +578,7 @@ async function importVideo(event) {
         }}</small></template
       >
       <template #file-bottom><button @click="modal={type:'settings'}">Paramètres des vidéos…</button></template>
-      <template v-if="!videoId" #context><div class="workspace-nav-cluster library-shortcuts"><button class="app-menu-trigger" @click="modal={type:'playlists'}">Playlists</button><button class="app-menu-trigger" @click="emit('open-app','notes')">Notes</button><button class="app-menu-trigger" @click="emit('open-app','canvas')">Parcours</button></div></template>
+
       <template #actions
         ><span class="save-state">{{
           folderState?.name ? folderState.name : "Bibliothèque locale"

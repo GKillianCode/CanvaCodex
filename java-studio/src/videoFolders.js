@@ -222,6 +222,11 @@ export function videoFolderStorage(
           if (project) await mirror(project, []);
         }
       },
+      async importSnapshot(data) {
+        const result=await repository.importSnapshot(data);
+        for(const project of data.projects) await mirror(await repository.get(project.id),await repository.allCreations(project.id));
+        return result;
+      },
       async saveWorkflow(videoId,section,value,expected){
         const project=await repository.saveWorkflow(videoId,section,value,expected);await mirror(project,[]);return project;
       },

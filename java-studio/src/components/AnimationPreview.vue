@@ -1,4 +1,6 @@
 <script setup>
+import { releaseImages } from '../imageCache.js';
+const imageScope=Symbol('preview');
 import { useModalScroll } from "../modalScroll.js";
 import {
   resolveAnimationFormat,
@@ -109,7 +111,8 @@ onMounted(async () => {
   window.addEventListener("keydown", keyboard, true);
   try {
     await prepareFonts(s.slides);
-    await prepareImages(s.slides, s.theme);
+    if (disposed) return;
+    await prepareImages(s.slides, s.theme,imageScope);
     if (disposed) return;
     ready.value = true;
     await nextTick();
@@ -119,6 +122,7 @@ onMounted(async () => {
   }
 });
 onUnmounted(() => {
+  releaseImages(imageScope);
   disposed = true;
   a.stop();
   window.removeEventListener("keydown", keyboard, true);

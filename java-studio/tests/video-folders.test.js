@@ -271,3 +271,9 @@ test('catalog changes mirror affected video metadata into the linked folder',asy
  await controller.repository.saveVideoCatalog({},true);
  assert.equal(JSON.parse(files.get(project.id+'/video.frame.json')).videoType,'custom-short');
 });
+
+test('global restore mirrors restored video files when a local folder is linked',async()=>{
+ const files=new Map(),root=directory('Restore',files),base=repository({'video-folder-root':root}),project=makeVideoProject('Restauration'),row=makeCreation(project,'animation');attachCreation(project,row);
+ base.importSnapshot=async data=>{for(const p of data.projects)await base.put(p,data.creations.filter(c=>c.videoId===p.id));return true;};
+ const folders=videoFolderStorage(base,{});await folders.repository.importSnapshot({projects:[project],creations:[row]});assert.ok(files.has(project.id+'/video.frame.json'));assert.ok(files.has(project.id+'/animation-'+row.id+'.json'));
+});

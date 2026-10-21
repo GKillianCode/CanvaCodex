@@ -1,4 +1,6 @@
 <script setup>
+import { releaseImages } from '../imageCache.js';
+const imageScope=Symbol('preview');
 import { localAssets } from "../localAssets.js";
 import { applyLinkedComponents } from "../componentInstances.js";
 import { ref, onMounted, watch, onBeforeUnmount } from "vue";
@@ -23,7 +25,7 @@ async function draw() {
         palette.find((t) => t.id === doc.themeId) || palette[0],
         doc.projectColors,
       );
-    await Promise.all([prepareImages([slide], theme), prepareFonts([slide])]);
+    await Promise.all([prepareImages([slide], theme,imageScope), prepareFonts([slide])]);
     if (current !== generation || !canvas.value) return;
     const ctx = canvas.value.getContext("2d");
     ctx.clearRect(0, 0, 384, 216);
@@ -46,7 +48,7 @@ async function draw() {
 
 onMounted(draw);
 watch(() => [props.creation, localAssets.version], draw);
-onBeforeUnmount(() => generation++);
+onBeforeUnmount(() => {generation++;releaseImages(imageScope);});
 </script>
 <template>
   <canvas

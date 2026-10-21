@@ -1,6 +1,6 @@
 export const workflowNavigation = Symbol("frame-workflow-navigation");
 export const workspaceTools = [
-  {id:"notes",name:"Notes",description:"Idées libres, dossiers et liens entre notes.",hash:"#/notes",stage:"Réfléchir"},
+  {id:"notes",name:"Notes",description:"Idées libres, sous-notes et liens entre pages.",hash:"#/notes",stage:"Réfléchir"},
   {id:"animation",name:"Animation",description:"Créer des animations et des scènes.",hash:"#/animations",stage:"Créer"},
   {
     id: "canvas",
@@ -50,7 +50,7 @@ export function videoDestinations(project) {
       stage: "Préparer",
     },
     ...(project.creations || [])
-      .filter((c) => ["slides", "banners", "thumbnails"].includes(c.app))
+      .filter((c) => ["slides", "banners", "thumbnails", "animation"].includes(c.app))
       .map((c) => ({
         id: c.id,
         name: c.name,

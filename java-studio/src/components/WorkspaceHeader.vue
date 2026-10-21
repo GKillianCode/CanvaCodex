@@ -3,6 +3,7 @@ import { ref, inject, onMounted, onBeforeUnmount } from "vue";
 import { Sun, Moon, Home, Clapperboard, ArrowLeft } from "lucide-vue-next";
 import { appearance, setAppearance } from "../appearance.js";
 import { workflowNavigation } from "../workflowNavigation.js";
+import WorkspaceQuickLinks from './WorkspaceQuickLinks.vue';
 import ApplicationsMenu from './ApplicationsMenu.vue';
 import WorkspaceLauncher from "./WorkspaceLauncher.vue";
 const props = defineProps({
@@ -78,7 +79,7 @@ onBeforeUnmount(() => {
               @click="fileAction"
               @change="active = null"
             >
-              <slot name="file" /><hr v-if="$slots.file"><button @click="openThemes">Thèmes</button><button @click="openPublicationLibrary('#/musiques')">Bibliothèque de musiques</button><button @click="openPublicationLibrary('#/modeles-description')">Modèles de description</button><template v-if="$slots['file-bottom']"><hr><slot name="file-bottom"/></template>
+              <slot name="file" /><hr v-if="$slots.file"><button @click="openThemes">Thèmes</button><button @click="openPublicationLibrary('#/musiques')">Bibliothèque de musiques</button><button @click="openPublicationLibrary('#/modeles-description')">Modèles de description</button><hr><button @click="active=null; navigation?.openBackup()">Sauvegarde globale…</button><template v-if="$slots['file-bottom']"><hr><slot name="file-bottom"/></template>
             </div>
           </div>
           <ApplicationsMenu @open="active=null"/>
@@ -100,7 +101,7 @@ onBeforeUnmount(() => {
       </div>
       <div class="app-header-right"><slot name="actions" /></div>
     </slot>
-    <div class="workspace-utilities">
+    <div class="workspace-utilities"><WorkspaceQuickLinks/>
       <slot name="utilities" />
       <button
         class="icon-btn appearance-toggle"

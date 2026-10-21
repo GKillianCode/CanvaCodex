@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 18 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 21 octobre 2026 (Europe/Paris).
 
 Ce fichier est l’unique mémoire et point d’entrée des consignes du projet. Le lire avant de travailler, le tenir à jour et respecter le workflow GitHub ci-dessous, en distinguant travail local et publication confirmée.
 
@@ -1530,3 +1530,15 @@ Validation :404tests passent, build réussi (chunk existant). Tests hiérarchie/
 - 417 tests et build réussis. Dix routes chargées dans Chrome headless isolé sans exception JavaScript. Données fictives sur 127.0.0.1:5289, aucune donnée utilisateur touchée ; aucun nouvel essai export/Kdenlive.
 - Avis : consolider fiabilité/restauration avant d’ajouter des applications. Bibliothèque médias partagée, préflight et recherche étendue sont des propositions, pas des fonctionnalités commandées.
 - Suivi : https://github.com/GKillianCode/CanvaCodex/issues/130.
+
+## 21 octobre 2026 — corrections de fiabilité et navigation commune
+
+- Branche `fix/frame-reliability` depuis la revue, sans fusion des PR précédentes. Suivi : https://github.com/GKillianCode/CanvaCodex/issues/132.
+- Notes : révision atomique du corps, signature de l’arbre pour renommage/déplacement. Bibliothèques musique/modèles : comparaison atomique de la version chargée. Conflit visible avec téléchargement du brouillon puis rechargement confirmé. JSON de note avec images importable ; bibliothèques en brouillon JSON pour récupération manuelle.
+- Fichier → Sauvegarde globale : inventaire, export des données navigateur et bibliothèques physiques. Restauration additive sans écrasement, transaction IndexedDB, reprise idempotente des fichiers. Maximum import 256 Mo ; permissions et exports vidéo non transférés. Les fichiers et le navigateur ne partagent pas de transaction unique. Pas de versionnement automatique sur disque ajouté.
+- Historique : grandes chaînes partagées entre états, limite ramenée à un état si nécessaire. Cache images LRU/poids avec réservations pour les documents et exports actifs, libérées au démontage. Ne pas annoncer une limite stricte de RAM : les images actives peuvent dépasser le budget de cache.
+- Ateliers chargés à la demande et dépendances séparées, compilation sans chunk JavaScript >500 ko. Pas de réécriture globale des grands éditeurs.
+- Demande complémentaire : Playlists, Notes et Parcours dans WorkspaceHeader commun à toutes les pages, doublon d’accueil retiré ; route #/playlists persistante. Navigation attend les sauvegardes. Animations liées réintégrées au lanceur Ctrl K ; ancienne mention de dossiers dans les notes supprimée.
+- Documentation : docs/fiabilite-et-sauvegardes.md. Validation : 427 tests réussis, build réussi sans avertissement de taille ; navigateur Chrome isolé : conflits entre onglets, récupération/rechargement et suppression distante, restauration JSON via interface, idempotence, reconstruction des trois fichiers de bibliothèques après retrait des fixtures, refus de conflit et rollback IndexedDB, rendu de six images totalisant plus de 32 Mio décodés, accès rapides sur douze pages et actualisation de #/playlists. Captures clair/sombre inspectées. Aucun nouvel export long ni import Kdenlive ; données utilisateur de localhost:5173 préservées.
+
+- Publication confirmée : [PR #133](https://github.com/GKillianCode/CanvaCodex/pull/133), branche `fix/frame-reliability`, base `codex/revue-application`. PR ouverte, non fusionnée. Serveur QA 5289 arrêté ; serveur utilisateur 5173 préservé.

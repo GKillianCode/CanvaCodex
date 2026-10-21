@@ -1,6 +1,6 @@
 <script setup>
 import {installCatalog,catalogKey} from "./videoCatalog.js";
-import { ref, shallowRef, onMounted, onBeforeUnmount, provide } from "vue";
+import { ref, shallowRef, onMounted, onBeforeUnmount, provide, defineAsyncComponent } from "vue";
 import { applicationFromHash, applicationHash } from "./applicationRoutes.js";
 import {
   videoRepository,
@@ -11,15 +11,25 @@ import {
 import { useGlobalModalScroll } from "./modalScroll.js";
 import { videoFolderStorage } from "./videoFolders.js";
 import UndoNotifications from "./components/UndoNotifications.vue";
-import ComponentEditorApp from "./components/ComponentEditorApp.vue";
-import StudioApp from "./StudioApp.vue";
+const ComponentEditorApp = defineAsyncComponent(() => import("./components/ComponentEditorApp.vue"));
+const StudioApp = defineAsyncComponent(() => import("./StudioApp.vue"));
 import { workflowNavigation, navigateAfterSave } from "./workflowNavigation.js";
-import PublicationLibraryApp from './components/PublicationLibraryApp.vue';
-import FreeNotesApp from './components/FreeNotesApp.vue';
+const PublicationLibraryApp = defineAsyncComponent(() => import("./components/PublicationLibraryApp.vue"));
+const FreeNotesApp = defineAsyncComponent(() => import("./components/FreeNotesApp.vue"));
 import VideoLibrary from "./components/VideoLibrary.vue";
-import VideoCanvasApp from "./components/VideoCanvasApp.vue";
-import ConductorApp from "./components/ConductorApp.vue";
-import PublicationApp from "./components/PublicationApp.vue";
+const VideoCanvasApp = defineAsyncComponent(() => import("./components/VideoCanvasApp.vue"));
+const ConductorApp = defineAsyncComponent(() => import("./components/ConductorApp.vue"));
+const PublicationApp = defineAsyncComponent(() => import("./components/PublicationApp.vue"));
+const WorkspaceBackupDialog = defineAsyncComponent(() => import('./components/WorkspaceBackupDialog.vue'));
+const backupVisible = ref(false), restoredVersion = ref(0);
+async function restored() { catalogReady = null; await loadCatalog(); restoredVersion.value++; }
+async function flushCurrent() {
+  for (const app of [resourceApp.value, studio.value, canvasApp.value, workflowApp.value, componentApp.value, notesApp.value]) await app?.flush?.();
+}
+async function openBackup() {
+  try { await flushCurrent(); backupVisible.value=true; }
+  catch(e) { error.value=e.message; }
+}
 useGlobalModalScroll();
 const folderState = ref({
   supported: typeof window.showDirectoryPicker === "function",
@@ -49,6 +59,7 @@ provide(workflowNavigation, {
   hash: currentHash,
   repository,
   navigate,
+  openBackup,
 });
 let generation = 0;
 let catalogReady;
@@ -127,7 +138,7 @@ async function syncRoute() {
       video.value = route;
     } else {
       context.value = null;
-      active.value = app;
+      active.value = app === 'playlists' ? null : app;
       video.value = route;
     }
     navigationProject.value = video.value?.videoId
@@ -166,6 +177,7 @@ onMounted(() => {
 onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
 </script>
 <template>
+  <WorkspaceBackupDialog v-if="backupVisible" :repository="repository" @close="backupVisible=false" @restored="restored"/>
   <UndoNotifications/>
   <div v-if="folderState.error" class="folder-warning" role="alert">
     {{ folderState.error }} Ta copie dans le navigateur est conservée.<button
@@ -185,13 +197,14 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
   <div v-if="loading" class="video-loading">Ouverture de ton espace…</div>
   <ComponentEditorApp v-else-if="componentId" ref="componentApp" :id="componentId" :key="componentId"/><VideoCanvasApp
     v-else-if="active === 'canvas'"
+    :key="restoredVersion"
     ref="canvasApp"
     :repository="repository"
     @home="navigate('#/')"
     @open="(id) => navigate(videoHash(id))"
   />
   <PublicationLibraryApp v-else-if="['music','descriptionTemplates'].includes(active)" :key="active" ref="resourceApp" :repository="repository" :kind="active==='music'?'music':'templates'" @home="navigate('#/')"/>
-  <FreeNotesApp v-else-if="active==='notes'" :key="currentHash" ref="notesApp" :repository="repository" :note-id="currentHash.match(/^#\/notes\/([\w-]+)$/)?.[1]||''" @home="navigate('#/')" @open="id=>navigate(id?'#/notes/'+id:'#/notes')"/>
+  <FreeNotesApp v-else-if="active==='notes'" :key="currentHash + restoredVersion" ref="notesApp" :repository="repository" :note-id="currentHash.match(/^#\/notes\/([\w-]+)$/)?.[1]||''" @home="navigate('#/')" @open="id=>navigate(id?'#/notes/'+id:'#/notes')"/>
   <StudioApp
     v-else-if="active"
     ref="studio"
@@ -215,11 +228,12 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     @open-creation="(id, app, key) => navigate(videoHash(id, app, key))"
   /><VideoLibrary
     v-else
-    :key="video?.videoId || 'home'"
+    :key="(video?.videoId || 'home') + restoredVersion"
     :repository="repository"
     :folders="folders"
     :folder-state="folderState"
     :video-id="video?.videoId"
+    :show-playlists="currentHash === '#/playlists'"
     @home="navigate('#/')"
     @open-app="(id) => navigate(applicationHash(id))"
     @open-video="(id) => navigate(videoHash(id))"
