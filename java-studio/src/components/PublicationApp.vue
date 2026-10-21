@@ -1,5 +1,5 @@
 <script setup>
-import { ref, computed, watch } from "vue";
+import { ref, computed, watch, nextTick } from "vue";
 import {
   Copy,
   Plus,
@@ -12,7 +12,11 @@ import {
   ChevronRight,
   GripVertical,
 } from "lucide-vue-next";
-import DescriptionComposer from "./DescriptionComposer.vue";
+import PublicationTemplateForm from "./PublicationTemplateForm.vue";
+import PublicationDetails from "./PublicationDetails.vue";
+import PublicationPreview from "./PublicationPreview.vue";
+import { usePublicationComposition } from "../usePublicationComposition.js";
+import "../publication.css";
 import PublicationMusic from "./PublicationMusic.vue";
 import {
   musicLibraryKey,
@@ -43,10 +47,27 @@ const {
   storageError,
   load,
   save,
-  flush,
+  flush: flushWorkflow,
   recover,
   exportDraft,
 } = useVideoWorkflow(props, "publication");
+const reading = ref(false);
+const {
+  library: sharedLibrary,
+  templates: descriptionTemplates,
+  videos,
+  neighbors,
+  result: composed,
+  description: finalDescription,
+  ready: compositionReady,
+  error: compositionError,
+  refresh: refreshComposition,
+} = usePublicationComposition(props, project, data);
+async function flush() {
+  await refreshComposition();
+  await nextTick();
+  await flushWorkflow();
+}
 defineExpose({ flush });
 const notice = ref(""),
   chapterUndo = ref(null);
@@ -76,6 +97,10 @@ function cycleThumbnail(delta) {
 }
 const issues = computed(() => chapterErrors(data.value?.chapters || [])),
   formatted = computed(() => chaptersText(data.value?.chapters || []));
+const publicationWarnings = computed(() => [
+  ...composed.value.warnings,
+  ...issues.value,
+]);
 async function go(action) {
   try {
     await flush();
@@ -98,7 +123,7 @@ function addChapter() {
       id: crypto.randomUUID(),
       sequenceId: "",
       time: "",
-      title: "",
+      title: "Chapitre " + (data.value.chapters.length + 1),
     });
 }
 function moveChapter(i, delta) {
@@ -154,13 +179,14 @@ function removeChapter(i) {
 }
 async function exportPublication() {
   try {
-    const music = musicCredits(
-      normalizeMusicLibrary(await props.repository.getSetting(musicLibraryKey)),
-      data.value.musicIds,
-    );
+    await flush();
+    const extra =
+      data.value.descriptionMode === "template"
+        ? ""
+        : `\n\nCHAPITRES\n${formatted.value}\n\nMUSIQUES DE FOND\n${musicCredits(normalizeMusicLibrary(await props.repository.getSetting(musicLibraryKey)), data.value.musicIds)}`;
     downloadText(
       "publication.txt",
-      `TITRE\n${data.value.title}\n\nDESCRIPTION\n${data.value.description}\n\nCHAPITRES\n${formatted.value}\n\nMUSIQUES DE FOND\n${music}\n\nCOMMENTAIRE ÉPINGLÉ\n${data.value.comment}`,
+      `TITRE\n${data.value.title || project.value.name}\n\nDESCRIPTION\n${finalDescription.value}${extra}\n\nCOMMENTAIRE ÉPINGLÉ\n${composed.value.comment}${composed.value.tags ? "\n\nTAGS YOUTUBE\n" + composed.value.tags : ""}`,
     );
   } catch (e) {
     error.value = e.message || "Export impossible.";
@@ -170,8 +196,8 @@ async function exportPublication() {
 <template>
   <main
     class="production-app publication-app"
-    @keydown.ctrl.s.prevent="save().catch(() => {})"
-    @keydown.meta.s.prevent="save().catch(() => {})"
+    @keydown.ctrl.s.prevent="flush().catch(() => {})"
+    @keydown.meta.s.prevent="flush().catch(() => {})"
   >
     <WorkspaceHeader
       title=""
@@ -182,7 +208,7 @@ async function exportPublication() {
         ><span class="creation-context-name">{{ project?.name }}</span
         ><span class="production-test">TEST</span></template
       ><template #file
-        ><button @click="save().catch(() => {})">Enregistrer · Ctrl S</button
+        ><button @click="flush().catch(() => {})">Enregistrer · Ctrl S</button
         ><button :disabled="!data" @click="exportPublication">
           Exporter les textes de publication
         </button></template
@@ -193,8 +219,23 @@ async function exportPublication() {
             : dirty
               ? "Modifications en attente"
               : "Enregistré"
-        }}</span
-        ><VideoWorkflowNav
+        }}</span>
+        <div class="workspace-switch" aria-label="Mode de publication">
+          <button
+            :class="{ active: !reading }"
+            :aria-pressed="!reading"
+            @click="reading = false"
+          >
+            Préparer</button
+          ><button
+            :class="{ active: reading }"
+            :aria-pressed="reading"
+            @click="reading = true"
+          >
+            Aperçu
+          </button>
+        </div>
+        <VideoWorkflowNav
           active="publication"
           @navigate="(name) => go(() => emit('workshop', name))" /></template
     ></WorkspaceHeader>
@@ -202,7 +243,7 @@ async function exportPublication() {
       :error="error"
       :storage-error="storageError"
       :recovery="!!recovery"
-      @retry="save().catch(() => {})"
+      @retry="flush().catch(() => {})"
       @reload="load"
       @export="exportDraft"
       @recover="recover"
@@ -214,7 +255,28 @@ async function exportPublication() {
       <p v-if="notice" class="publication-feedback" role="status">
         {{ notice }}
       </p>
-      <div class="publication-layout">
+      <div v-if="compositionError" class="publication-feedback" role="alert">
+        {{ compositionError
+        }}<button class="btn" @click="refreshComposition">Réessayer</button>
+      </div>
+      <div
+        v-if="publicationWarnings.length"
+        class="publication-composition-warnings"
+        role="status"
+      >
+        <p v-for="warning in publicationWarnings" :key="warning">
+          {{ warning }}
+        </p>
+      </div>
+      <PublicationPreview
+        v-if="reading"
+        :title="data.title || project.name"
+        :description="finalDescription"
+        :comment="composed.comment"
+        :tags="composed.tags"
+        @copy="copy"
+      />
+      <div v-else class="publication-layout">
         <section class="publication-writing">
           <article class="production-card publication-title">
             <div class="publication-field-label">
@@ -243,33 +305,55 @@ async function exportPublication() {
               Utiliser le nom de la vidéo
             </button>
           </article>
+          <PublicationTemplateForm
+            :publication="data"
+            :templates="descriptionTemplates"
+            :library="sharedLibrary"
+            :ready="compositionReady"
+          />
+          <PublicationDetails
+            :publication="data"
+            :videos="videos"
+            :neighbors="neighbors"
+            :video-id="videoId"
+            part="intro"
+          />
           <article class="production-card publication-texts">
             <section>
               <div class="publication-field-label">
                 <label for="publication-description">Description</label
                 ><button
                   class="icon-btn"
-                  :disabled="!data.description.trim()"
+                  :disabled="
+                    !finalDescription.trim() ||
+                    (!compositionReady && data.descriptionMode === 'template')
+                  "
                   title="Copier : Description"
                   aria-label="Copier : Description"
-                  @click="copy(data.description, 'Description')"
+                  @click="copy(finalDescription, 'Description')"
                 >
                   <Copy :size="16" />
                 </button>
               </div>
               <textarea
+                v-if="data.descriptionMode !== 'template'"
                 id="publication-description"
                 v-model="data.description"
                 aria-label="Description YouTube"
                 rows="6"
                 maxlength="20000"
                 placeholder="Dans cette vidéo…"
-              /><DescriptionComposer
-                :repository="repository"
-                :playlist="project.playlist"
-                v-model="data.description"
-                v-model:selection="data.descriptionRecipe"
               />
+              <p v-if="data.descriptionMode === 'template'" class="field-help">
+                La description est composée par le modèle.
+                <button class="text-action" @click="reading = true">
+                  Voir le résultat dans Aperçu
+                </button>
+              </p>
+              <p class="publication-character-count">
+                {{ finalDescription.length.toLocaleString("fr-FR") }} / 5 000
+                caractères
+              </p>
             </section>
             <section>
               <div class="publication-field-label">
@@ -389,6 +473,13 @@ async function exportPublication() {
                 />
               </details>
             </section>
+            <PublicationDetails
+              :publication="data"
+              :videos="videos"
+              :neighbors="neighbors"
+              :video-id="videoId"
+              part="details"
+            />
             <PublicationMusic
               :repository="repository"
               v-model="data.musicIds"
@@ -398,10 +489,10 @@ async function exportPublication() {
                 <label for="publication-comment">Commentaire épinglé</label
                 ><button
                   class="icon-btn"
-                  :disabled="!data.comment.trim()"
+                  :disabled="!composed.comment.trim()"
                   title="Copier : Commentaire épinglé"
                   aria-label="Copier : Commentaire épinglé"
-                  @click="copy(data.comment, 'Commentaire')"
+                  @click="copy(composed.comment, 'Commentaire')"
                 >
                   <Copy :size="16" />
                 </button>
@@ -412,8 +503,12 @@ async function exportPublication() {
                 aria-label="Commentaire épinglé"
                 rows="6"
                 maxlength="20000"
-                placeholder="Les exemples et ressources de la vidéo…"
+                placeholder="Ton message personnel à épingler…"
               />
+              <p v-if="data.details.resources.length" class="field-help">
+                Les liens de ressources seront ajoutés automatiquement à ce
+                texte. Consulte le commentaire final dans Aperçu.
+              </p>
             </section>
           </article>
         </section>
