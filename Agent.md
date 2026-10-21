@@ -1592,3 +1592,5 @@ Branche `fix/publication-shared-style-default`, [issue #142](https://github.com/
 Nouvelles publications : mode template avec `frame-course-default` présélectionné. Les descriptions libres existantes sans mode restent manuelles si elles contiennent du texte ; un choix explicite de rédaction libre, même vide, est conservé. Les modèles personnalisés existants restent sélectionnés. Le tiroir de la vidéo devient « Modèle de description ».
 
 Tests Node : 446 réussis, build Vite réussi. Tests adaptés pour vérifier les anciens styles individuels ignorés, les blocs/parties au style partagé, le défaut structuré et la conservation des descriptions libres. Parcours navigateur de deux publications utilisant le même réglage commun, absence de sélecteur local et présélection dans une nouvelle vidéo. Aucune fusion automatique.
+
+Publication confirmée : commit `d6aeff4`, [PR #143](https://github.com/GKillianCode/CanvaCodex/pull/143) ouverte vers `feat/publication-collapsible-sections`, liée à l’issue #142. Aucune fusion automatique.
