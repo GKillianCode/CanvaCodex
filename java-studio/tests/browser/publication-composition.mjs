@@ -213,6 +213,9 @@ try {
     })
     .click();
   await libraryPage
+    .getByRole("button", { name: "Textes communs", exact: true })
+    .click();
+  await libraryPage
     .getByLabel("Titre commun · Au programme", { exact: true })
     .fill("Ce que vous allez apprendre");
   await libraryPage
@@ -277,6 +280,7 @@ try {
       exact: true,
     })
     .click();
+  await libraryPage.locator(".description-source > summary").click();
   await libraryPage
     .getByLabel("Structure de la description", { exact: true })
     .click();
@@ -374,6 +378,9 @@ try {
     })
     .click();
   await libraryPage
+    .getByRole("button", { name: "Apparence", exact: true })
+    .click();
+  await libraryPage
     .getByRole("button", { name: "Créer un style", exact: true })
     .click();
   await libraryPage
@@ -412,6 +419,87 @@ try {
     path: "/tmp/frame-publication-library.png",
     fullPage: true,
   });
+  // Reorder the shared model itself using a real browser drag-and-drop.
+  await libraryPage
+    .getByRole("button", { name: "Structure", exact: true })
+    .click();
+  await libraryPage
+    .getByLabel("Modèle partagé à organiser", { exact: true })
+    .selectOption("audit-model");
+  await libraryPage
+    .getByRole("button", {
+      name: "Modifier les réglages partagés",
+      exact: true,
+    })
+    .click();
+  const organizer = libraryPage.getByRole("region", {
+    name: "Ordre des sections",
+  });
+  const list = libraryPage.locator(
+    ".description-settings-structure .description-sections",
+  );
+  await list
+    .getByRole("button", { name: "Déplacer Chapitres", exact: true })
+    .dragTo(list.locator("li").first(), { targetPosition: { x: 100, y: 5 } });
+  assert.equal(
+    await list.locator(".description-section-name strong").first().innerText(),
+    "Chapitres",
+  );
+  await libraryPage
+    .getByRole("button", { name: "Enregistrer", exact: true })
+    .click();
+  await libraryPage
+    .getByText("Bibliothèque enregistrée.", { exact: true })
+    .waitFor();
+  await page.waitForFunction(() =>
+    document
+      .querySelector(".publication-final-text")
+      ?.textContent.trim()
+      .startsWith("=== Chapitres ==="),
+  );
+  await libraryPage.reload();
+  await libraryPage
+    .getByRole("button", { name: "Rubriques et chaîne", exact: true })
+    .click();
+  await libraryPage
+    .getByLabel("Modèle partagé à organiser", { exact: true })
+    .selectOption("audit-model");
+  assert.equal(
+    await libraryPage
+      .locator(
+        ".description-settings-structure .description-section-name strong",
+      )
+      .first()
+      .innerText(),
+    "Chapitres",
+  );
+  for (const mode of ["light", "dark"]) {
+    await libraryPage.evaluate(
+      async (mode) => (await import("/src/appearance.js")).setAppearance(mode),
+      mode,
+    );
+    await libraryPage.waitForTimeout(200);
+    await libraryPage.screenshot({
+      path: "/tmp/frame-description-structure-" + mode + ".png",
+      fullPage: true,
+    });
+  }
+  await libraryPage
+    .getByRole("button", { name: "Textes communs", exact: true })
+    .click();
+  await libraryPage.screenshot({
+    path: "/tmp/frame-description-content.png",
+    fullPage: true,
+  });
+  await libraryPage.setViewportSize({ width: 850, height: 1000 });
+  await libraryPage
+    .getByRole("button", { name: "Structure", exact: true })
+    .click();
+  assert.ok(
+    await libraryPage.evaluate(
+      () => document.documentElement.scrollWidth <= innerWidth,
+    ),
+  );
   assert.deepEqual(errors, []);
   console.log(
     "OK: editable shared model, custom blocks/parts, programme/chapters, optional links, shared headings in two videos, preview/copy/export parity, free-text preservation and reload.",

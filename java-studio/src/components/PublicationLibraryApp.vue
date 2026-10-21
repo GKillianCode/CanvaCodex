@@ -10,9 +10,15 @@ import {
   GripVertical,
   Pencil,
   ArrowLeft,
+  Layers,
+  Palette,
+  AlignLeft,
+  Blocks,
+  Settings2,
 } from "lucide-vue-next";
 import { downloadText } from "../useVideoWorkflow.js";
 import DescriptionTokenEditor from "./DescriptionTokenEditor.vue";
+import DescriptionStructureEditor from "./DescriptionStructureEditor.vue";
 import "../publication.css";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import { workflowNavigation } from "../workflowNavigation.js";
@@ -89,6 +95,17 @@ const visible = computed(() => {
 const current = computed(() =>
   rows.value.find((row) => row.id === selected.value),
 );
+const settingsView = ref("structure"),
+  settingsTemplateId = ref("frame-course-default");
+const settingsTemplate = computed(
+  () =>
+    library.value.templates.find((t) => t.id === settingsTemplateId.value) ||
+    library.value.templates[0],
+);
+function updateSettingsBody(value) {
+  if (!editing.value.has("settings") || !settingsTemplate.value) return;
+  settingsTemplate.value.body = value;
+}
 const packEditorId = ref("");
 const currentPack = computed(
   () =>
@@ -306,7 +323,11 @@ onMounted(() => window.addEventListener("beforeunload", beforeUnload));
 onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
 </script>
 <template>
-  <main class="resource-app" @keydown.ctrl.s.prevent="save().catch(() => {})">
+  <main
+    class="resource-app"
+    :class="{ 'description-library-app': !isMusic }"
+    @keydown.ctrl.s.prevent="save().catch(() => {})"
+  >
     <WorkspaceHeader
       :title="isMusic ? 'Musiques' : 'Modèles de description'"
       @back="emit('home')"
@@ -331,24 +352,33 @@ onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
       ><template #utilities
         ><span class="notes-save-state">{{
           dirty ? "Modifications en attente" : "Enregistré"
-        }}</span></template
+        }}</span>
+        <button
+          v-if="!isMusic"
+          class="btn primary description-library-save"
+          :disabled="busy || loading || !loadedOk"
+          @click="save().catch(() => {})"
+        >
+          <Save :size="16" />Enregistrer
+        </button></template
       ></WorkspaceHeader
     >
     <div class="resource-heading">
       <div>
         <span class="eyebrow">PUBLICATION · BIBLIOTHÈQUE PARTAGÉE</span>
         <h1>
-          {{ isMusic ? "Musiques de fond" : "Des descriptions à composer" }}
+          {{ isMusic ? "Musiques de fond" : "Modèles de description" }}
         </h1>
         <p>
           {{
             isMusic
               ? "Tes titres et leurs crédits, disponibles dans chaque vidéo."
-              : "Un socle fixe, des blocs réutilisables et des parties adaptées à chaque vidéo."
+              : "Structure, contenu et apparence : une bibliothèque commune à tes vidéos."
           }}
         </p>
       </div>
       <button
+        v-if="isMusic"
         class="btn primary"
         :disabled="busy || loading || !loadedOk"
         @click="save().catch(() => {})"
@@ -376,17 +406,17 @@ onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
             :class="{ active: tab === 'templates' }"
             @click="changeTab('templates')"
           >
-            Modèles</button
+            <FileText :size="16" />Modèles</button
           ><button
             :class="{ active: tab === 'blocks' }"
             @click="changeTab('blocks')"
           >
-            Blocs réutilisables</button
+            <Blocks :size="16" />Blocs réutilisables</button
           ><button
             :class="{ active: settingsMode }"
             @click="changeTab('settings')"
           >
-            Rubriques et chaîne
+            <Settings2 :size="16" />Rubriques et chaîne
           </button>
         </div>
         <label v-if="!settingsMode" class="resource-search"
@@ -447,8 +477,8 @@ onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
         class="resource-editor publication-shared-settings"
       >
         <div class="resource-editor-heading">
-          <span class="eyebrow">COMMUN À TOUTES LES VIDÉOS EN MODE MODÈLE</span
-          ><button
+          <h2>Réglages partagés</h2>
+          <button
             class="btn"
             @click="editing.add('settings')"
             v-if="!editing.has('settings')"
@@ -456,134 +486,207 @@ onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
             <Pencil :size="15" />Modifier les réglages partagés
           </button>
         </div>
-        <p class="field-help">
-          Les intitulés ci-dessous se mettent à jour dans tous les modèles à
-          balises. Les chapitres et les descriptions libres propres à chaque
-          vidéo ne sont pas renommés.
-        </p>
+        <div class="description-settings-intro">
+          <p>
+            Définis l’ordre de tes sections, leur style et les textes communs.
+          </p>
+        </div>
+        <nav
+          class="description-settings-tabs"
+          aria-label="Réglages des descriptions"
+        >
+          <button
+            :class="{ active: settingsView === 'structure' }"
+            @click="settingsView = 'structure'"
+          >
+            <Layers :size="16" />Structure
+          </button>
+          <button
+            :class="{ active: settingsView === 'appearance' }"
+            @click="settingsView = 'appearance'"
+          >
+            <Palette :size="16" />Apparence
+          </button>
+          <button
+            :class="{ active: settingsView === 'content' }"
+            @click="settingsView = 'content'"
+          >
+            <AlignLeft :size="16" />Textes communs
+          </button>
+        </nav>
+        <div
+          v-if="settingsView === 'structure'"
+          class="description-structure-model"
+        >
+          <label
+            >Modèle à organiser<select
+              v-model="settingsTemplateId"
+              aria-label="Modèle partagé à organiser"
+            >
+              <option
+                v-for="model in library.templates"
+                :key="model.id"
+                :value="model.id"
+              >
+                {{ model.name }}
+              </option>
+            </select></label
+          >
+          <p>
+            Le déplacement modifie ce modèle partagé. Les autres modèles gardent
+            leur propre ordre.
+          </p>
+        </div>
         <fieldset
           class="resource-editor-fields"
           :disabled="busy || !editing.has('settings')"
         >
-          <h2>Styles des titres</h2>
-          <p class="field-help">
-            Choisis le style par défaut. Chaque vidéo peut utiliser un autre
-            pack. Les signes et emojis font partie du texte copié et exporté.
-          </p>
-          <div class="publication-pack-options">
-            <button
-              v-for="pack in library.settings.headingPacks"
-              :key="pack.id"
-              type="button"
-              :aria-label="'Style par défaut ' + pack.name"
-              :aria-pressed="library.settings.defaultHeadingPack === pack.id"
-              :class="{
-                active: library.settings.defaultHeadingPack === pack.id,
-              }"
-              @click="
-                library.settings.defaultHeadingPack = pack.id;
-                packEditorId = pack.id;
-              "
-            >
-              <strong>{{ pack.name }}</strong
-              ><span>{{
-                formatPublicationHeading(
-                  "Chapitres",
-                  "chapitrage",
-                  library.settings,
-                  pack.id,
-                )
-              }}</span>
-            </button>
-          </div>
-          <div class="publication-pack-editor" v-if="currentPack">
-            <div class="publication-field-grid">
-              <label
-                >Nom du style<input
-                  v-model="currentPack.name"
-                  aria-label="Nom du style"
-                  maxlength="80" /></label
-              ><label class="publication-pack-checkbox"
-                ><input
-                  type="checkbox"
-                  v-model="currentPack.uppercase"
-                  aria-label="Titres en majuscules"
-                />Titres en majuscules</label
-              ><label
-                >Signes avant le titre<input
-                  v-model="currentPack.prefix"
-                  aria-label="Signes avant le titre"
-                  maxlength="60"
-                  placeholder="===, ***, —…" /></label
-              ><label
-                >Signes après le titre<input
-                  v-model="currentPack.suffix"
-                  aria-label="Signes après le titre"
-                  maxlength="60"
-              /></label>
-            </div>
-            <details>
-              <summary>Emojis des rubriques · facultatifs</summary>
-              <div class="publication-field-grid">
-                <label
-                  v-for="(label, key) in {
-                    ...publicationTitles,
-                    custom: 'Rubriques personnalisées',
-                  }"
-                  :key="key"
-                  >{{ label
-                  }}<input
-                    v-model="currentPack.emojis[key]"
-                    :aria-label="'Emoji · ' + label"
-                    maxlength="32"
-                    placeholder="Aucun"
-                /></label>
-              </div>
-            </details>
-            <div class="production-actions">
+          <section
+            v-if="settingsView === 'structure'"
+            class="description-settings-structure"
+          >
+            <DescriptionStructureEditor
+              v-if="settingsTemplate"
+              :template="settingsTemplate"
+              :library="library"
+              :disabled="busy || !editing.has('settings')"
+              @update:body="updateSettingsBody"
+            />
+          </section>
+          <section
+            v-show="settingsView === 'appearance'"
+            class="description-settings-appearance"
+          >
+            <h2>Styles des titres</h2>
+            <p class="field-help">
+              Choisis le style par défaut. Chaque vidéo peut utiliser un autre
+              pack. Les signes et emojis font partie du texte copié et exporté.
+            </p>
+            <div class="publication-pack-options">
               <button
-                class="btn"
-                :disabled="library.settings.headingPacks.length >= 20"
-                @click="addPack"
+                v-for="pack in library.settings.headingPacks"
+                :key="pack.id"
+                type="button"
+                :aria-label="'Style par défaut ' + pack.name"
+                :aria-pressed="library.settings.defaultHeadingPack === pack.id"
+                :class="{
+                  active: library.settings.defaultHeadingPack === pack.id,
+                }"
+                @click="
+                  library.settings.defaultHeadingPack = pack.id;
+                  packEditorId = pack.id;
+                "
               >
-                <Plus :size="14" />Créer un style</button
-              ><button
-                class="btn"
-                :disabled="library.settings.headingPacks.length < 2"
-                @click="removePack"
-              >
-                <Trash2 :size="14" />Supprimer ce style
+                <strong>{{ pack.name }}</strong
+                ><span>{{
+                  formatPublicationHeading(
+                    "Chapitres",
+                    "chapitrage",
+                    library.settings,
+                    pack.id,
+                  )
+                }}</span>
               </button>
             </div>
-          </div>
-          <h2>Titres des rubriques</h2>
-          <div class="publication-field-grid">
-            <label v-for="(label, key) in publicationTitles" :key="key"
-              >{{ label
-              }}<input
-                v-model="library.settings.titles[key]"
-                :aria-label="'Titre commun · ' + label"
-                maxlength="120"
-            /></label>
-          </div>
-          <h2>Ressources complémentaires</h2>
-          <label
-            >Texte commun de ressources<textarea
-              v-model="library.settings.resourcesText"
-              aria-label="Texte commun de ressources"
-              rows="4"
-              maxlength="20000"
-            />
-          </label>
-          <h2>Présentation de la chaîne et invitation</h2>
-          <label
-            >Texte commun de la chaîne<textarea
-              v-model="library.settings.channelText"
-              aria-label="Texte commun de la chaîne"
-              rows="10"
-              maxlength="20000"
-            />
-          </label>
+            <div class="publication-pack-editor" v-if="currentPack">
+              <div class="publication-field-grid">
+                <label
+                  >Nom du style<input
+                    v-model="currentPack.name"
+                    aria-label="Nom du style"
+                    maxlength="80" /></label
+                ><label class="publication-pack-checkbox"
+                  ><input
+                    type="checkbox"
+                    v-model="currentPack.uppercase"
+                    aria-label="Titres en majuscules"
+                  />Titres en majuscules</label
+                ><label
+                  >Signes avant le titre<input
+                    v-model="currentPack.prefix"
+                    aria-label="Signes avant le titre"
+                    maxlength="60"
+                    placeholder="===, ***, —…" /></label
+                ><label
+                  >Signes après le titre<input
+                    v-model="currentPack.suffix"
+                    aria-label="Signes après le titre"
+                    maxlength="60"
+                /></label>
+              </div>
+              <details>
+                <summary>Emojis des rubriques · facultatifs</summary>
+                <div class="publication-field-grid">
+                  <label
+                    v-for="(label, key) in {
+                      ...publicationTitles,
+                      custom: 'Rubriques personnalisées',
+                    }"
+                    :key="key"
+                    >{{ label
+                    }}<input
+                      v-model="currentPack.emojis[key]"
+                      :aria-label="'Emoji · ' + label"
+                      maxlength="32"
+                      placeholder="Aucun"
+                  /></label>
+                </div>
+              </details>
+              <div class="production-actions">
+                <button
+                  class="btn"
+                  :disabled="library.settings.headingPacks.length >= 20"
+                  @click="addPack"
+                >
+                  <Plus :size="14" />Créer un style</button
+                ><button
+                  class="btn"
+                  :disabled="library.settings.headingPacks.length < 2"
+                  @click="removePack"
+                >
+                  <Trash2 :size="14" />Supprimer ce style
+                </button>
+              </div>
+            </div>
+          </section>
+          <section
+            v-show="settingsView === 'content'"
+            class="description-settings-content"
+          >
+            <h2>Titres des rubriques</h2>
+            <p class="field-help">
+              Ces titres sont partagés entre les modèles. Les noms des chapitres
+              de chaque vidéo restent indépendants.
+            </p>
+
+            <div class="publication-field-grid">
+              <label v-for="(label, key) in publicationTitles" :key="key"
+                >{{ label
+                }}<input
+                  v-model="library.settings.titles[key]"
+                  :aria-label="'Titre commun · ' + label"
+                  maxlength="120"
+              /></label>
+            </div>
+            <h2>Ressources complémentaires</h2>
+            <label
+              >Texte commun de ressources<textarea
+                v-model="library.settings.resourcesText"
+                aria-label="Texte commun de ressources"
+                rows="4"
+                maxlength="20000"
+              />
+            </label>
+            <h2>Présentation de la chaîne et invitation</h2>
+            <label
+              >Texte commun de la chaîne<textarea
+                v-model="library.settings.channelText"
+                aria-label="Texte commun de la chaîne"
+                rows="10"
+                maxlength="20000"
+              />
+            </label>
+          </section>
         </fieldset>
       </section>
       <section class="resource-editor" v-else-if="current" :key="current.id">
@@ -683,17 +786,12 @@ onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
                   maxlength="2000"
                   placeholder="https://www.youtube.com/playlist?list=…"
               /></label>
-              <DescriptionTokenEditor
-                v-model="current.body"
+              <DescriptionStructureEditor
+                :template="current"
                 :library="library"
-                :slots="current.slots"
-                label="Structure de la description"
+                :disabled="busy || !editing.has(current.id)"
+                @update:body="current.body = $event"
               />
-              <p class="field-help">
-                Déplace les balises dans ce texte pour changer l’ordre. Ajoute
-                des blocs réutilisables ou tes propres parties ci-dessous. Leurs
-                noms deviennent les titres des rubriques personnalisées.
-              </p>
               <details class="publication-legacy-model">
                 <summary>Textes de l’ancien format · compatibilité</summary>
                 <p class="field-help">
@@ -730,8 +828,8 @@ onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
                 <p class="field-help">
                   Chaque partie peut recevoir un bloc de la bibliothèque ou un
                   texte propre à la vidéo. Le glisser-déposer réorganise les
-                  champs de saisie ; l’ordre final se règle avec les balises
-                  dans la structure.
+                  champs de saisie ; l’ordre final se règle dans la liste des
+                  sections au-dessus.
                 </p>
                 <article
                   v-for="(slot, i) in current.slots"
