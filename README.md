@@ -19,6 +19,12 @@ cd java-studio
 npm run build
 ```
 
+## Sauvegarde globale et accès rapides
+
+**Fichier → Sauvegarde globale…** exporte vidéos, supports, notes, parcours et bibliothèques dans un même fichier. La restauration affiche un inventaire et refuse de remplacer un document différent déjà présent. Les notes et bibliothèques sont protégées contre les enregistrements concurrents entre onglets, avec récupération du brouillon.
+
+Les accès **Playlists · Notes · Parcours** sont disponibles dans la barre du haut sur toutes les pages. [Détails, limites et vérifications](docs/fiabilite-et-sauvegardes.md).
+
 ## Mémoire et suivi
 
 - [`Agent.md`](Agent.md) : contexte, décisions, conventions, état et roadmap.

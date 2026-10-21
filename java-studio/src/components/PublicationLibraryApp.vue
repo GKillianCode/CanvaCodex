@@ -11,6 +11,7 @@ import {
   Pencil,
   ArrowLeft,
 } from "lucide-vue-next";
+import { downloadText } from "../useVideoWorkflow.js";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import { workflowNavigation } from "../workflowNavigation.js";
 import { musicLibraryKey, normalizeMusicLibrary } from "../publicationMusic.js";
@@ -34,6 +35,8 @@ const navigation = inject(workflowNavigation, null),
   notice = ref(""),
   snapshot = ref("");
 const editing = ref(new Set());
+const conflict = ref(false);
+let expected = "null";
 function returnPrevious() {
   navigation
     ?.navigate(
@@ -79,25 +82,30 @@ const current = computed(() =>
 const serialized = () =>
   JSON.stringify(isMusic.value ? music.value : library.value);
 const dirty = computed(() => loadedOk.value && snapshot.value !== serialized());
-onMounted(async () => {
+async function load() {
+  loading.value = true;
   try {
-    if (isMusic.value)
-      music.value = normalizeMusicLibrary(
-        await props.repository.getSetting(musicLibraryKey),
-      );
-    else
-      library.value = normalizeDescriptionLibrary(
-        await props.repository.getSetting(descriptionLibraryKey),
-      );
+    const raw = await props.repository.getSetting(isMusic.value ? musicLibraryKey : descriptionLibraryKey);
+    expected = JSON.stringify(raw ?? null);
+    if (isMusic.value) music.value = normalizeMusicLibrary(raw);
+    else library.value = normalizeDescriptionLibrary(raw);
     selected.value = rows.value[0]?.id || "";
     snapshot.value = serialized();
+    editing.value.clear();
     loadedOk.value = true;
-  } catch (e) {
-    error.value = e.message;
-  } finally {
-    loading.value = false;
-  }
-});
+    conflict.value = false;
+    error.value = "";
+  } catch (e) { error.value = e.message; }
+  finally { loading.value = false; }
+}
+onMounted(load);
+function downloadDraft() {
+  downloadText(isMusic.value ? 'frame-musiques-brouillon.json' : 'frame-modeles-brouillon.json', serialized(), 'application/json');
+}
+function reloadLibrary() {
+  if (!window.confirm('Recharger la bibliothèque enregistrée ? Télécharge d’abord ton brouillon pour conserver tes modifications.')) return;
+  load();
+}
 let savingPromise;
 function save() {
   if (savingPromise) return savingPromise;
@@ -106,6 +114,7 @@ function save() {
 }
 async function performSave() {
   if (loading.value || !loadedOk.value) return;
+  if (conflict.value) throw Error(error.value);
   const savedState = serialized(),
     payload = JSON.parse(savedState);
   busy.value = true;
@@ -115,7 +124,8 @@ async function performSave() {
       const normalized = normalizeMusicLibrary(payload);
       if (normalized.some((row) => !row.title))
         throw Error("Chaque musique doit avoir un titre.");
-      await props.repository.setSetting(musicLibraryKey, normalized);
+      await props.repository.saveSetting(musicLibraryKey, normalized, expected);
+      expected = JSON.stringify(normalized);
     } else {
       if (
         [...payload.templates, ...payload.blocks].some(
@@ -123,15 +133,15 @@ async function performSave() {
         )
       )
         throw Error("Chaque modèle et chaque bloc doit avoir un nom.");
-      await props.repository.setSetting(
-        descriptionLibraryKey,
-        normalizeDescriptionLibrary(payload),
-      );
+      const normalized = normalizeDescriptionLibrary(payload);
+      await props.repository.saveSetting(descriptionLibraryKey, normalized, expected);
+      expected = JSON.stringify(normalized);
     }
     snapshot.value = savedState;
     if (serialized() === savedState) editing.value.clear();
     notice.value = "Bibliothèque enregistrée.";
   } catch (e) {
+    conflict.value = e.code === "FRAME_CONFLICT";
     error.value = e.message;
     throw e;
   } finally {
@@ -265,7 +275,7 @@ onBeforeUnmount(() => window.removeEventListener("beforeunload", beforeUnload));
         <Save :size="16" />Enregistrer
       </button>
     </div>
-    <p v-if="error" class="video-alert" role="alert">{{ error }}</p>
+    <div v-if="error" class="video-alert" role="alert">{{ error }}<template v-if="conflict"><button class="btn" @click="downloadDraft">Télécharger mon brouillon</button><button class="btn" @click="reloadLibrary">Recharger la version enregistrée</button></template><button v-else-if="!loadedOk" class="btn" @click="load">Réessayer</button></div>
     <p v-if="notice" class="resource-notice" role="status">{{ notice }}</p>
     <div v-if="!loading && loadedOk" class="resource-layout">
       <aside class="resource-sidebar">

@@ -1,4 +1,5 @@
-import {notesWithoutFolders,freeNotesTreeKey,freeNoteKey,normalizeFreeTree,normalizeFreeNote,freeNoteLinks,freeDescendants,importFreeNotes,mergeFreeTree} from './freeNotes.js';
+import { portableSetting, equalData } from "./workspaceBackup.js";
+import {freeTreeSignature,notesWithoutFolders,freeNotesTreeKey,freeNoteKey,normalizeFreeTree,normalizeFreeNote,freeNoteLinks,freeDescendants,importFreeNotes,mergeFreeTree} from './freeNotes.js';
 import {videoTypes,videoStatuses,videoCatalog,validVideoId,normalizeCatalog,migrateVideoClassification,validateVideoReplacement,catalogKey} from './videoCatalog.js';
 import {themeSourcesFromRow} from './themeRecovery.js';
 import { normalizeWorkflow,remapWorkflow,updateWorkflowSection } from './videoWorkflow.js';
@@ -477,7 +478,157 @@ export function videoRepository(api = globalThis.indexedDB) {
           settings.put([...names, project.playlist], "playlists");
       };
   }
+  function readSnapshot() {
+    return transaction("readonly", (p, c, set, tx, s, settings) => {
+      const value = { projects: [], creations: [], settings: [] };
+      set(value);
+      p.getAll().onsuccess = (e) => (value.projects = e.target.result);
+      c.getAll().onsuccess = (e) => (value.creations = e.target.result);
+      settings.openCursor().onsuccess = (e) => {
+        const cursor = e.target.result;
+        if (!cursor) return;
+        if (portableSetting(cursor.key))
+          value.settings.push([cursor.key, cursor.value]);
+        cursor.continue();
+      };
+    });
+  }
+  function validateSnapshot(raw) {
+    if (
+      !raw ||
+      !["projects", "creations", "settings"].every((k) => Array.isArray(raw[k]))
+    )
+      throw Error("Sauvegarde de données invalide.");
+    const projects = new Map(),
+      creations = new Map(),
+      keys = new Set();
+    for (const project of raw.projects) {
+      normalizeVideoProject(project);
+      if (
+        typeof project.id !== "string" ||
+        !/^[\w-]{1,100}$/.test(project.id) ||
+        projects.has(project.id)
+      )
+        throw Error("Identifiant vidéo invalide.");
+      projects.set(project.id, project);
+    }
+    for (const row of raw.creations) {
+      if (
+        !row ||
+        typeof row.id !== "string" ||
+        !/^[\w-]{1,100}$/.test(row.id) ||
+        creations.has(row.id) ||
+        !projects.has(row.videoId) ||
+        !applications.some((a) => a.id === row.app)
+      )
+        throw Error("Création orpheline ou invalide.");
+      documentFromStorage(row.storage, row.app);
+      creations.set(row.id, row);
+    }
+    for (const project of projects.values())
+      for (const row of project.creations) {
+        const creation = creations.get(row.id);
+        if (
+          !creation ||
+          creation.videoId !== project.id ||
+          creation.app !== row.app
+        )
+          throw Error("Support absent de la sauvegarde.");
+      }
+    for (const entry of raw.settings) {
+      if (
+        !Array.isArray(entry) ||
+        entry.length !== 2 ||
+        !portableSetting(entry[0]) ||
+        keys.has(entry[0])
+      )
+        throw Error("Paramètre de sauvegarde invalide.");
+      keys.add(entry[0]);
+    }
+    const tree =
+      raw.settings.find(([key]) => key === freeNotesTreeKey)?.[1] || [];
+    if (!Array.isArray(tree)) throw Error("Arbre de notes invalide.");
+    for (const row of tree)
+      if (row.kind !== "folder" && !keys.has(freeNoteKey(row.id)))
+        throw Error("Contenu de note absent de la sauvegarde.");
+    return raw;
+  }
+  function importSnapshot(raw, write = false) {
+    raw = clone(raw);
+    validateSnapshot(raw);
+    return transaction(
+      write ? "readwrite" : "readonly",
+      (p, c, set, tx, s, settings) => {
+        function check(store, key, value, label, put) {
+          store.get(key).onsuccess = (e) => {
+            if (
+              e.target.result !== undefined &&
+              !equalData(e.target.result, value)
+            ) {
+              set(
+                Error(
+                  "Conflit : " +
+                    label +
+                    " existe déjà avec un autre contenu. Aucune donnée existante ne sera remplacée.",
+                ),
+              );
+              tx.abort();
+              return;
+            }
+            if (write && e.target.result === undefined) put();
+          };
+        }
+        for (const project of raw.projects)
+          check(
+            p,
+            project.id,
+            project,
+            "la vidéo « " + project.name + " »",
+            () => {
+              p.put(project);
+              s.put(videoSummary(project));
+            },
+          );
+        for (const row of raw.creations)
+          check(c, row.id, row, "le support « " + row.name + " »", () =>
+            c.put(row),
+          );
+        for (const [key, value] of raw.settings)
+          settings.get(key).onsuccess = (e) => {
+            const old = e.target.result;
+            const combined =
+              ["playlists", "video-order"].includes(key) &&
+              Array.isArray(old) &&
+              Array.isArray(value)
+                ? [...new Set([...old, ...value])]
+                : value;
+            const empty = Array.isArray(old) && old.length === 0;
+            if (
+              old !== undefined &&
+              !empty &&
+              !["playlists", "video-order"].includes(key) &&
+              !equalData(old, combined)
+            ) {
+              set(
+                Error(
+                  "Conflit : le paramètre « " +
+                    key +
+                    " » existe déjà avec un autre contenu. Aucune donnée existante ne sera remplacée.",
+                ),
+              );
+              tx.abort();
+              return;
+            }
+            if (write && !equalData(old, combined)) settings.put(combined, key);
+          };
+        set(true);
+      },
+    );
+  }
   return {
+    exportSnapshot:readSnapshot,
+    checkSnapshot:raw=>importSnapshot(raw),
+    importSnapshot:raw=>importSnapshot(raw,true),
     saveVideoCatalog: (raw,applyDefault=false,replacement=null) => transaction('readwrite',(p,c,set,tx,summaries,settings)=>{
       const catalog=normalizeCatalog(raw),changed=[];
       replacement=validateVideoReplacement(replacement,catalog);let replaced=0;
@@ -492,13 +643,14 @@ export function videoRepository(api = globalThis.indexedDB) {
     }),
     freeNotesTree:()=>transaction('readwrite',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{const {tree,removed}=notesWithoutFolders(e.target.result);for(const id of removed)settings.delete(freeNoteKey(id));if(removed.size)settings.put(tree,freeNotesTreeKey);set(tree);};}),
     createFreeNote:entry=>transaction('readwrite',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{try{const tree=normalizeFreeTree(e.target.result);if(entry.kind==='folder')throw Error('Les dossiers ne sont plus disponibles.');if(tree.length>=5000)throw Error('Limite de 5 000 notes et dossiers.');const next=normalizeFreeTree([...tree,entry]);if(next.length!==tree.length+1)throw Error('Élément de note invalide.');settings.put(next,freeNotesTreeKey);if(entry.kind!=='folder')settings.put(normalizeFreeNote({id:entry.id}),freeNoteKey(entry.id));set(next);}catch(error){set(error);tx.abort();}};}),
-    saveFreeNotesTree:raw=>transaction('readwrite',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{const tree=mergeFreeTree(e.target.result,raw);settings.put(tree,freeNotesTreeKey);set(tree);};}),
+    saveFreeNotesTree:(raw,expected)=>transaction('readwrite',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{if(expected!==undefined&&freeTreeSignature(e.target.result)!==expected){set(Object.assign(Error('L’organisation des notes a changé dans un autre onglet. Télécharge ton brouillon puis recharge la version enregistrée.'),{code:'FRAME_CONFLICT'}));tx.abort();return;}const tree=mergeFreeTree(e.target.result,raw);settings.put(tree,freeNotesTreeKey);set(tree);};}),
     freeNote:id=>transaction('readonly',(p,c,set,tx,s,settings)=>{settings.get(freeNoteKey(id)).onsuccess=e=>set(e.target.result?normalizeFreeNote(e.target.result):null);}),
-    saveFreeNote:raw=>transaction('readwrite',(p,c,set,tx,s,settings)=>{const note=normalizeFreeNote(raw);settings.get(freeNotesTreeKey).onsuccess=e=>{const tree=normalizeFreeTree(e.target.result),row=tree.find(row=>row.id===note.id&&row.kind==='note');if(!row){set(Error('Cette note a été supprimée.'));tx.abort();return;}row.links=freeNoteLinks(note.content);row.updatedAt=Date.now();settings.put(note,freeNoteKey(note.id));settings.put(tree,freeNotesTreeKey);set(note);};}),
+    saveFreeNote:raw=>transaction('readwrite',(p,c,set,tx,s,settings)=>{const note=normalizeFreeNote(raw);settings.get(freeNotesTreeKey).onsuccess=e=>{const tree=normalizeFreeTree(e.target.result),row=tree.find(row=>row.id===note.id&&row.kind==='note');if(!row){set(Object.assign(Error('Cette note a été supprimée dans un autre onglet. Télécharge ton brouillon avant de quitter cette page.'),{code:'FRAME_CONFLICT'}));tx.abort();return;}row.links=freeNoteLinks(note.content);row.updatedAt=Date.now();settings.get(freeNoteKey(note.id)).onsuccess=event=>{const stored=event.target.result?normalizeFreeNote(event.target.result):null;if((stored?.revision||0)!==note.revision){set(Object.assign(Error('Cette note a changé dans un autre onglet. Télécharge ton brouillon puis recharge la version enregistrée.'),{code:'FRAME_CONFLICT'}));tx.abort();return;}note.revision++;settings.put(note,freeNoteKey(note.id));settings.put(tree,freeNotesTreeKey);set(note);};};}),
     removeFreeNotes:id=>transaction('readwrite',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{const tree=normalizeFreeTree(e.target.result),ids=freeDescendants(tree,id);for(const key of ids)settings.delete(freeNoteKey(key));const next=tree.filter(row=>!ids.has(row.id));settings.put(next,freeNotesTreeKey);set(next);};}),
     exportFreeNotes:()=>transaction('readonly',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{const tree=normalizeFreeTree(e.target.result),notes=[];set({format:'frame-free-notes',version:1,tree,notes});for(const row of tree.filter(row=>row.kind==='note'))settings.get(freeNoteKey(row.id)).onsuccess=event=>notes.push(normalizeFreeNote(event.target.result||{id:row.id}));};}),
     importFreeNotes:raw=>transaction('readwrite',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{try{const data=importFreeNotes(raw,normalizeFreeTree(e.target.result));const cleaned=notesWithoutFolders(data.tree);data.tree=cleaned.tree;data.notes=data.notes.filter(note=>!cleaned.removed.has(note.id));for(const id of cleaned.removed)settings.delete(freeNoteKey(id));settings.put(data.tree,freeNotesTreeKey);for(const note of data.notes)settings.put(note,freeNoteKey(note.id));set(data.tree);}catch(error){set(error);tx.abort();}};}),
     getSetting: key => transaction("readonly",(p,c,set,tx,s,settings)=>{settings.get(key).onsuccess=e=>set(e.target.result);}),
+    saveSetting: (key,value,expected) => transaction("readwrite",(p,c,set,tx,s,settings)=>{settings.get(key).onsuccess=e=>{if(JSON.stringify(e.target.result??null)!==expected){set(Object.assign(Error('Cette bibliothèque a changé dans un autre onglet. Télécharge ton brouillon puis recharge la version enregistrée.'),{code:'FRAME_CONFLICT'}));tx.abort();return;}settings.put(value,key);set(value);};}),
     setSetting: (key,value) => transaction("readwrite",(p,c,set,tx,s,settings)=>{settings.put(value,key);}),
     canvas: () =>
       transaction("readonly", (p, c, set, tx, s, settings) => {
