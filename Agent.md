@@ -1594,3 +1594,11 @@ Nouvelles publications : mode template avec `frame-course-default` présélectio
 Tests Node : 446 réussis, build Vite réussi. Tests adaptés pour vérifier les anciens styles individuels ignorés, les blocs/parties au style partagé, le défaut structuré et la conservation des descriptions libres. Parcours navigateur de deux publications utilisant le même réglage commun, absence de sélecteur local et présélection dans une nouvelle vidéo. Aucune fusion automatique.
 
 Publication confirmée : commit `d6aeff4`, [PR #143](https://github.com/GKillianCode/CanvaCodex/pull/143) ouverte vers `feat/publication-collapsible-sections`, liée à l’issue #142. Aucune fusion automatique.
+
+## 21 octobre 2026 — Retour à la fiche vidéo et ordre des menus
+
+Branche `fix/workflow-header-navigation`, basée sur `fix/publication-shared-style-default` (PR #143 laissée ouverte), [issue #144](https://github.com/GKillianCode/CanvaCodex/issues/144). Le titre de la vidéo devient un bouton partagé `VideoContextReturn` avec flèche de retour, infobulle et libellé accessible explicites. Disponible dans Conducteur et Publication, il appelle le retour à la fiche de la vidéo courante après `flush`, comme l’icône vidéo déjà présente. Pas de passage par l’accueil. Les boutons restent des icônes dans le groupe principal ; le titre reste visuellement distinct.
+
+Publication reprend l’ordre de Conducteur : navigation Conducteur/Publication avant Préparer/Aperçu. Présenter et les conditions de lecture/brouillon de Conducteur restent conservés. Styles du bouton partagés dans le composant pour fonctionner aussi lorsque Conducteur est ouvert directement sans avoir chargé Publication.
+
+Validation : 446 tests Node réussis, build Vite réussi. Test navigateur isolé : retour par le titre et par l’icône depuis chaque atelier, vérification de la bonne vidéo cible et des saisies enregistrées avant navigation, changement d’atelier et ordre réel des groupes, bouton Présenter conservé. Captures des en-têtes dark/light inspectées. Serveur de test 5289 indépendant, données localhost:5173 préservées. Aucun changement fusionné automatiquement.

@@ -339,3 +339,7 @@ Depuis l’accueil, **Fichier → Paramètres des vidéos… → Typographie** p
 #### Tiroirs de préparation
 
 Dans **Publication → Préparer**, chaque section peut être ouverte ou repliée depuis son en-tête : titre, modèle, introduction, programme, description, chapitres, informations techniques, apprentissage, ressources, mots-clés, musiques, commentaire et miniature. Les compteurs restent visibles, notamment le nombre de chapitres. Les tiroirs sont initialement fermés, sauf la miniature ; leur état est mémorisé dans ce navigateur, indépendamment du contenu des vidéos. Refermer un tiroir ne supprime aucune saisie et ne change pas l’aperçu, la copie ou l’export. Un seul chevron indique son ouverture ; Entrée ou Espace fonctionne aussi au clavier.
+
+#### Navigation entre préparation et fiche vidéo
+
+Dans **Conducteur** et **Publication**, cliquer sur le titre de la vidéo dans la barre supérieure revient directement à sa fiche, après enregistrement du travail en cours. L’icône vidéo près d’Accueil reste également disponible. Les menus suivent le même ordre dans les deux ateliers : **Conducteur / Publication**, puis **Préparer / Aperçu**. Le bouton **Présenter** reste disponible dans Conducteur.
