@@ -63,3 +63,7 @@ Ordre conseillé : protections des sauvegardes → sauvegarde/restauration globa
 ## Ce que je n’ajouterais pas
 
 Pas d’éditeur vidéo concurrent de Kdenlive, pas de gestionnaire de prises puisque le tournage se fait d’une traite, pas de nouvelle application de notes/checklists faisant doublon, pas d’IA. Les composants, états, presets, moteurs d’animation et modèles couvrent déjà beaucoup de réutilisation. Le gain suivant viendra davantage de la sérénité d’utilisation que d’un nouvel écran.
+
+## Suite de la revue
+
+Les protections de concurrence, la sauvegarde globale, les optimisations mémoire et les accès rapides partagés ont été mis en œuvre dans la [PR #133](https://github.com/GKillianCode/CanvaCodex/pull/133), non fusionnée. Voir [comportements livrés, limites et vérifications](fiabilite-et-sauvegardes.md). Les autres propositions de cette revue restent des pistes.
