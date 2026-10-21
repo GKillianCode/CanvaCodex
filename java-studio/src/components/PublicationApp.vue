@@ -12,6 +12,7 @@ import {
   ChevronRight,
   GripVertical,
 } from "lucide-vue-next";
+import PublicationDrawer from "./PublicationDrawer.vue";
 import PublicationTemplateForm from "./PublicationTemplateForm.vue";
 import PublicationDetails from "./PublicationDetails.vue";
 import PublicationPreview from "./PublicationPreview.vue";
@@ -278,7 +279,11 @@ async function exportPublication() {
       />
       <div v-else class="publication-layout">
         <section class="publication-writing">
-          <article class="production-card publication-title">
+          <PublicationDrawer
+            title="Titre"
+            section-key="title"
+            class="publication-title"
+          >
             <div class="publication-field-label">
               <label for="publication-title">Titre</label
               ><button
@@ -304,13 +309,15 @@ async function exportPublication() {
             >
               Utiliser le nom de la vidéo
             </button>
-          </article>
-          <PublicationTemplateForm
-            :publication="data"
-            :templates="descriptionTemplates"
-            :library="sharedLibrary"
-            :ready="compositionReady"
-          />
+          </PublicationDrawer>
+          <PublicationDrawer title="Modèle et style" section-key="model">
+            <PublicationTemplateForm
+              :publication="data"
+              :templates="descriptionTemplates"
+              :library="sharedLibrary"
+              :ready="compositionReady"
+            />
+          </PublicationDrawer>
           <PublicationDetails
             :publication="data"
             :videos="videos"
@@ -318,8 +325,8 @@ async function exportPublication() {
             :video-id="videoId"
             part="intro"
           />
-          <article class="production-card publication-texts">
-            <section>
+          <div class="publication-texts">
+            <PublicationDrawer title="Description" section-key="description">
               <div class="publication-field-label">
                 <label for="publication-description">Description</label
                 ><button
@@ -354,8 +361,12 @@ async function exportPublication() {
                 {{ finalDescription.length.toLocaleString("fr-FR") }} / 5 000
                 caractères
               </p>
-            </section>
-            <section>
+            </PublicationDrawer>
+            <PublicationDrawer
+              title="Chapitres"
+              section-key="chapters"
+              :count="data.chapters.length"
+            >
               <div class="publication-field-label">
                 <span id="chapters-label">Chapitres</span
                 ><button
@@ -472,7 +483,7 @@ async function exportPublication() {
                   rows="4"
                 />
               </details>
-            </section>
+            </PublicationDrawer>
             <PublicationDetails
               :publication="data"
               :videos="videos"
@@ -480,11 +491,20 @@ async function exportPublication() {
               :video-id="videoId"
               part="details"
             />
-            <PublicationMusic
-              :repository="repository"
-              v-model="data.musicIds"
-            />
-            <section>
+            <PublicationDrawer
+              title="Musiques de fond"
+              section-key="music"
+              :count="data.musicIds.length"
+            >
+              <PublicationMusic
+                :repository="repository"
+                v-model="data.musicIds"
+              />
+            </PublicationDrawer>
+            <PublicationDrawer
+              title="Commentaire épinglé"
+              section-key="comment"
+            >
               <div class="publication-field-label">
                 <label for="publication-comment">Commentaire épinglé</label
                 ><button
@@ -509,11 +529,15 @@ async function exportPublication() {
                 Les liens de ressources seront ajoutés automatiquement à ce
                 texte. Consulte le commentaire final dans Aperçu.
               </p>
-            </section>
-          </article>
+            </PublicationDrawer>
+          </div>
         </section>
         <aside class="publication-visual">
-          <article class="production-card">
+          <PublicationDrawer
+            title="Miniature"
+            section-key="thumbnail"
+            :initial-open="true"
+          >
             <div class="publication-field-label">
               <span>Miniature</span><Image :size="18" />
             </div>
@@ -590,7 +614,7 @@ async function exportPublication() {
                 /><span>{{ row.name }}</span>
               </button>
             </div>
-          </article>
+          </PublicationDrawer>
         </aside>
       </div>
     </template>

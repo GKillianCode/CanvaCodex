@@ -335,3 +335,7 @@ Le même éditeur de sections est disponible dans chaque fiche de modèle. Il pe
 ### Police de lecture et alignement des chiffres
 
 Depuis l’accueil, **Fichier → Paramètres des vidéos… → Typographie** permet de choisir séparément la police de l’interface et celle des textes de travail (Publication, notes et conducteur). Les polices sont embarquées localement : DM Sans, Inter, Montserrat, Lora et JetBrains Mono. L’option **Chiffres de largeur fixe** est activée par défaut. Pour aligner toutes les lettres également, choisir **JetBrains Mono**. Un exemple permet de vérifier le rendu immédiatement. Ces préférences sont enregistrées automatiquement dans ce navigateur, indépendamment des étiquettes de vidéos. Elles ne modifient pas les polices des créations ni le texte copié/exporté ; YouTube conserve sa police.
+
+#### Tiroirs de préparation
+
+Dans **Publication → Préparer**, chaque section peut être ouverte ou repliée depuis son en-tête : titre, modèle, introduction, programme, description, chapitres, informations techniques, apprentissage, ressources, mots-clés, musiques, commentaire et miniature. Les compteurs restent visibles, notamment le nombre de chapitres. Les tiroirs sont initialement fermés, sauf la miniature ; leur état est mémorisé dans ce navigateur, indépendamment du contenu des vidéos. Refermer un tiroir ne supprime aucune saisie et ne change pas l’aperçu, la copie ou l’export. Un seul chevron indique son ouverture ; Entrée ou Espace fonctionne aussi au clavier.
