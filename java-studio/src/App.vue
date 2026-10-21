@@ -1,4 +1,5 @@
 <script setup>
+import {installCatalog,catalogKey} from "./videoCatalog.js";
 import { ref, shallowRef, onMounted, onBeforeUnmount, provide } from "vue";
 import { applicationFromHash, applicationHash } from "./applicationRoutes.js";
 import {
@@ -13,6 +14,8 @@ import UndoNotifications from "./components/UndoNotifications.vue";
 import ComponentEditorApp from "./components/ComponentEditorApp.vue";
 import StudioApp from "./StudioApp.vue";
 import { workflowNavigation, navigateAfterSave } from "./workflowNavigation.js";
+import PublicationLibraryApp from './components/PublicationLibraryApp.vue';
+import FreeNotesApp from './components/FreeNotesApp.vue';
 import VideoLibrary from "./components/VideoLibrary.vue";
 import VideoCanvasApp from "./components/VideoCanvasApp.vue";
 import ConductorApp from "./components/ConductorApp.vue";
@@ -35,6 +38,7 @@ const repository = folders.repository,
   context = shallowRef(null),
   studio = ref(null),
   canvasApp = ref(null),
+  notesApp=ref(null),resourceApp=ref(null),
   workflowApp = ref(null),componentApp=ref(null),componentId=ref(null),
   loading = ref(true),
   error = ref("");
@@ -47,10 +51,12 @@ provide(workflowNavigation, {
   navigate,
 });
 let generation = 0;
+let catalogReady;
+function loadCatalog(){return catalogReady ||= repository.getSetting(catalogKey).then(raw=>installCatalog(raw||{}));}
 async function navigate(hash) {
   try {
     await navigateAfterSave(
-      [studio.value?.flush, canvasApp.value?.flush, workflowApp.value?.flush,componentApp.value?.flush],
+      [resourceApp.value?.flush,studio.value?.flush, canvasApp.value?.flush, workflowApp.value?.flush,componentApp.value?.flush,notesApp.value?.flush],
       () => {
         window.location.hash = hash;
       },
@@ -66,6 +72,9 @@ async function syncRoute() {
   const request = ++generation;
   error.value = "";
   try {
+    await loadCatalog();
+    if(resourceApp.value)await resourceApp.value.flush();
+    if(notesApp.value)await notesApp.value.flush();
     if(componentApp.value)await componentApp.value.flush();
     if (studio.value) await studio.value.flush();
     if (canvasApp.value) await canvasApp.value.flush();
@@ -181,6 +190,8 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
     @home="navigate('#/')"
     @open="(id) => navigate(videoHash(id))"
   />
+  <PublicationLibraryApp v-else-if="['music','descriptionTemplates'].includes(active)" :key="active" ref="resourceApp" :repository="repository" :kind="active==='music'?'music':'templates'" @home="navigate('#/')"/>
+  <FreeNotesApp v-else-if="active==='notes'" :key="currentHash" ref="notesApp" :repository="repository" :note-id="currentHash.match(/^#\/notes\/([\w-]+)$/)?.[1]||''" @home="navigate('#/')" @open="id=>navigate(id?'#/notes/'+id:'#/notes')"/>
   <StudioApp
     v-else-if="active"
     ref="studio"

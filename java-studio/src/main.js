@@ -5,5 +5,7 @@ import './light.generated.css';
 import './appearance.css';
 import {initAppearance} from './appearance.js';
 initAppearance();
+import {initInterfacePreferences} from './interfacePreferences.js';
+initInterfacePreferences();
 import AudienceWindow from './components/AudienceWindow.vue';
 createApp(new URLSearchParams(location.search).has('frameAudience')?AudienceWindow:App).mount('#app');

@@ -3,6 +3,7 @@ import { ref, inject, onMounted, onBeforeUnmount } from "vue";
 import { Sun, Moon, Home, Clapperboard, ArrowLeft } from "lucide-vue-next";
 import { appearance, setAppearance } from "../appearance.js";
 import { workflowNavigation } from "../workflowNavigation.js";
+import ApplicationsMenu from './ApplicationsMenu.vue';
 import WorkspaceLauncher from "./WorkspaceLauncher.vue";
 const props = defineProps({
   title: String,
@@ -10,6 +11,11 @@ const props = defineProps({
 });
 const emit = defineEmits(["back", "home"]);
 const navigation = inject(workflowNavigation, null);
+function openPublicationLibrary(hash) {
+  active.value=null;
+  if(!['#/musiques','#/modeles-description'].includes(window.location.hash))sessionStorage.setItem('frame-publication-library-return',window.location.hash||'#/');
+  if(navigation)navigation.navigate(hash).catch(()=>{});else window.location.hash=hash;
+}
 function openThemes() {
   active.value = null;
   if (navigation) navigation.navigate("#/themes").catch(() => {});
@@ -72,9 +78,10 @@ onBeforeUnmount(() => {
               @click="fileAction"
               @change="active = null"
             >
-              <slot name="file" /><hr v-if="$slots.file"><button @click="openThemes">Thèmes</button>
+              <slot name="file" /><hr v-if="$slots.file"><button @click="openThemes">Thèmes</button><button @click="openPublicationLibrary('#/musiques')">Bibliothèque de musiques</button><button @click="openPublicationLibrary('#/modeles-description')">Modèles de description</button><template v-if="$slots['file-bottom']"><hr><slot name="file-bottom"/></template>
             </div>
           </div>
+          <ApplicationsMenu @open="active=null"/>
           <div v-if="$slots.view" class="app-menu">
             <button
               class="app-menu-trigger"
@@ -94,6 +101,7 @@ onBeforeUnmount(() => {
       <div class="app-header-right"><slot name="actions" /></div>
     </slot>
     <div class="workspace-utilities">
+      <slot name="utilities" />
       <button
         class="icon-btn appearance-toggle"
         :aria-label="

@@ -31,7 +31,8 @@ const copy = (v) => JSON.parse(JSON.stringify(v));
 export function useAnimationStudio(s) {
   const panX = ref(0),
     panY = ref(0),
-    spaceHeld = ref(false);
+    spaceHeld = ref(false),
+    panning = ref(false);
   let panCleanup = () => {};
   const time = ref(0),
     playing = ref(false),
@@ -292,23 +293,35 @@ export function useAnimationStudio(s) {
     event.preventDefault();
     event.stopPropagation();
     panCleanup();
+    panning.value = true;
+    const pointerId = event.pointerId;
+    const target = event.currentTarget;
+    target.setPointerCapture?.(pointerId);
     const x = event.clientX,
       y = event.clientY,
       left = panX.value,
       top = panY.value;
     const move = (e) => {
+      if (e.pointerId !== pointerId) return;
+      e.preventDefault();
+      e.stopPropagation();
       panX.value = left + e.clientX - x;
       panY.value = top + e.clientY - y;
     };
-    const end = () => {
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", end);
-      window.removeEventListener("pointercancel", end);
+    const end = (e) => {
+      if (e && e.pointerId !== pointerId) return;
+      panning.value = false;
+      window.removeEventListener("pointermove", move, true);
+      window.removeEventListener("pointerup", end, true);
+      window.removeEventListener("pointercancel", end, true);
+      target.removeEventListener("lostpointercapture", end);
+      if (target.hasPointerCapture?.(pointerId)) target.releasePointerCapture(pointerId);
       panCleanup = () => {};
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", end);
-    window.addEventListener("pointercancel", end);
+    window.addEventListener("pointermove", move, true);
+    window.addEventListener("pointerup", end, true);
+    window.addEventListener("pointercancel", end, true);
+    target.addEventListener("lostpointercapture", end);
     panCleanup = end;
   }
   onMounted(() => {
@@ -892,8 +905,8 @@ export function useAnimationStudio(s) {
       s.requestDraw();
     }
   }
-  function commitPose(positions, origins) {
-    s.beginGesture();
+  function commitPose(positions, origins, manageHistory = true) {
+    if(manageHistory)s.beginGesture();
     try {
       for (const [key, p] of Object.entries(positions)) {
         const before = origins[key];
@@ -913,7 +926,7 @@ export function useAnimationStudio(s) {
         }
         selectedClip.value=c.id;
       }
-    } finally { s.endGesture(); s.requestDraw(); }
+    } finally { if(manageHistory)s.endGesture(); s.requestDraw(); }
   }
   function toggleProperty(name) {
     const f = keyAt(name);
@@ -1083,6 +1096,7 @@ export function useAnimationStudio(s) {
     duplicateKey,
     beginGesture: s.beginGesture,
     endGesture: s.endGesture,
+    panning,
     panX,
     panY,
     spaceHeld,

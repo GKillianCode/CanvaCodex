@@ -1,6 +1,8 @@
+import {notesWithoutFolders,freeNotesTreeKey,freeNoteKey,normalizeFreeTree,normalizeFreeNote,freeNoteLinks,freeDescendants,importFreeNotes,mergeFreeTree} from './freeNotes.js';
+import {videoTypes,videoStatuses,videoCatalog,validVideoId,normalizeCatalog,migrateVideoClassification,validateVideoReplacement,catalogKey} from './videoCatalog.js';
 import {themeSourcesFromRow} from './themeRecovery.js';
 import { normalizeWorkflow,remapWorkflow,updateWorkflowSection } from './videoWorkflow.js';
-import { normalizeVideoCanvas } from "./videoCanvas.js";
+import { normalizeVideoCanvas, removeCanvasNode } from "./videoCanvas.js";
 import {
   applications,
   applicationStorage,
@@ -11,19 +13,9 @@ import { normalizeWorkspace, workspaceKeys } from "./workspaceStorage.js";
 import { makeSlide } from "./model.js";
 import { makeThumbnail, thumbnailPalette } from "./thumbnails.js";
 import { makeOverlay } from "./overlays.js";
-export const videoTypes = [["course", "Cours"], ["exercise", "Exercice"], ["demo", "Démonstration"]];
-export const normalizeVideoType = value => videoTypes.some(([id]) => id === value) ? value : "";
-export const videoTypeTitle = value => videoTypes.find(([id]) => id === value)?.[1] || "Non défini";
-export const videoStatuses = [
-  ["backlog", "Idées / Backlog"],
-  ["preparation", "Création"],
-  ["ready", "Prêt à tourner"],
-  ["recording", "Tournage"],
-  ["editing", "Montage"],
-  ["done", "Terminé"],
-  ["publishing", "À publier"],
-  ["published", "Publié"],
-];
+export {videoTypes,videoStatuses} from './videoCatalog.js';
+export const normalizeVideoType = value => validVideoId(value)&&(videoTypes.some(([id])=>id===value)||value.startsWith('custom-')) ? value : '';
+export const videoTypeTitle = value => videoTypes.find(([id])=>id===value)?.[1]||'Non défini';
 export const videoPlaylists = [
   "Java",
   "IA",
@@ -49,8 +41,8 @@ export function makeVideoProject(name = "Nouvelle vidéo") {
     id: uid(),
     name: label(name, "Nouvelle vidéo"),
     playlist: "Java",
-    status: "preparation",
-    videoType: "",
+    status: videoCatalog.fallbackStatus,
+    videoType: videoCatalog.defaultType,
     notes: "",
     workflow: normalizeWorkflow(),
     archived: false,
@@ -72,9 +64,7 @@ export function normalizeVideoProject(raw) {
     id: label(raw.id, uid(), 100),
     playlist:
       typeof raw.playlist === "string" ? raw.playlist.trim().slice(0, 200) : "",
-    status: videoStatuses.some(([id]) => id === raw.status)
-      ? raw.status
-      : "preparation",
+    status: validVideoId(raw.status)&&(videoStatuses.some(([id])=>id===raw.status)||raw.status.startsWith('custom-')) ? raw.status : videoCatalog.fallbackStatus,
     videoType: normalizeVideoType(raw.videoType),
     notes: typeof raw.notes === "string" ? raw.notes.slice(0, 20000) : "",
     workflow: normalizeWorkflow(raw.workflow),
@@ -145,12 +135,18 @@ export function detachCreation(project, id) {
   project.updatedAt=Date.now();
   return {meta,index};
 }
+export function nextCreationName(project,app){
+ const label={slides:'Diaporama',banners:'Incrustation',thumbnails:'Miniature',animation:'Animation'}[app]||'Création';
+ const names=new Set((project?.creations||[]).filter(row=>row.app===app).map(row=>row.name));
+ let number=1;while(names.has(label+' - '+number))number++;
+ return label+' - '+number;
+}
 export function makeCreation(project, app, name, source = null) {
   if (!applications.some((a) => a.id === app)) throw Error("Atelier inconnu.");
   if (project.creations.length >= 100)
     throw Error("Limite de 100 créations par vidéo.");
   const kind = app === "banners" ? "banners" : "slides",
-    title = label(name, applications.find((a) => a.id === app).name);
+    title = label(name, nextCreationName(project,app));
   let document = source;
   if (!document) {
     const data = {
@@ -482,6 +478,26 @@ export function videoRepository(api = globalThis.indexedDB) {
       };
   }
   return {
+    saveVideoCatalog: (raw,applyDefault=false,replacement=null) => transaction('readwrite',(p,c,set,tx,summaries,settings)=>{
+      const catalog=normalizeCatalog(raw),changed=[];
+      replacement=validateVideoReplacement(replacement,catalog);let replaced=0;
+      settings.put(catalog,catalogKey);
+      p.openCursor().onsuccess=event=>{
+        const cursor=event.target.result;if(!cursor){set({catalog,changed,replaced});return;}
+        const project=cursor.value,next=migrateVideoClassification(project,catalog,applyDefault,replacement);
+        if(replacement&&project[replacement.field]===replacement.from)replaced++;
+        if(project.status!==next.status||project.videoType!==next.videoType){Object.assign(project,next);cursor.update(project);summaries.put(videoSummary(project));changed.push(project.id);}
+        cursor.continue();
+      };
+    }),
+    freeNotesTree:()=>transaction('readwrite',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{const {tree,removed}=notesWithoutFolders(e.target.result);for(const id of removed)settings.delete(freeNoteKey(id));if(removed.size)settings.put(tree,freeNotesTreeKey);set(tree);};}),
+    createFreeNote:entry=>transaction('readwrite',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{try{const tree=normalizeFreeTree(e.target.result);if(entry.kind==='folder')throw Error('Les dossiers ne sont plus disponibles.');if(tree.length>=5000)throw Error('Limite de 5 000 notes et dossiers.');const next=normalizeFreeTree([...tree,entry]);if(next.length!==tree.length+1)throw Error('Élément de note invalide.');settings.put(next,freeNotesTreeKey);if(entry.kind!=='folder')settings.put(normalizeFreeNote({id:entry.id}),freeNoteKey(entry.id));set(next);}catch(error){set(error);tx.abort();}};}),
+    saveFreeNotesTree:raw=>transaction('readwrite',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{const tree=mergeFreeTree(e.target.result,raw);settings.put(tree,freeNotesTreeKey);set(tree);};}),
+    freeNote:id=>transaction('readonly',(p,c,set,tx,s,settings)=>{settings.get(freeNoteKey(id)).onsuccess=e=>set(e.target.result?normalizeFreeNote(e.target.result):null);}),
+    saveFreeNote:raw=>transaction('readwrite',(p,c,set,tx,s,settings)=>{const note=normalizeFreeNote(raw);settings.get(freeNotesTreeKey).onsuccess=e=>{const tree=normalizeFreeTree(e.target.result),row=tree.find(row=>row.id===note.id&&row.kind==='note');if(!row){set(Error('Cette note a été supprimée.'));tx.abort();return;}row.links=freeNoteLinks(note.content);row.updatedAt=Date.now();settings.put(note,freeNoteKey(note.id));settings.put(tree,freeNotesTreeKey);set(note);};}),
+    removeFreeNotes:id=>transaction('readwrite',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{const tree=normalizeFreeTree(e.target.result),ids=freeDescendants(tree,id);for(const key of ids)settings.delete(freeNoteKey(key));const next=tree.filter(row=>!ids.has(row.id));settings.put(next,freeNotesTreeKey);set(next);};}),
+    exportFreeNotes:()=>transaction('readonly',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{const tree=normalizeFreeTree(e.target.result),notes=[];set({format:'frame-free-notes',version:1,tree,notes});for(const row of tree.filter(row=>row.kind==='note'))settings.get(freeNoteKey(row.id)).onsuccess=event=>notes.push(normalizeFreeNote(event.target.result||{id:row.id}));};}),
+    importFreeNotes:raw=>transaction('readwrite',(p,c,set,tx,s,settings)=>{settings.get(freeNotesTreeKey).onsuccess=e=>{try{const data=importFreeNotes(raw,normalizeFreeTree(e.target.result));const cleaned=notesWithoutFolders(data.tree);data.tree=cleaned.tree;data.notes=data.notes.filter(note=>!cleaned.removed.has(note.id));for(const id of cleaned.removed)settings.delete(freeNoteKey(id));settings.put(data.tree,freeNotesTreeKey);for(const note of data.notes)settings.put(note,freeNoteKey(note.id));set(data.tree);}catch(error){set(error);tx.abort();}};}),
     getSetting: key => transaction("readonly",(p,c,set,tx,s,settings)=>{settings.get(key).onsuccess=e=>set(e.target.result);}),
     setSetting: (key,value) => transaction("readwrite",(p,c,set,tx,s,settings)=>{settings.put(value,key);}),
     canvas: () =>
@@ -611,6 +627,13 @@ export function videoRepository(api = globalThis.indexedDB) {
           catch(error){set(error);tx.abort();}
         };
       }),
+    removeVideo: id=>transaction('readwrite',(p,c,set,tx,s,settings)=>{
+      p.delete(id);s.delete(id);
+      c.index('videoId').openCursor(id).onsuccess=e=>{const cursor=e.target.result;if(cursor){cursor.delete();cursor.continue();}};
+      settings.get('video-order').onsuccess=e=>settings.put((e.target.result||[]).filter(key=>key!==id),'video-order');
+      settings.get('learning-canvas').onsuccess=e=>{let canvas=normalizeVideoCanvas(e.target.result||{});for(const node of canvas.nodes.filter(n=>n.type==='video'&&n.videoId===id))canvas=removeCanvasNode(canvas,node.id);settings.put(canvas,'learning-canvas');};
+      set(id);
+    }),
     removeCreation: (videoId, id) =>
       transaction("readwrite",(p,c,set,tx,s,settings)=>{
         p.get(videoId).onsuccess=e=>{

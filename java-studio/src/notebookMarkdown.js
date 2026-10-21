@@ -51,6 +51,7 @@ const linkOpen =
   ((tokens, index, options, env, self) =>
     self.renderToken(tokens, index, options));
 markdown.renderer.rules.link_open = (tokens, index, options, env, self) => {
+  if(/^#\/notes\/[\w-]+$/.test(tokens[index].attrGet('href')||'')){tokens[index].attrSet('class','free-note-link');return linkOpen(tokens,index,options,env,self);}
   tokens[index].attrSet("target", "_blank");
   tokens[index].attrSet("rel", "noopener noreferrer");
   return linkOpen(tokens, index, options, env, self);
@@ -62,6 +63,23 @@ function coloredMark(state,silent){
  state.pos+=match[0].length;return true;
 }
 markdown.inline.ruler.before('emphasis','colored_mark',coloredMark);
+// Repair the empty wrapper emitted by older rich-editor list serialization.
+// Only a list-only item following a real sibling is merged into that sibling.
+function repairNestedListItems(state){
+ const tokens=state.tokens;
+ const listOpen=t=>['bullet_list_open','ordered_list_open'].includes(t?.type);
+ for(let i=1;i<tokens.length-1;i++){
+  if(tokens[i].type!=='list_item_open'||tokens[i-1].type!=='list_item_close'||tokens[i-1].level!==tokens[i].level||!listOpen(tokens[i+1]))continue;
+  let depth=0,end=i+1;
+  for(;end<tokens.length;end++){
+   if(listOpen(tokens[end]))depth++;
+   if(['bullet_list_close','ordered_list_close'].includes(tokens[end].type)&&--depth===0)break;
+  }
+  if(tokens[end+1]?.type!=='list_item_close')continue;
+  tokens.splice(i-1,2);i=Math.max(0,i-2);
+ }
+}
+markdown.core.ruler.after('block','repair_nested_list_items',repairNestedListItems);
 const cache = new Map();
 export function renderNotebook(value) {
   const normalized = normalizeNotes(value);
@@ -74,6 +92,7 @@ export function renderNotebook(value) {
 
 const conductorMarkdown=new MarkdownIt({...markdown.options});
 conductorMarkdown.inline.ruler.before('emphasis','colored_mark',coloredMark);
+conductorMarkdown.core.ruler.after('block','repair_nested_list_items',repairNestedListItems);
 conductorMarkdown.renderer.rules.link_open=markdown.renderer.rules.link_open;
 conductorMarkdown.renderer.rules.image=(tokens,index,options,env)=>{
  const token=tokens[index],id=(token.attrGet('src')||'').replace(/^frame-image:/,'');

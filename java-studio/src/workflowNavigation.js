@@ -1,5 +1,7 @@
 export const workflowNavigation = Symbol("frame-workflow-navigation");
 export const workspaceTools = [
+  {id:"notes",name:"Notes",description:"Idées libres, dossiers et liens entre notes.",hash:"#/notes",stage:"Réfléchir"},
+  {id:"animation",name:"Animation",description:"Créer des animations et des scènes.",hash:"#/animations",stage:"Créer"},
   {
     id: "canvas",
     name: "Parcours",

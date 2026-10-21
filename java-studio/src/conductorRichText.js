@@ -13,6 +13,7 @@ export function richMarkdown(root) {
             .join("\n")
         : value;
     }
+    if (node.hasAttribute?.("data-page-unlink")) return "";
     const tag = node.tagName?.toLowerCase(),
       inside = () =>
         Array.from(node.childNodes || [])
@@ -113,17 +114,23 @@ export function richMarkdown(root) {
       );
     }
     if (tag === "ul" || tag === "ol") {
-      return (
-        "\n\n" +
-        Array.from(node.children || [])
-          .map(
-            (li, i) =>
-              (tag === "ol" ? i + 1 + ". " : "- ") +
-              inline(li).trim().replace(/\n/g, "\n  "),
-          )
-          .join("\n") +
-        "\n\n"
-      );
+      const lines=[];
+      let index=Number(node.getAttribute?.('start'))||1,indent='  ';
+      for(const child of Array.from(node.children||[])){
+        const childTag=child.tagName?.toLowerCase();
+        // Chromium indent can put a nested list directly inside its parent
+        // list, or wrap it in an otherwise empty li. Neither is a new item.
+        const onlyLists=childTag==='li'&&Array.from(child.children||[]).some(n=>['ul','ol'].includes(n.tagName?.toLowerCase()))&&Array.from(child.childNodes||[]).every(n=>n.nodeType===3?!n.textContent?.trim():['ul','ol'].includes(n.tagName?.toLowerCase()));
+        if(childTag==='ul'||childTag==='ol'||onlyLists){
+          const nested=(onlyLists?Array.from(child.children||[]).map(n=>inline(n)).join(''):inline(child)).trim();
+          if(nested)lines.push((lines.length?'\n'+indent:'')+nested.replace(/\n/g,'\n'+(lines.length?indent:'')));
+          continue;
+        }
+        const marker=tag==='ol'?`${index++}. `:'- ';
+        indent=' '.repeat(marker.length);
+        lines.push(marker+inline(child).trim().replace(/\n/g,'\n'+indent));
+      }
+      return '\n\n'+lines.join('\n')+'\n\n';
     }
     if (tag === "p" || tag === "div") return "\n\n" + inside() + "\n\n";
     return inside();

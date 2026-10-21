@@ -25,6 +25,9 @@ import { imageSource, imageImportError } from "../imageImport.js";
 import { findConductorCommands } from "../conductorCommands.js";
 const props = defineProps({
   documentMode: Boolean,
+  noteLinks: Boolean,
+  childNoteIds: { type: Array, default: () => [] },
+  notePages: { type: Array, default: () => [] },
   modelValue: { type: String, default: "" },
   images: { type: Array, default: () => [] },
   otherContent: { type: String, default: "" },
@@ -40,6 +43,7 @@ const emit = defineEmits([
   "update:images",
   "error",
   "resize",
+  "request-note-link",
 ]);
 const colorNames = {
   yellow: "Jaune",
@@ -58,9 +62,11 @@ const editor = ref(null),
 const slash = ref(null),
   slashIndex = ref(0),
   imageInput = ref(null);
-const slashItems = computed(() =>
-  findConductorCommands(slash.value?.query || ""),
-);
+const slashItems = computed(() => {
+ const query=(slash.value?.query||'').toLowerCase(),base=findConductorCommands(query);
+ if(props.noteLinks&&['lien','note','note-link','link','page'].some(word=>word.includes(query))){const command=['note-link','Page','page note lien'];return query?[command,...base]:[...base,command];}
+ return base;
+});
 const windowWidth = ref(window.innerWidth);
 const documentMenu = ref(null);
 const documentShell = ref(null),
@@ -83,6 +89,10 @@ function topBlock(node) {
   while (element && element.parentElement !== editor.value)
     element = element.parentElement;
   return element?.parentElement === editor.value ? element : null;
+}
+function blockGripTop(row) {
+  const hasPage = props.noteLinks && row.node.querySelector('a[href^="#/notes/"]');
+  return (hasPage ? (row.top + row.bottom) / 2 - 14 : row.top) + 'px';
 }
 function measureBlocks() {
   if (!props.documentMode || !editor.value || !documentShell.value) return;
@@ -501,6 +511,7 @@ function runSlash(id) {
     imageInput.value?.click();
     return;
   }
+  if(id==='note-link'){changed();emit('request-note-link');return;}
   if (id === "comment") privateComment();
   else if (id === "code") code();
   else if (id === "hr") separator();
@@ -513,7 +524,65 @@ function inputChanged() {
   changed();
   trackSlash();
 }
+function isolatePageRows() {
+  if (!props.noteLinks || !editor.value) return;
+  for (const link of [...editor.value.querySelectorAll('a[href^="#/notes/"]')]) {
+    const block = topBlock(link);
+    if (!block) continue;
+    if (block === link) { const row=document.createElement('p'); link.before(row); row.append(link); continue; }
+    if (!['P','DIV','H1','H2','H3','H4','H5','H6'].includes(block.tagName)) continue;
+    if (block.childNodes.length === 1 && block.firstChild === link) continue;
+    const before = document.createRange(); before.selectNodeContents(block); before.setEndBefore(link);
+    const fragment = before.extractContents();
+    if (fragment.textContent.trim() || fragment.querySelector?.('img')) { const row=document.createElement('p');row.append(fragment);block.before(row); }
+    const row=document.createElement('p');block.before(row);row.append(link);
+    if (!block.textContent.trim() && !block.querySelector('img,a')) block.remove();
+  }
+}
+function decoratePageLinks() {
+  isolatePageRows();
+  if (!props.noteLinks || !editor.value) return;
+  for (const link of editor.value.querySelectorAll('a[href^="#/notes/"]')) {
+    const id = link.getAttribute('href').slice(8);
+    const page = props.notePages.find(page => page.id === id);
+    const title = page ? (page.title || 'Sans titre') : 'Page introuvable';
+    link.setAttribute('contenteditable', 'false');
+    link.setAttribute('draggable', 'false');
+    let label = link.querySelector('[data-page-label]');
+    if (!label) {
+      const oldButton = link.querySelector('[data-page-unlink]');
+      link.replaceChildren();
+      label = document.createElement('span');
+      label.setAttribute('data-page-label', '');
+      link.append(label);
+      if (oldButton) link.append(oldButton);
+    }
+    if (label.textContent !== title) label.textContent = title;
+    const existingButton = link.querySelector('[data-page-unlink]');
+    existingButton?.setAttribute('aria-label', 'Retirer le lien vers ' + title);
+    link.classList.toggle('note-page-child', props.childNoteIds.includes(id));
+    link.classList.toggle('note-page-associated', !props.childNoteIds.includes(id));
+    link.title = props.childNoteIds.includes(id) ? 'Sous-note directe' : 'Page associée';
+    if (link.querySelector('[data-page-unlink]')) continue;
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.setAttribute('data-page-unlink', '');
+    button.setAttribute('contenteditable', 'false');
+    button.setAttribute('aria-label', 'Retirer le lien vers ' + link.textContent);
+    button.title = 'Retirer ce lien sans supprimer la note';
+    button.textContent = '×';
+    button.onpointerdown = event => { event.preventDefault(); event.stopPropagation(); };
+    button.onclick = event => {
+      event.preventDefault(); event.stopPropagation();
+      if (!window.confirm('Retirer le lien vers « ' + (label.textContent || 'Sans titre') + ' » de cette page ? La note liée sera conservée.')) return;
+      link.remove(); range = null; changed();
+    };
+    link.append(button);
+  }
+}
+watch(() => [props.childNoteIds, props.notePages], () => nextTick(decoratePageLinks), {deep:true});
 function changed() {
+  decoratePageLinks();
   const value = richMarkdown(editor.value);
   if (value.length > props.maxLength) {
     emit(
@@ -530,6 +599,7 @@ function changed() {
     used.includes("(frame-image:" + image.id + ")"),
   );
   if (images.length !== props.images.length) emit("update:images", images);
+  decoratePageLinks();
   remember();
   scheduleBlocks();
 }
@@ -539,6 +609,7 @@ function draw() {
   editor.value.innerHTML = renderConductor(last, props.images) || "<p><br></p>";
   for (const node of editor.value.querySelectorAll("pre"))
     node.spellcheck = false;
+  decoratePageLinks();
   picture.value = null;
   range = null;
   scheduleBlocks();
@@ -919,7 +990,14 @@ function keys(event) {
 async function flush() {
   if (upload) await upload;
 }
-defineExpose({ flush });
+function insertNoteLink(note){
+ if(!note?.id||!/^[-\w]{1,100}$/.test(note.id))return;
+ restore();const selection=window.getSelection();
+ if(range&&selection&&!selection.isCollapsed)document.execCommand('createLink',false,'#/notes/'+note.id);
+ else{if(!range){const r=document.createRange();r.selectNodeContents(editor.value);r.collapse(false);selection.removeAllRanges();selection.addRange(r);}const label=String(note.title||'Sans titre').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');document.execCommand('insertHTML',false,` <a href="#/notes/${note.id}">${label}</a> `);}
+ changed();
+}
+defineExpose({ flush, insertNoteLink });
 onMounted(() => {
   draw();
   if (props.documentMode) {
@@ -1212,7 +1290,7 @@ onBeforeUnmount(() => {
           :key="row.index"
           class="document-block-grip"
           :class="{ visible: hoveredBlock === row.node }"
-          :style="{ top: row.top + 'px' }"
+          :style="{ top: blockGripTop(row) }"
           contenteditable="false"
           draggable="true"
           :aria-label="'Options et déplacement du bloc ' + (row.index + 1)"
@@ -1474,6 +1552,7 @@ onBeforeUnmount(() => {
         >
           Ajouter un lien
         </button>
+        <button v-if="noteLinks" role="menuitem" @click="menu=null;emit('request-note-link')">Page…</button>
         <hr />
         <button
           role="menuitem"
