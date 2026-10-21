@@ -1,6 +1,10 @@
 <script setup>
 import {
   showReorderArrows,
+  typographyPreferences,
+  interfaceFonts,
+  writingFonts,
+  setTypographyPreference,
   setReorderArrows,
 } from "../interfacePreferences.js";
 import { ref, computed, nextTick, onBeforeUnmount, watch } from "vue";
@@ -13,6 +17,7 @@ import {
   ListChecks,
   Tags,
   SlidersHorizontal,
+  Type,
 } from "lucide-vue-next";
 import {
   catalogSnapshot,
@@ -266,6 +271,103 @@ async function save(apply = false, kind = null) {
         <small>Dans toute l’application · désactivé par défaut</small></label
       >
       <fieldset :disabled="busy">
+        <section
+          class="video-settings-group"
+          :class="{ expanded: opened === 'typography' }"
+        >
+          <button
+            class="video-settings-group-trigger"
+            :aria-expanded="opened === 'typography'"
+            aria-controls="typography-settings-body"
+            @click="toggle('typography')"
+          >
+            <Type :size="19" /><span
+              ><strong>Typographie</strong
+              ><small
+                >Police de l’interface, des textes et largeur des
+                chiffres</small
+              ></span
+            ><ChevronDown :size="17" />
+          </button>
+          <div id="typography-settings-body">
+            <section
+              class="typography-preferences"
+              v-if="opened === 'typography'"
+              aria-label="Typographie de l’application"
+            >
+              <p>
+                Préférences d’affichage enregistrées automatiquement sur ce
+                navigateur.
+              </p>
+              <div class="typography-preference-fields">
+                <label
+                  >Police de l’interface<select
+                    aria-label="Police de l’interface"
+                    :value="typographyPreferences.interfaceFont"
+                    @change="
+                      setTypographyPreference(
+                        'interfaceFont',
+                        $event.target.value,
+                      )
+                    "
+                  >
+                    <option
+                      v-for="font in interfaceFonts"
+                      :key="font.id"
+                      :value="font.id"
+                    >
+                      {{ font.name }}
+                    </option>
+                  </select></label
+                ><label
+                  >Police des textes de travail<select
+                    aria-label="Police des textes de travail"
+                    :value="typographyPreferences.writingFont"
+                    @change="
+                      setTypographyPreference(
+                        'writingFont',
+                        $event.target.value,
+                      )
+                    "
+                  >
+                    <option
+                      v-for="font in writingFonts"
+                      :key="font.id"
+                      :value="font.id"
+                    >
+                      {{ font.name }}
+                    </option>
+                  </select></label
+                >
+              </div>
+              <label class="typography-numbers"
+                ><input
+                  type="checkbox"
+                  :checked="typographyPreferences.tabularNumbers"
+                  @change="
+                    setTypographyPreference(
+                      'tabularNumbers',
+                      $event.target.checked,
+                    )
+                  "
+                />Chiffres de largeur fixe · horaires et nombres alignés</label
+              >
+              <div
+                class="typography-writing-preview"
+                aria-label="Exemple de typographie"
+              >
+                00:00 Introduction<br />11:11 Comprendre le sujet<br />22:22
+                Mise en pratique<br />0123456789
+              </div>
+              <p>
+                Publication, notes et conducteur. Pour aligner aussi toutes les
+                lettres, choisis JetBrains Mono. La police est un réglage de
+                lecture : YouTube conserve sa propre police après collage.
+              </p>
+            </section>
+          </div>
+        </section>
+
         <section
           v-for="[kind, title, icon] in groups"
           :key="kind"
