@@ -1,0 +1,377 @@
+.publication-app,
+.resource-app {
+  --pub-surface: #192229;
+  --pub-text: #e5eeeb;
+  --pub-muted: #96aaa2;
+  --pub-line: #2c3a3b;
+  --pub-soft: #141c22;
+  --pub-accent: #a5f3cf;
+}
+:root[data-appearance="light"] .publication-app,
+:root[data-appearance="light"] .resource-app {
+  --pub-surface: #fff;
+  --pub-text: #25382f;
+  --pub-muted: #64796e;
+  --pub-line: #d6e0da;
+  --pub-soft: #f3f6f4;
+  --pub-accent: #20774e;
+}
+.publication-template-form {
+  margin-bottom: 20px;
+}
+.publication-template-form select {
+  width: 100%;
+}
+.publication-template-form .publication-field-label label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.publication-template-form .publication-field-label {
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.publication-template-form .field-help {
+  line-height: 1.7;
+  margin-bottom: 0;
+}
+.publication-character-count {
+  font-size: 11px;
+  color: var(--pub-muted);
+  text-align: right;
+  margin-top: 12px;
+}
+.publication-detail-card {
+  border: 1px solid var(--pub-line);
+  background: var(--pub-surface);
+  border-radius: 12px;
+  margin: 0 0 18px;
+  color: var(--pub-text);
+  min-width: 0;
+}
+.publication-detail-card h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+  margin: 0 0 20px;
+}
+.publication-detail-card label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+  margin: 14px 0;
+  color: var(--pub-text);
+}
+.publication-detail-card input,
+.publication-detail-card textarea,
+.publication-detail-card select {
+  width: 100%;
+  min-width: 0;
+}
+.publication-detail-card > summary {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  list-style: none;
+  padding: 18px 20px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.publication-detail-card > summary::-webkit-details-marker {
+  display: none;
+}
+.publication-detail-card > summary::after {
+  content: "⌄";
+  margin-left: auto;
+  color: var(--pub-muted);
+  transition: transform 0.15s;
+}
+.publication-detail-card[open] > summary::after {
+  transform: rotate(180deg);
+}
+.publication-detail-card > summary span {
+  font-size: 11px;
+  color: var(--pub-muted);
+  font-weight: 400;
+}
+.publication-detail-card[open] > summary {
+  border-bottom: 1px solid var(--pub-line);
+}
+.publication-detail-card > div {
+  padding: 4px 20px 20px;
+}
+.publication-detail-card .field-help {
+  font-size: 12px;
+  line-height: 1.7;
+  color: var(--pub-muted);
+}
+.publication-detail-row {
+  border: 1px solid var(--pub-line);
+  border-radius: 9px;
+  padding: 14px;
+  margin: 16px 0;
+  background: var(--pub-soft);
+}
+.publication-row-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 12px;
+}
+.publication-detail-row details > summary {
+  font-size: 11px;
+  color: var(--pub-muted);
+  cursor: pointer;
+}
+.publication-field-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0 16px;
+  min-width: 0;
+}
+.publication-resource-row {
+  display: grid;
+  grid-template-columns: minmax(100px, 1fr) minmax(100px, 1.5fr) 30px;
+  gap: 8px;
+  margin: 12px 0;
+  align-items: center;
+}
+.publication-detail-card a {
+  color: var(--pub-accent);
+  font-size: 11px;
+}
+.publication-custom-slots {
+  margin-top: 20px;
+  border-top: 1px solid var(--pub-line);
+  padding-top: 12px;
+}
+.publication-custom-slots section {
+  margin: 12px 0;
+}
+.publication-custom-slots label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 12px;
+}
+.publication-custom-slots textarea {
+  width: 100%;
+  margin-top: 10px;
+}
+.publication-final-preview {
+  max-width: 1000px;
+  padding: 28px 32px 60px;
+  margin: auto;
+  color: var(--pub-text);
+}
+.publication-preview-tools {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: 24px;
+}
+.publication-preview-page {
+  background: var(--pub-surface);
+  padding: 42px 48px;
+  border: 1px solid var(--pub-line);
+  border-radius: 14px;
+  min-height: 50vh;
+}
+.publication-preview-page h1 {
+  font-size: 25px;
+  line-height: 1.4;
+  letter-spacing: -0.5px;
+  margin: 0 0 30px;
+  overflow-wrap: anywhere;
+}
+.publication-final-text {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  line-height: 1.85;
+  user-select: text;
+}
+.publication-composition-warnings {
+  max-width: 1200px;
+  margin: 16px auto;
+  padding: 12px 20px;
+  background: var(--pub-soft);
+  color: var(--pub-text);
+  border: 1px solid var(--pub-line);
+  border-radius: 8px;
+  font-size: 12px;
+  line-height: 1.6;
+}
+.publication-composition-warnings p {
+  margin: 4px 0;
+}
+.description-token-editor {
+  min-width: 0;
+}
+.description-token-editor textarea {
+  font-family: "IBM Plex Mono", monospace !important;
+  font-size: 12px !important;
+  line-height: 1.8;
+  resize: vertical;
+}
+.description-token-editor .field-help {
+  line-height: 1.6;
+}
+.description-token-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 12px 0 22px;
+}
+.description-token-list .btn {
+  font-size: 11px;
+  padding: 5px 9px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.resource-app .resource-tabs {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 4px;
+}
+.resource-app .resource-tabs button {
+  text-align: left;
+}
+.publication-shared-settings h2 {
+  font-size: 16px;
+  margin-top: 25px;
+  color: var(--pub-text);
+}
+.publication-shared-settings .field-help {
+  line-height: 1.8;
+  color: var(--pub-muted);
+}
+.publication-legacy-model {
+  font-size: 12px;
+  padding: 14px;
+  border: 1px solid var(--pub-line);
+  border-radius: 8px;
+  margin: 15px 0;
+}
+.publication-legacy-model summary {
+  cursor: pointer;
+  color: var(--pub-muted);
+}
+.resource-slots article {
+  grid-template-columns:
+    30px minmax(100px, 1fr) minmax(100px, 1fr) minmax(120px, 1fr)
+    30px;
+}
+@media (max-width: 800px) {
+  .publication-field-grid {
+    grid-template-columns: 1fr;
+  }
+  .publication-preview-page {
+    padding: 25px;
+  }
+  .publication-final-preview {
+    padding: 20px 16px 40px;
+  }
+  .resource-slots article {
+    grid-template-columns: 30px 1fr 30px;
+  }
+  .resource-slots article label {
+    grid-column: 2;
+  }
+  .publication-resource-row {
+    grid-template-columns: 1fr 30px;
+  }
+  .publication-resource-row input:first-child {
+    grid-column: 1/-1;
+  }
+}
+.publication-heading-packs {
+  margin: 20px 0;
+  padding-top: 18px;
+  border-top: 1px solid var(--pub-line);
+}
+.publication-pack-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--pub-muted);
+  margin-bottom: 10px;
+}
+.publication-pack-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 14px 0;
+}
+.publication-pack-options button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  min-width: 112px;
+  max-width: 100%;
+  padding: 12px 14px;
+  border: 1px solid var(--pub-line);
+  border-radius: 8px;
+  background: var(--pub-soft);
+  color: var(--pub-text);
+  text-align: left;
+}
+.publication-pack-options button strong {
+  font-size: 11px;
+  font-weight: 500;
+}
+.publication-pack-options button span {
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}
+.publication-pack-options button.active {
+  border-color: var(--pub-accent);
+  box-shadow: inset 0 0 0 1px var(--pub-accent);
+}
+.publication-pack-editor {
+  padding: 16px;
+  border: 1px solid var(--pub-line);
+  border-radius: 9px;
+  margin: 12px 0 28px;
+}
+.publication-pack-editor details {
+  padding: 12px 0;
+  font-size: 12px;
+}
+.publication-pack-editor summary {
+  cursor: pointer;
+}
+.resource-editor-fields label.publication-pack-checkbox {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  align-self: end;
+  gap: 9px;
+}
+.publication-pack-checkbox input[type="checkbox"] {
+  width: auto;
+}
+/* Keep style previews visible while the shared settings are locked. */
+.publication-shared-settings
+  .resource-editor-fields:disabled
+  .publication-pack-options
+  button {
+  display: flex;
+  opacity: 0.75;
+}
+.publication-shared-settings
+  .resource-editor-fields:disabled
+  .publication-pack-options
+  button.active {
+  opacity: 1;
+}

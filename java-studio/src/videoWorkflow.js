@@ -1,3 +1,4 @@
+import { normalizePublicationDetails } from './publicationComposition.js';
 function normalizeDescriptionRecipe(raw={}){const values={};for(const [key,value] of Object.entries(raw?.values||{}).slice(0,20)){if(!/^[\w-]{1,100}$/.test(key))continue;values[key]=typeof value?.custom==='string'?{custom:value.custom.slice(0,20000)}:{blockId:typeof value?.blockId==='string'?value.blockId.slice(0,100):''};}return {templateId:typeof raw?.templateId==='string'?raw.templateId.slice(0,100):'',values};}
 import { normalizePage } from './conductorPage.js';
 export const highlightColors={yellow:'#f6d776',mint:'#a5f3cf',blue:'#a9d7ff',pink:'#f5b8d3',orange:'#ffc49b'};
@@ -18,7 +19,7 @@ export function normalizeConductor(raw={}){
  })};
 }
 export function normalizePublication(raw={}){
- const seen=new Set();return {revision:revision(raw?.revision),descriptionRecipe:normalizeDescriptionRecipe(raw?.descriptionRecipe),title:text(raw?.title,200),description:text(raw?.description,20000),comment:text(raw?.comment,20000),thumbnailId:id(raw?.thumbnailId),musicIds:[...new Set((Array.isArray(raw?.musicIds)?raw.musicIds:[]).filter(value=>typeof value==='string'&&/^[\w-]{1,100}$/.test(value)))].slice(0,500),chapters:(Array.isArray(raw?.chapters)?raw.chapters:[]).slice(0,100).flatMap(c=>{
+ const seen=new Set();return {revision:revision(raw?.revision),descriptionMode:raw?.descriptionMode==='template'?'template':'manual',generatedDescription:text(raw?.generatedDescription,100000),details:normalizePublicationDetails(raw?.details),descriptionRecipe:normalizeDescriptionRecipe(raw?.descriptionRecipe),title:text(raw?.title,200),description:text(raw?.description,20000),comment:text(raw?.comment,20000),thumbnailId:id(raw?.thumbnailId),musicIds:[...new Set((Array.isArray(raw?.musicIds)?raw.musicIds:[]).filter(value=>typeof value==='string'&&/^[\w-]{1,100}$/.test(value)))].slice(0,500),chapters:(Array.isArray(raw?.chapters)?raw.chapters:[]).slice(0,100).flatMap(c=>{
   if(!c||!id(c.id)||seen.has(id(c.id)))return [];seen.add(id(c.id));return [{id:id(c.id),sequenceId:id(c.sequenceId),title:text(c.title,200),time:text(c.time,12)}];
  })};
 }
