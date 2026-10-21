@@ -11,6 +11,11 @@ const props = defineProps({
 });
 const emit = defineEmits(["back", "home"]);
 const navigation = inject(workflowNavigation, null);
+function openPublicationLibrary(hash) {
+  active.value=null;
+  if(!['#/musiques','#/modeles-description'].includes(window.location.hash))sessionStorage.setItem('frame-publication-library-return',window.location.hash||'#/');
+  if(navigation)navigation.navigate(hash).catch(()=>{});else window.location.hash=hash;
+}
 function openThemes() {
   active.value = null;
   if (navigation) navigation.navigate("#/themes").catch(() => {});
@@ -73,7 +78,7 @@ onBeforeUnmount(() => {
               @click="fileAction"
               @change="active = null"
             >
-              <slot name="file" /><hr v-if="$slots.file"><button @click="openThemes">Thèmes</button><template v-if="$slots['file-bottom']"><hr><slot name="file-bottom"/></template>
+              <slot name="file" /><hr v-if="$slots.file"><button @click="openThemes">Thèmes</button><button @click="openPublicationLibrary('#/musiques')">Bibliothèque de musiques</button><button @click="openPublicationLibrary('#/modeles-description')">Modèles de description</button><template v-if="$slots['file-bottom']"><hr><slot name="file-bottom"/></template>
             </div>
           </div>
           <ApplicationsMenu @open="active=null"/>

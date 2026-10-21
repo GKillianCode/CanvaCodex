@@ -603,14 +603,14 @@ onBeforeUnmount(() => {
                   @click="removePart(row.id)"
                 >
                   <Trash2 :size="13" /></button
-                ><button
+                ><button data-reorder-arrow
                   class="icon-btn"
                   :disabled="i === 0"
                   :aria-label="'Monter la partie ' + (i + 1)"
                   @click="move(i, i - 1)"
                 >
                   <ArrowUp :size="13" /></button
-                ><button
+                ><button data-reorder-arrow
                   class="icon-btn"
                   :disabled="i === sequences.length - 1"
                   :aria-label="'Descendre la partie ' + (i + 1)"

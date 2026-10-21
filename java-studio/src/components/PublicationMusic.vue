@@ -1,6 +1,7 @@
 <script setup>
-import { ref, computed, onMounted } from "vue";
-import { Music2, Copy, Plus, Trash2 } from "lucide-vue-next";
+import { ref, computed, onMounted, inject } from "vue";
+import { workflowNavigation } from "../workflowNavigation.js";
+import { Music2, Copy } from "lucide-vue-next";
 import {
   musicLibraryKey,
   normalizeMusicLibrary,
@@ -11,20 +12,35 @@ const props = defineProps({
     modelValue: { type: Array, default: () => [] },
   }),
   emit = defineEmits(["update:modelValue"]);
+const navigation = inject(workflowNavigation, null);
+async function manage() {
+  sessionStorage.setItem(
+    "frame-publication-library-return",
+    window.location.hash,
+  );
+  await navigation?.navigate("#/musiques");
+}
+const musicSearch = ref("");
+const choices = computed(() =>
+  library.value
+    .filter((row) =>
+      (row.title + " " + row.artist)
+        .toLowerCase()
+        .includes(musicSearch.value.toLowerCase()),
+    )
+    .slice()
+    .sort((a, b) => a.title.localeCompare(b.title, "fr")),
+);
 const library = ref([]),
-  draft = ref([]),
   loading = ref(true),
-  busy = ref(false),
   error = ref(""),
-  notice = ref(""),
-  manager = ref(null);
+  notice = ref("");
 const credits = computed(() => musicCredits(library.value, props.modelValue));
 async function load() {
   try {
     library.value = normalizeMusicLibrary(
       await props.repository.getSetting(musicLibraryKey),
     );
-    draft.value = JSON.parse(JSON.stringify(library.value));
   } catch (e) {
     error.value = e.message;
   } finally {
@@ -39,34 +55,6 @@ function select(id, checked) {
       ? [...new Set([...props.modelValue, id])]
       : props.modelValue.filter((key) => key !== id),
   );
-}
-function add() {
-  if (draft.value.length < 500)
-    draft.value.push({
-      id: crypto.randomUUID(),
-      title: "",
-      artist: "",
-      url: "",
-      license: "",
-    });
-}
-async function save() {
-  busy.value = true;
-  error.value = "";
-  try {
-    const rows = normalizeMusicLibrary(draft.value);
-    if (rows.some((row) => !row.title))
-      throw Error("Donne un titre à chaque musique.");
-    await props.repository.setSetting(musicLibraryKey, rows);
-    library.value = rows;
-    draft.value = JSON.parse(JSON.stringify(rows));
-    notice.value = "Bibliothèque de musiques enregistrée.";
-    manager.value.open = false;
-  } catch (e) {
-    error.value = e.message;
-  } finally {
-    busy.value = false;
-  }
 }
 async function copy() {
   try {
@@ -106,8 +94,13 @@ async function copy() {
           sélectionnée(s)</span
         >
       </summary>
+      <input
+        v-model="musicSearch"
+        aria-label="Rechercher une musique"
+        placeholder="Rechercher un titre ou un artiste…"
+      />
       <div class="publication-music-choices">
-        <label v-for="row in library" :key="row.id"
+        <label v-for="row in choices" :key="row.id"
           ><input
             type="checkbox"
             :checked="modelValue.includes(row.id)"
@@ -118,7 +111,7 @@ async function copy() {
           ></label
         >
         <p v-if="!library.length" class="field-help">
-          Ajoute tes premières musiques dans la bibliothèque ci-dessous.
+          Ajoute tes premières musiques dans la bibliothèque partagée.
         </p>
       </div>
     </details>
@@ -129,59 +122,9 @@ async function copy() {
       readonly
       rows="5"
     />
-    <details ref="manager" class="publication-music-manager">
-      <summary class="btn">Gérer la bibliothèque de musiques</summary>
-      <p class="field-help">
-        Les changements de cette liste s’appliquent à toutes les vidéos. Retirer
-        une musique la retire des blocs de crédits.
-      </p>
-      <fieldset :disabled="busy || loading">
-        <article
-          v-for="(row, i) in draft"
-          :key="row.id"
-          class="publication-music-entry"
-        >
-          <div>
-            <input
-              v-model="row.title"
-              :aria-label="'Titre de la musique ' + (i + 1)"
-              placeholder="Titre"
-              maxlength="200"
-            /><button
-              class="icon-btn"
-              :aria-label="'Supprimer la musique ' + (i + 1)"
-              @click="draft.splice(i, 1)"
-            >
-              <Trash2 :size="15" />
-            </button>
-          </div>
-          <input
-            v-model="row.artist"
-            :aria-label="'Artiste de la musique ' + (i + 1)"
-            placeholder="Artiste"
-            maxlength="200"
-          /><input
-            v-model="row.url"
-            :aria-label="'Lien de la musique ' + (i + 1)"
-            placeholder="Lien"
-            maxlength="2000"
-          /><textarea
-            v-model="row.license"
-            :aria-label="'Crédits et licence de la musique ' + (i + 1)"
-            placeholder="Crédits ou licence à mentionner"
-            rows="2"
-            maxlength="2000"
-          />
-        </article>
-        <div class="production-actions">
-          <button class="btn" :disabled="draft.length >= 500" @click="add">
-            <Plus :size="14" />Ajouter une musique</button
-          ><button class="btn" @click="save">
-            Enregistrer la bibliothèque
-          </button>
-        </div>
-      </fieldset>
-    </details>
+    <button class="btn" @click="manage">
+      Gérer la bibliothèque de musiques
+    </button>
     <p v-if="error" role="alert">{{ error }}</p>
     <p v-if="notice" role="status">{{ notice }}</p>
   </section>

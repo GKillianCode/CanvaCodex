@@ -9,7 +9,8 @@ export const fold = (value) =>
     .trim();
 // Quoted values may contain spaces, escaped quotes and even field names.
 function searchTokens(query) {
-  const marker = /(?:^|\s)(playlist|vidéo|video|type)\s*:\s*/gi,
+  const marker =
+      /(?:^|\s)(playlist|vidéo|video|type|statut|status|état|etat)\s*:\s*/gi,
     tokens = [];
   let match;
   while ((match = marker.exec(query))) {
@@ -38,14 +39,17 @@ function searchTokens(query) {
         value = raw.slice(1);
       }
     } else {
-      const next = /(?:\s)(?:playlist|vidéo|video|type)\s*:/i.exec(
-        query.slice(valueStart),
-      );
+      const next =
+        /(?:\s)(?:playlist|vidéo|video|type|statut|status|état|etat)\s*:/i.exec(
+          query.slice(valueStart),
+        );
       end = next ? valueStart + next.index : query.length;
       value = query.slice(valueStart, end);
     }
     tokens.push({
-      field: fold(match[1]),
+      field: ["etat", "status"].includes(fold(match[1]))
+        ? "statut"
+        : fold(match[1]),
       start,
       end,
       value: fold(value),
@@ -57,7 +61,7 @@ function searchTokens(query) {
 }
 export function parseVideoSearch(query) {
   query = String(query);
-  const result = { playlist: [], video: [], type: [], text: "" };
+  const result = { playlist: [], video: [], type: [], statut: [], text: "" };
   let end = 0;
   for (const token of searchTokens(query)) {
     result.text += " " + query.slice(end, token.start);
@@ -74,6 +78,15 @@ export function matchesVideoSearch(row, search) {
     videoTypes.find(([id]) => id === row.videoType)?.[1] || "Non défini",
   );
   return (
+    (!search.statut?.length ||
+      search.statut.includes("all") ||
+      (!search.statut.includes("none") &&
+        search.statut.some(
+          (value) =>
+            value === fold(row.status) ||
+            value ===
+              fold(videoStatuses.find(([id]) => id === row.status)?.[1]),
+        ))) &&
     (!search.text ||
       search.text.split(" ").every((word) => title.includes(word))) &&
     (!search.playlist.length || search.playlist.some((v) => v === playlist)) &&
@@ -87,9 +100,10 @@ export function activeSearchField(query, caret = query.length) {
     (t) => caret >= t.start && caret <= t.end,
   );
   if (!token || (token.complete && caret >= token.end)) return null;
-  const prefix = /^(?:playlist|vidéo|video|type)\s*:\s*/i.exec(
-    query.slice(token.start),
-  );
+  const prefix =
+    /^(?:playlist|vidéo|video|type|statut|status|état|etat)\s*:\s*/i.exec(
+      query.slice(token.start),
+    );
   if (!prefix || caret < token.start + prefix[0].length) return null;
   return {
     ...token,
@@ -146,7 +160,7 @@ export function keywordCompletion(query, caret = query.length) {
     match = /(?:^|\s)([\p{L}]+)$/u.exec(before);
   if (!match) return null;
   const word = fold(match[1]),
-    values = ["playlist", "vidéo", "type"].filter(
+    values = ["playlist", "vidéo", "type", "statut", "état"].filter(
       (value) =>
         fold(value).startsWith(word) || (word === "video" && value === "vidéo"),
     );

@@ -87,3 +87,16 @@ test("library preferences retain hidden states, empty selection, page size, arch
     1,
   );
 });
+
+test('status keywords support all/none, aliases and custom status names',async()=>{
+ const {keywordCompletion}=await import('../src/videoSearch.js');
+ const target={...row,status:'ready'};
+ assert(matchesVideoSearch(target,parseVideoSearch('')));
+ assert(matchesVideoSearch(target,parseVideoSearch('statut:all')));
+ assert(!matchesVideoSearch(target,parseVideoSearch('état:none')));
+ assert(matchesVideoSearch(target,parseVideoSearch('etat:"Prêt à tourner"')));
+ assert(matchesVideoSearch(target,parseVideoSearch('statut:ready statut:creation')));
+ assert(!matchesVideoSearch(target,parseVideoSearch('statut:creation')));
+ assert.equal(activeSearchField('état:pr').field,'statut');
+ assert(keywordCompletion('sta').values.includes('statut'));
+});

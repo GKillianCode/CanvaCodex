@@ -1,3 +1,4 @@
+function normalizeDescriptionRecipe(raw={}){const values={};for(const [key,value] of Object.entries(raw?.values||{}).slice(0,20)){if(!/^[\w-]{1,100}$/.test(key))continue;values[key]=typeof value?.custom==='string'?{custom:value.custom.slice(0,20000)}:{blockId:typeof value?.blockId==='string'?value.blockId.slice(0,100):''};}return {templateId:typeof raw?.templateId==='string'?raw.templateId.slice(0,100):'',values};}
 import { normalizePage } from './conductorPage.js';
 export const highlightColors={yellow:'#f6d776',mint:'#a5f3cf',blue:'#a9d7ff',pink:'#f5b8d3',orange:'#ffc49b'};
 export function normalizeConductorImages(value){return (Array.isArray(value)?value:[]).slice(0,32).flatMap((i,index)=>i&&typeof i.src==='string'&&i.src.length<3000000&&/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/.test(i.src)?[{id:typeof i.id==='string'&&/^[\w-]{1,100}$/.test(i.id)?i.id:'legacy-'+index,src:i.src,alt:typeof i.alt==='string'?i.alt.slice(0,300):'',width:Math.max(10,Math.min(100,Number(i.width)||50)),align:['left','right','center','block'].includes(i.align)?i.align:'center'}]:[]);}
@@ -17,7 +18,7 @@ export function normalizeConductor(raw={}){
  })};
 }
 export function normalizePublication(raw={}){
- const seen=new Set();return {revision:revision(raw?.revision),title:text(raw?.title,200),description:text(raw?.description,20000),comment:text(raw?.comment,20000),thumbnailId:id(raw?.thumbnailId),musicIds:[...new Set((Array.isArray(raw?.musicIds)?raw.musicIds:[]).filter(value=>typeof value==='string'&&/^[\w-]{1,100}$/.test(value)))].slice(0,500),chapters:(Array.isArray(raw?.chapters)?raw.chapters:[]).slice(0,100).flatMap(c=>{
+ const seen=new Set();return {revision:revision(raw?.revision),descriptionRecipe:normalizeDescriptionRecipe(raw?.descriptionRecipe),title:text(raw?.title,200),description:text(raw?.description,20000),comment:text(raw?.comment,20000),thumbnailId:id(raw?.thumbnailId),musicIds:[...new Set((Array.isArray(raw?.musicIds)?raw.musicIds:[]).filter(value=>typeof value==='string'&&/^[\w-]{1,100}$/.test(value)))].slice(0,500),chapters:(Array.isArray(raw?.chapters)?raw.chapters:[]).slice(0,100).flatMap(c=>{
   if(!c||!id(c.id)||seen.has(id(c.id)))return [];seen.add(id(c.id));return [{id:id(c.id),sequenceId:id(c.sequenceId),title:text(c.title,200),time:text(c.time,12)}];
  })};
 }

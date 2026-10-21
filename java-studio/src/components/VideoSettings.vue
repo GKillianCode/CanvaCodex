@@ -1,4 +1,8 @@
 <script setup>
+import {
+  showReorderArrows,
+  setReorderArrows,
+} from "../interfacePreferences.js";
 import { ref, computed, nextTick, onBeforeUnmount, watch } from "vue";
 import {
   Plus,
@@ -253,6 +257,14 @@ async function save(apply = false, kind = null) {
         Organise les étiquettes de tes vidéos et choisis les valeurs proposées à
         la création.
       </p>
+      <label class="interface-preference"
+        ><input
+          type="checkbox"
+          :checked="showReorderArrows"
+          @change="setReorderArrows($event.target.checked)"
+        />Afficher les flèches de réordonnancement
+        <small>Dans toute l’application · désactivé par défaut</small></label
+      >
       <fieldset :disabled="busy">
         <section
           v-for="[kind, title, icon] in groups"

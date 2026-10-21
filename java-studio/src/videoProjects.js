@@ -135,12 +135,18 @@ export function detachCreation(project, id) {
   project.updatedAt=Date.now();
   return {meta,index};
 }
+export function nextCreationName(project,app){
+ const label={slides:'Diaporama',banners:'Incrustation',thumbnails:'Miniature',animation:'Animation'}[app]||'Création';
+ const names=new Set((project?.creations||[]).filter(row=>row.app===app).map(row=>row.name));
+ let number=1;while(names.has(label+' - '+number))number++;
+ return label+' - '+number;
+}
 export function makeCreation(project, app, name, source = null) {
   if (!applications.some((a) => a.id === app)) throw Error("Atelier inconnu.");
   if (project.creations.length >= 100)
     throw Error("Limite de 100 créations par vidéo.");
   const kind = app === "banners" ? "banners" : "slides",
-    title = label(name, applications.find((a) => a.id === app).name);
+    title = label(name, nextCreationName(project,app));
   let document = source;
   if (!document) {
     const data = {

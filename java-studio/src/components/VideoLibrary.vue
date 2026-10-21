@@ -33,6 +33,7 @@ import {
   videoTypes,
   videoTypeTitle,
   makeCreation,
+  nextCreationName,
   attachCreation,
   videoBundle,
   importVideoBundle,
@@ -79,9 +80,7 @@ const messageNewVideo=ref('');
 const newVideoType = ref(videoCatalog.defaultType);
 const numberedPages=computed(()=>paginationItems(page.value,pages.value));
 const starterApps = ref([]);
-const createAnother=ref(false),displayRoot=ref(null);
-function closeDisplay(event){if(displayRoot.value&&!displayRoot.value.contains(event.target))displayRoot.value.open=false;}
-onMounted(()=>document.addEventListener("pointerdown",closeDisplay));onBeforeUnmount(()=>document.removeEventListener("pointerdown",closeDisplay));
+const createAnother=ref(false);
 const browserOnly = ref(false);
 const selected = ref(null),
   playlists = ref([]),
@@ -97,7 +96,6 @@ const filtered = computed(() =>
     projects.value.filter(
       (p) =>
         p.archived === archives.value &&
-        visibleStatuses.value.includes(p.status) &&
         (!playlist.value ||
           p.playlist ===
             (playlist.value === "__none__" ? "" : playlist.value)) &&
@@ -125,7 +123,7 @@ const keywordSearch=computed(()=>keywordCompletion(query.value,caret.value));
 const suggestions = computed(()=>{
  if(keywordSearch.value)return keywordSearch.value.values;
  const active=activeSearch.value;if(!active)return [];
- const values=active.field==='playlist'?[...playlists.value,'Sans playlist']:active.field==='type'?['Non défini',...videoTypes.map(([,title])=>title)]:projects.value.map(p=>p.name);
+ const values=active.field==='statut'?['all','none',...videoStatuses.map(([,title])=>title)]:active.field==='playlist'?[...playlists.value,'Sans playlist']:active.field==='type'?['Non défini',...videoTypes.map(([,title])=>title)]:projects.value.map(p=>p.name);
  return [...new Set(values)].filter(v=>fold(v).includes(active.value)).slice(0,20);
 });
 watch(suggestions,()=>suggestionIndex.value=0);
@@ -147,7 +145,7 @@ function searchKey(event){
  if(event.key==='Escape'){searchFocused.value=false;return;}
  if(!searchFocused.value||!suggestions.value.length)return;
  if(['ArrowDown','ArrowUp'].includes(event.key)){event.preventDefault();const delta=event.key==='ArrowDown'?1:-1;suggestionIndex.value=(suggestionIndex.value+delta+suggestions.value.length)%suggestions.value.length;}
- else if(event.key==='Enter'){event.preventDefault();chooseSuggestion(suggestions.value[suggestionIndex.value]);}
+ else if(event.key==='Enter'||event.key==='Tab'){event.preventDefault();chooseSuggestion(suggestions.value[suggestionIndex.value]);}
 }
 let retryAction = null;
 watch(modal, async (value) => {
@@ -289,7 +287,7 @@ async function savePlaylist() {
 }
 async function submit(another = false) {
   await run(async () => {
-    if (!name.value.trim()) throw Error("Donne un nom à ta création.");
+    if (!name.value.trim() && modal.value.type !== "creation") throw Error("Donne un nom à ta création.");
     if (
       ["video", "creation"].includes(modal.value.type) &&
       props.folderState?.supported &&
@@ -346,7 +344,7 @@ async function submit(another = false) {
           app.value,
         );
       }
-      const row = makeCreation(project, app.value, name.value, source);
+      const row = makeCreation(project, app.value, name.value.trim() || nextCreationName(project,app.value), source);
       attachCreation(project, row);
       await props.repository.put(project, [row]);
       modal.value = null;
@@ -577,6 +575,7 @@ async function importVideo(event) {
         }}</small></template
       >
       <template #file-bottom><button @click="modal={type:'settings'}">Paramètres des vidéos…</button></template>
+      <template v-if="!videoId" #context><div class="workspace-nav-cluster library-shortcuts"><button class="app-menu-trigger" @click="modal={type:'playlists'}">Playlists</button><button class="app-menu-trigger" @click="emit('open-app','notes')">Notes</button><button class="app-menu-trigger" @click="emit('open-app','canvas')">Parcours</button></div></template>
       <template #actions
         ><span class="save-state">{{
           folderState?.name ? folderState.name : "Bibliothèque locale"
@@ -606,75 +605,15 @@ async function importVideo(event) {
       </section>
       <section class="video-filter" aria-label="Filtres des vidéos">
         <div class="video-search-wrap">
-          <label class="video-search"><Search :size="16"/><input ref="searchInput" v-model="query" maxlength="4000" role="combobox" :aria-expanded="searchFocused&&suggestions.length>0" aria-controls="video-search-suggestions" :aria-activedescendant="searchFocused&&suggestions.length?'video-suggestion-'+suggestionIndex:undefined" aria-autocomplete="list" placeholder='Rechercher · playlist: · vidéo: · type:' aria-label="Rechercher des vidéos" @focus="searchFocused=true;updateCaret($event)" @blur="searchFocused=false" @input="searchFocused=true;updateCaret($event)" @click="updateCaret" @keyup="updateCaret" @keydown="searchKey"/><button v-if="query" class="icon-btn" title="Effacer la recherche" aria-label="Effacer la recherche" @click="query='';searchInput?.focus()"><X :size="15"/></button></label>
+          <label class="video-search"><Search :size="16"/><input ref="searchInput" v-model="query" maxlength="4000" role="combobox" :aria-expanded="searchFocused&&suggestions.length>0" aria-controls="video-search-suggestions" :aria-activedescendant="searchFocused&&suggestions.length?'video-suggestion-'+suggestionIndex:undefined" aria-autocomplete="list" placeholder='Rechercher · playlist: · vidéo: · type: · statut:' aria-label="Rechercher des vidéos" @focus="searchFocused=true;updateCaret($event)" @blur="searchFocused=false" @input="searchFocused=true;updateCaret($event)" @click="updateCaret" @keyup="updateCaret" @keydown="searchKey"/><button v-if="query" class="icon-btn" title="Effacer la recherche" aria-label="Effacer la recherche" @click="query='';searchInput?.focus()"><X :size="15"/></button></label>
           <div v-if="searchFocused&&suggestions.length" id="video-search-suggestions" class="video-search-suggestions" role="listbox" aria-label="Suggestions de recherche">
             <button v-for="(value,i) in suggestions" :id="'video-suggestion-'+i" :key="value" role="option" :aria-selected="i===suggestionIndex" :class="{active:i===suggestionIndex}" @pointerdown.prevent @click="chooseSuggestion(value)"><span>{{keywordSearch?'Filtrer par':activeSearch.field==='video'?'vidéo:':activeSearch.field+':'}}</span>{{value}}</button>
           </div>
         </div>
-        <details ref="displayRoot" class="library-display">
-          <summary class="btn">
-            Affichage
-            <span>{{
-              archives
-                ? "Archives"
-                : visibleStatuses.length === videoStatuses.length
-                  ? "Tous les états"
-                  : visibleStatuses.length + " états"
-            }}</span>
-          </summary>
-          <div class="library-display-panel">
-            <label
-              >Trier les vidéos<select
-                v-model="sortMode"
-                aria-label="Trier les vidéos"
-              >
-                <option value="recent">Dernières modifications</option>
-                <option value="process">État du processus</option>
-                <option value="playlist">Ordre dans les playlists</option>
-              </select></label
-            >
-            <details class="video-state-filter" open>
-              <summary class="btn">
-                États · {{ visibleStatuses.length }}/{{ videoStatuses.length }}
-              </summary>
-              <div class="video-state-options">
-                <div class="video-state-shortcuts">
-                  <button
-                    class="btn"
-                    @click="visibleStatuses = videoStatuses.map(([id]) => id)"
-                  >
-                    Tout afficher</button
-                  ><button class="btn" @click="visibleStatuses = []">
-                    Tout masquer
-                  </button>
-                </div>
-                <label v-for="[id, title] in videoStatuses" :key="id"
-                  ><input
-                    type="checkbox"
-                    v-model="visibleStatuses"
-                    :value="id"
-                  />{{ title }}</label
-                >
-              </div>
-            </details>
-            <button
-              class="btn"
-              :class="{ active: archives }"
-              @click="archives = !archives"
-            >
-              <Archive :size="15" />{{
-                archives ? "Voir les vidéos actives" : "Archives"
-              }}
-            </button>
-          </div>
-        </details>
-        <button class="btn" @click="modal = { type: 'playlists' }">
-          Playlists
-        </button>
-        <button class="btn" @click="emit('open-app','notes')">Notes libres</button>
-        <button class="btn" @click="emit('open-app','canvas')"><PanelsTopLeft :size="16"/>Parcours</button>
+        <select v-model="sortMode" aria-label="Trier les vidéos" class="video-sort-select"><option value="recent">Récentes</option><option value="process">Par statut</option><option value="playlist">Par playlist</option></select>
+        <button class="icon-btn" :class="{active:archives}" title="Afficher les archives" aria-label="Afficher les archives" @click="archives=!archives"><Archive :size="17"/></button>
       </section>
-      <p class="video-search-help">Combine les filtres : playlist:"Java" playlist:"IA" type:"Cours" · vidéo: recherche dans le titre. Plusieurs playlists ou types élargissent la sélection.</p>
+      <p class="video-search-help">Filtres : playlist: · vidéo: · type: · statut: · statut:all affiche tout, statut:none ne montre aucun statut.</p>
       <div v-if="busy && !projects.length" class="video-empty">
         Chargement de la bibliothèque…
       </div>
@@ -883,7 +822,7 @@ async function importVideo(event) {
                     ? "Nouveau diaporama"
                     : a.id === "banners"
                       ? "Nouvelle incrustation"
-                      : "Nouvelle miniature"
+                      : a.id === 'animation' ? 'Nouvelle animation' : "Nouvelle miniature"
                 }}
               </button>
             </div>
@@ -994,12 +933,12 @@ async function importVideo(event) {
           >Nom<input
             v-model="name"
             maxlength="200"
-            required
+            :required="modal.type !== 'creation'"
             autofocus
             :placeholder="
               modal.type === 'video'
                 ? 'Les primitifs en Java'
-                : 'Fiche int, présentation du cours…'
+                : modal.type === 'creation' ? nextCreationName(selected,app) : 'Fiche int, présentation du cours…'
             "
             aria-label="Nom de la nouvelle création" /></label
         ><template v-if="modal.type === 'video'"
