@@ -1432,3 +1432,25 @@
   font-size: 13px;
   color: var(--muted);
 }
+
+.design-example.design-advanced-example {
+  padding-top: 0;
+  overflow: hidden;
+}
+.design-example-cover {
+  display: block;
+  width: calc(100% + 52px);
+  margin: 0 -26px 22px;
+  aspect-ratio: 1.6;
+  object-fit: contain;
+  background: #f6f4ed;
+  border-bottom: 1px solid var(--ds-line);
+}
+.design-advanced-example .eyebrow {
+  font-size: 9px;
+}
+.design-advanced-example small {
+  display: block;
+  margin-top: 6px;
+  line-height: 1.5;
+}

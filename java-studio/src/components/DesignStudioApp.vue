@@ -61,6 +61,7 @@ import {
   PanelTop,
   Pencil,
 } from "lucide-vue-next";
+import { advancedDesignExamples } from "../designExamples.js";
 import TransformFields from "./TransformFields.vue";
 import SegmentedProportions from "./SegmentedProportions.vue";
 import ThemeGallery from "./ThemeGallery.vue";
@@ -551,6 +552,28 @@ defineExpose({ flush: s.flush });
         /></label>
       </div>
       <div class="design-document-grid">
+        <article class="design-example design-advanced-example">
+          <img
+            class="design-example-cover"
+            :src="advancedDesignExamples[kind].preview"
+            alt=""
+            loading="lazy"
+          />
+          <span class="eyebrow">PROJET D’EXEMPLE / AVANCÉ</span>
+          <h2>{{ advancedDesignExamples[kind].title }}</h2>
+          <p>
+            {{ advancedDesignExamples[kind].subtitle }}<br /><small>{{
+              advancedDesignExamples[kind].detail
+            }}</small>
+          </p>
+          <button
+            class="btn"
+            :disabled="s.creating"
+            @click="s.create('advanced')"
+          >
+            Explorer le projet <ChevronRight :size="15" />
+          </button>
+        </article>
         <article class="design-example">
           <span class="design-example-symbol"
             ><FileText v-if="s.isLayout" :size="36" /><PenTool
@@ -565,7 +588,7 @@ defineExpose({ flush: s.flush });
                 : "Un schéma de mémoire pour essayer les outils, sans partir de zéro."
             }}
           </p>
-          <button class="btn" @click="s.create(true)">
+          <button class="btn" :disabled="s.creating" @click="s.create(true)">
             Ouvrir un exemple <ChevronRight :size="15" />
           </button>
         </article>

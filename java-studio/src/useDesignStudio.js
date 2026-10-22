@@ -29,6 +29,9 @@ import {
 import { designRepository } from "./designRepository.js";
 import {
   exportDesignSvg,
+  embedDesignFonts,
+  loadDesignFonts,
+  rasterizeDesignSvg,
   downloadDesign,
   printDesign,
   measureDesignText,
@@ -54,6 +57,7 @@ export function useDesignStudio(props) {
     loading = ref(true),
     dirty = ref(false),
     saving = ref(false),
+    creating = ref(false),
     error = ref(""),
     notice = ref(""),
     query = ref(""),
@@ -243,16 +247,23 @@ export function useDesignStudio(props) {
     await navigation.navigate(route(id));
   }
   async function create(example = false) {
+    if (creating.value) return;
+    creating.value = true;
     try {
       await flush();
-      const value = example
-        ? sampleDesign(props.kind)
-        : createDesign(props.kind, newName.value, newFormat.value);
+      const value =
+        example === "advanced"
+          ? (await import("./designExamples.js")).advancedDesign(props.kind)
+          : example
+            ? sampleDesign(props.kind)
+            : createDesign(props.kind, newName.value, newFormat.value);
       await store.save(value);
       newDialog.value = false;
       await open(value.id);
     } catch (e) {
       error.value = e.message;
+    } finally {
+      creating.value = false;
     }
   }
   function confirm(title, detail, action) {
@@ -1106,15 +1117,22 @@ export function useDesignStudio(props) {
     );
   }
   async function svg() {
-    await document.fonts.ready;
-    downloadDesign(
-      exportDesignSvg(doc.value, pageIndex.value),
-      doc.value.name + ".svg",
-      "image/svg+xml",
-    );
-    say(
-      "SVG exporté. Tu peux l’importer dans les autres ateliers comme image vectorielle.",
-    );
+    try {
+      await loadDesignFonts(page.value.elements);
+      downloadDesign(
+        await embedDesignFonts(
+          exportDesignSvg(doc.value, pageIndex.value),
+          page.value.elements,
+        ),
+        doc.value.name + ".svg",
+        "image/svg+xml",
+      );
+      say(
+        "SVG exporté. Garde aussi le JSON pour reprendre ton projet dans Frame.",
+      );
+    } catch (e) {
+      error.value = e.message;
+    }
   }
   async function pdf() {
     try {
@@ -1127,28 +1145,17 @@ export function useDesignStudio(props) {
   }
   async function png() {
     try {
-      const source = exportDesignSvg(doc.value, pageIndex.value),
-        url = URL.createObjectURL(
-          new Blob([source], { type: "image/svg+xml" }),
+      await loadDesignFonts(page.value.elements);
+      const source = await embedDesignFonts(
+          exportDesignSvg(doc.value, pageIndex.value),
+          page.value.elements,
         ),
-        image = new Image();
-      try {
-        image.src = url;
-        await image.decode();
-        const c = document.createElement("canvas");
-        c.width = pageSize.value.width;
-        c.height = pageSize.value.height;
-        c.getContext("2d").drawImage(image, 0, 0);
-        const blob = await new Promise((resolve) => c.toBlob(resolve));
-        const link = URL.createObjectURL(blob),
-          a = document.createElement("a");
-        a.href = link;
-        a.download = doc.value.name + ".png";
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(link), 10000);
-      } finally {
-        URL.revokeObjectURL(url);
-      }
+        blob = await rasterizeDesignSvg(
+          source,
+          pageSize.value.width,
+          pageSize.value.height,
+        );
+      downloadDesign(blob, doc.value.name + ".png", "image/png");
     } catch (e) {
       error.value = e.message;
     }
@@ -1361,6 +1368,7 @@ export function useDesignStudio(props) {
     loading,
     dirty,
     saving,
+    creating,
     error,
     notice,
     query,

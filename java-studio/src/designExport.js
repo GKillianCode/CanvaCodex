@@ -43,8 +43,13 @@ export function measureDesignText(
   return measurement.measureText(value).width;
 }
 export function designTextLines(e) {
-  return wrapDesignText(e.text, e.w, e.size, (value, size) =>
-    measureDesignText(value, size, e.weight, e.style === "code", e.font),
+  return wrapDesignText(
+    e.text,
+    e.w,
+    e.size,
+    (value, size) =>
+      measureDesignText(value, size, e.weight, e.code, e.font) +
+      Math.max(0, [...value].length - 1) * size * e.letterSpacing,
   );
 }
 export function artworkMarkup(
@@ -84,7 +89,7 @@ export function artworkMarkup(
             const x = e.x + col * cw,
               y = e.y + row * ch,
               cellId = `${id}-${row}-${col}`;
-            content += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${e.filled ? escape(e.fill) : "none"}" stroke="${e.outlined ? escape(e.stroke) : "none"}" stroke-width="${e.strokeWidth}"/><defs><clipPath id="${cellId}"><rect x="${x + 6}" y="${y}" width="${Math.max(1, cw - 12)}" height="${ch}"/></clipPath></defs><text clip-path="url(#${cellId})" x="${x + 8}" y="${y + ch / 2}" dominant-baseline="middle" font-family="${escape(designFonts[e.font])}" font-size="${e.size}" fill="${e.cellColor}">${escape(cells[row]?.[col] || "")}</text>`;
+            content += `<rect x="${x}" y="${y}" width="${cw}" height="${ch}" fill="${e.filled ? escape(e.fill) : "none"}" stroke="${e.outlined ? escape(e.stroke) : "none"}" stroke-width="${e.strokeWidth}"/><defs><clipPath id="${cellId}"><rect x="${x + 6}" y="${y}" width="${Math.max(1, cw - 12)}" height="${ch}"/></clipPath></defs><text clip-path="url(#${cellId})" x="${x + 8}" y="${y + ch / 2}" dominant-baseline="middle" font-family="${escape(designFonts[e.font])}" font-size="${e.size}" font-weight="${e.weight}" fill="${e.cellColor}">${escape(cells[row]?.[col] || "")}</text>`;
           }
         content += "</g>";
       } else if (e.code) {
@@ -128,7 +133,7 @@ export function artworkMarkup(
             } else visit(token.content, colors[token.type] || color);
         };
         visit(tokens);
-        content = `<rect x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="8" fill="${escape(e.codeBackground)}"/><defs><clipPath id="${id}-code"><rect x="${e.x + 12}" y="${e.y + 8}" width="${Math.max(1, e.w - 24)}" height="${Math.max(1, e.h - 16)}"/></clipPath></defs><text xml:space="preserve" clip-path="url(#${id}-code)" font-family="monospace" font-size="${e.size}">${lines.map((line, i) => `<tspan x="${e.x + 16}" y="${e.y + 16 + e.size + i * e.size * e.leading}">${line.join("")}</tspan>`).join("")}</text>`;
+        content = `<rect x="${e.x}" y="${e.y}" width="${e.w}" height="${e.h}" rx="8" fill="${escape(e.codeBackground)}"/><defs><clipPath id="${id}-code"><rect x="${e.x + 12}" y="${e.y + 8}" width="${Math.max(1, e.w - 24)}" height="${Math.max(1, e.h - 16)}"/></clipPath></defs><text xml:space="preserve" clip-path="url(#${id}-code)" font-family="${escape(designFonts[e.font] || designFonts.monospace)}" font-weight="${e.weight}" font-size="${e.size}">${lines.map((line, i) => `<tspan x="${e.x + 16}" y="${e.y + 16 + e.size + i * e.size * e.leading}">${line.join("")}</tspan>`).join("")}</text>`;
       } else {
         const lines = designTextLines(e),
           anchor =
@@ -281,8 +286,170 @@ export function downloadDesign(content, name, type = "application/json") {
   a.remove();
   setTimeout(() => URL.revokeObjectURL(url), 10000);
 }
+export async function loadDesignFonts(elements, documentRef = document) {
+  const specifications = [
+    ...new Set(
+      elements
+        .filter((e) => ["text", "table"].includes(e.type) && !e.hidden)
+        .map((e) => `${e.weight || 400} ${e.size || 17}px ${fontCss(e.font)}`),
+    ),
+  ];
+  await Promise.all(
+    specifications.map((value) => documentRef.fonts.load(value)),
+  );
+  await documentRef.fonts.ready;
+}
+// The print frame and SVG rasterizer must use the same bundled faces as the editor.
+function designFontFaces(elements) {
+  const used = elements
+      .filter((e) => ["text", "table"].includes(e.type) && !e.hidden)
+      .map((e) => ({
+        family: fontCss(e.font)
+          .split(",")[0]
+          .replace(/["']/g, "")
+          .trim()
+          .toLowerCase(),
+        weight: Number(e.weight) || 400,
+      })),
+    faces = [];
+  for (const sheet of document.styleSheets) {
+    try {
+      for (const rule of sheet.cssRules) {
+        if (rule.type !== 5) continue;
+        const family = rule.style
+            .getPropertyValue("font-family")
+            .replace(/["']/g, "")
+            .trim()
+            .toLowerCase(),
+          style = rule.style.getPropertyValue("font-style"),
+          weights = rule.style
+            .getPropertyValue("font-weight")
+            .split(/\s+/)
+            .map(Number);
+        if (
+          (style && style !== "normal") ||
+          !used.some(
+            (e) =>
+              e.family === family &&
+              (weights.length === 2
+                ? e.weight >= weights[0] && e.weight <= weights[1]
+                : e.weight === (weights[0] || 400)),
+          )
+        )
+          continue;
+        const css = rule.cssText.replace(/url\(([^)]+)\)/g, (_, src) => {
+          const value = src.trim().replace(/^['"]|['"]$/g, "");
+          const url = new URL(value, sheet.href || location.href);
+          if (url.origin !== location.origin)
+            throw Error("Police externe non embarquée");
+          return 'url("' + url.href + '")';
+        });
+        if (!faces.includes(css)) faces.push(css);
+      }
+    } catch {}
+  }
+  return faces;
+}
+const designFontData = new Map(),
+  designFontLicenses = new Map();
+async function fontData(url) {
+  if (!designFontData.has(url)) {
+    const promise = fetch(url)
+      .then(async (response) => {
+        if (!response.ok)
+          throw Error("Impossible de préparer les polices de l’export.");
+        const blob = await response.blob();
+        return await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = () => resolve(reader.result);
+          reader.onerror = () => reject(Error("Police illisible"));
+          reader.readAsDataURL(blob);
+        });
+      })
+      .catch((error) => {
+        designFontData.delete(url);
+        throw error;
+      });
+    if (designFontData.size >= 32)
+      designFontData.delete(designFontData.keys().next().value);
+    designFontData.set(url, promise);
+  }
+  return designFontData.get(url);
+}
+export async function embedDesignFonts(svg, elements) {
+  const faces = await Promise.all(
+    designFontFaces(elements).map(async (face) => {
+      const urls = [...face.matchAll(/url\("([^" ]+)"\)/g)];
+      let css = face;
+      for (const match of urls)
+        css = css.replace(
+          match[0],
+          'url("' + (await fontData(match[1])) + '")',
+        );
+      return css;
+    }),
+  );
+  if (!faces.length) return svg;
+  const ids = [
+    ...new Set(
+      elements
+        .filter((e) => ["text", "table"].includes(e.type) && !e.hidden)
+        .map((e) => e.font),
+    ),
+  ].filter((id) => fonts.some((font) => font.id === id && !font.local));
+  const licenses = await Promise.all(
+    ids.map(async (id) => {
+      if (!designFontLicenses.has(id))
+        designFontLicenses.set(
+          id,
+          fetch("/fonts/licenses/" + id + ".txt")
+            .then((response) => {
+              if (!response.ok) throw Error("Licence de police indisponible");
+              return response.text();
+            })
+            .catch((error) => {
+              designFontLicenses.delete(id);
+              throw error;
+            }),
+        );
+      return await designFontLicenses.get(id);
+    }),
+  );
+  return svg.replace(
+    /(<svg\b[^>]*>)/,
+    "$1<metadata>" +
+      escape(licenses.join("\n\n")) +
+      "</metadata><defs><style>" +
+      escape(faces.join("\n")) +
+      "</style></defs>",
+  );
+}
+export async function rasterizeDesignSvg(svg, width, height) {
+  const w = Math.ceil(width),
+    h = Math.ceil(height);
+  if (
+    !Number.isFinite(w) ||
+    !Number.isFinite(h) ||
+    w < 1 ||
+    h < 1 ||
+    w * h > 40000000 ||
+    w > 16384 ||
+    h > 16384
+  )
+    throw Error("Dimensions trop grandes : réduis l’échelle PNG.");
+  const image = new Image();
+  image.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg);
+  await image.decode();
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  canvas.getContext("2d").drawImage(image, 0, 0, w, h);
+  const blob = await new Promise((resolve) => canvas.toBlob(resolve));
+  if (!blob) throw Error("Le PNG ne peut pas être créé.");
+  return blob;
+}
 export async function printDesign(d) {
-  await document.fonts.ready;
+  await loadDesignFonts(d.pages.flatMap((p) => p.elements));
   const frame = document.createElement("iframe");
   frame.title = "Document prêt à imprimer";
   frame.style.cssText =
@@ -293,24 +460,15 @@ export async function printDesign(d) {
   await new Promise((resolve) =>
     frame.addEventListener("load", resolve, { once: true }),
   );
-  // Copy only the bundled font faces already loaded by Frame, no external URLs.
-  for (const sheet of document.styleSheets) {
-    try {
-      for (const rule of sheet.cssRules)
-        if (rule.type === 5) {
-          const style = frame.contentDocument.createElement("style");
-          style.textContent = rule.cssText.replace(
-            /url\(([^)]+)\)/g,
-            (_, src) => {
-              const value = src.trim().replace(/^['"]|['"]$/g, "");
-              return `url("${new URL(value, sheet.href || location.href).href}")`;
-            },
-          );
-          frame.contentDocument.head.appendChild(style);
-        }
-    } catch {}
-  }
-  await frame.contentDocument.fonts.ready;
+  const style = frame.contentDocument.createElement("style");
+  style.textContent = designFontFaces(d.pages.flatMap((p) => p.elements)).join(
+    "\n",
+  );
+  frame.contentDocument.head.appendChild(style);
+  await loadDesignFonts(
+    d.pages.flatMap((p) => p.elements),
+    frame.contentDocument,
+  );
   await Promise.all(
     Array.from(frame.contentDocument.images).map((img) =>
       img.decode().catch(() => {}),

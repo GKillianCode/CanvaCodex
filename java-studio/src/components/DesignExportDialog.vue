@@ -1,7 +1,13 @@
 <script setup>
-import { ref, computed, onMounted, onBeforeUnmount } from "vue";
+import { ref, computed, onMounted, onBeforeUnmount, watch } from "vue";
 import { X, Download } from "lucide-vue-next";
-import { exportDesignRegion, downloadDesign } from "../designExport.js";
+import {
+  exportDesignRegion,
+  downloadDesign,
+  embedDesignFonts,
+  loadDesignFonts,
+  rasterizeDesignSvg,
+} from "../designExport.js";
 const props = defineProps({
     document: Object,
     pageIndex: Number,
@@ -28,10 +34,48 @@ const result = computed(() => {
     return { error: e.message };
   }
 });
-const preview = computed(() =>
-  result.value.svg
-    ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(result.value.svg)
-    : "",
+const preview = ref(""),
+  preparing = ref(false);
+let generation = 0,
+  preparation = Promise.resolve("");
+watch(
+  result,
+  (r) => {
+    const current = ++generation;
+    preview.value = "";
+    error.value = "";
+    preparing.value = true;
+    const source = props.document,
+      index = props.pageIndex,
+      options = {
+        scope: format.value === "pdf" ? "page" : scope.value,
+        selection: [...props.selection],
+        transparent: format.value === "pdf" ? false : transparent.value,
+        padding: padding.value,
+      };
+    preparation = r.svg
+      ? loadDesignFonts(r.elements).then(() =>
+          embedDesignFonts(
+            exportDesignRegion(source, index, options).svg,
+            r.elements,
+          ),
+        )
+      : Promise.resolve("");
+    preparation
+      .then((svg) => {
+        if (current === generation)
+          preview.value = svg
+            ? "data:image/svg+xml;charset=utf-8," + encodeURIComponent(svg)
+            : "";
+      })
+      .catch((e) => {
+        if (current === generation) error.value = e.message;
+      })
+      .finally(() => {
+        if (current === generation) preparing.value = false;
+      });
+  },
+  { immediate: true },
 );
 async function download() {
   error.value = "";
@@ -45,22 +89,16 @@ async function download() {
     const r = result.value;
     if (r.error) throw Error(r.error);
     if (format.value === "svg") {
-      downloadDesign(r.svg, props.document.name + ".svg", "image/svg+xml");
+      downloadDesign(
+        await preparation,
+        props.document.name + ".svg",
+        "image/svg+xml",
+      );
       return;
     }
     const w = Math.ceil(r.w * scale.value),
       h = Math.ceil(r.h * scale.value);
-    if (w * h > 40000000 || w > 16384 || h > 16384)
-      throw Error("Dimensions trop grandes : réduis l’échelle PNG.");
-    const img = new window.Image();
-    img.src = preview.value;
-    await img.decode();
-    const canvas = document.createElement("canvas");
-    canvas.width = w;
-    canvas.height = h;
-    canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-    const blob = await new Promise((resolve) => canvas.toBlob(resolve));
-    if (!blob) throw Error("Le PNG ne peut pas être créé.");
+    const blob = await rasterizeDesignSvg(await preparation, w, h);
     downloadDesign(blob, props.document.name + ".png", "image/png");
   } catch (e) {
     error.value = e.message;
@@ -92,7 +130,10 @@ onMounted(() => {
   previous = document.activeElement;
   dialog.value?.focus();
 });
-onBeforeUnmount(() => previous?.focus());
+onBeforeUnmount(() => {
+  generation++;
+  previous?.focus();
+});
 </script>
 <template>
   <div
@@ -129,7 +170,9 @@ onBeforeUnmount(() => previous?.focus());
             :src="preview"
             alt="Aperçu exact de la zone exportée"
           />
-          <p v-else>{{ result.error }}</p>
+          <p v-else>
+            {{ preparing ? "Préparation de l’aperçu…" : error || result.error }}
+          </p>
         </div>
         <aside>
           <label
@@ -193,7 +236,7 @@ onBeforeUnmount(() => previous?.focus());
           <p v-if="error" role="alert">{{ error }}</p>
           <button
             class="btn primary"
-            :disabled="busy || !!result.error"
+            :disabled="busy || preparing || !!result.error || !!error"
             @click="download"
           >
             <Download :size="16" />{{

@@ -85,3 +85,32 @@ Les propriétés utilisent le même InspectorDrawer que le diaporama, avec un ch
 Dans **Document → Marges et grille**, choisir le nombre de colonnes et de lignes, puis déplacer les séparateurs de la répartition. Les pourcentages se rééquilibrent entre les deux zones voisines. Les flèches du clavier ajustent un séparateur sélectionné (Maj : pas de 5 %). Les gouttières des lignes et colonnes sont indépendantes. Ces repères servent à l’aimantation et ne figurent pas dans SVG/PNG/PDF ; le texte continu suit les colonnes, pas les lignes de repères.
 
 Les SVG Illustrator contenant un DOCTYPE et des alias d’espace de noms SVG/XLink sont nettoyés automatiquement à l’import, sans modifier le fichier d’origine. Le SVG reste vectoriel et recolorable par le moteur existant.
+
+
+## Projets d’exemple avancés — 22 octobre 2026
+
+Depuis la bibliothèque de chaque atelier, **Explorer le projet** crée une copie indépendante. Les exemples simples restent disponibles. Les documents sont construits par `src/designExamples.js` avec le modèle et le moteur de rendu existants ; ils ne remplacent aucun projet utilisateur.
+
+### Vectoriel : Atlas JVM
+
+Quatre plans de travail, 192 objets natifs : cartographie pile/tas, identité et String pool, fabrique de signes, scénario d’affectation en trois états. Formes, groupes, Bézier et tangentes, contours, opacité, découpe booléenne non destructive, motif SVG dans une forme, styles nommés et blocs de code. Le plan « Fabrique de signes » permet de déplacer l’anneau et sa découpe ou de modifier les points des courbes. Les traits sont des tracés éditables, pas des connecteurs automatiquement attachés aux objets.
+
+### Mise en page : Dans la mémoire de Java
+
+Sept pages et 216 objets natifs : couverture illustrée, références et aliasing, identité/contenu, accessibilité, poster A4 paysage, laboratoire et corrigé/sources. Les autres pages sont A4 portrait. Code Java coloré, tableau éditable, grille deux colonnes/trois lignes, styles de titres/corps/légendes/code et repères non imprimés. L’exemple utilise la mise en page libre ; il ne prétend pas fournir un texte chaîné ou des gabarits de pages, qui restent des pistes non livrées.
+
+Contenu vérifié avec la [JVMS §2](https://docs.oracle.com/javase/specs/jvms/se25/html/jvms-2.html), la [JLS §15.21.3](https://docs.oracle.com/javase/specs/jls/se25/html/jls-15.html#jls-15.21.3) et l’[API String](https://docs.oracle.com/en/java/javase/25/docs/api/java.base/java/lang/String.html). Les schémas représentent des relations logiques et ne figent pas l’implantation physique de la JVM.
+
+Des fichiers `.frame.json` importables sont aussi présents dans `public/examples/`. Ils sont la source à utiliser pour reprendre l’édition native dans Frame. Les SVG d’aperçu/export conservent leur rendu avec des polices locales embarquées et leurs licences OFL ; les règles de sécurité de l’import SVG des autres ateliers restent strictes et ne sont pas élargies pour accepter les fontes embarquées. Pour utiliser ces créations comme une image dans un autre atelier, le PNG reste disponible.
+
+### Corrections issues de la validation
+
+- Le rendu des blocs de code et des tableaux respecte la police et la graisse choisies.
+- Les retours à la ligne tiennent compte de l’espacement des lettres.
+- Les polices utilisées sont chargées avant les mesures d’export. L’aperçu et les SVG/PNG embarquent uniquement les fontes locales utiles ; le PDF utilise les mêmes déclarations. Les licences accompagnent les fontes du SVG.
+- Un seul moteur de rasterisation PNG sert le dialogue d’export et les commandes de l’atelier, avec les limites de pixels existantes. Les sélections successives d’options d’export ne rétablissent pas un aperçu périmé.
+- La création d’un exemple est protégée contre les doubles clics.
+
+Validation : édition réelle, annulation, déplacement d’un groupe avec découpe, reprise après actualisation, téléchargements SVG/PNG, chemin d’impression réel et nettoyage de son iframe. PDF sept pages produit et rendu avec Poppler, orientations mixtes vérifiées, textes contrôlés et onze compositions inspectées. Le moteur a aussi exporté un plan de 300 formes sans erreur sur l’environnement de test ; ce contrôle ne garantit pas un temps identique sur chaque ordinateur.
+
+Pour régénérer les aperçus et JSON après modification du générateur, démarrer un serveur Vite isolé sur 5289 avec un `FRAME_ASSETS_DIR` temporaire, puis lancer `FRAME_TEST_URL=http://127.0.0.1:5289 FRAME_PLAYWRIGHT_MODULE=<chemin-vers-playwright> node scripts/design-examples.mjs`. Le script refuse le port utilisateur. `tests/browser/advanced-examples.cjs` vérifie les parcours dans le même environnement isolé.
