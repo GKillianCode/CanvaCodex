@@ -63,7 +63,7 @@ import { fontCss } from './fonts.js';
 import { prepareFonts } from './fontAssets.js';
 import { ref, shallowRef, computed, watch, onMounted, onUnmounted, nextTick, toRaw } from 'vue';
 import { themes, presets, blocks, visibleBlocks, makeSlide, normalizeSlides, neighbor, nextFreeGrid, fragmentOrders, transitionDirection, memorySlides, positionsFor, applyLayout, blockType, blockText, setBlockName, setBlockText, reorderSlides, WIDTH, HEIGHT, normalizeResolution, normalizeFrame } from './model.js';
-import { renderSlide,renderStepTransition, blockBounds, autoTextBounds, prepareImages, imageSources } from './render.js';
+import { renderSlide,renderSlideBackground,renderStepTransition, blockBounds, autoTextBounds, prepareImages, imageSources } from './render.js';
 
 import { duplicateElement, rotateObjects,resizeRotated, rotatePoint, rotationFromPointer, normalizeAngle } from './editor.js';
 import { shapes, normalizeShape } from './shapes.js';
@@ -105,7 +105,7 @@ export function useStudio(application='slides',creationContext=null) {
   const fileStores=Object.fromEntries(['slides','banners'].map(kind=>[kind,new ProjectFile(window,fileMemory,{slot:(creationContext?.fileSlot||'active')+':'+(isAnimation?'animation:'+kind:isThumbnail?'thumbnails':kind),suggestedName:isAnimation?'frame-animation.json':isThumbnail?'frame-miniature.json':workspaceNames[kind],legacySlot:!creationContext&&!isThumbnail&&!isAnimation&&loaded.legacyScope===kind?'active':null})]));
   const activeFile=()=>fileStores[documentScope.value];
   const index = ref(Math.max(0,slides.value.findIndex(s=>s.id===session?.slideId))), view = ref(['slides','banners','themes'].includes(session?.view)?session.view:'slides'), tab = ref('layout'), selected = ref(null), presenting = ref(false), canvas = ref(null), stage = ref(null), stageWidth = ref(900);
-  const toast = ref(''), saved = ref(true), zoom = ref(100), recording = ref(false), elapsed = ref(0), laser = ref('#ff756d'), laserSize = ref(12), tool = ref('laser');
+  const toast = ref(''), saved = ref(true), zoom = ref(100), recording = ref(false), elapsed = ref(0), laser = ref('#ff756d'), laserSize = ref(12), tool = ref('none');
   const fontLoading=ref(false);
   const overlayVideoOpen=ref(false),overlayVideoBusy=ref(false),overlayVideoProgress=ref(0);let overlayVideoController;
   const recordingFormat=ref('mp4');
@@ -210,7 +210,7 @@ export function useStudio(application='slides',creationContext=null) {
       if(result.failed)notify(imageImportError(importError));else if(result.keys.length<files.length)notify('Limite de 100 éléments ajoutés atteinte.');
     }finally{await nextTick();recordHistory();historyGesture=null;canvas.value?.focus({preventScroll:true});}
   }
-  const renderOptions = (s, n, order = Infinity) => ({ ...frame.value, ...(isAnimation?{transparent:true,header:false,footer:false}:{}), ...(view.value==='banners'&&s.id===banner.value.slide.id?{transparent:true,header:false,footer:false}:{}), ...(recording.value&&view.value==='slides'?{transparent:false}:{}), project: project.value, n, total: slides.value.length, order });
+  const renderOptions = (s, n, order = Infinity) => {const {background:commonBackground,...frameOptions}=frame.value;return ({ ...frameOptions, ...(application==='slides'&&frame.value.fixedBackground?{background:frame.value.background}:{}), ...(isAnimation?{transparent:true,header:false,footer:false}:{}), ...(view.value==='banners'&&s.id===banner.value.slide.id?{transparent:true,header:false,footer:false}:{}), ...(recording.value&&view.value==='slides'?{transparent:false}:{}), project: project.value, n, total: slides.value.length, order });};
   function notify(message) { toast.value = message; clearTimeout(toastTimer); toastTimer = setTimeout(() => toast.value = '', 3500); }
   function rememberWorkspace(){documents[documentScope.value]=historySnapshot();documents.slides.slides=JSON.parse(JSON.stringify(slides.value));documents.banners.banner=JSON.parse(JSON.stringify(banner.value));}
   function applyWorkspaceMetadata(data){projectId.value=data.projectId;project.value=data.project;projectColors.value=data.projectColors;components.value=data.components;palette.value=loadThemeLibrary(window.localStorage,data.themes);themeId.value=data.themeId;resolution.value=data.resolution;frame.value=data.frame;transitionMs.value=data.transitionMs;if(documentScope.value==='slides'){routeMode.value=data.routeMode;routeStart.value=data.routeStart;}}
@@ -264,10 +264,10 @@ export function useStudio(application='slides',creationContext=null) {
     if(revealMotion&&now-revealMotion.started>=420){if(revealMotion.exit){step.value=Math.max(0,step.value-1);for(const key of visibleBlocks(current.value))if(current.value.fragments[key].order>currentOrder())typingStarts.delete(key);}revealMotion=null;requestDraw();}
     if (typingActive(now) || trail.prune(now) || recording.value || slideMotion || stateMotion || (revealMotion && now - revealMotion.started < 420)) requestDraw();
   }
-  function snapshotCanvas(s, n, order,typingElapsed={}) {
+  function snapshotCanvas(s, n, order,typingElapsed={},omitBackground=false) {
     const c = document.createElement('canvas'); c.width = resolution.value.width; c.height = resolution.value.height;
     const g=c.getContext('2d');g.scale(c.width/WIDTH,c.height/HEIGHT);
-    renderSlide(g, s, theme.value, {...renderOptions(s, n, order),typingElapsed}); return c;
+    renderSlide(g, s, theme.value, {...renderOptions(s, n, order),typingElapsed,omitBackground}); return c;
   }
   function currentOrder() { return sequence.value[step.value]?.order||0; }
   function draw(now = performance.now()) {
@@ -276,6 +276,7 @@ export function useStudio(application='slides',creationContext=null) {
     const ctx = canvas.value.getContext('2d'); ctx.clearRect(0, 0, canvas.value.width, canvas.value.height); ctx.save();ctx.scale(canvas.value.width/(isAnimation?2560:WIDTH),canvas.value.height/(isAnimation?1440:HEIGHT));if(isAnimation){ctx.translate(320,180);ctx.save();ctx.fillStyle=appearance.value==='light'?'#ffffff':'#15191e';ctx.fillRect(0,0,1920,1080);const unit=32;ctx.fillStyle=appearance.value==='light'?'#eef1ef':'#1e242a';for(let y=0;y<1080;y+=unit)for(let x=0;x<1920;x+=unit)if((x/unit+y/unit)%2===0)ctx.fillRect(x,y,Math.min(unit,1920-x),Math.min(unit,1080-y));ctx.restore();}
     if (slideMotion && presenting.value) {
       const p = Math.min(1, (now - slideMotion.started) / slideMotion.duration), ease = p * p * (3 - 2 * p), { from, to, direction } = slideMotion;
+      if(application==='slides'&&frame.value.fixedBackground)renderSlideBackground(ctx,current.value,theme.value,renderOptions(current.value,index.value));
       drawSlideTransition(ctx, from, to, direction, ease);
       if (p === 1) { slideMotion = null; moving.value = false; }
     } else {
@@ -297,7 +298,7 @@ export function useStudio(application='slides',creationContext=null) {
     if(marquee?.rect&&!presenting.value&&['slides','banners'].includes(view.value)){const b=marquee.rect;ctx.save();ctx.fillStyle='#76dfff22';ctx.strokeStyle='#76dfff';ctx.lineWidth=1.5*WIDTH/Math.max(1,stageWidth.value);ctx.fillRect(b.x,b.y,b.w,b.h);ctx.strokeRect(b.x,b.y,b.w,b.h);ctx.restore();}
     if(isAnimation){if(!animation.preview.value||animation.construction.value)drawEngineGuides(ctx,viewportScene,theme.value);ctx.save();ctx.strokeStyle=appearance.value==='light'?'#738c80':'#8ba398';ctx.lineWidth=2*1920/Math.max(1,stageWidth.value);ctx.strokeRect(0,0,1920,1080);ctx.restore();}
     if(stateMotion&&presenting.value&&now-stateMotion.started>=STEP_INTERPOLATION_MS)stateMotion=null;
-    if (presenting.value) { trail.draw(ctx,now); drawPointer(ctx); } ctx.restore();
+    if (presenting.value) { if(tool.value==='laser')trail.draw(ctx,now); drawPointer(ctx); } ctx.restore();
     if(presenting.value)presenter.mirror(canvas.value,now);
   }
   function drawPointer(ctx) {
@@ -350,6 +351,7 @@ export function useStudio(application='slides',creationContext=null) {
   function dismissContext(){contextMenu.value=null;}
   function keyup(e){if(e.key.startsWith('Arrow')){recordHistory();historyGesture=null;}if(['Alt','AltGraph'].includes(e.key))altHeld.value=false;}
   function resetKeys(){snapGuides.value=[];guidePoint=null;hovered.value=null;cancelMarquee();historyGesture=null;altHeld.value=false;contextMenu.value=null;}
+  watch(tool,()=>{trail.clear();pointer=null;pointerDown=null;activeStroke=null;requestDraw();});
   function clearAnnotations() { strokes = []; trail.clear(); requestDraw(); }
   function coords(e) { const r = canvas.value.getBoundingClientRect(); return { x: (e.clientX - r.left) / r.width * (isAnimation?2560:WIDTH)-(isAnimation?320:0), y: (e.clientY - r.top) / r.height * (isAnimation?1440:HEIGHT)-(isAnimation?180:0) }; }
   function hitBlock(p,skipLocked=false) {
@@ -401,7 +403,7 @@ export function useStudio(application='slides',creationContext=null) {
     cancelMarquee();closeEdit(); drag = null; transformPreview.value=null;pointer = null; strokes = []; trail.clear();
     if (presenting.value) {
       const old = current.value, oldIndex = index.value, oldOrder = currentOrder(), next = slides.value[n];
-      const from = snapshotCanvas(old, oldIndex, oldOrder,typingTimes(performance.now())), to = snapshotCanvas(next, n, 0,window.matchMedia('(prefers-reduced-motion: reduce)').matches?{}:Object.fromEntries(visibleBlocks(next).map(k=>[k,0])));
+      const from = snapshotCanvas(old, oldIndex, oldOrder,typingTimes(performance.now()),frame.value.fixedBackground), to = snapshotCanvas(next, n, 0,window.matchMedia('(prefers-reduced-motion: reduce)').matches?{}:Object.fromEntries(visibleBlocks(next).map(k=>[k,0])),frame.value.fixedBackground);
       const duration = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : transitionMs.value;
       if (duration > 0) { slideMotion = { from, to, started: performance.now(), duration, direction: n < oldIndex ? (()=>{const d=transitionDirection(next,old);return {x:-d.x,y:-d.y};})() : transitionDirection(old, next) }; moving.value = true; }
     }
@@ -547,7 +549,7 @@ export function useStudio(application='slides',creationContext=null) {
     finally{overlayVideoBusy.value=false;overlayVideoController=null;}
   }
   async function png() { if(!await ensureFonts())return;await prepareImages([current.value],theme.value); const c = document.createElement('canvas'); c.width = resolution.value.width; c.height = resolution.value.height; const ctx = c.getContext('2d');ctx.scale(c.width/WIDTH,c.height/HEIGHT); if(isAnimation)renderAnimation(ctx,current.value,theme.value,current.value.animation,animation.time.value);else renderSlide(ctx, current.value, theme.value, renderOptions(current.value, index.value)); c.toBlob(blob => { if (blob) download(blob, isThumbnail?'frame-miniature.png':view.value === 'banners' ? 'frame-bandeau.png' : `frame-diapo-${index.value + 1}.png`); }, 'image/png'); }
-  async function startPresentation(fromStart=true) { if(application!=='slides')return; cancelMarquee(); if(!await ensureFonts())return;await prepareImages(allScenes(slides.value),theme.value); closeEdit(); if(fromStart)index.value=0; view.value = 'slides'; notesVisible.value=true;presenting.value = true; step.value = 0; revealMotion = null; stateMotion=null;presentationStarted.value=0;presentationSeconds.value=0;elapsed.value=0;strokes = []; trail.clear(); await nextTick(); observeStage(); resetTyping(); requestDraw(); }
+  async function startPresentation(fromStart=true) { if(application!=='slides')return; cancelMarquee(); if(!await ensureFonts())return;await prepareImages(allScenes(slides.value),theme.value); closeEdit(); if(fromStart)index.value=0; view.value = 'slides'; notesVisible.value=true;presenting.value = true;tool.value='none';pointer=null;pointerDown=null; step.value = 0; revealMotion = null; stateMotion=null;presentationStarted.value=0;presentationSeconds.value=0;elapsed.value=0;strokes = []; trail.clear(); await nextTick(); observeStage(); resetTyping(); requestDraw(); }
   function exit() { if(recording.value){notify('Clique sur Stop pour terminer l’enregistrement avant de quitter.');return;} cancelCountdown(); slideMotion = null; moving.value = false; presenting.value = false;presenter.close(); stateMotion=null; strokes = []; trail.clear(); requestDraw(); }
   const presentationStarted=ref(0),presentationSeconds=ref(0);
   const presenter=usePresenterWindow({notify,command(action){if(!presenting.value)return;if(action==='advance')advance();else if(action==='retreat')retreat();else if(action==='exit')exit();else if(action==='ready')requestDraw();}});

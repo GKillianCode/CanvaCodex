@@ -257,4 +257,4 @@ export function memorySlides(grid) {
   });
 }
 
-export function normalizeFrame(raw={}){return {header:raw?.header===true,footer:raw?.footer===true,gradient:raw?.gradient!==false};}
+export function normalizeFrame(raw={}){return {header:raw?.header===true,footer:raw?.footer===true,gradient:raw?.gradient!==false,fixedBackground:raw?.fixedBackground===true,background:normalizeBackground(raw?.background)};}
