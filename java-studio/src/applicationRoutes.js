@@ -1,3 +1,3 @@
-const routes={playlists:'/playlists',music:'/musiques',descriptionTemplates:'/modeles-description',notes:'/notes',themes:'/themes',animation:'/animations',slides:'/diaporamas',banners:'/incrustations',thumbnails:'/miniatures',canvas:'/parcours'};
-export function applicationFromHash(hash){if(/^#\/notes(?:\/[\w-]+)?$/.test(hash))return 'notes';return Object.keys(routes).find(id=>'#'+routes[id]===hash)||null;}
+const routes={vector:'/vectoriel',layout:'/mise-en-page',playlists:'/playlists',music:'/musiques',descriptionTemplates:'/modeles-description',notes:'/notes',themes:'/themes',animation:'/animations',slides:'/diaporamas',banners:'/incrustations',thumbnails:'/miniatures',canvas:'/parcours'};
+export function applicationFromHash(hash){if(/^#\/vectoriel(?:\/[\w-]+)?$/.test(hash))return 'vector';if(/^#\/mise-en-page(?:\/[\w-]+)?$/.test(hash))return 'layout';if(/^#\/notes(?:\/[\w-]+)?$/.test(hash))return 'notes';return Object.keys(routes).find(id=>'#'+routes[id]===hash)||null;}
 export function applicationHash(id){return '#'+(routes[id]||'/');}

@@ -1,6 +1,8 @@
 export const workflowNavigation = Symbol("frame-workflow-navigation");
 export const workspaceTools = [
   {id:"notes",name:"Notes",description:"Idées libres, sous-notes et liens entre pages.",hash:"#/notes",stage:"Réfléchir"},
+  {id:"vector",name:"Vectoriel",description:"Dessiner des formes, des tracés et des illustrations SVG.",hash:"#/vectoriel",stage:"Créer"},
+  {id:"layout",name:"Mise en page",description:"Composer des fiches et des documents multipages à exporter en PDF.",hash:"#/mise-en-page",stage:"Créer"},
   {id:"animation",name:"Animation",description:"Créer des animations et des scènes.",hash:"#/animations",stage:"Créer"},
   {
     id: "canvas",

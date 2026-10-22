@@ -12,6 +12,9 @@ import { useGlobalModalScroll } from "./modalScroll.js";
 import { videoFolderStorage } from "./videoFolders.js";
 import UndoNotifications from "./components/UndoNotifications.vue";
 const ComponentEditorApp = defineAsyncComponent(() => import("./components/ComponentEditorApp.vue"));
+import WorkshopLoadError from "./components/WorkshopLoadError.vue";
+const DesignStudioApp = defineAsyncComponent({loader:() => import("./components/DesignStudioApp.vue"),errorComponent:WorkshopLoadError,timeout:20000});
+const designApp = ref(null);
 const StudioApp = defineAsyncComponent(() => import("./StudioApp.vue"));
 import { workflowNavigation, navigateAfterSave } from "./workflowNavigation.js";
 const PublicationLibraryApp = defineAsyncComponent(() => import("./components/PublicationLibraryApp.vue"));
@@ -24,7 +27,7 @@ const WorkspaceBackupDialog = defineAsyncComponent(() => import('./components/Wo
 const backupVisible = ref(false), restoredVersion = ref(0);
 async function restored() { catalogReady = null; await loadCatalog(); restoredVersion.value++; }
 async function flushCurrent() {
-  for (const app of [resourceApp.value, studio.value, canvasApp.value, workflowApp.value, componentApp.value, notesApp.value]) await app?.flush?.();
+  for (const app of [designApp.value,resourceApp.value, studio.value, canvasApp.value, workflowApp.value, componentApp.value, notesApp.value]) await app?.flush?.();
 }
 async function openBackup() {
   try { await flushCurrent(); backupVisible.value=true; }
@@ -67,7 +70,7 @@ function loadCatalog(){return catalogReady ||= repository.getSetting(catalogKey)
 async function navigate(hash) {
   try {
     await navigateAfterSave(
-      [resourceApp.value?.flush,studio.value?.flush, canvasApp.value?.flush, workflowApp.value?.flush,componentApp.value?.flush,notesApp.value?.flush],
+      [designApp.value?.flush,resourceApp.value?.flush,studio.value?.flush, canvasApp.value?.flush, workflowApp.value?.flush,componentApp.value?.flush,notesApp.value?.flush],
       () => {
         window.location.hash = hash;
       },
@@ -84,6 +87,7 @@ async function syncRoute() {
   error.value = "";
   try {
     await loadCatalog();
+    if(designApp.value)await designApp.value.flush();
     if(resourceApp.value)await resourceApp.value.flush();
     if(notesApp.value)await notesApp.value.flush();
     if(componentApp.value)await componentApp.value.flush();
@@ -205,6 +209,7 @@ onBeforeUnmount(() => window.removeEventListener("hashchange", syncRoute));
   />
   <PublicationLibraryApp v-else-if="['music','descriptionTemplates'].includes(active)" :key="active" ref="resourceApp" :repository="repository" :kind="active==='music'?'music':'templates'" @home="navigate('#/')"/>
   <FreeNotesApp v-else-if="active==='notes'" :key="currentHash + restoredVersion" ref="notesApp" :repository="repository" :note-id="currentHash.match(/^#\/notes\/([\w-]+)$/)?.[1]||''" @home="navigate('#/')" @open="id=>navigate(id?'#/notes/'+id:'#/notes')"/>
+  <DesignStudioApp v-else-if="['vector','layout'].includes(active)" ref="designApp" :key="active + restoredVersion" :kind="active" :repository="repository" :document-id="currentHash.match(/^#\/(?:vectoriel|mise-en-page)\/([\w-]+)$/)?.[1]||''" @home="navigate('#/')"/>
   <StudioApp
     v-else-if="active"
     ref="studio"
