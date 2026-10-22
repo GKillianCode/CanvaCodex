@@ -32,7 +32,7 @@ try {
           exportDesignSvg(doc),
           doc.pages[0].elements,
         ),
-        json: JSON.stringify(doc, null, 2) + "\n",
+        json: JSON.stringify(doc) + "\n",
       };
     }, kind);
     await writeFile(
