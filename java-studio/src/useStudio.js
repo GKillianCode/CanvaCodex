@@ -69,7 +69,7 @@ import { renderSlide,renderSlideBackground,renderStepTransition, blockBounds, au
 import { duplicateElement, rotateObjects,resizeRotated, rotatePoint, rotationFromPointer, normalizeAngle } from './editor.js';
 import { shapes, normalizeShape } from './shapes.js';
 import { spatialRoute, tracedRoute, connectRoute } from './route.js';
-import { loadThemeLibrary } from './themeLibrary.js';
+import { saveDefaultTheme, loadThemeLibrary } from './themeLibrary.js';
 import { normalizeThemes, themeDraft } from './themes.js';
 import { LaserTrail } from './laser.js';
 
@@ -161,7 +161,7 @@ export function useStudio(application='slides',creationContext=null) {
   function updateTextStyle(key,value){if(isAnimation&&animation?.clip.value?.frames.some(f=>f.field==='color')&&['color','colorRole'].includes(key)){const color=key==='color'?value:theme.value[value]||theme.value.swatches?.find(c=>c.id===value)?.color;if(color)animation.setProperty('color',color);return;}if(key==='reset'){const style=selectedTextStyle.value;position.value.textStyle={lineHeight:style.lineHeight,letterSpacing:style.letterSpacing,align:style.align,verticalAlign:style.verticalAlign,color:style.color,colorRole:style.colorRole,list:style.list,weight:selectedType.value==='code'?400:textRole(current.value,selected.value).weight};fitAuto(selected.value);return;}position.value.textStyle={...selectedTextStyle.value,[key]:value};position.value.textStyle=getTextStyle(current.value,selected.value);fitAuto(selected.value);}
   function setTextRole(id){for(const key of selectedKeys.value.length?selectedKeys.value:[selected.value])if(blockType(current.value,key)==='text'){applyTextRole(current.value,key,id);fitAuto(key);}requestDraw();}
   function setProjectColor(key,color){if(/^#[\da-f]{6}$/i.test(color))projectColors.value={...projectColors.value,[key]:color};}
-  function selectTheme(id){if(id!==themeId.value&&palette.value.some(t=>t.id===id)){themeId.value=id;projectColors.value={};}}
+  function selectTheme(id){if(palette.value.some(t=>t.id===id))saveDefaultTheme(window.localStorage,id);if(id!==themeId.value&&palette.value.some(t=>t.id===id)){themeId.value=id;projectColors.value={};}}
   function refreshTextStyle(){if(position.value.textStyle)position.value.textStyle=getTextStyle(current.value,selected.value);fitAuto(selected.value);}
   const editedText = computed(()=>blockText(current.value,editing.value));
   const exitLabel = computed(()=>{ if(current.value.exitDirection!=='auto') return ({left:'← Vers la gauche',right:'→ Vers la droite',up:'↑ Vers le haut',down:'↓ Vers le bas'})[current.value.exitDirection]; const next=slides.value[index.value+1];if(!next)return 'Fin du diaporama'; const d=transitionDirection(current.value,next);return d.x>0?'← Vers la gauche':d.x<0?'→ Vers la droite':d.y>0?'↑ Vers le haut':'↓ Vers le bas'; });

@@ -14,6 +14,7 @@ import {
   createDesign,
   designPageSize,
   designColumns,
+  designRows,
   normalizeDesign,
   normalizeDesignElement,
   designPage,
@@ -386,12 +387,13 @@ export function useDesignStudio(props) {
     });
   }
   function changeDoc(field, value) {
-    if (field === "columns") {
+    if (["columns", "rows"].includes(field)) {
+      const weights = field === "rows" ? "rowWeights" : "columnWeights";
       edit(() => {
-        doc.value.columns = Math.max(1, Math.min(8, Number(value) || 1));
-        doc.value.columnWeights = Array.from(
-          { length: doc.value.columns },
-          (_, i) => doc.value.columnWeights?.[i] || 1,
+        doc.value[field] = Math.max(1, Math.min(8, Number(value) || 1));
+        doc.value[weights] = Array.from(
+          { length: doc.value[field] },
+          (_, i) => doc.value[weights]?.[i] || 1,
         );
       });
       return;
@@ -826,9 +828,11 @@ export function useDesignStudio(props) {
         ],
         ys = [
           0,
-          doc.value.margin,
+          ...designRows(doc.value, pageIndex.value).flatMap((r) => [
+            r.y,
+            r.y + r.h,
+          ]),
           pageSize.value.height / 2,
-          pageSize.value.height - doc.value.margin,
           pageSize.value.height,
         ];
       const adjust = (start, size, delta, edges) => {

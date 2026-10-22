@@ -76,3 +76,12 @@ Une nouvelle page peut être portrait ou paysage ; un PDF peut contenir les deux
 L’import vidéo est disponible dans Diaporama et Animation via Insérer : lecture automatique, boucle, départ, lecture manuelle et les réglages visuels des images. Les extraits (64 Mo maximum) restent locaux, dans IndexedDB, et voyagent avec le fichier JSON exporté. Les exports Canvas contiennent les images de la vidéo sans son. Un MOV doit utiliser un codec décodable par le navigateur ; MP4 H.264 est généralement le choix le plus portable.
 
 L’import et les couleurs SVG utilisent toujours le moteur partagé des incrustations. Les styles internes sûrs et les fichiers .svg sans type MIME sont désormais reconnus.
+
+
+### Galerie, tiroirs et repères de lignes
+
+Les propriétés utilisent le même InspectorDrawer que le diaporama, avec un chevron unique. Le thème se choisit dans **Fichier → Thèmes** ou **Affichage → Thèmes**, puis **Retour à l’atelier** ; sa palette apparaît dans les couleurs des objets et de la page. Les anciens sélecteurs de thème intégrés au panneau sont retirés. Les nouveaux documents héritent du thème choisi ; chaque document peut mémoriser son propre choix.
+
+Dans **Document → Marges et grille**, choisir le nombre de colonnes et de lignes, puis déplacer les séparateurs de la répartition. Les pourcentages se rééquilibrent entre les deux zones voisines. Les flèches du clavier ajustent un séparateur sélectionné (Maj : pas de 5 %). Les gouttières des lignes et colonnes sont indépendantes. Ces repères servent à l’aimantation et ne figurent pas dans SVG/PNG/PDF ; le texte continu suit les colonnes, pas les lignes de repères.
+
+Les SVG Illustrator contenant un DOCTYPE et des alias d’espace de noms SVG/XLink sont nettoyés automatiquement à l’import, sans modifier le fichier d’origine. Le SVG reste vectoriel et recolorable par le moteur existant.

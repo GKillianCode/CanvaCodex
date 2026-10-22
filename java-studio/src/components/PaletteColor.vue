@@ -45,6 +45,7 @@ function choose(role) {
         :value="boundColor(element, field, theme)"
         @input="set($event.target.value)"
       /><input
+        type="text"
         :aria-label="label + ' hexadécimale'"
         maxlength="7"
         :value="boundColor(element, field, theme)"

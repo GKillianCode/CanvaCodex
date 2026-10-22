@@ -160,6 +160,9 @@ export function createDesign(kind = "vector", name = "", format = 0) {
     margin: kind === "layout" ? 54 : 0,
     columns: 1,
     columnWeights: [1],
+    rows: 1,
+    rowWeights: [1],
+    rowGutter: 24,
     gutter: 24,
     transparent: kind === "vector",
     pageNumbers: kind === "layout",
@@ -184,6 +187,10 @@ export function normalizeDesign(raw, kind = raw?.kind) {
       "Ce fichier ne correspond pas à cet atelier ou son format est invalide.",
     );
   const d = createDesign(kind, String(raw.name || ""));
+  d.themeId =
+    typeof raw.themeId === "string" && /^[\w-]{1,100}$/.test(raw.themeId)
+      ? raw.themeId
+      : "";
   d.id = typeof raw.id === "string" ? raw.id.slice(0, 100) : d.id;
   d.width = number(raw.width, d.width, 128, 4096);
   d.height = number(raw.height, d.height, 128, 8192);
@@ -193,6 +200,11 @@ export function normalizeDesign(raw, kind = raw?.kind) {
     number(raw.columnWeights?.[i], 1, 0.01, 100),
   );
   d.gutter = number(raw.gutter, 24, 0, 120);
+  d.rows = Math.round(number(raw.rows, 1, 1, 8));
+  d.rowWeights = Array.from({ length: d.rows }, (_, i) =>
+    number(raw.rowWeights?.[i], 1, 0.01, 100),
+  );
+  d.rowGutter = number(raw.rowGutter, 24, 0, 120);
   d.transparent = kind === "vector" && raw.transparent === true;
   d.pageNumbers = raw.pageNumbers === true;
   d.header = String(raw.header || "").slice(0, 200);
@@ -326,25 +338,52 @@ export function designPageSize(d, index = 0) {
   const p = d.pages[index];
   return { width: p?.width || d.width, height: p?.height || d.height };
 }
-export function designColumns(d, index = 0) {
-  const { width } = designPageSize(d, index),
-    count = d.columns || 1,
-    margin = Math.min(d.margin, width / 3),
+function designTracks(d, index, vertical) {
+  const size = designPageSize(d, index)[vertical ? "height" : "width"],
+    count = d[vertical ? "rows" : "columns"] || 1,
+    margin = Math.min(d.margin, size / 3),
     gutter = Math.min(
-      d.gutter,
-      Math.max(0, (width - 2 * margin - count * 12) / Math.max(1, count - 1)),
+      d[vertical ? "rowGutter" : "gutter"] ?? 24,
+      Math.max(0, (size - 2 * margin - count * 12) / Math.max(1, count - 1)),
     ),
-    usable = width - 2 * margin - gutter * (count - 1),
+    usable = size - 2 * margin - gutter * (count - 1),
     weights = Array.from({ length: count }, (_, i) =>
-      Math.max(0.01, Number(d.columnWeights?.[i]) || 1),
+      Math.max(
+        0.01,
+        Number(d[vertical ? "rowWeights" : "columnWeights"]?.[i]) || 1,
+      ),
     ),
     sum = weights.reduce((a, b) => a + b, 0);
-  let x = margin;
-  return weights.map((w) => {
-    const c = { x, w: (usable * w) / sum };
-    x += c.w + gutter;
-    return c;
+  let position = margin;
+  return weights.map((weight) => {
+    const length = (usable * weight) / sum,
+      result = vertical
+        ? { y: position, h: length }
+        : { x: position, w: length };
+    position += length + gutter;
+    return result;
   });
+}
+export function designColumns(d, index = 0) {
+  return designTracks(d, index, false);
+}
+export function designRows(d, index = 0) {
+  return designTracks(d, index, true);
+}
+export function moveSegmentBoundary(weights, index, percent) {
+  const sum = weights.reduce((a, b) => a + b, 0),
+    values = weights.map((v) => (v / sum) * 100);
+  if (index < 0 || index >= values.length - 1) return values;
+  const before = values.slice(0, index).reduce((a, b) => a + b, 0),
+    pair = values[index] + values[index + 1],
+    minimum = Math.min(1, pair / 2),
+    left = Math.max(
+      minimum,
+      Math.min(pair - minimum, Number(percent) - before),
+    );
+  values[index] = left;
+  values[index + 1] = pair - left;
+  return values;
 }
 export function rebalanceColumns(weights, index, percent) {
   const count = weights.length;

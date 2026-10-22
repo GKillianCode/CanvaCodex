@@ -39,12 +39,21 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(url || ""))
       await p.getByText("Styles du document", { exact: true }).count(),
       0,
     );
-    await p.getByText("Marges et colonnes", { exact: true }).click();
+    await p.getByText("Marges et grille", { exact: true }).click();
     await p.getByLabel("Nombre de colonnes", { exact: true }).selectOption("2");
-    await p.getByLabel("Colonne 1 · valeur", { exact: true }).fill("65");
-    await p
-      .getByLabel("Colonne 1 · valeur", { exact: true })
-      .dispatchEvent("change");
+    const separator = p.getByRole("slider", {
+      name: "Séparation colonne 1 et 2",
+      exact: true,
+    });
+    await separator.focus();
+    for (let i = 0; i < 15; i++) await separator.press("ArrowRight");
+    assert.equal(await separator.getAttribute("aria-valuenow"), "65");
+    await p.getByLabel("Nombre de lignes", { exact: true }).selectOption("3");
+    assert.equal(
+      await p.getByRole("slider", { name: /Séparation ligne/ }).count(),
+      2,
+    );
+    assert.equal(await p.locator("[data-row-guide]").count(), 6);
     await p.getByLabel("Ajouter une page", { exact: true }).click();
     await p
       .getByLabel("Orientation de la nouvelle page")

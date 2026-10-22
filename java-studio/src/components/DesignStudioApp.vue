@@ -62,11 +62,18 @@ import {
   Pencil,
 } from "lucide-vue-next";
 import TransformFields from "./TransformFields.vue";
+import SegmentedProportions from "./SegmentedProportions.vue";
+import ThemeGallery from "./ThemeGallery.vue";
+import { ensureAssets, localAssets } from "../localAssets.js";
 import InspectorShell from "./InspectorShell.vue";
 import InspectorDrawer from "./InspectorDrawer.vue";
 import FloatingToolPalette from "./FloatingToolPalette.vue";
 import DesignExportDialog from "./DesignExportDialog.vue";
-import { loadThemeLibrary } from "../themeLibrary.js";
+import {
+  defaultThemeId,
+  saveDefaultTheme,
+  loadThemeLibrary,
+} from "../themeLibrary.js";
 import { themeColors } from "../themes.js";
 import GroupLayoutControls from "./GroupLayoutControls.vue";
 import FontSelect from "./FontSelect.vue";
@@ -76,7 +83,7 @@ import TextSpacing from "./TextSpacing.vue";
 import PlacementControls from "./PlacementControls.vue";
 import PaletteColor from "./PaletteColor.vue";
 import ShapeProperties from "./ShapeProperties.vue";
-import { designColumns, rebalanceColumns } from "../designModel.js";
+import { designColumns, designRows } from "../designModel.js";
 import "../fontAssets.js";
 import WorkspaceHeader from "./WorkspaceHeader.vue";
 import NumberRange from "./NumberRange.vue";
@@ -108,30 +115,25 @@ provide("inspectorDrawers", drawers);
 const exportOpen = ref(false),
   leftWidth = ref(220),
   themes = ref(loadThemeLibrary(window.localStorage)),
-  themeId = ref(themes.value[0].id);
-try {
-  const saved = localStorage.getItem("frame-design-theme:" + props.kind);
-  if (themes.value.some((t) => t.id === saved)) themeId.value = saved;
-} catch {}
-watch(themeId, (value) => {
-  try {
-    localStorage.setItem("frame-design-theme:" + props.kind, value);
-  } catch {}
+  themesView = ref(false);
+const themeId = computed(() =>
+  s.doc?.themeId && themes.value.some((t) => t.id === s.doc.themeId)
+    ? s.doc.themeId
+    : defaultThemeId(window.localStorage, themes.value),
+);
+function chooseTheme(id) {
+  if (s.doc) s.changeDoc("themeId", id);
+  saveDefaultTheme(window.localStorage, id);
+}
+function refreshThemes() {
+  themes.value = loadThemeLibrary(window.localStorage, localAssets.themes);
+}
+onMounted(() => {
+  ensureAssets()
+    .then(refreshThemes)
+    .catch(() => {});
 });
-const themePalette = computed(() =>
-  themeColors(
-    themes.value.find((t) => t.id === themeId.value) || themes.value[0],
-  ),
-);
-watch(
-  () => s.selection.join(","),
-  () => {
-    if (s.selection.length) {
-      tab.value = "object";
-      s.settings = false;
-    }
-  },
-);
+watch(() => localAssets.version, refreshThemes);
 function documentTab() {
   tab.value = "document";
   s.settings = true;
@@ -177,6 +179,15 @@ onMounted(() => {
 });
 onBeforeUnmount(() =>
   document.fonts.removeEventListener("loadingdone", fontsReady),
+);
+watch(
+  () => s.selection.join(","),
+  (ids) => {
+    if (ids) {
+      tab.value = "object";
+      s.settings = false;
+    }
+  },
 );
 const libraryPage = ref(1);
 watch(
@@ -290,6 +301,7 @@ const newPageOpen = ref(false),
   styleName = ref(""),
   editStyle = ref(false),
   rightWidth = ref(300);
+const rowGuides = computed(() => (s.doc ? designRows(s.doc, s.pageIndex) : []));
 const columns = computed(() =>
   s.doc ? designColumns(s.doc, s.pageIndex) : [],
 );
@@ -391,7 +403,10 @@ defineExpose({ flush: s.flush });
 </script>
 <template>
   <div class="design-app">
-    <WorkspaceHeader :title="title" @back="emit('home')"
+    <WorkspaceHeader
+      :title="title"
+      @back="emit('home')"
+      :theme-action="() => (themesView = true)"
       ><template #file
         ><button @click="s.newDialog = true">
           <FilePlus2 :size="15" />Nouveau document…</button
@@ -413,6 +428,8 @@ defineExpose({ flush: s.flush });
             Exporter le document en PDF…
           </button></template
         ></template
+      ><template #view
+        ><button @click="themesView = true">Thèmes</button></template
       ><template #context
         ><button
           v-if="s.doc"
@@ -472,6 +489,26 @@ defineExpose({ flush: s.flush });
       </button>
     </div>
     <div v-if="s.loading" class="design-loading">Ouverture de l’atelier…</div>
+    <section v-else-if="themesView" class="theme-page design-theme-page">
+      <div class="design-theme-heading">
+        <div>
+          <h2>Une identité. Toutes tes créations.</h2>
+          <p>
+            Choisis le thème de ce document. Ses couleurs seront disponibles
+            dans les propriétés.
+          </p>
+        </div>
+        <button class="btn" @click="themesView = false">
+          <ArrowLeft :size="15" />Retour à
+          {{ s.isLayout ? "la mise en page" : "Vectoriel" }}
+        </button>
+      </div>
+      <ThemeGallery
+        :themes="themes"
+        :selected="themeId"
+        @select="chooseTheme"
+      />
+    </section>
     <main v-else-if="!s.doc" class="design-library">
       <div class="design-library-heading">
         <div>
@@ -891,6 +928,22 @@ defineExpose({ flush: s.flush });
                       :y2="s.pageSize.height - s.doc.margin"
                     />
                   </template>
+                  <template v-for="(row, i) in rowGuides" :key="'row-' + i">
+                    <line
+                      data-row-guide
+                      :x1="s.doc.margin"
+                      :x2="s.pageSize.width - s.doc.margin"
+                      :y1="row.y"
+                      :y2="row.y"
+                    />
+                    <line
+                      data-row-guide
+                      :x1="s.doc.margin"
+                      :x2="s.pageSize.width - s.doc.margin"
+                      :y1="row.y + row.h"
+                      :y2="row.y + row.h"
+                    />
+                  </template>
                 </g>
                 <g v-if="s.tool === 'select'">
                   <rect
@@ -1174,13 +1227,7 @@ defineExpose({ flush: s.flush });
               </p>
             </div>
           </div>
-          <label v-if="tab !== 'layers'" class="design-theme-select"
-            >Palette du thème<select v-model="themeId">
-              <option v-for="theme in themes" :key="theme.id" :value="theme.id">
-                {{ theme.name }}
-              </option>
-            </select></label
-          >
+
           <div
             v-show="
               tab !== 'layers' && (tab === 'document' || s.selection.length)
@@ -1266,64 +1313,73 @@ defineExpose({ flush: s.flush });
           <InspectorDrawer
             v-if="s.isLayout"
             id="design-1"
-            title="Marges et colonnes"
+            title="Marges et grille"
             :icon="Columns3"
           >
             <NumberRange
               label="Marges"
-              unit="px"
-              :min="12"
-              :max="180"
-              :model-value="s.doc.margin"
-              @update:model-value="s.changeDoc('margin', $event)"
-            /><label
-              >Colonnes<select
-                aria-label="Nombre de colonnes"
-                :value="s.doc.columns"
-                @change="s.changeDoc('columns', Number($event.target.value))"
-              >
-                <option
-                  v-for="n in [1, 2, 3, 4, 5, 6, 7, 8]"
-                  :key="n"
-                  :value="n"
-                >
-                  {{ n }}
-                </option>
-              </select></label
-            ><NumberRange
-              label="Gouttière"
-              unit="px"
+              :unit="unit"
               :min="0"
-              :max="80"
-              :model-value="s.doc.gutter"
-              @update:model-value="s.changeDoc('gutter', $event)"
-            />
-            <NumberRange
-              v-for="(col, i) in columns"
-              :key="i"
-              :label="'Colonne ' + (i + 1)"
-              unit="%"
-              :min="1"
-              :max="100 - columns.length + 1"
+              :max="180 * factor"
               :step="0.1"
-              :model-value="
-                (col.w / columns.reduce((sum, c) => sum + c.w, 0)) * 100
-              "
-              @update:model-value="
-                (v) =>
-                  s.changeDoc(
-                    'columnWeights',
-                    rebalanceColumns(
-                      s.doc.columnWeights || Array(s.doc.columns).fill(1),
-                      i,
-                      v,
-                    ),
-                  )
-              "
+              :model-value="s.doc.margin * factor"
+              @update:model-value="s.changeDoc('margin', $event / factor)"
             />
+            <template v-for="axis in ['columns', 'rows']" :key="axis">
+              <label
+                >{{ axis === "columns" ? "Colonnes" : "Lignes"
+                }}<select
+                  :aria-label="
+                    axis === 'columns'
+                      ? 'Nombre de colonnes'
+                      : 'Nombre de lignes'
+                  "
+                  :value="s.doc[axis]"
+                  @change="s.changeDoc(axis, Number($event.target.value))"
+                >
+                  <option v-for="n in 8" :key="n" :value="n">{{ n }}</option>
+                </select></label
+              >
+              <SegmentedProportions
+                v-if="s.doc[axis] > 1"
+                :label="axis === 'columns' ? 'Colonne' : 'Ligne'"
+                :model-value="
+                  s.doc[axis === 'columns' ? 'columnWeights' : 'rowWeights']
+                "
+                :vertical="axis === 'rows'"
+                @update:model-value="
+                  s.changeDoc(
+                    axis === 'columns' ? 'columnWeights' : 'rowWeights',
+                    $event,
+                  )
+                "
+              />
+              <NumberRange
+                v-if="s.doc[axis] > 1"
+                :label="
+                  axis === 'columns'
+                    ? 'Gouttière des colonnes'
+                    : 'Gouttière des lignes'
+                "
+                :unit="unit"
+                :min="0"
+                :max="120 * factor"
+                :step="0.1"
+                :model-value="
+                  s.doc[axis === 'columns' ? 'gutter' : 'rowGutter'] * factor
+                "
+                @update:model-value="
+                  s.changeDoc(
+                    axis === 'columns' ? 'gutter' : 'rowGutter',
+                    $event / factor,
+                  )
+                "
+              />
+            </template>
             <p class="field-help">
-              Les repères guident le placement. Le texte continu suit les marges
-              et colonnes lors de sa répartition.
+              Les repères de lignes et colonnes aimantent les objets sans
+              apparaître à l’export. Le texte continu suit les marges et
+              colonnes lors de sa répartition.
             </p>
           </InspectorDrawer>
           <InspectorDrawer
@@ -1641,17 +1697,6 @@ defineExpose({ flush: s.flush });
             title="Aspect et couleurs"
             :icon="Palette"
           >
-            <label
-              >Thème<select v-model="themeId">
-                <option
-                  v-for="theme in themes"
-                  :key="theme.id"
-                  :value="theme.id"
-                >
-                  {{ theme.name }}
-                </option>
-              </select></label
-            >
             <template v-if="s.object?.type === 'shape'"
               ><ShapeProperties
                 :shape="objectProxy"
