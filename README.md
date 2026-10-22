@@ -368,3 +368,7 @@ Le laser est désactivé à chaque ouverture de présentation. Le bouton **Laser
 ### Vectoriel et Mise en page — branche de test
 
 Deux ateliers autonomes dans **Applications**, avec **Notes** conservé en premier : Vectoriel pour les dessins, tracés et ressources SVG ; Mise en page pour les fiches et documents PDF multipages. Même navigation et outils de sélection, transformations, plume, calques, groupes, styles et sauvegarde de projets. Bibliothèques distinctes, exemples éditables et reprise par URL. [Fonctions, prise en main et limites de la V1](docs/vector-layout-studios.md).
+
+Révision des ateliers de test : palette flottante commune, commandes en bas, tiroirs de propriétés partagés, export avec aperçu et recadrage SVG/PNG, couleurs des thèmes, règles, tableaux et code coloré. Voir le [guide et bilan comparatif](docs/vector-layout-studios.md#révision-ergonomique--22-octobre-2026).
+
+Le panneau de propriétés utilise désormais `InspectorShell` dans les six éditeurs, avec les contrôles extraits du diaporama. Styles nommés depuis les textes, colonnes proportionnelles et PDF portrait/paysage mixte disponibles dans les ateliers de test. Diaporama et Animation acceptent les vidéos locales (rendu sans son), avec lecture automatique activable et les options visuelles des images. Le moteur SVG des incrustations reste partagé et accepte les styles internes autonomes.

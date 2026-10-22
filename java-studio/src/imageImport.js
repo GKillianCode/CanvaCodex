@@ -10,9 +10,10 @@ export async function imageSource(file, runtime = {
   decode: file => createImageBitmap(file),
   canvas: () => document.createElement('canvas'),
 }) {
-  if (!IMAGE_TYPES.includes(file.type)) fail('Format non reconnu. Choisis un PNG, JPEG, WebP ou SVG.');
+  const mime = file.type || (/\.svg$/i.test(file.name||'')?'image/svg+xml':'');
+  if (!IMAGE_TYPES.includes(mime)) fail('Format non reconnu. Choisis un PNG, JPEG, WebP ou SVG.');
   if (file.size > 20 * 1024 * 1024) fail('Le fichier dépasse 20 Mo. Choisis une image plus légère.');
-  if (file.type === 'image/svg+xml') {
+  if (mime === 'image/svg+xml') {
     try { return svgSource(await file.text()); }
     catch { fail('SVG non accepté. Utilise un SVG autonome, sans script ni ressource externe.'); }
   }

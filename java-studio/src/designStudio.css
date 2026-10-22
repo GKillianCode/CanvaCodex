@@ -743,41 +743,6 @@
   padding: 8px 15px 35px;
   font-size: 12px;
 }
-.design-inspector-body details {
-  border-bottom: 1px solid var(--ds-line);
-  padding: 0 0 10px;
-}
-.design-inspector-body summary {
-  position: relative;
-  list-style: none;
-  cursor: pointer;
-  padding: 18px 20px 17px 2px;
-  font-size: 11px;
-  font-weight: 600;
-}
-.design-inspector-body summary::-webkit-details-marker {
-  display: none;
-}
-.design-inspector-body summary:after {
-  content: "›";
-  position: absolute;
-  right: 3px;
-  top: 15px;
-  font-size: 17px;
-  font-weight: 400;
-  color: var(--ds-muted);
-  transition: transform 0.15s;
-}
-.design-inspector-body details[open] > summary:after {
-  transform: rotate(90deg);
-}
-.design-inspector-body details > label,
-.design-dialog > label {
-  display: block;
-  font-size: 11px;
-  color: var(--ds-muted);
-  margin: 0 0 14px;
-}
 .design-inspector-body label input,
 .design-inspector-body label select,
 .design-dialog label input,
@@ -1111,4 +1076,392 @@
   margin-top: 35px;
   font-size: 12px;
   color: var(--ds-muted);
+}
+.design-workbench {
+  grid-template-columns:
+    var(--design-left-width, 220px) minmax(200px, 1fr)
+    300px;
+}
+.design-left {
+  position: relative;
+}
+.design-page-list {
+  flex: 1;
+  max-height: none;
+  min-height: 0;
+}
+.design-sidebar-resize {
+  position: absolute;
+  right: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 9;
+  touch-action: none;
+}
+.design-sidebar-resize:hover,
+.design-sidebar-resize:focus-visible {
+  background: var(--ds-accent);
+  opacity: 0.5;
+}
+.design-property-tabs {
+  display: flex;
+  gap: 4px;
+  padding: 10px;
+  border-bottom: 1px solid var(--ds-line);
+}
+.design-property-tabs button {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 9px 4px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--ds-muted);
+  font-size: 11px;
+  cursor: pointer;
+}
+.design-property-tabs button.active {
+  background: var(--ds-line);
+  color: var(--ds-accent);
+  border-color: var(--ds-line);
+}
+.design-layers-panel {
+  min-height: 0;
+  overflow: auto;
+  flex: 1;
+}
+.design-center > .drawing-tool-palette {
+  z-index: 20;
+  max-width: calc(100% - 24px);
+  background: var(--ds-panel);
+  color: var(--ds-ink);
+  border-color: var(--ds-line);
+}
+.design-center .drawing-palette-content {
+  overflow: visible;
+}
+.design-center .design-tool-group {
+  flex-wrap: wrap;
+}
+.design-bottom {
+  gap: 12px;
+  flex-wrap: wrap;
+  min-height: 48px;
+  height: auto;
+  padding: 6px 12px;
+}
+.design-bottom > .design-zoom {
+  margin-left: auto;
+}
+.design-export-dialog {
+  width: min(1100px, 94vw);
+  max-height: 90vh;
+  overflow: auto;
+  background: var(--ds-panel);
+  border: 1px solid var(--ds-line);
+  border-radius: 14px;
+  color: var(--ds-ink);
+  box-shadow: 0 25px 90px #0005;
+  padding: 24px;
+}
+.design-export-dialog > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.design-export-dialog h2 {
+  font-size: 20px;
+  margin: 6px 0;
+}
+.design-export-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 255px;
+  gap: 24px;
+}
+.design-export-preview {
+  min-height: 300px;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: repeating-conic-gradient(#8881 0 25%, transparent 0 50%) 0/20px
+    20px;
+  border: 1px solid var(--ds-line);
+  border-radius: 9px;
+}
+.design-export-preview img {
+  max-width: 100%;
+  max-height: 60vh;
+  object-fit: contain;
+}
+.design-export-body aside {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.design-export-body label {
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+  font-size: 12px;
+}
+.design-export-body .checkbox-label {
+  flex-direction: row;
+  align-items: center;
+}
+.design-export-body .btn {
+  margin-top: auto;
+}
+@media (max-width: 1000px) {
+  .design-workbench {
+    grid-template-columns: 170px minmax(180px, 1fr) 260px;
+  }
+  .design-export-body {
+    grid-template-columns: 1fr;
+  }
+  .design-export-preview {
+    min-height: 180px;
+  }
+}
+.design-canvas-holder {
+  position: relative;
+}
+.design-ruler-horizontal,
+.design-ruler-vertical {
+  position: absolute;
+  background: var(--ds-panel);
+  color: var(--ds-muted);
+  font:
+    9px Inter,
+    sans-serif;
+  pointer-events: none;
+  z-index: 2;
+  overflow: hidden;
+}
+.design-ruler-horizontal {
+  height: 20px;
+  top: 4px;
+  left: 0;
+  border-bottom: 1px solid var(--ds-line);
+}
+.design-ruler-horizontal span {
+  position: absolute;
+  height: 100%;
+  padding-left: 4px;
+  border-left: 1px solid var(--ds-line);
+}
+.design-ruler-horizontal small {
+  position: absolute;
+  right: 5px;
+  background: var(--ds-panel);
+}
+.design-ruler-vertical {
+  left: -24px;
+  top: 26px;
+  width: 20px;
+  border-right: 1px solid var(--ds-line);
+}
+.design-ruler-vertical span {
+  position: absolute;
+  width: 100%;
+  border-top: 1px solid var(--ds-line);
+  padding-top: 3px;
+  writing-mode: vertical-rl;
+}
+.design-page-caption {
+  padding-bottom: 24px;
+}
+
+.design-sheet-frame {
+  position: relative;
+}
+.design-ruler-horizontal {
+  top: -20px;
+}
+.design-ruler-vertical {
+  top: 0;
+}
+.design-table-editor {
+  display: grid;
+  gap: 4px;
+  overflow: auto;
+  max-height: 320px;
+  padding: 2px;
+}
+.design-app .design-inspector .property-details .btn {
+  background: var(--ds-inset);
+  color: var(--ds-ink);
+  width: calc(100% - 24px);
+}
+:root[data-appearance="light"] .design-app .workspace-header .btn.primary {
+  background: #24794f;
+  color: #fff;
+}
+.design-selection {
+  stroke: #25bca9;
+}
+.design-resize,
+.design-rotation {
+  stroke: #25bca9;
+  stroke-width: 2;
+  fill: #f5ffff;
+}
+.design-marquee {
+  stroke: #25bca9;
+  fill: #25bca91c;
+}
+
+:root[data-appearance="light"] .design-app .btn.primary {
+  background: #24794f;
+  color: #fff;
+}
+.design-swatches {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 7px;
+}
+.design-swatches button {
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  border-radius: 6px;
+  justify-self: center;
+}
+
+.design-workbench {
+  grid-template-columns: var(--design-left-width, 220px) minmax(200px, 1fr) var(
+      --design-right-width,
+      300px
+    );
+}
+.design-inspector {
+  position: relative;
+}
+.design-properties-resize {
+  position: absolute;
+  left: -3px;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  padding: 0;
+  z-index: 15;
+  cursor: col-resize;
+  touch-action: none;
+  background: transparent;
+  border: 0;
+}
+.design-properties-resize:hover {
+  background: var(--ds-accent);
+  opacity: 0.4;
+}
+.design-app .design-inspector-body label.checkbox-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 9px;
+  line-height: 1.5;
+  min-height: 32px;
+}
+.design-app .checkbox-label input[type="checkbox"] {
+  width: 16px;
+  min-width: 16px;
+  height: 16px;
+  margin: 0;
+  flex: 0 0 16px;
+  vertical-align: middle;
+  accent-color: var(--ds-accent);
+}
+.design-app .palette-color,
+.design-app .text-spacing-controls,
+.design-app .alignment-tools,
+.design-app .design-linked-style {
+  margin: 12px;
+}
+.design-app .alignment-tools {
+  display: flex;
+  gap: 6px;
+}
+.design-app .alignment-tools button {
+  background: var(--ds-inset);
+  color: var(--ds-ink);
+  border: 1px solid var(--ds-line);
+  padding: 8px;
+  border-radius: 6px;
+}
+.design-app .alignment-tools button.active {
+  color: var(--ds-accent);
+  border-color: var(--ds-accent);
+}
+.design-app .slide-anchor-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin: 12px;
+}
+.design-app .slide-anchor-grid .btn {
+  margin: 0;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  padding: 8px;
+  min-height: 58px;
+}
+.design-app .slide-anchor-grid small {
+  font-size: 9px;
+}
+.design-app .shape-properties label,
+.design-app .shape-properties .corner-properties {
+  margin: 10px 12px;
+}
+.design-app .design-empty-object {
+  padding: 15px;
+}
+
+.design-app .design-inspector.slim-inspector {
+  height: auto;
+  min-height: 0;
+  overflow: hidden;
+  color: var(--ds-ink);
+}
+.design-app .design-inspector .inspector-body {
+  flex: 1;
+  overflow: auto;
+  padding: 10px 16px 20px;
+}
+.design-app .design-inspector .property-details {
+  border: 0;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  background: transparent;
+  margin: 0 0 6px;
+  padding: 0;
+}
+.design-app .design-inspector .property-details > summary {
+  color: inherit;
+  padding: 12px 0;
+  background: transparent;
+  display: flex;
+  justify-content: space-between;
+  gap: 7px;
+  list-style: none;
+  cursor: pointer;
+}
+.design-app .design-inspector .property-details > summary:after {
+  content: "+";
+  border: 0;
+  transform: none;
+  color: var(--muted);
+}
+.design-app .design-inspector .property-details[open] > summary:after {
+  content: "−";
+}
+.design-app .design-theme-select {
+  margin: 10px 16px;
+  font-size: 11px;
+  color: var(--muted);
 }

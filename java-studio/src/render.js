@@ -1,3 +1,4 @@
+import {videoAsset,syncVideo,prepareVideos} from "./videoMedia.js";
 import {drawSceneBackground} from './sceneBackground.js';
 import {imageAsset,reserveImages} from "./imageCache.js";
 import {svgImageSource} from './svgColors.js';
@@ -23,18 +24,19 @@ import { WIDTH, HEIGHT, visibleBlocks, blockType, blockText } from './model.js';
 import { javaLines, codeColor } from './code.js';
 const richTextStyle=(s,key)=>({...getTextStyle(s,key),runs:s.positions[key]?.textRuns||[]});
 const backgrounds = new Map();
-export function imageSources(slides,theme={}) { return [...new Set(slides.flatMap(s=>Object.values(s.elements||{}).flatMap(e=>e.type==='image'&&e.src?[svgImageSource(e,theme)]:e.type==='shape'&&e.imageSrc?[e.imageSrc]:[])))]; }
-export async function prepareImages(slides,theme={},scope='prepared') { const sources=imageSources(slides,theme);reserveImages(scope,sources);await Promise.all(sources.map(src=>imageAsset(src).promise)); }
+export function imageSources(slides,theme={}) { return [...new Set(slides.flatMap(s=>Object.values(s.elements||{}).flatMap(e=>e.type==='image'&&e.src&&e.mediaKind!=='video'?[svgImageSource(e,theme)]:e.type==='shape'&&e.imageSrc?[e.imageSrc]:[])))]; }
+export async function prepareImages(slides,theme={},scope='prepared') { const sources=imageSources(slides,theme);reserveImages(scope,sources);await Promise.all([...sources.map(src=>imageAsset(src).promise),prepareVideos(slides)]); }
 
 export function imageDrawingRect(p,img,fit='contain') {
   const h=p.h||360, scale=fit==='cover'?Math.max(p.w/img.width,h/img.height):Math.min(p.w/img.width,h/img.height);
   const w=img.width*scale, height=img.height*scale;
   return {x:p.x+(p.w-w)/2,y:p.y+(h-height)/2,w,h:height};
 }
-export function drawImageBlock(ctx,s,key,theme) {
+export function drawImageBlock(ctx,s,key,theme,options={}) {
   const p=s.positions[key], e=s.elements[key], h=p.h||360;
   if(!e.src||e.background)round(ctx,p.x,p.y,p.w,h,18,theme.panel);
-  const asset=e.src?imageAsset(svgImageSource(e,theme)):null;
+  const asset=e.src?(e.mediaKind==='video'?videoAsset(s.id,key,e.src):imageAsset(svgImageSource(e,theme))):null;
+  if(e.mediaKind==='video'&&asset)syncVideo(asset,e,options.videoTime||0,options.videoLive===true);
   if (!asset?.ready) {
     const glow=ctx.createRadialGradient(p.x+p.w/2,p.y+h/2,0,p.x+p.w/2,p.y+h/2,p.w/2);glow.addColorStop(0,theme.accent+'28');glow.addColorStop(1,theme.panel);ctx.fillStyle=glow;ctx.fillRect(p.x+16,p.y+16,p.w-32,h-32);
     const cx=p.x+p.w/2, cy=p.y+h/2;
@@ -189,7 +191,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
     } else if (blockType(s,key)==='shape') drawShape(ctx,{...s.elements[key],opacity:100},p,theme);
     else if (blockType(s,key)==='bits') drawBits(ctx,s.elements[key],p,theme);
     else if (blockType(s,key)==='table') drawTable(ctx,{...s.elements[key],opacity:100},p,theme,wrapLines);
-    else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme);
+    else if (blockType(s,key)==='image') drawImageBlock(ctx,s,key,theme,options);
     else if (blockType(s,key)==='code') drawCode(ctx,s,theme,key,typing);
     else text(ctx,blockText(s,key),p.x,p.y-(b.inkOffset||0),p.autoSize?p.wrapWidth:p.w,p.autoSize?p.size:fitText(ctx,blockText(s,key),p,400,textRole(s,key).leading),textColor(style,theme,`${theme.ink}df`),style.weight,fontCss(p.font),textRole(s,key).leading,style,p.autoSize?null:p.h,typing);
     s=original;ctx.restore();

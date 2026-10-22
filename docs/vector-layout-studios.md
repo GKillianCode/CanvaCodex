@@ -25,7 +25,7 @@ Dans Mise en page, les formats A4/A5 utilisent les dimensions physiques exactes 
 
 Styles de document : titre, sous-titre, paragraphe, légende, code. Taille, interligne et police (Inter, Montserrat, Lora, monospace) sont partagés par les textes qui utilisent le style. La couleur et l’alignement d’un objet restent personnalisables. Double-clic sur un texte ouvre son éditeur ; un dépassement du bloc est signalé et « Ajuster la hauteur au texte » le corrige.
 
-**Ajouter un texte continu** crée de nouvelles pages selon les marges, colonnes et style choisis. Les pages existantes sont conservées. Il s’agit d’une répartition à l’ajout, pas encore d’un flux lié qui se redistribue après chaque modification de texte, format ou typographie. Pas de tableaux éditables, sommaire automatique, fonds perdus, CMJN ou PDF accessible balisé dans cette V1.
+Clic droit → **Répartir un texte sur des pages** crée de nouvelles pages selon les marges, colonnes et style choisis. Les pages existantes sont conservées. Il s’agit d’une répartition à l’ajout, pas encore d’un flux lié qui se redistribue après chaque modification de texte, format ou typographie. Tableaux éditables disponibles depuis la révision ergonomique ci-dessous. Pas de sommaire automatique, fonds perdus, CMJN ou PDF accessible balisé.
 
 ## Sauvegarde et exports
 
@@ -34,7 +34,7 @@ Styles de document : titre, sous-titre, paragraphe, légende, code. Taille, inte
 - Détection des écritures concurrentes dans une transaction : une version obsolète ne remplace pas une modification d’un autre onglet. Le bouton de récupération JSON reste disponible si une sauvegarde échoue.
 - **Fichier → Enregistrer le fichier / Enregistrer sous** : fichier local JSON lié lorsque le navigateur supporte File System Access, avec protection contre une modification externe. Sinon téléchargement JSON. Lier un fichier n’active pas une écriture permanente sur disque ; la copie automatique dans le navigateur reste séparée.
 - Export/import de projet JSON `frame-design`, avec `kind: vector` ou `kind: layout`. Importer crée une nouvelle copie ; le fichier d’un autre atelier est refusé. Les fichiers des ateliers vidéo ne changent pas de format.
-- **SVG** et **PNG** exportent la page active. Le SVG conserve les formes, courbes, textes et masques. Les textes SVG utilisent les polices disponibles dans le lecteur ; cette V1 ne convertit pas les lettres en tracés. Un SVG importé comme image reste un objet vectoriel unique, sans décomposer ses tracés. Les SVG contenant des images embarquées peuvent être refusés par l’import sécurisé des ateliers historiques ; utiliser le PNG dans ce cas, ou le JSON pour conserver l’édition dans ces nouveaux ateliers.
+- **SVG** et **PNG** exportent la page active, le dessin recadré ou la sélection depuis le panneau d’aperçu. Le SVG conserve les formes, courbes, textes et masques. Les textes SVG utilisent les polices disponibles dans le lecteur ; cette V1 ne convertit pas les lettres en tracés. Un SVG importé comme image reste un objet vectoriel unique, sans décomposer ses tracés. Les SVG contenant des images embarquées peuvent être refusés par l’import sécurisé des ateliers historiques ; utiliser le PNG dans ce cas, ou le JSON pour conserver l’édition dans ces nouveaux ateliers.
 - **PDF** : ouvre un document d’impression isolé, sans barre d’outils ni repères. Choisir « Enregistrer en PDF » dans la fenêtre du navigateur. Toutes les pages sont imprimées avec texte sélectionnable, marges physiques et pagination ; les polices locales utilisées sont proposées au moteur d’impression. Aucun service distant. Le document temporaire se ferme après l’impression, sans fenêtre externe persistante.
 
 Limites actuelles : 100 pages/plans de travail, 300 objets par page, 128 points par tracé, import JSON de 30 Mo et images préparées par le moteur d’import existant. Les nouveaux documents ne sont pas encore attachables comme supports dans une fiche vidéo et ne sont pas directement liés à la bibliothèque de composants partagés ; réutilisation via SVG/PNG pour cette V1.
@@ -42,3 +42,37 @@ Limites actuelles : 100 pages/plans de travail, 300 objets par page, 128 points 
 ## Vérification
 
 Les tests couvrent normalisation, séparation des formats, sécurité du SVG, pagination sans perte de mots, copie des groupes et découpes, accès aux documents à la demande et conflits de révision. Le scénario navigateur couvre aussi l’ouverture des exemples sans actualiser, sauvegarde/reprise à l’adresse du document, annulation/rétablissement, confirmations, plume et points, SVG téléchargé, PDF multipage réel, thèmes clair/sombre et écritures concurrentes atomiques. Serveur et données de test isolés du serveur utilisateur.
+
+## Révision ergonomique — 22 octobre 2026
+
+- Palette flottante **partagée** avec Diaporama, Incrustations, Miniatures et Animation : poignée de déplacement, repli et position mémorisée par application. Les outils eux-mêmes restent adaptés au moteur SVG.
+- Annuler/rétablir, aimantation, repères et zoom dans la barre inférieure. Pages/plans à gauche dans un panneau redimensionnable ; double-clic sur un nom ou bouton Document pour ouvrir le nom et le format. Les objets sont dans l’onglet Calques à droite.
+- Onglets Objet/Document/Calques et tiroirs `InspectorDrawer` du diaporama, exclusifs. Propriétés typographiques locales ; styles globaux réservés à Mise en page. Couleurs de la bibliothèque de thèmes existante pour remplissage, contour et dégradé ; les couleurs choisies sont copiées dans l’objet (pas de liaison dynamique au thème).
+- Exporter ouvre un aperçu : SVG ou PNG, plan entier/dessin/sélection, marge facultative, transparence et PNG 1×/2×/3×. Recadrage incluant rotation, contour et extrema Bézier ; dépendances des découpes conservées, autres objets exclus. Le PDF conserve toutes les pages et le dialogue d’impression.
+- Règles graduées en pixels ou millimètres, avec les repères. Les règles suivent le zoom et le déplacement de la page ; ce ne sont pas encore des guides déplaçables.
+- Clic droit : bloc de code (langage, fond, coloration Prism dans le rendu SVG/PDF), tableau éditable et répartition de texte continu. Tableaux : lignes/colonnes, cellules, taille/couleur du texte, fond et grille désactivables. Pas de fusion de cellules ni de flux multipage automatique pour les tableaux.
+- Les poignées utilisent les mêmes calculs `resizeRotated`/`rotationFromPointer` que les autres éditeurs ; leur affichage reste SVG, avec les dimensions/accents visuels de Frame.
+
+### Bilan comparatif et priorités possibles
+
+L’[export d’Inkscape](https://inkscape-manuals.readthedocs.io/en/latest/export-png.html) distingue page, dessin et sélection. Cette distinction est désormais disponible ici. La gestion des cadres et du texte dans [Scribus](https://github.com/scribusproject/scribus/blob/master/doc/en/readme.html) donne aussi des repères pour la suite. Ce bilan est une proposition, pas une annonce de fonctions terminées.
+
+1. **Mise en page : chaîner les blocs de texte et signaler les débordements.** La répartition actuelle crée des pages à l’ajout ; elle ne recalcule pas le flux après une retouche. C’est la prochaine amélioration la plus utile pour des cours longs.
+2. **Gabarits de pages et guides personnalisés.** Les en-têtes/pieds et marges existent ; les composants répétés, formats différents par page et guides tirés depuis les règles restent à faire.
+3. **Vectoriel : opérations géométriques complètes.** Soustraction/intersection sont des masques non destructifs. Union réelle, opérations complexes sur des chemins, décomposition des SVG importés et texte converti en tracés restent absents.
+4. **Réutilisation dans les autres ateliers.** Les exports SVG/PNG fonctionnent, mais la bibliothèque de composants liés n’est pas encore branchée directement sur ces deux applications.
+5. **Sorties professionnelles d’imprimerie.** PDF actuel adapté à la lecture et aux fiches. CMJN, fonds perdus, PDF balisé, polices vectorisées et contrôle prépresse ne sont pas présents.
+
+Corrections vérifiées dans cette révision : bouton Document qui donnait l’impression de ne rien faire, accès au renommage, styles de texte trop globaux en Vectoriel, contrastes des boutons clairs, origine des règles, exports recadrés de formes tournées et de courbes hors de leur boîte initiale. Les documents antérieurs sont conservés ; les anciens textes de style Code reçoivent désormais le rendu de bloc de code.
+
+## Panneau unique et pages mixtes
+
+Les six éditeurs utilisent maintenant le même cadre `InspectorShell` et les mêmes champs `TransformFields`. Les contrôles du diaporama sont utilisés directement ou extraits : police, graisse, placement, groupe/espacement, couleur de thème, forme/contour et tiroirs. Le volet droit est redimensionnable. Objet sans sélection et Document ont des contenus distincts.
+
+Les styles se gèrent depuis un texte sélectionné : choisir un style, créer un style nommé depuis ce texte, modifier le style commun pour mettre à jour ses textes. L’ancienne liste de tous les styles dans Document est retirée. Toutes les polices de Frame et leurs graisses sont disponibles.
+
+Une nouvelle page peut être portrait ou paysage ; un PDF peut contenir les deux orientations. Les colonnes ont des proportions réglables, dont la somme est rééquilibrée. Les objets déplacés s’aimantent sur leurs repères lorsque l’aimantation est active. Maj + rotation utilise 45° dans ces deux ateliers. Les opérations de combinaison se trouvent dans la palette flottante.
+
+L’import vidéo est disponible dans Diaporama et Animation via Insérer : lecture automatique, boucle, départ, lecture manuelle et les réglages visuels des images. Les extraits (64 Mo maximum) restent locaux, dans IndexedDB, et voyagent avec le fichier JSON exporté. Les exports Canvas contiennent les images de la vidéo sans son. Un MOV doit utiliser un codec décodable par le navigateur ; MP4 H.264 est généralement le choix le plus portable.
+
+L’import et les couleurs SVG utilisent toujours le moteur partagé des incrustations. Les styles internes sûrs et les fichiers .svg sans type MIME sont désormais reconnus.

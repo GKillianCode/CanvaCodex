@@ -7,9 +7,12 @@ const tags=/<!--[\s\S]*?-->|<!\[CDATA\[[\s\S]*?\]\]>|<(?:[^>"']|"[^"]*"|'[^']*')
 function usesDefaultFill(markup){const stack=[true];let used=false;for(const tag of markup.match(tags)||[]){if(/^<\//.test(tag)){if(stack.length>1)stack.pop();continue;}if(/^<[!?]/.test(tag))continue;const style=/\sstyle\s*=\s*(["'])(.*?)\1/i.exec(tag)?.[2]||'',inline=[...style.matchAll(/(?:^|;)\s*fill\s*:\s*([^;]+)/gi)].at(-1)?.[1],fill=(inline??/\sfill\s*=\s*(["'])(.*?)\1/i.exec(tag)?.[2])?.trim().toLowerCase(),inherited=!fill||['inherit','unset'].includes(fill),isDefault=inherited?stack.at(-1):false;if(/^<(?:path|rect|circle|ellipse|polygon|polyline|text|use)\b/i.test(tag)&&isDefault)used=true;if(!/\/\s*>$/.test(tag))stack.push(isDefault);}return used;}
 function decode(src){return decodeURIComponent(escape(atob(src.split(',')[1])));}
 function encode(text){return 'data:image/svg+xml;base64,'+btoa(unescape(encodeURIComponent(text)));}
-function mapPaints(text,visit){return text.replace(tags,tag=>{
+function mapStyle(style,visit){return style.replace(/(^|[;{])(\s*(?:fill|stroke|stop-color|flood-color|lighting-color|color)\s*:\s*)([^;}]+)/gi,(all,sep,name,value)=>{const important=/\s*!important\s*$/i.test(value),raw=value.replace(/\s*!important\s*$/i,'').trim(),key=paint(raw);return key?sep+name+visit(key,raw)+(important?' !important':''):all;});}
+function mapPaints(text,visit){
+ const blocks=text.replace(/<style(\s[^>]*)?>([\s\S]*?)<\/style>/gi,(all,attrs,css)=>'<style'+(attrs||'')+'>'+mapStyle(css,visit)+'</style>');
+ return blocks.replace(tags,tag=>{
  if(tag.startsWith('<!'))return tag;
- return tag.replace(/(\s(?:fill|stroke|stop-color|flood-color|lighting-color|color)\s*=\s*)(["'])(.*?)\2/gi,(all,before,q,value)=>{const key=paint(value);return key?before+q+visit(key,value)+q:all;}).replace(/(\sstyle\s*=\s*)(["'])(.*?)\2/gi,(all,before,q,style)=>before+q+style.replace(/(^|;)(\s*(?:fill|stroke|stop-color|flood-color|lighting-color|color)\s*:\s*)([^;]+)/gi,(all,sep,name,value)=>{const important=/\s*!important\s*$/i.test(value),raw=value.replace(/\s*!important\s*$/i,'').trim(),key=paint(raw);return key?sep+name+visit(key,raw)+(important?' !important':''):all;})+q);
+ return tag.replace(/(\s(?:fill|stroke|stop-color|flood-color|lighting-color|color)\s*=\s*)(["'])(.*?)\2/gi,(all,before,q,value)=>{const key=paint(value);return key?before+q+visit(key,value)+q:all;}).replace(/(\sstyle\s*=\s*)(["'])(.*?)\2/gi,(all,before,q,style)=>before+q+mapStyle(style,visit)+q);
  });}
 function sourceInfo(src){if(cache.has(src))return cache.get(src);if(!validSvgSource(src))return null;
  let markup=decode(src);const keys=new Set();mapPaints(markup,key=>{keys.add(key);return key;});

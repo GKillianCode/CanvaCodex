@@ -1,4 +1,6 @@
-import { normalizeShape, shapePath, shapes } from "./shapes.js";
+import { fonts, normalizeFont } from "./fonts.js";
+import { fontWeights } from "./textStyles.js";
+import { normalizeShape, shapePath, shapes, cornerPixels } from "./shapes.js";
 import { normalizePathNodes } from "./freeform.js";
 import { validSvgSource } from "./svg.js";
 export const designKinds = ["vector", "layout"];
@@ -61,10 +63,31 @@ export function designElement(type = "shape", options = {}) {
   });
 }
 export function normalizeDesignElement(raw = {}) {
-  const type = ["shape", "text", "image"].includes(raw.type)
+  const type = ["shape", "text", "image", "table"].includes(raw.type)
     ? raw.type
     : "shape";
   return {
+    ...(type === "shape"
+      ? normalizeShape({ ...raw, pathNodes: raw.nodes })
+      : {}),
+    code: raw.code === true || raw.style === "code",
+    language: [
+      "java",
+      "javascript",
+      "typescript",
+      "python",
+      "cpp",
+      "json",
+      "sql",
+      "bash",
+      "plaintext",
+    ].includes(raw.language)
+      ? raw.language
+      : "java",
+    cellColor: color(raw.cellColor, "#253b33"),
+    codeBackground: color(raw.codeBackground, "#f1f4f3"),
+    rows: Math.round(number(raw.rows, 3, 1, 30)),
+    columns: Math.round(number(raw.columns, 3, 1, 12)),
     imageSrc: validDesignImage(raw.imageSrc) ? raw.imageSrc : "",
     imageFit: raw.imageFit === "contain" ? "contain" : "cover",
     cutouts: Array.isArray(raw.cutouts)
@@ -73,11 +96,7 @@ export function normalizeDesignElement(raw = {}) {
     booleanMode: raw.booleanMode === "intersect" ? "intersect" : "subtract",
     id: typeof raw.id === "string" ? raw.id.slice(0, 100) : designId(),
     type,
-    font: ["inter", "montserrat", "lora", "monospace"].includes(raw.font)
-      ? raw.font
-      : raw.style === "code"
-        ? "monospace"
-        : "inter",
+    font: normalizeFont(raw.font, raw.code ? "code" : "text"),
     name: String(raw.name || "Objet").slice(0, 100),
     x: number(raw.x, 90, -20000, 20000),
     y: number(raw.y, 90, -20000, 20000),
@@ -104,10 +123,17 @@ export function normalizeDesignElement(raw = {}) {
     strokeWidth: number(raw.strokeWidth, 2, 0.1, 50),
     dashed: raw.dashed === true,
     text: String(raw.text || "").slice(0, 50000),
-    style: Object.hasOwn(paragraphStyles, raw.style) ? raw.style : "body",
+    style:
+      !["__proto__", "constructor", "prototype"].includes(raw.style) &&
+      /^[a-zA-Z0-9_-]{1,100}$/.test(raw.style || "")
+        ? raw.style
+        : "body",
     size: number(raw.size, 17, 6, 300),
-    weight: raw.weight === 700 ? 700 : 400,
+    weight: fontWeights(raw.font).includes(Number(raw.weight))
+      ? Number(raw.weight)
+      : 400,
     leading: number(raw.leading, 1.55, 0.8, 3),
+    letterSpacing: number(raw.letterSpacing, 0, -0.1, 1),
     align: ["left", "center", "right", "justify"].includes(raw.align)
       ? raw.align
       : "left",
@@ -133,6 +159,7 @@ export function createDesign(kind = "vector", name = "", format = 0) {
     height: spec[2],
     margin: kind === "layout" ? 54 : 0,
     columns: 1,
+    columnWeights: [1],
     gutter: 24,
     transparent: kind === "vector",
     pageNumbers: kind === "layout",
@@ -161,25 +188,42 @@ export function normalizeDesign(raw, kind = raw?.kind) {
   d.width = number(raw.width, d.width, 128, 4096);
   d.height = number(raw.height, d.height, 128, 8192);
   d.margin = number(raw.margin, 54, 0, Math.min(d.width, d.height) / 3);
-  d.columns = Math.round(number(raw.columns, 1, 1, 4));
+  d.columns = Math.round(number(raw.columns, 1, 1, 8));
+  d.columnWeights = Array.from({ length: d.columns }, (_, i) =>
+    number(raw.columnWeights?.[i], 1, 0.01, 100),
+  );
   d.gutter = number(raw.gutter, 24, 0, 120);
   d.transparent = kind === "vector" && raw.transparent === true;
   d.pageNumbers = raw.pageNumbers === true;
   d.header = String(raw.header || "").slice(0, 200);
   d.footer = String(raw.footer || "").slice(0, 200);
-  for (const [key, style] of Object.entries(d.styles)) {
-    const incoming = raw.styles?.[key] || {};
+  for (const [key, incoming] of Object.entries(raw.styles || {}).slice(0, 50)) {
+    if (
+      !/^[a-zA-Z0-9_-]{1,100}$/.test(key) ||
+      ["__proto__", "constructor", "prototype"].includes(key)
+    )
+      continue;
+    const style = d.styles[key] || d.styles.body;
     d.styles[key] = {
-      font: ["inter", "montserrat", "lora", "monospace"].includes(incoming.font)
-        ? incoming.font
-        : style.font,
-      size: number(incoming.size, style.size, 6, 120),
-      weight:
-        incoming.weight === 700
-          ? 700
-          : incoming.weight === 400
-            ? 400
-            : style.weight,
+      name: String(
+        incoming.name ||
+          style.name ||
+          {
+            title: "Titre",
+            heading: "Sous-titre",
+            body: "Paragraphe",
+            caption: "Légende",
+            code: "Code",
+          }[key] ||
+          "Style",
+      ).slice(0, 80),
+      font: normalizeFont(incoming.font || style.font),
+      size: number(incoming.size, style.size, 6, 300),
+      weight: fontWeights(incoming.font || style.font).includes(
+        Number(incoming.weight),
+      )
+        ? Number(incoming.weight)
+        : style.weight,
       leading: number(incoming.leading, style.leading, 0.8, 3),
     };
   }
@@ -193,6 +237,8 @@ export function normalizeDesign(raw, kind = raw?.kind) {
     pageIds.add(id);
     return {
       id,
+      width: number(p.width, d.width, 128, 4096),
+      height: number(p.height, d.height, 128, 8192),
       name: String(p.name || `Page ${i + 1}`).slice(0, 100),
       background: color(p.background, "#ffffff"),
       elements: p.elements.map((value) => {
@@ -206,19 +252,20 @@ export function normalizeDesign(raw, kind = raw?.kind) {
   return d;
 }
 export function designPath(e) {
-  if (e.shape === "rounded") {
-    const rx = (Math.min(e.w, e.h) * e.radius) / e.w,
-      ry = (Math.min(e.w, e.h) * e.radius) / e.h;
-    return `M ${rx} 0 H ${100 - rx} Q 100 0 100 ${ry} V ${100 - ry} Q 100 100 ${100 - rx} 100 H ${rx} Q 0 100 0 ${100 - ry} V ${ry} Q 0 0 ${rx} 0 Z`;
+  if (
+    e.shape === "rounded" ||
+    (["rect", "square"].includes(e.shape) &&
+      (e.individualCorners || e.roundedCorners))
+  ) {
+    let radii = cornerPixels(e, e.w, e.h);
+    if (!Array.isArray(radii)) radii = Array(4).fill(radii);
+    const [a, b, c, d] = radii.map((v) => ({
+      x: (v / e.w) * 100,
+      y: (v / e.h) * 100,
+    }));
+    return `M ${a.x} 0 H ${100 - b.x} Q 100 0 100 ${b.y} V ${100 - c.y} Q 100 100 ${100 - c.x} 100 H ${d.x} Q 0 100 0 ${100 - d.y} V ${a.y} Q 0 0 ${a.x} 0 Z`;
   }
-  return shapePath(
-    normalizeShape({
-      shape: e.shape,
-      pathNodes: e.nodes,
-      closed: e.closed,
-      radius: e.radius,
-    }),
-  );
+  return shapePath(normalizeShape({ ...e, pathNodes: e.nodes }));
 }
 export function designBounds(elements) {
   if (!elements.length) return null;
@@ -275,6 +322,42 @@ export function wrapDesignText(text, width, size, measure) {
   }
   return result;
 }
+export function designPageSize(d, index = 0) {
+  const p = d.pages[index];
+  return { width: p?.width || d.width, height: p?.height || d.height };
+}
+export function designColumns(d, index = 0) {
+  const { width } = designPageSize(d, index),
+    count = d.columns || 1,
+    margin = Math.min(d.margin, width / 3),
+    gutter = Math.min(
+      d.gutter,
+      Math.max(0, (width - 2 * margin - count * 12) / Math.max(1, count - 1)),
+    ),
+    usable = width - 2 * margin - gutter * (count - 1),
+    weights = Array.from({ length: count }, (_, i) =>
+      Math.max(0.01, Number(d.columnWeights?.[i]) || 1),
+    ),
+    sum = weights.reduce((a, b) => a + b, 0);
+  let x = margin;
+  return weights.map((w) => {
+    const c = { x, w: (usable * w) / sum };
+    x += c.w + gutter;
+    return c;
+  });
+}
+export function rebalanceColumns(weights, index, percent) {
+  const count = weights.length;
+  if (count === 1) return [1];
+  const sum = weights.reduce((a, b) => a + b, 0),
+    target = Math.max(1, Math.min(100 - count + 1, Number(percent) || 1)),
+    rest = sum - weights[index];
+  return weights.map((v, i) =>
+    i === index
+      ? target
+      : (100 - target) * (rest > 0 ? v / rest : 1 / (count - 1)),
+  );
+}
 export function paginateDesignText(
   document,
   text,
@@ -284,27 +367,50 @@ export function paginateDesignText(
   const d = copyDesign(document),
     format = d.styles[style] || d.styles.body,
     leading = format.size * format.leading,
-    columnWidth =
-      (d.width - d.margin * 2 - d.gutter * (d.columns - 1)) / d.columns;
-  if (columnWidth < 20)
-    throw Error("Réduis les marges ou le nombre de colonnes.");
-  const lines = wrapDesignText(text, columnWidth, format.size, measure),
-    perColumn = Math.floor((d.height - d.margin * 2) / leading);
-  if (perColumn < 1)
-    throw Error("Les marges ne laissent pas assez de place au texte.");
+    columns = designColumns(d),
+    perColumn = Math.floor((d.height - 2 * d.margin) / leading);
+  if (perColumn < 1 || columns.some((c) => c.w < 20))
+    throw Error("Réduis les marges ou les colonnes.");
   const pages = [];
-  for (let offset = 0; offset < lines.length;) {
+  let remaining = String(text);
+  while (remaining.length) {
     if (d.pages.length + pages.length >= 100)
       throw Error("Le document dépasserait 100 pages.");
-    const p = designPage(`Page ${d.pages.length + pages.length + 1}`);
-    for (let col = 0; col < d.columns && offset < lines.length; col++) {
-      const content = lines.slice(offset, offset + perColumn);
-      offset += content.length;
+    const p = {
+      ...designPage(`Page ${d.pages.length + pages.length + 1}`),
+      width: d.width,
+      height: d.height,
+    };
+    for (const col of columns) {
+      if (!remaining.length) break;
+      const lines = wrapDesignText(remaining, col.w, format.size, measure),
+        content = lines.slice(0, perColumn);
+      let cursor = 0;
+      for (const line of content) {
+        for (const ch of line) {
+          if (/\s/.test(ch)) {
+            while (cursor < remaining.length && /\s/.test(remaining[cursor]))
+              cursor++;
+          } else {
+            while (
+              cursor < remaining.length &&
+              remaining[cursor] !== ch &&
+              /\s/.test(remaining[cursor])
+            )
+              cursor++;
+            if (remaining[cursor] === ch) cursor++;
+          }
+        }
+        if (remaining[cursor] === "\n") cursor++;
+      }
+      if (!cursor)
+        cursor = Math.min(remaining.length, content.join("\n").length || 1);
+      remaining = remaining.slice(cursor).replace(/^ +/, "");
       p.elements.push(
         designElement("text", {
-          x: d.margin + col * (columnWidth + d.gutter),
+          x: col.x,
           y: d.margin,
-          w: columnWidth,
+          w: col.w,
           h: content.length * leading,
           text: content.join("\n"),
           style,

@@ -1,3 +1,5 @@
+import { selectionUnits, layoutUnits, arrangeUnits } from "./selection.js";
+import { placeOnSlide } from "./slidePlacement.js";
 import {
   ref,
   computed,
@@ -10,6 +12,8 @@ import {
 import { workflowNavigation } from "./workflowNavigation.js";
 import {
   createDesign,
+  designPageSize,
+  designColumns,
   normalizeDesign,
   normalizeDesignElement,
   designPage,
@@ -70,6 +74,11 @@ export function useDesignStudio(props) {
     nodeIndex = ref(-1),
     historyVersion = ref(0),
     settings = ref(false);
+  const pageSize = computed(() =>
+    doc.value
+      ? designPageSize(doc.value, pageIndex.value)
+      : { width: 1024, height: 768 },
+  );
   let loadVersion = 0,
     file,
     history,
@@ -273,7 +282,7 @@ export function useDesignStudio(props) {
     penNodes.value = [];
     nodeEditing.value = false;
   }
-  function addPage(duplicate = false) {
+  function addPage(duplicate = false, orientation = "") {
     if (doc.value.pages.length >= 100) {
       say("Limite de 100 pages atteinte.");
       return;
@@ -284,6 +293,23 @@ export function useDesignStudio(props) {
         : designPage(
             `${isLayout ? "Page" : "Plan de travail"} ${doc.value.pages.length + 1}`,
           );
+      if (!duplicate) {
+        const current = pageSize.value;
+        const low = Math.min(current.width, current.height),
+          high = Math.max(current.width, current.height);
+        value.width =
+          orientation === "portrait"
+            ? low
+            : orientation === "landscape"
+              ? high
+              : current.width;
+        value.height =
+          orientation === "portrait"
+            ? high
+            : orientation === "landscape"
+              ? low
+              : current.height;
+      }
       value.id = designId();
       if (duplicate)
         value.elements = duplicateDesignElements(value.elements, 0);
@@ -328,6 +354,7 @@ export function useDesignStudio(props) {
       });
       page.value.elements.push(e);
       selection.value = [e.id];
+      settings.value = false;
       tool.value = "select";
       nodeEditing.value = false;
       nodeIndex.value = -1;
@@ -359,6 +386,27 @@ export function useDesignStudio(props) {
     });
   }
   function changeDoc(field, value) {
+    if (field === "columns") {
+      edit(() => {
+        doc.value.columns = Math.max(1, Math.min(8, Number(value) || 1));
+        doc.value.columnWeights = Array.from(
+          { length: doc.value.columns },
+          (_, i) => doc.value.columnWeights?.[i] || 1,
+        );
+      });
+      return;
+    }
+    if (["width", "height"].includes(field)) {
+      edit(
+        () =>
+          (page.value[field] = Math.max(
+            128,
+            Math.min(field === "width" ? 4096 : 8192, Number(value) || 128),
+          )),
+      );
+      return;
+    }
+
     edit(
       () =>
         (doc.value[field] = normalizeDesign(
@@ -376,21 +424,25 @@ export function useDesignStudio(props) {
       for (const e of selected.value.filter(
         (e) => e.type === "text" && !e.locked,
       ))
-        Object.assign(e, doc.value.styles[style], { style });
+        Object.assign(e, doc.value.styles[style], {
+          style,
+          code: style === "code",
+        });
     });
   }
   function changeStyle(style, field, value) {
     edit(() => {
       value =
         field === "size"
-          ? Math.max(6, Math.min(120, Number(value) || 17))
+          ? Math.max(6, Math.min(300, Number(value) || 17))
           : field === "leading"
             ? Math.max(0.8, Math.min(3, Number(value) || 1.5))
             : value;
       doc.value.styles[style][field] = value;
       for (const p of doc.value.pages)
         for (const e of p.elements)
-          if (e.type === "text" && e.style === style) e[field] = value;
+          if (field !== "name" && e.type === "text" && e.style === style)
+            e[field] = value;
     });
   }
   function deleteSelection() {
@@ -544,21 +596,73 @@ export function useDesignStudio(props) {
       }
     });
   }
+  function groupUnits() {
+    const positions = Object.fromEntries(selected.value.map((e) => [e.id, e])),
+      groups = [
+        ...new Set(selected.value.map((e) => e.group).filter(Boolean)),
+      ].map((id) => ({
+        id,
+        keys: selected.value.filter((e) => e.group === id).map((e) => e.id),
+      }));
+    return {
+      positions,
+      units: selectionUnits(
+        groups,
+        selected.value.map((e) => e.id),
+        positions,
+      ),
+    };
+  }
+  function arrange(axis, mode, gap) {
+    const { positions, units } = groupUnits(),
+      next =
+        mode === "line"
+          ? layoutUnits(positions, units, axis, gap)
+          : arrangeUnits(positions, units, axis, mode, gap);
+    edit(() => {
+      for (const e of selected.value)
+        if (!e.locked && next[e.id]) Object.assign(e, next[e.id]);
+    });
+  }
+  function place(x, y) {
+    const positions = Object.fromEntries(selected.value.map((e) => [e.id, e])),
+      box = Object.fromEntries(selected.value.map((e) => [e.id, e])),
+      keys = selected.value.map((e) => e.id),
+      next = placeOnSlide(
+        positions,
+        box,
+        [],
+        keys,
+        x || "center",
+        y || "center",
+        0,
+        pageSize.value.width,
+        pageSize.value.height,
+      );
+    edit(() => {
+      for (const e of selected.value)
+        if (!e.locked && next[e.id])
+          Object.assign(e, {
+            x: x ? next[e.id].x : e.x,
+            y: y ? next[e.id].y : e.y,
+          });
+    });
+  }
   function centerPage() {
     edit(() => {
       const b = bounds.value;
       if (!b) return;
       for (const e of selected.value.filter((e) => !e.locked)) {
-        e.x += (doc.value.width - b.w) / 2 - b.x;
-        e.y += (doc.value.height - b.h) / 2 - b.y;
+        e.x += (pageSize.value.width - b.w) / 2 - b.x;
+        e.y += (pageSize.value.height - b.h) / 2 - b.y;
       }
     });
   }
   function point(event) {
     const rect = stage.value.getBoundingClientRect();
     return {
-      x: ((event.clientX - rect.left) / rect.width) * doc.value.width,
-      y: ((event.clientY - rect.top) / rect.height) * doc.value.height,
+      x: ((event.clientX - rect.left) / rect.width) * pageSize.value.width,
+      y: ((event.clientY - rect.top) / rect.height) * pageSize.value.height,
     };
   }
   function fit() {
@@ -569,8 +673,8 @@ export function useDesignStudio(props) {
         150,
         Math.floor(
           Math.min(
-            (viewport.value.clientWidth - 160) / doc.value.width,
-            (viewport.value.clientHeight - 120) / doc.value.height,
+            (viewport.value.clientWidth - 160) / pageSize.value.width,
+            (viewport.value.clientHeight - 120) / pageSize.value.height,
           ) * 100,
         ),
       ),
@@ -709,16 +813,56 @@ export function useDesignStudio(props) {
       }
       return;
     }
+    let moveX = dx,
+      moveY = dy;
+    if (gesture.kind === "move" && snapping.value) {
+      const b = gesture.bounds,
+        columns = designColumns(doc.value, pageIndex.value),
+        xs = [
+          0,
+          pageSize.value.width / 2,
+          pageSize.value.width,
+          ...columns.flatMap((c) => [c.x, c.x + c.w]),
+        ],
+        ys = [
+          0,
+          doc.value.margin,
+          pageSize.value.height / 2,
+          pageSize.value.height - doc.value.margin,
+          pageSize.value.height,
+        ];
+      const adjust = (start, size, delta, edges) => {
+        let best = (7 * 100) / zoom.value,
+          result = delta;
+        for (const edge of edges)
+          for (const anchor of [start, start + size / 2, start + size]) {
+            const diff = edge - anchor - delta;
+            if (Math.abs(diff) < best) {
+              best = Math.abs(diff);
+              result = delta + diff;
+            }
+          }
+        return best < (7 * 100) / zoom.value
+          ? result
+          : Math.round((start + delta) / 8) * 8 - start;
+      };
+      moveX = adjust(b.x, b.w, dx, xs);
+      moveY = adjust(b.y, b.h, dy, ys);
+    }
     for (const original of gesture.origins) {
       const e = page.value.elements.find((item) => item.id === original.id);
       if (!e) continue;
       if (gesture.kind === "move") {
-        const snap = (value) =>
-          snapping.value ? Math.round(value / 8) * 8 : value;
-        e.x = snap(original.x + dx);
-        e.y = snap(original.y + dy);
+        e.x = original.x + moveX;
+        e.y = original.y + moveY;
       } else if (gesture.kind === "rotate")
-        e.rotation = rotationFromPointer(original, start, p, event.shiftKey);
+        e.rotation = rotationFromPointer(
+          original,
+          start,
+          p,
+          event.shiftKey,
+          45,
+        );
       else if (gesture.kind === "resize") {
         if (gesture.origins.length > 1) {
           const b = gesture.bounds,
@@ -813,7 +957,8 @@ export function useDesignStudio(props) {
   }
   function editText(e = object.value) {
     if (e?.locked) return;
-    if (e?.type === "text") textDialog.value = { id: e.id, value: e.text };
+    if (e?.type === "text" || e?.type === "table")
+      textDialog.value = { id: e.id, value: e.text };
     else if (e?.shape === "freeform") {
       nodeEditing.value = true;
       nodeIndex.value = 0;
@@ -905,6 +1050,23 @@ export function useDesignStudio(props) {
     try {
       if (file.size > 30 * 1024 * 1024) throw Error("Le projet dépasse 30 Mo.");
       const value = normalizeDesign(JSON.parse(await file.text()), props.kind);
+      if (!duplicate) {
+        const current = pageSize.value;
+        const low = Math.min(current.width, current.height),
+          high = Math.max(current.width, current.height);
+        value.width =
+          orientation === "portrait"
+            ? low
+            : orientation === "landscape"
+              ? high
+              : current.width;
+        value.height =
+          orientation === "portrait"
+            ? high
+            : orientation === "landscape"
+              ? low
+              : current.height;
+      }
       value.id = designId();
       value.name = (value.name + " · import").slice(0, 100);
       await store.save(value);
@@ -970,8 +1132,8 @@ export function useDesignStudio(props) {
         image.src = url;
         await image.decode();
         const c = document.createElement("canvas");
-        c.width = doc.value.width;
-        c.height = doc.value.height;
+        c.width = pageSize.value.width;
+        c.height = pageSize.value.height;
         c.getContext("2d").drawImage(image, 0, 0);
         const blob = await new Promise((resolve) => c.toBlob(resolve));
         const link = URL.createObjectURL(blob),
@@ -990,7 +1152,11 @@ export function useDesignStudio(props) {
   function flow() {
     try {
       const pages = paginateDesignText(
-        doc.value,
+        {
+          ...doc.value,
+          ...pageSize.value,
+          pages: doc.value.pages.map((p) => ({ ...p, ...pageSize.value })),
+        },
         flowText.value,
         flowStyle.value,
         (value, size) =>
@@ -1172,6 +1338,9 @@ export function useDesignStudio(props) {
   });
   return {
     doc,
+    pageSize,
+    place,
+    arrange,
     rows,
     pageIndex,
     page,

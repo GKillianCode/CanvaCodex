@@ -1,3 +1,4 @@
+import {seekVideos} from './videoMedia.js';
 import { resolveAnimationFormat } from "./animationExportSettings.js";
 import {makeWorkflowExample} from "./animationWorkflowExample.js";
 import {cameraFields} from "./animationWorkflow.js";
@@ -748,7 +749,7 @@ export function useAnimationStudio(s) {
         });
       } else {
         const output = await exportAnimationFrames({
-          canvas, draw, duration: config.duration, fps: config.fps,
+          canvas, draw:async t=>{const part=storyboardAt(scenes,t);if(part){await seekVideos([part.scene],part.time);if(scenes[part.index+1])await seekVideos([scenes[part.index+1]],0);}draw(t);}, duration: config.duration, fps: config.fps,
           format: outputFormat, quality, signal,
           onProgress(value,phase) { progress.value=value; exportPhase.value=phase==='encoding'?'Encodage…':'Création des images…'; },
         });

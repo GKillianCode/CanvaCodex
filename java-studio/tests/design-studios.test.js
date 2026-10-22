@@ -106,9 +106,9 @@ test("freeform curves, non-destructive masks and multipage PDF furniture are ser
   assert.equal((svg.match(/data-design-id=/g) || []).length, 3);
   const layout = sampleDesign("layout"),
     html = designPrintHtml(layout);
-  assert.equal((html.match(/<section>/g) || []).length, 2);
+  assert.equal((html.match(/<section\b/g) || []).length, 2);
   assert.match(html, /2 \/ 2/);
-  assert.match(html, /@page\{size:/);
+  assert.match(html, /@page sheet0\{size:/);
   assert.ok(!html.includes("design-guides"));
 });
 test("document repository separates ateliers, rejects stale revisions and only loads document bodies on demand", async () => {
@@ -171,4 +171,84 @@ test("linked design files cannot overwrite a file belonging to another atelier",
     /wrong-kind/,
   );
   assert.equal(writes, 0);
+});
+
+test("cropped exports retain only selected roots and their cutters, including rotation and stroke", async () => {
+  const { exportDesignRegion, designExportArea } =
+    await import("../src/designExport.js");
+  const d = createDesign("vector");
+  const a = designElement("shape", {
+    id: "a",
+    x: 500,
+    y: 400,
+    w: 100,
+    h: 50,
+    rotation: 90,
+    outlined: true,
+    strokeWidth: 10,
+  });
+  const cutter = designElement("shape", {
+    id: "cut",
+    x: 540,
+    y: 420,
+    w: 20,
+    h: 20,
+  });
+  a.cutouts = ["cut"];
+  d.pages[0].elements = [
+    a,
+    cutter,
+    designElement("text", { text: "unselected", x: 0, y: 0 }),
+  ];
+  const result = exportDesignRegion(d, 0, {
+    scope: "selection",
+    selection: ["a"],
+  });
+  assert.equal(result.w, 60);
+  assert.equal(result.h, 110);
+  assert.equal(result.elements.length, 2);
+  assert.match(result.svg, /<mask/);
+  assert.ok(!result.svg.includes("unselected"));
+  assert.throws(() =>
+    designExportArea(d, 0, { scope: "selection", selection: [] }),
+  );
+  const margin = designExportArea(d, 0, {
+    scope: "selection",
+    selection: ["a"],
+    padding: 12,
+  });
+  assert.equal(margin.w, result.w + 24);
+  assert.equal(margin.h, result.h + 24);
+});
+test("code and tables keep their content, safe tokens and transparency through save/export", () => {
+  const d = createDesign("layout");
+  d.pages[0].elements = [
+    designElement("text", {
+      code: true,
+      language: "java",
+      text: "int count = 42; // <script>",
+      style: "code",
+    }),
+    designElement("table", {
+      rows: 2,
+      columns: 2,
+      text: "A\tB\nC\tD",
+      filled: false,
+      outlined: false,
+    }),
+  ];
+  const saved = normalizeDesign(JSON.parse(JSON.stringify(d))),
+    svg = exportDesignSvg(saved);
+  assert.equal(saved.pages[0].elements[1].type, "table");
+  assert.equal(saved.pages[0].elements[0].language, "java");
+  assert.match(svg, /fill="#7940a0">int/);
+  assert.match(svg, /&lt;script&gt;/);
+  assert.match(svg, />D<\/text>/);
+  assert.ok(!svg.includes("<script>"));
+});
+
+test('named styles, all Frame fonts and mixed page dimensions survive normalization and PDF generation', async()=>{
+ const {designPageSize,designColumns,rebalanceColumns}=await import('../src/designModel.js');
+ const d=createDesign('layout');d.styles['style-custom']={name:'Titre personnel',font:'dm-sans',weight:600,size:33,leading:1.2};d.pages[0].elements=[designElement('text',{style:'style-custom',font:'dm-sans',weight:600})];d.pages.push({...d.pages[0],id:'landscape',width:1123,height:794,elements:[]});
+ d.columns=3;d.columnWeights=rebalanceColumns([1,1,1],0,60);const n=normalizeDesign(d);assert.equal(n.styles['style-custom'].name,'Titre personnel');assert.equal(n.pages[0].elements[0].weight,600);assert.equal(designPageSize(n,1).width,1123);const cols=designColumns(n),total=cols.reduce((sum,c)=>sum+c.w,0);assert.ok(Math.abs(cols[0].w/total-.6)<1e-8);assert.ok(cols.every(c=>c.w>0));const html=designPrintHtml(n);assert.match(html,/@page sheet1/);assert.match(html,/font-family="&quot;DM Sans&quot;, sans-serif"/);
 });

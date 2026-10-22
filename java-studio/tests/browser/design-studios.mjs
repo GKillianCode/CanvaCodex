@@ -31,6 +31,7 @@ try {
     .getByRole("button", { name: "Ajouter un rectangle", exact: true })
     .click();
   assert.equal(await page.locator(".design-layer").count(), 8);
+  await page.getByText("Position et dimensions", { exact: true }).click();
   await page.getByLabel("Position X", { exact: true }).fill("320");
   await page.getByLabel("Position X", { exact: true }).dispatchEvent("change");
   await page.keyboard.press("Tab");
@@ -42,6 +43,9 @@ try {
   assert.equal(await page.locator(".design-layer").count(), 8);
   await page.getByRole("button", { name: "Rétablir", exact: true }).click();
   assert.equal(await page.locator(".design-layer").count(), 9);
+  await page
+    .getByRole("button", { name: "Calques · propriétés", exact: true })
+    .click();
   await page.locator(".design-layer-name").first().click();
   await page
     .getByRole("button", { name: "Supprimer la sélection", exact: true })
@@ -51,10 +55,12 @@ try {
     .getByRole("button", { name: "Annuler", exact: true })
     .click();
   assert.equal(await page.locator(".design-layer").count(), 9);
+  await page.getByRole("button", { name: "Exporter", exact: true }).click();
   const downloadPromise = page.waitForEvent("download");
   await page.getByRole("button", { name: "Exporter SVG", exact: true }).click();
   const download = await downloadPromise;
   assert.match(download.suggestedFilename(), /\.svg$/);
+  await page.getByLabel("Fermer l’export").click();
   await page.getByRole("button", { name: "Applications", exact: true }).click();
   assert.equal((await page.locator(".applications-menu").count()) >= 0, true);
   const menu = page.locator(".applications-popover");
@@ -105,7 +111,10 @@ try {
   assert.equal(await page.locator(".design-page-row").count(), 2);
   await page.screenshot({ path: "/tmp/frame-layout-light.png" });
   await page
-    .getByRole("button", { name: "Ajouter un texte continu…", exact: true })
+    .locator(".design-viewport")
+    .click({ button: "right", position: { x: 60, y: 200 } });
+  await page
+    .getByRole("menuitem", { name: "Répartir un texte sur des pages…" })
     .click();
   await page
     .getByLabel("Texte continu", { exact: true })
@@ -145,6 +154,7 @@ try {
       window.__printRequested = true;
     };
   });
+  await page.getByRole("button", { name: "Exporter", exact: true }).click();
   await page.getByRole("button", { name: "Exporter PDF", exact: true }).click();
   await page.waitForFunction(() =>
     Array.from(document.querySelectorAll("iframe")).some(
