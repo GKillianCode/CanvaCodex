@@ -56,7 +56,7 @@ export function useAnimationStudio(s) {
   const editorScene = computed(() => preview.value ? animationScene(s.current.value, config.value, time.value).scene : s.current.value);
   const motionPrefs=ref({name:'Mon mouvement',duration:1,motion:'builtin-fade'});
   const keySelection=ref([]),keyClipboard=ref([]);
-  const diagnostics=ref({bounds:false,collisions:false,contacts:false,attachments:false,forces:false,camera:false,paths:false});
+  const diagnostics=ref({bounds:false,collisions:false,contacts:false,attachments:false,forces:false,camera:true,paths:false});
   const selectedPathPoint=ref(0);
   const previewOpen = ref(false),
     activeKey = ref(null),

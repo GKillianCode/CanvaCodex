@@ -52,8 +52,30 @@ export function applyAttachments(scene, attachments) {
     const a = ((p.rotation || 0) * Math.PI) / 180,
       ox = p.w * (r.parentX - 0.5) + r.offsetX,
       oy = (p.h || 0) * (r.parentY - 0.5) + r.offsetY;
-    const rotation=(c.rotation||0)+(r.rotate?p.rotation||0:0),angle=rotation*Math.PI/180,cx=c.w*(r.childX-.5),cy=(c.h||0)*(r.childY-.5);
-    scene.positions[key]={...c,rotation,x:p.x+p.w/2+ox*Math.cos(a)-oy*Math.sin(a)-cx*Math.cos(angle)+cy*Math.sin(angle)-c.w/2,y:p.y+(p.h||0)/2+ox*Math.sin(a)+oy*Math.cos(a)-cx*Math.sin(angle)-cy*Math.cos(angle)-(c.h||0)/2};
+    const rotation = (c.rotation || 0) + (r.rotate ? p.rotation || 0 : 0),
+      angle = (rotation * Math.PI) / 180,
+      cx = c.w * (r.childX - 0.5),
+      cy = (c.h || 0) * (r.childY - 0.5);
+    scene.positions[key] = {
+      ...c,
+      rotation,
+      x:
+        p.x +
+        p.w / 2 +
+        ox * Math.cos(a) -
+        oy * Math.sin(a) -
+        cx * Math.cos(angle) +
+        cy * Math.sin(angle) -
+        c.w / 2,
+      y:
+        p.y +
+        (p.h || 0) / 2 +
+        ox * Math.sin(a) +
+        oy * Math.cos(a) -
+        cx * Math.sin(angle) -
+        cy * Math.cos(angle) -
+        (c.h || 0) / 2,
+    };
     resolved.add(key);
   }
   for (const r of attachments) visit(r.child);
@@ -168,6 +190,25 @@ export function normalizeCamera(raw = {}) {
     rotation: num(raw.rotation, 0, -360, 360),
   };
 }
+export function cameraFrame(raw) {
+  const c = normalizeCamera(raw),
+    w = 192000 / c.zoom,
+    h = 108000 / c.zoom,
+    a = (c.rotation * Math.PI) / 180;
+  return {
+    w,
+    h,
+    corners: [
+      [-w / 2, -h / 2],
+      [w / 2, -h / 2],
+      [w / 2, h / 2],
+      [-w / 2, h / 2],
+    ].map(([x, y]) => ({
+      x: c.x + x * Math.cos(a) - y * Math.sin(a),
+      y: c.y + x * Math.sin(a) + y * Math.cos(a),
+    })),
+  };
+}
 export function applyCamera(ctx, camera) {
   ctx.translate(960, 540);
   ctx.rotate((-camera.rotation * Math.PI) / 180);
@@ -194,4 +235,12 @@ export function projectCameraPose(p, camera) {
   };
 }
 
-export function anchorPoint(p,x=.5,y=.5){const a=(p.rotation||0)*Math.PI/180,dx=p.w*(x-.5),dy=(p.h||0)*(y-.5);return{x:p.x+p.w/2+dx*Math.cos(a)-dy*Math.sin(a),y:p.y+(p.h||0)/2+dx*Math.sin(a)+dy*Math.cos(a)};}
+export function anchorPoint(p, x = 0.5, y = 0.5) {
+  const a = ((p.rotation || 0) * Math.PI) / 180,
+    dx = p.w * (x - 0.5),
+    dy = (p.h || 0) * (y - 0.5);
+  return {
+    x: p.x + p.w / 2 + dx * Math.cos(a) - dy * Math.sin(a),
+    y: p.y + (p.h || 0) / 2 + dx * Math.sin(a) + dy * Math.cos(a),
+  };
+}

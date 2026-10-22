@@ -10,6 +10,7 @@ import {
   Trash2,
 } from "lucide-vue-next";
 import InspectorDrawer from "./InspectorDrawer.vue";
+import NumberRange from "./NumberRange.vue";
 import AnimationKeyButton from "./AnimationKeyButton.vue";
 import { attachmentCycle } from "../animationWorkflow.js";
 import { shapes } from "../shapes.js";
@@ -319,28 +320,59 @@ function connector() {
   </InspectorDrawer>
   <InspectorDrawer id="workflow-camera" title="Caméra" :icon="Camera"
     ><p class="field-help">
-      Le cadrage s’applique dans l’aperçu et l’export. L’éditeur conserve les
-      coordonnées de la scène ; active le repère caméra pour voir son cadre.
+      Le cadre violet suit la caméra au temps courant. La zone assombrie reste
+      hors champ ; les objets gardent leurs coordonnées de construction.
     </p>
-    <label
-      v-for="[field, text] in [
-        ['cameraX', 'Centre X'],
-        ['cameraY', 'Centre Y'],
-        ['cameraZoom', 'Zoom · %'],
-        ['cameraRotation', 'Rotation · degrés'],
-      ]"
-      :key="field"
-      >{{ text }}<AnimationKeyButton :studio="s" :field="field" /><input
-        type="number"
-        :aria-label="text + ' de la caméra'"
-        :value="a.propertyValue(field)"
-        :min="field === 'cameraZoom' ? 10 : -10000"
-        :max="field === 'cameraZoom' ? 800 : 10000"
-        @change="a.setProperty(field, $event.target.value)" /></label
-    ><button class="btn" @click="a.diagnostics.camera = !a.diagnostics.camera">
-      Afficher / masquer le cadre caméra
-    </button></InspectorDrawer
-  >
+    <div class="workspace-switch">
+      <button @click="a.seek(0)">Début de scène</button
+      ><button @click="a.seek(a.config.duration)">Fin de scène</button>
+    </div>
+    <label>Zoom <AnimationKeyButton :studio="s" field="cameraZoom" /></label>
+    <NumberRange
+      label="Zoom de la caméra"
+      unit="%"
+      :min="10"
+      :max="800"
+      :step="1"
+      :model-value="a.propertyValue('cameraZoom')"
+      @update:model-value="a.setProperty('cameraZoom', $event)"
+    />
+    <button class="btn" @click="a.setProperty('cameraZoom', 100)">
+      100 % à cet instant
+    </button>
+    <p class="field-help">
+      Par exemple : règle 150 % au début, puis 100 % à la fin. Les images clés
+      et l’interpolation sont créées automatiquement.
+    </p>
+    <div class="position-grid">
+      <label
+        v-for="[field, text] in [
+          ['cameraX', 'Centre X'],
+          ['cameraY', 'Centre Y'],
+          ['cameraRotation', 'Rotation · degrés'],
+        ]"
+        :key="field"
+        >{{ text }}<AnimationKeyButton :studio="s" :field="field" /><input
+          type="number"
+          :aria-label="text + ' de la caméra'"
+          :value="a.propertyValue(field)"
+          :min="field === 'cameraRotation' ? -360 : -10000"
+          :max="field === 'cameraRotation' ? 360 : 10000"
+          @change="a.setProperty(field, $event.target.value)"
+      /></label>
+    </div>
+    <button
+      class="btn"
+      :aria-pressed="a.diagnostics.camera"
+      @click="a.diagnostics.camera = !a.diagnostics.camera"
+    >
+      {{
+        a.diagnostics.camera
+          ? "Masquer le cadre caméra"
+          : "Afficher le cadre caméra"
+      }}
+    </button>
+  </InspectorDrawer>
   <InspectorDrawer
     id="workflow-presets"
     title="Mouvements réutilisables"
