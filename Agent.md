@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 21 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 22 octobre 2026 (Europe/Paris).
 
 Ce fichier est l’unique mémoire et point d’entrée des consignes du projet. Le lire avant de travailler, le tenir à jour et respecter le workflow GitHub ci-dessous, en distinguant travail local et publication confirmée.
 
@@ -1604,3 +1604,13 @@ Publication reprend l’ordre de Conducteur : navigation Conducteur/Publication 
 Validation : 446 tests Node réussis, build Vite réussi. Test navigateur isolé : retour par le titre et par l’icône depuis chaque atelier, vérification de la bonne vidéo cible et des saisies enregistrées avant navigation, changement d’atelier et ordre réel des groupes, bouton Présenter conservé. Captures des en-têtes dark/light inspectées. Serveur de test 5289 indépendant, données localhost:5173 préservées. Aucun changement fusionné automatiquement.
 
 Publication confirmée : commit `626c483`, [PR #145](https://github.com/GKillianCode/CanvaCodex/pull/145) ouverte vers `fix/publication-shared-style-default`, liée à l’issue #144. Aucune fusion automatique.
+
+## 22 octobre 2026 — Prises continues et MP4 compact
+
+Branche `fix/presentation-continuous-recording`, issue #146, basée sur `fix/workflow-header-navigation`. Diaporamas : MP4 H.264 opaque par défaut, CRF 21/preset veryfast spécifique aux prises ; MOV QTRLE, MKV FFV1 et WebM restent proposés. Incrustations/animations transparentes inchangées. Sélecteur avec couleurs explicites dark/light. Suppression du choix transparent pour la présentation.
+
+MP4/MOV/MKV : capture WebM compressée envoyée progressivement au serveur local et écrite sur disque temporaire, puis conversion uniquement après Stop. Plus de plafond cumulé PNG 256 Mo déclenchant un arrêt, ni limite de sortie 512 Mo/10 min sur ce chemin. Résultat téléchargé directement depuis le disque, sans Blob de plusieurs Go dans le navigateur. Nettoyage à l’annulation/fermeture du serveur, résultat disponible jusqu’à la prochaine prise ou six heures. Disque plein, interruption du navigateur/service restent des erreurs réelles signalées. WebM conserve sa capture navigateur. Stop séparé de Démarrer, hors Tab/focus, Entrée/Espace ignorés, déclenchement au clic physique ; Échap/Quitter ne coupent plus la prise.
+
+Validation : 451 tests Node réussis, compilation Vite réussie ; tests de transfert progressif au-delà de l’ancien budget, interruptions sans export automatique et intégration FFmpeg MP4/MOV/MKV opaques. Mesure synthétique Full HD 30 fps de 330 secondes : MP4 de 217 044 183 octets (~207 Mio), encodé en 84,6 s sur ce PC avec charge de test simultanée. Ce résultat n’est pas une garantie de poids pour chaque contenu. Aucun stockage utilisateur modifié.
+
+Parcours navigateur réussi : MP4 sélectionné, pas de transparence, capture progressive sans finalisation avant clic Stop, Enter/Espace/Échap sans arrêt, Stop non focalisable, un téléchargement H.264 opaque et durée vérifiée.
