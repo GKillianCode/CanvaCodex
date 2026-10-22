@@ -1614,3 +1614,5 @@ MP4/MOV/MKV : capture WebM compressée envoyée progressivement au serveur local
 Validation : 451 tests Node réussis, compilation Vite réussie ; tests de transfert progressif au-delà de l’ancien budget, interruptions sans export automatique et intégration FFmpeg MP4/MOV/MKV opaques. Mesure synthétique Full HD 30 fps de 330 secondes : MP4 de 217 044 183 octets (~207 Mio), encodé en 84,6 s sur ce PC avec charge de test simultanée. Ce résultat n’est pas une garantie de poids pour chaque contenu. Aucun stockage utilisateur modifié.
 
 Parcours navigateur réussi : MP4 sélectionné, pas de transparence, capture progressive sans finalisation avant clic Stop, Enter/Espace/Échap sans arrêt, Stop non focalisable, un téléchargement H.264 opaque et durée vérifiée.
+
+Publication confirmée : commit `0779cc6`, [PR #147](https://github.com/GKillianCode/CanvaCodex/pull/147) ouverte vers `fix/workflow-header-navigation`, issue #146. Aucune fusion automatique.
