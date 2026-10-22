@@ -1616,3 +1616,15 @@ Validation : 451 tests Node réussis, compilation Vite réussie ; tests de trans
 Parcours navigateur réussi : MP4 sélectionné, pas de transparence, capture progressive sans finalisation avant clic Stop, Enter/Espace/Échap sans arrêt, Stop non focalisable, un téléchargement H.264 opaque et durée vérifiée.
 
 Publication confirmée : commit `0779cc6`, [PR #147](https://github.com/GKillianCode/CanvaCodex/pull/147) ouverte vers `fix/workflow-header-navigation`, issue #146. Aucune fusion automatique.
+
+## 22 octobre 2026 — Fonds stylisés partagés
+
+Branche `feat/stylized-backgrounds`, issue #148, basée sur `fix/presentation-continuous-recording` (PR #147 laissée ouverte). Les applications vectorielle et mise en page/PDF restent des idées reportées, sans implémentation.
+
+Ajout de `sceneBackground.js` (normalisation/rendu Canvas/cache borné) et du panneau partagé `BackgroundProperties`. Accessible dans Diapo/Format/Scène → Fond et motifs, et depuis Thèmes hors Animation. Uni, dégradé orientable, points, grille, lignes, carrés, croix et hexagones. Couleurs libres ou liées aux rôles du thème, opacité du motif, taille, espacement, épaisseur, rotation, décalages X/Y et quinconce selon le motif. Préréglages clair/sombre. Réglages dans `slide.background`, normalisés à l’import et capturés par chaque étape pédagogique ; anciens documents en mode inherit pour conserver leur rendu.
+
+Rendu partagé éditeur/PNG/vidéo/transition ; ne pas repeindre le fond dans les deux couches d’une interpolation. Animation dessine le fond avant la caméra et ignore le fond du renderSlide imbriqué ; mode inherit garde ses fonds animables préexistants. Les motifs ne sont pas eux-mêmes animables par clés dans cette V1. Les grands calques opaques des presets existants masquent naturellement le fond, sans suppression automatique. Incrustations transparentes inchangées tant qu’aucun fond n’est choisi. Cache de 12 fonds maximum pour éviter de recalculer les motifs pendant la vidéo.
+
+Validation : 453 tests Node et build Vite réussis. Navigateur isolé 5289 : les quatre ateliers, réglage et persistance après actualisation, normalisation et indépendance des étapes, pixels après encodage PNG, rendu identique en vidéo d’incrustation et pendant une transition. Captures dark/light ; aucun stockage utilisateur touché.
+
+Publication confirmée : commit `93432a3`, [PR #149](https://github.com/GKillianCode/CanvaCodex/pull/149) ouverte vers `fix/presentation-continuous-recording`, issue #148. Aucune fusion automatique.

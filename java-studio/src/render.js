@@ -1,3 +1,4 @@
+import {drawSceneBackground} from './sceneBackground.js';
 import {imageAsset,reserveImages} from "./imageCache.js";
 import {svgImageSource} from './svgColors.js';
 import { layoutRichText } from './richTextLayout.js';
@@ -149,7 +150,7 @@ export function fitText(ctx,value,p,weight,leading) {
   while(size>16){ctx.font=styleFont(size,fontCss(p.font),normalizeTextStyle(p.textStyle,p.font,'text',weight===700));if(layoutStyledText(ctx,value,p.w,size,leading,{...p.textStyle,runs:p.textRuns||[]},wrapLines).height<=p.h)break;size-=1;}return size;
 }
 export function renderSlide(ctx, s, theme, options = {}) {
-  if(!options.transparent)background(ctx, theme, options.gradient!==false);
+  if(!options.omitBackground){if(s.background?.mode&&s.background.mode!=='inherit')drawSceneBackground(ctx,s.background,theme);else if(!options.transparent)background(ctx, theme, options.gradient!==false);}
   const { header = false, footer = false, project = '', n = 0, total = 1, order = Infinity, motion = null, omit = null, now = performance.now() } = options;
   if (header) {
     text(ctx, 'JAVA / SOUS LE CAPOT', 112, 60, 1300, 22, theme.accent, 700);
@@ -204,8 +205,8 @@ export function renderStepTransition(ctx,from,to,theme,progress,options={}){
  for(const key of targetKeys){if(!sourceKeys.includes(key)||blockType(from,key)!==blockType(to,key)||!(from.positions[key]?.interpolate||to.positions[key]?.interpolate)||from.hiddenKeys?.includes(key)||to.hiddenKeys?.includes(key)||from.fragments[key].order>fromOrder||to.fragments[key].order>toOrder)continue;
   const a=from.positions[key],b=to.positions[key];positions[key]=interpolatePosition({...a,h:a.h||blockBounds(ctx,from,key).h},{...b,h:b.h||blockBounds(ctx,to,key).h},progress);if(blockType(to,key)==='text')positions[key].autoSize=false;interpolated.add(key);
  }
- if(!options.transparent)background(ctx,theme,options.gradient!==false);
+ if(to.background?.mode&&to.background.mode!=='inherit')drawSceneBackground(ctx,to.background,theme);else if(!options.transparent)background(ctx,theme,options.gradient!==false);
  const state=(alpha,visible=true,motion)=>({...motion,alpha:alpha*(motion?.alpha??1),visible:visible&&motion?.visible!==false,x:motion?.x||0,y:motion?.y||0,scale:motion?.scale??1});
- renderSlide(ctx,from,theme,{...options,transparent:true,order:fromOrder,objectMotion:Object.fromEntries(sourceKeys.map(k=>[k,state(1-ease,!interpolated.has(k),options.fromObjectMotion?.[k])]))});
- renderSlide(ctx,{...to,positions},theme,{...options,transparent:true,objectMotion:Object.fromEntries(targetKeys.map(k=>[k,state(interpolated.has(k)?1:ease,true,options.objectMotion?.[k])]))});
+ renderSlide(ctx,from,theme,{...options,transparent:true,omitBackground:true,order:fromOrder,objectMotion:Object.fromEntries(sourceKeys.map(k=>[k,state(1-ease,!interpolated.has(k),options.fromObjectMotion?.[k])]))});
+ renderSlide(ctx,{...to,positions},theme,{...options,transparent:true,omitBackground:true,objectMotion:Object.fromEntries(targetKeys.map(k=>[k,state(interpolated.has(k)?1:ease,true,options.objectMotion?.[k])]))});
 }

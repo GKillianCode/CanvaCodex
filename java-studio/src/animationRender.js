@@ -1,3 +1,4 @@
+import {drawSceneBackground} from './sceneBackground.js';
 import {applyCamera} from "./animationWorkflow.js";
 import {drawAnimationDiagnostics} from "./animationDiagnostics.js";
 import {particleOriginSampler} from "./particleHistory.js";
@@ -18,7 +19,7 @@ export function renderAnimation(
   const state = animationScene(scene, config, time);
   if(positions) Object.assign(state.scene.positions, positions);
   ctx.save();
-  drawAnimationBackground(ctx,state.config,theme);
+  if(scene.background?.mode&&scene.background.mode!=='inherit')drawSceneBackground(ctx,scene.background,theme);else drawAnimationBackground(ctx,state.config,theme);
   if(camera)applyCamera(ctx,state.config.camera);
   const cutters = state.config.effects
     .filter(
@@ -35,6 +36,7 @@ export function renderAnimation(
     theme,
     {
       transparent: true,
+      omitBackground:true,
       order: Infinity,
       typingElapsed: state.typingElapsed,
       beforeObject: (ctx, key) => {

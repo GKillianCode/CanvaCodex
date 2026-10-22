@@ -1,3 +1,4 @@
+import {normalizeBackground} from './sceneBackground.js';
 import {normalizeInstances} from './componentInstances.js';
 import {normalizeAnimation as normalizeAnimationDocument} from './animationModel.js';
 import { normalizeRuns,remapRuns } from './richText.js';
@@ -158,6 +159,7 @@ export function normalizeSlide(raw, n = 0) {
   for (const k of [...blocks, 'label', 'codeTitle']) s[k] = typeof raw[k] === 'string' ? raw[k].slice(0, 100000) : '';
   s.codeTitle=s.codeTitle.slice(0,200);
   s.notes=normalizeNotes(raw.notes);
+  s.background=normalizeBackground(raw.background);
   if(raw.animation)s.animation=normalizeAnimationDocument(raw.animation);
   s.exitDirection = ['auto',...Object.keys(directions)].includes(raw.exitDirection) ? raw.exitDirection : 'auto';
   if (raw.elements && typeof raw.elements === 'object') {
