@@ -248,7 +248,7 @@ La fiche vidéo propose deux cartes illustrées, Préparer et Publier ; les supp
 Les états des vidéos disposent d’une palette dédiée au mode clair : badges et bordures du canvas restent contrastés, sans modifier les couleurs du mode sombre.
 Les groupes du canvas des parcours proposent sept couleurs (double-clic sur leur titre pour les modifier), conservées dans les sauvegardes et adaptées aux deux apparences. Les étapes sont bleues, les projets fil rouge violets.
 
-Les enregistrements de diaporamas proposent MOV QTRLE par défaut, MKV FFV1 et WebM. MOV et MKV acceptent le fond transparent optionnel ; WebM garde le comportement habituel. Les incrustations séparent le format du choix de fond : MOV/MKV préservent l’alpha, WebM utilise la chrominance. Capture limitée à256Mo par prise et arrêt automatique à cette limite ; sortie encodée limitée à512Mo. Le lecteur intégré reste disponible pour WebM ; MOV/MKV se téléchargent pour le montage. Aucun audio n’est enregistré.
+Les enregistrements de diaporamas proposent MP4 H.264 par défaut (compressé), MOV QTRLE, MKV FFV1 et WebM, avec un fond opaque. Pour MP4/MOV/MKV, une capture WebM à débit élevé est envoyée progressivement dans un fichier temporaire local, puis convertie au clic sur **Stop**. Le plafond PNG de 256 Mo et la limite de sortie de 512 Mo ne concernent plus ce chemin de présentation ; aucune durée ou taille cumulée ne déclenche Stop. Le téléchargement se fait depuis le disque local, sans charger tout le MP4/MOV/MKV dans la mémoire du navigateur. Les incrustations gardent leurs choix de fond : MOV/MKV préservent l’alpha, WebM utilise la chrominance. Le lecteur intégré reste disponible pour WebM ; MOV/MKV se téléchargent pour le montage. Aucun audio n’est enregistré.
 
 La palette du parcours est atténuée : Création bleu grisé, Prêt à tourner olive, groupes très légers en clair et flèches gris bleuté contrastées.
 
@@ -343,3 +343,12 @@ Dans **Publication → Préparer**, chaque section peut être ouverte ou replié
 #### Navigation entre préparation et fiche vidéo
 
 Dans **Conducteur** et **Publication**, cliquer sur le titre de la vidéo dans la barre supérieure revient directement à sa fiche, après enregistrement du travail en cours. L’icône vidéo près d’Accueil reste également disponible. Les menus suivent le même ordre dans les deux ateliers : **Conducteur / Publication**, puis **Préparer / Aperçu**. Le bouton **Présenter** reste disponible dans Conducteur.
+
+
+### Arrêt volontaire des prises de présentation
+
+Pendant une prise, **Stop** s’active au clic de souris et reste hors du focus et de la navigation Tab. Entrée et Espace continuent à piloter les diapos sans déclencher Stop. Quitter ou Échap demande de terminer la prise avec Stop au lieu de la couper. Les formats et la résolution restent verrouillés pendant la capture/finalisation. Une erreur réelle du navigateur, du disque ou du service local est signalée comme une interruption ; elle ne présente pas un enregistrement tronqué comme un export terminé.
+
+Les captures temporaires MP4/MOV/MKV sont locales et sont nettoyées à l’annulation/fermeture du serveur ; le résultat terminé reste téléchargeable jusqu’à la prochaine prise ou pendant six heures. Ces formats nécessitent FFmpeg et le serveur local Frame. La capture intermédiaire est compressée par le navigateur ; les codecs finaux QTRLE/FFV1 n’ajoutent pas de perte. Les exports transparents d’incrustations ne sont pas modifiés.
+
+Le MP4 des diaporamas utilise H.264, qualité CRF 21 et préréglage veryfast. Il privilégie un fichier compact, opaque et compatible avec le montage. MOV QTRLE et MKV FFV1 restent des formats volumineux ; ils ne sont plus le choix par défaut. Le temps et le poids dépendent du contenu, de la résolution et du PC. Les exports transparents des autres ateliers conservent leurs codecs.
