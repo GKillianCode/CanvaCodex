@@ -1628,3 +1628,15 @@ Rendu partagé éditeur/PNG/vidéo/transition ; ne pas repeindre le fond dans le
 Validation : 453 tests Node et build Vite réussis. Navigateur isolé 5289 : les quatre ateliers, réglage et persistance après actualisation, normalisation et indépendance des étapes, pixels après encodage PNG, rendu identique en vidéo d’incrustation et pendant une transition. Captures dark/light ; aucun stockage utilisateur touché.
 
 Publication confirmée : commit `93432a3`, [PR #149](https://github.com/GKillianCode/CanvaCodex/pull/149) ouverte vers `fix/presentation-continuous-recording`, issue #148. Aucune fusion automatique.
+
+## 22 octobre 2026 — Fond commun fixe et laser à la demande
+
+Branche `feat/slideshow-fixed-background`, issues #150 et #151, basée sur `feat/stylized-backgrounds` (PR #149 laissée ouverte). Diaporamas uniquement : option globale « Fond commun fixe sur toutes les diapos » dans Fond et motifs. `frame.fixedBackground` désactivé par défaut et `frame.background` normalisés/sauvegardés. Première activation reprend le fond courant ; un fond commun personnalisé déjà créé est conservé à la réactivation. Les fonds de chaque diapo/étape restent indépendants et sont retrouvés à la désactivation.
+
+Rendu commun utilisé par éditeur/vignettes/PNG/présentation. Lors d’une transition spatiale, snapshots de contenu sans fond sur des Canvas transparents puis composition au-dessus du fond dessiné une seule fois. `snapshotCanvas` ne supprime le fond que pour la transition, pas dans les vignettes suivantes. L’enregistrement du Canvas récupère exactement cette composition. Les grands objets opaques existants restent mobiles, aucune conversion/suppression implicite d’un calque utilisateur.
+
+Laser : `tool=none` par défaut et réinitialisé à chaque présentation. Bouton Laser avec état accessible et bascule activer/désactiver. Changement d’outil efface le point et la traînée temporaire ; un simple clic/mouvement de focus sans laser ne dessine rien. Le curseur natif reste masqué sur le Canvas de présentation et n’entre jamais dans captureStream ; le laser activé volontairement reste un effet du rendu. Le stylo conserve ses annotations explicites.
+
+Validation : 454 tests Node et build Vite réussis. Tests navigateur isolés : persistance du fond commun, retour aux fonds individuels, réactivation sans perte, comparaison de pixels du motif dans quatre directions et plusieurs progressions, contenu effectivement mobile, transition réelle de présentation avec motif fixe. Laser : absence de marques lors du focus, activation visible, désactivation immédiate, curseur natif masqué, réinitialisation à la présentation suivante. Test des quatre ateliers de fonds rejoué avec succès. Aucun stockage ni serveur utilisateur modifié.
+
+Publication confirmée : commit `0443b5e`, [PR #152](https://github.com/GKillianCode/CanvaCodex/pull/152) ouverte vers `feat/stylized-backgrounds`, issues #150 et #151. Aucune fusion automatique.

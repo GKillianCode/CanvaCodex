@@ -15,3 +15,9 @@ test('pattern survives document serialization and remains independent between pe
  const restored=normalizeSlide(JSON.parse(JSON.stringify(s)));
  assert.equal(restored.background.rotation,25);assert.equal(sceneAt(restored,1).background.rotation,60);assert.equal(sceneAt(restored,1).background.spacing,42);assert.equal(sceneAt(restored,1).background.stagger,true);
 });
+test('shared background is an opt-in project setting and survives normalization',async()=>{
+ const {normalizeFrame}=await import('../src/model.js');
+ assert.equal(normalizeFrame({}).fixedBackground,false);
+ const restored=normalizeFrame(JSON.parse(JSON.stringify({fixedBackground:true,background:{mode:'grid',rotation:31,opacity:12}})));
+ assert.equal(restored.fixedBackground,true);assert.equal(restored.background.mode,'grid');assert.equal(restored.background.rotation,31);
+});
