@@ -1,7 +1,7 @@
 import {hasTransparentScenes,resolveAnimationFormat} from '../src/animationExportSettings.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {animationScene,normalizeAnimation} from '../src/animationModel.js';
+import {animationScene,normalizeAnimation,frameValue} from '../src/animationModel.js';
 import {backgroundModes,patternChannels} from '../src/sceneBackground.js';
 import {applyMotion,captureMotion,builtinMotions} from '../src/animationPresets.js';
 const scene={id:'qa-pattern',blockKeys:['a','b'],positions:{a:{x:100,y:100,w:100,h:100},b:{x:500,y:100,w:100,h:100}},elements:{a:{type:'shape',shape:'rect',filled:true,fill:'#ffffff'},b:{type:'text',text:'Texte'}},fragments:{a:{order:0,animation:'none'},b:{order:0,animation:'none'}},background:{mode:'dots',base:'#000000',color:'#ffffff',opacity:20,size:4,spacing:32}};
@@ -41,4 +41,33 @@ test('export format detects transparency across keyed and fixed pattern backgrou
  assert.equal(hasTransparentScenes([clear]),true);assert.equal(resolveAnimationFormat('auto',[clear]),'mkv');
  assert.equal(hasTransparentScenes([{...scene,animation:{background:'transparent'}}]),false);
  assert.equal(hasTransparentScenes([{...scene,background:{mode:'transparent'},animation:{background:'solid'}}]),true);
+});
+
+test('overshooting curves keep inverted background colours valid through the final frame',()=>{
+ const curve=[.25,.1,.25,2];
+ for(const reverse of [false,true]) {
+  const [a,b]=reverse?['#000000','#ffffff']:['#ffffff','#000000'];
+  const cfg=normalizeAnimation({duration:4,clips:[{keys:[],duration:4,frames:[
+   {field:'patternBase',time:0,value:a,ease:'bezier',curve},{field:'patternBase',time:3,value:b},
+   {field:'patternColor',time:0,value:b,ease:'bezier',curve},{field:'patternColor',time:3,value:a},
+   {field:'patternMode',time:0,value:4,ease:'bezier',curve},{field:'patternMode',time:3,value:5},
+  ]}]});
+  for(let frame=0;frame<=120;frame++) {
+   const t=frame/30,state=animationScene(scene,cfg,t).scene;
+   assert.match(state.background.base,/^#[a-f\d]{6}$/i);
+   assert.match(state.background.color,/^#[a-f\d]{6}$/i);
+   if(t>=2.1){assert.equal(state.background.base,b);assert.equal(state.background.color,a);}
+   if(state.backgroundBlend)assert(state.backgroundBlend.progress>=0&&state.backgroundBlend.progress<=1);
+  }
+ }
+});
+
+
+test('RGB interpolation clamps each channel without disabling numeric overshoot',()=>{
+ const frames=(field,a,b)=>[{field,time:0,value:a,ease:'bezier',curve:[.25,.1,.25,2]},{field,time:1,value:b}];
+ assert.equal(frameValue(frames('color','#ffffff','#000000'),'color',.8,''),'#000000');
+ assert.equal(frameValue(frames('color','#000000','#ffffff'),'color',.8,''),'#ffffff');
+ assert(frameValue(frames('x',0,100),'x',.8,0)>100);
+ const below=[{field:'color',time:0,value:'#ff0000',ease:'bezier',curve:[.25,-1,.75,1]},{field:'color',time:1,value:'#00ff00'}];
+ assert.equal(frameValue(below,'color',.1,''),'#ff0000');
 });

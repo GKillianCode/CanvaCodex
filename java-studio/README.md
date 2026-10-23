@@ -289,3 +289,6 @@ L’audio de référence Animation dispose d’un volume d’écoute **0–100 %
 La timeline Animation filtre par défaut les objets **deux secondes avant leur apparition et deux secondes après leur disparition** ; décocher **Autour du curseur** retrouve toutes les pistes. Le résumé de séquence reprend la taille de la barre de présence sans décaler ses clés. Les groupes disposent de transformations communes et acceptent les mouvements réutilisables.
 
 Dans **Scène → Fond et motifs**, les losanges animent couleurs, opacité, taille, espacement, épaisseur, rotation et décalages. Les changements de type de motif utilisent un fondu, avec le même rendu dans l’éditeur, l’aperçu et l’export.
+
+
+Les courbes Animation avec dépassement conservent des couleurs RGB valides et un fondu de fond borné, pour éviter un flash de la couleur de base en fin de transition. Les mouvements conservent leurs dépassements.

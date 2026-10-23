@@ -288,11 +288,12 @@ export function easeAnimation(t, mode, curve = [0.25, 0.1, 0.25, 1]) {
 function mix(a, b, t) {
   if (typeof a === "string") {
     const v = [1, 3, 5].map((i) =>
-      Math.round(
+      // Curves may overshoot for motion, but RGB channels must stay valid.
+      Math.max(0, Math.min(255, Math.round(
         parseInt(a.slice(i, i + 2), 16) +
           (parseInt(b.slice(i, i + 2), 16) - parseInt(a.slice(i, i + 2), 16)) *
             t,
-      ),
+      ))),
     );
     return "#" + v.map((n) => n.toString(16).padStart(2, "0")).join("");
   }

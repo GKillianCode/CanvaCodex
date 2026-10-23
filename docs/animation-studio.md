@@ -267,3 +267,6 @@ Une sélection groupée dispose de **Position et dimensions du groupe**, avec de
 Dans **Scène → Fond et motifs**, les losanges permettent d’animer le type de fond, les couleurs, la rotation, la taille, l’espacement, l’épaisseur, l’opacité et les décalages horizontal/vertical des motifs. Les contrôles apparaissent selon le mode de fond choisi. Les valeurs numériques et couleurs suivent l’interpolation et la courbe de la séquence ; un changement de type de fond produit un fondu entre les deux types choisis. Le quinconce est un changement discret. Les préréglages enregistrent leurs propriétés à l’instant courant en une seule opération annulable.
 
 L’éditeur, l’aperçu et l’export utilisent le même fond évalué. Le format automatique prend aussi en compte les clés menant à un fond transparent pour conserver son alpha.
+
+
+Les courbes personnalisées peuvent dépasser leur cible pour les mouvements. Les canaux de couleur restent bornés à 0–255 et l’opacité du fondu entre types de fond à 0–100 %, afin de conserver un rendu continu jusqu’à la dernière clé, notamment lors d’une inversion fond/motif.

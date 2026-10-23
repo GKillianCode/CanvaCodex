@@ -35,7 +35,7 @@ export function evaluatePatternBackground(raw, frames, time, valueAt, ease) {
     const before=keys.filter(f=>f.time<=time).at(-1)||keys[0],after=keys.find(f=>f.time>time);
     background.mode=mode(before.value);
     if(after&&time>=before.time){
-      const progress=ease((time-before.time)/(after.time-before.time),before.ease,before.curve);
+      const progress=Math.max(0,Math.min(1,ease((time-before.time)/(after.time-before.time),before.ease,before.curve)));
       if(mode(after.value)!==background.mode)blend={background:{...background,mode:mode(after.value)},progress};
     }
   }
