@@ -33,6 +33,7 @@ const props = defineProps({ studio: Object }),
   tracks = ref(null),
   world = ref(null),
   menu = ref(null),
+  draggingKey = ref(null),
   showHidden = ref(false), selectedOnly=ref(false);
 const visibleClips=computed(()=>a.config.clips.filter(c=>(!c.hidden||showHidden.value)&&(!selectedOnly.value||!s.selectedKeys.length||!c.keys.length||c.keys.some(k=>s.selectedKeys.includes(k)))));
 const visibleEffects=computed(()=>a.config.effects.filter(e=>visualEffectKinds.includes(e.kind)&&(!selectedOnly.value||!s.selectedKeys.length||s.selectedKeys.includes(e.key))));
@@ -84,22 +85,40 @@ function gesture(move) {
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", end);
     window.removeEventListener("pointercancel", end);
+    window.removeEventListener("blur", end);
+    draggingKey.value = null;
     a.endGesture();
     cleanup = () => {};
   };
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", end);
   window.addEventListener("pointercancel", end);
+  window.addEventListener("blur", end);
   cleanup = end;
 }
 function dragKey(event, c, key) {
+  if (event.button !== 0) return;
   event.preventDefault();
   event.stopPropagation();
   event.currentTarget.closest('.animation-timeline')?.focus({preventScroll:true});
   a.selectKey(c,key,event.ctrlKey||event.metaKey||event.shiftKey);
   const entries=a.keyEntries();if(!entries.length)return;
   const rect=event.currentTarget.parentElement.getBoundingClientRect(),x=event.clientX,origins=entries.map(r=>r.key.time);
-  gesture(e=>{const delta=Math.round((e.clientX-x)/rect.width*view.value.span*a.config.fps)/a.config.fps;moveKeySelection(entries,delta,origins);});
+  function indicate(e, blocked = false) {
+    draggingKey.value = {
+      time: c.start + key.time,
+      frame: Math.round((c.start + key.time) * a.config.fps),
+      x: Math.max(8, Math.min(window.innerWidth - 240, e.clientX + 14)),
+      y: Math.max(8, Math.min(window.innerHeight - 64, e.clientY + 22)),
+      blocked,
+    };
+  }
+  gesture(e => {
+    const delta = Math.round((e.clientX - x) / rect.width * view.value.span * a.config.fps) / a.config.fps;
+    const moved = moveKeySelection(entries, delta, origins);
+    indicate(e, !moved);
+  });
+  indicate(event);
 }
 function keyShortcuts(e){if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if((e.ctrlKey||e.metaKey)&&['c','v'].includes(e.key.toLowerCase())){e.preventDefault();e.stopPropagation();if(e.key.toLowerCase()==='c')a.copyKeys();else a.pasteKeys();}if(e.key==='Delete'&&a.keyEntries().length){e.preventDefault();e.stopPropagation();a.deleteKeys();}}
 function scrub(event) {
@@ -524,10 +543,10 @@ onUnmounted(() => {
                     top: '6px',
                   }"
                   :aria-label="
-                    (labels[key.field]||effectFieldLabel(key.field,a.config.effects)) + ' à ' + key.time + ' secondes'
+                    (labels[key.field]||effectFieldLabel(key.field,a.config.effects)) + ' à ' + (c.start + key.time) + ' secondes'
                   "
                   :title="
-                    (labels[key.field]||effectFieldLabel(key.field,a.config.effects)) + ' · ' + key.time + ' s · ' + key.value
+                    (labels[key.field]||effectFieldLabel(key.field,a.config.effects)) + ' · ' + (c.start + key.time) + ' s · ' + key.value
                   "
                   @pointerdown="dragKey($event, c, key)"
                   @dblclick.stop.prevent="a.focusKey(c, key)"
@@ -550,6 +569,16 @@ onUnmounted(() => {
         </p>
       </div>
     </div>
+    <output
+      v-if="draggingKey"
+      class="animation-key-drag-time"
+      aria-label="Position de l’image clé"
+      aria-live="off"
+      :style="{ left: draggingKey.x + 'px', top: draggingKey.y + 'px' }"
+    ><strong>{{ draggingKey.time.toLocaleString('fr-FR', {minimumFractionDigits: 3, maximumFractionDigits: 3}) }} s</strong>
+      <span>Image {{ draggingKey.frame }}</span>
+      <small v-if="draggingKey.blocked">Emplacement occupé</small>
+    </output>
     <div
       v-if="menu"
       class="animation-key-context"
