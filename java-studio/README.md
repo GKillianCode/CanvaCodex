@@ -262,3 +262,5 @@ L’atelier Animation réutilise les propriétés de Diaporama et ajoute des cl�
 La timeline Animation permet de poser une **image clé vide**, puis de lui associer les propriétés au moyen des losanges. Remplissage et contour ont leurs propres couleurs et canaux ; les suppressions demandent confirmation. Les points du plateau s’arrêtent à sa bordure extérieure.
 
 Le bouton **Clés auto** de la timeline Animation enregistre les modifications de propriétés animables sans préactiver leurs losanges. La première modification conserve l’état de départ ; les nouveaux objets apparaissent à l’instant de leur insertion. La préférence est mémorisée et les commandes manuelles restent disponibles.
+
+Pendant le déplacement d’une clé Animation, une bulle affiche le temps dans la scène et le numéro d’image. Les nouvelles scènes reprennent les réglages du fond précédent, tout en conservant un contenu et des animations indépendants.

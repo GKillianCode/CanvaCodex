@@ -4,7 +4,7 @@ Branche `codex/test-animation-studio`, [PR #127](https://github.com/GKillianCode
 
 ## Espace de travail et propriétés
 
-L’atelier est accessible depuis l’accueil, une vidéo ou `#/animations`. Chaque animation possède ses fichiers, sa sauvegarde et ses scènes successives. Plusieurs animations indépendantes sont plusieurs supports de la vidéo.
+L’atelier est accessible depuis l’accueil, une vidéo ou `#/animations`. Chaque animation possède ses fichiers, sa sauvegarde et ses scènes successives. Une scène ajoutée reprend les réglages de fond de la dernière scène du document (mode, couleurs, liaison au thème et angle du dégradé), sans recopier ses objets, effets ou images clés. Plusieurs animations indépendantes sont plusieurs supports de la vidéo.
 
 Le cadre central délimite la vidéo, avec bordure complète sur fond uni ou transparent. L’extérieur de la scène est un plateau fini à points en clair/sombre. Les points s’arrêtent à sa bordure extérieure ; la zone de travail autour reste unie. Les objets peuvent dépasser du cadre. Ctrl + molette zoome la scène ; bouton central ou Espace + glisser déplace la vue. Les points, repères et commandes ne sont pas exportés.
 
@@ -26,6 +26,8 @@ Dans la barre de lecture, **Clés auto** active l’enregistrement des propriét
 Exemple : compose à 0 s, active Clés auto, avance à 2 s et déplace un cercle en changeant son remplissage. L’application conserve sa position et sa couleur de départ et interpole vers ce nouvel état. À 4 s, tu peux commencer à modifier une autre propriété sans revenir à 0 s.
 
 Les effets ajoutés commencent à l’instant courant. Un objet ajouté, dupliqué, collé ou une image déposée avec Clés auto actif après 0 s apparaît à cet instant, sans être visible avant. Les réglages sans canal d’animation (contenu textuel, choix de police, etc.) restent des réglages statiques. La préférence est mémorisée dans le navigateur ; désactivée initialement, elle conserve le fonctionnement manuel existant. Les losanges restent utilisables pour poser une clé explicite, même sans changement de valeur. Activer/désactiver Clés auto, parcourir la timeline ou lire ne crée aucune clé.
+
+Pendant le glisser d’un losange, une bulle suit la souris et affiche son temps **dans la scène**, à la milliseconde, et son numéro d’image. Elle tient compte du début de la séquence, du zoom temporel et des limites du déplacement. Si une clé occupe déjà l’emplacement visé, la bulle indique le blocage et conserve le temps effectivement accepté. Elle disparaît au relâchement ou si la fenêtre perd le focus.
 
 ## Clés par propriété
 
