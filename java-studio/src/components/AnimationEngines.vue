@@ -57,7 +57,7 @@ function direction(id) {
               type="number"
               :value="a.propertyValue('x')"
               @change="
-                a.clip?.frames.some((f) => f.field === 'x')
+                a.shouldKey('x')
                   ? a.setProperty('x', $event.target.value)
                   : (s.current.positions[a.engine.key].x = Number(
                       $event.target.value,
@@ -70,7 +70,7 @@ function direction(id) {
               type="number"
               :value="a.propertyValue('y')"
               @change="
-                a.clip?.frames.some((f) => f.field === 'y')
+                a.shouldKey('y')
                   ? a.setProperty('y', $event.target.value)
                   : (s.current.positions[a.engine.key].y = Number(
                       $event.target.value,
@@ -132,11 +132,7 @@ function direction(id) {
               "
               @change="
                 ['count', 'life', 'speed', 'size', 'force'].includes(key) &&
-                a.clip?.frames.some(
-                  (f) =>
-                    f.field ===
-                    'particle' + key[0].toUpperCase() + key.slice(1),
-                )
+                a.shouldKey('particle' + key[0].toUpperCase() + key.slice(1))
                   ? a.setProperty(
                       'particle' + key[0].toUpperCase() + key.slice(1),
                       $event.target.value,
@@ -178,11 +174,7 @@ function direction(id) {
               "
               @change="
                 ['count', 'life', 'speed', 'size', 'force'].includes(key) &&
-                a.clip?.frames.some(
-                  (f) =>
-                    f.field ===
-                    'particle' + key[0].toUpperCase() + key.slice(1),
-                )
+                a.shouldKey('particle' + key[0].toUpperCase() + key.slice(1))
                   ? a.setProperty(
                       'particle' + key[0].toUpperCase() + key.slice(1),
                       $event.target.value,
@@ -199,7 +191,7 @@ function direction(id) {
             type="number"
             :value="a.propertyValue('engineGravity')"
             @change="
-              a.clip?.frames.some((f) => f.field === 'engineGravity')
+              a.shouldKey('engineGravity')
                 ? a.setProperty('engineGravity', $event.target.value)
                 : (a.engine.gravity = Number($event.target.value))
             "
@@ -234,7 +226,9 @@ function direction(id) {
         title="Couleur des particules"
         :icon="Palette"
         ><AnimationKeyButton :studio="s" field="color" /><PaletteColor
-          :element="a.engine.particles"
+          :element="a.shouldKey('color') ? {color: a.propertyValue('color'), colorRole: null} : a.engine.particles"
+          :controlled="a.shouldKey('color')"
+          @change="value => a.shouldKey('color') && a.setProperty('color', value)"
           field="color"
           label="Couleur des particules"
           :theme="s.theme"
@@ -251,7 +245,7 @@ function direction(id) {
             type="number"
             :value="a.propertyValue('engineGravity')"
             @change="
-              a.clip?.frames.some((f) => f.field === 'engineGravity')
+              a.shouldKey('engineGravity')
                 ? a.setProperty('engineGravity', $event.target.value)
                 : (a.engine.gravity = Number($event.target.value))
             "

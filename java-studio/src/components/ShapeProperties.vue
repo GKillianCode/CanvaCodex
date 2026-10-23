@@ -25,7 +25,7 @@ const a = computed(() => props.studio?.animation),
     innerRatio: "innerRatio",
   };
 function animated(key) {
-  return !!a.value?.clip?.frames.some((f) => f.field === map[key]);
+  return !!a.value && !!map[key] && a.value.shouldKey(map[key]);
 }
 function frameEditing() {
   return (

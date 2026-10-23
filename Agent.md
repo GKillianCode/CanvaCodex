@@ -1770,3 +1770,12 @@ Validation : 495 tests Node et build réussis ; tests navigateur JSON cinq scèn
 - Correction partagée pour Diaporama, Incrustation, Miniature, Animation, Vectoriel et Mise en page : la palette déplaçable/repliable utilise un z-index de 19, sous les en-têtes (20 minimum). Suppression de la surcharge vectoriel/mise en page ; aucun nouveau composant.
 - Validation : build réussi ; contrôle Chrome isolé des menus Fichier et Applications devant la palette dans les six ateliers, en clair et sombre, avec chevauchement et vérification du ciblage réel de la souris.
 - Suivi : issue #162, correctif sur `test/animation-effects-library`, dans la PR #160 existante ; aucune fusion automatique.
+
+
+### 23 octobre 2026 — images clés automatiques
+
+- Demande : composer au temps courant sans anticiper les propriétés à animer. Bouton « Clés auto » dans la barre de lecture Animation, désactivé initialement, préférence navigateur `frame-animation-auto-key`. Aucun moteur ni panneau parallèle : réutilisation de `setProperty`, `commitPose`, `addAnimationKey` et des contrôles partagés.
+- Formes (couleurs personnalisées/thème, contour et paramètres animables), texte (couleur/taille), transformations, opacité, moteurs et sélections multiples suivent le moteur existant. Première modification tardive : clé de départ préservée. Chaque objet dispose de sa propre piste pour éviter d’animer involontairement les autres membres d’une piste groupée. Modification avant le début d’une piste : ses clés conservent leurs temps absolus.
+- Ajout/duplication/collage d’objets et dépôt d’images : apparition à l’instant d’insertion en mode auto, via opacité en maintien. Les effets démarrent déjà à l’instant courant. Les propriétés sans canal restent statiques ; les losanges explicites restent disponibles. Ni lecture, ni changement de temps/mode ne crée de clé.
+- Guide `docs/animation-studio.md`, README et test navigateur `animation-auto-keys.cjs` documentent le parcours. Suivi : issue #163, branche `test/animation-effects-library`, PR #160 existante, aucune fusion automatique.
+- Validation finale : compilation réussie ; 495 tests Node réussis ; test navigateur isolé `animation-auto-keys.cjs` réussi (contrôle réel du remplissage sans losange, déplacement/redimensionnement/rotation, propriétés tardives, insertion, effets, propriétés communes, annuler/rétablir, particules, préférence après rechargement). Test navigateur `animation-properties.cjs` également réussi pour les losanges manuels, l’échelle et la caméra. Aucun projet utilisateur modifié.

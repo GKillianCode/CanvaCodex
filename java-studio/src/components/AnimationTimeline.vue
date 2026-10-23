@@ -277,6 +277,16 @@ onUnmounted(() => {
           </button>
         </div>
         <button
+          type="button"
+          class="btn"
+          :class="{ active: a.autoKey }"
+          :aria-pressed="a.autoKey"
+          aria-label="Images clés automatiques"
+          :disabled="a.busy"
+          title="Clés auto : chaque modification d’une propriété animable est enregistrée à cet instant, avec une clé de départ si nécessaire. Les losanges restent disponibles."
+          @click="a.setAutoKey(!a.autoKey)"
+        ><Diamond :size="14" :fill="a.autoKey ? 'currentColor' : 'none'" />Clés auto</button>
+        <button
           class="icon-btn"
           title="Ouvrir l’aperçu plein écran"
           aria-label="Aperçu plein écran"

@@ -13,6 +13,7 @@ import { addSceneEngine } from "./animationEngines.js";
 import { ref, computed, watch, onMounted, onUnmounted } from "vue";
 import {
   normalizeAnimation,
+  animationFields,
   animationScene,
   addAnimationKey,
   frameValue,
@@ -53,6 +54,25 @@ export function useAnimationStudio(s) {
     pathEditing = ref(false),
     activePath = ref("");
   const exportError = ref(""), exportPhase = ref("");
+  // Editing preference only: scene data continues to use the shared keyframe model.
+  const autoKey = ref(false);
+  try { autoKey.value = localStorage.getItem('frame-animation-auto-key') === 'true'; } catch {}
+  function setAutoKey(enabled) {
+    stop();
+    autoKey.value = !!enabled;
+    preview.value = true;
+    try { localStorage.setItem('frame-animation-auto-key', String(autoKey.value)); } catch {}
+  }
+  function commonField(scope, property) {
+    if (scope === 'position' && animationFields.includes(property)) return property;
+    if (scope === 'style' && property === 'color') return 'color';
+    if (scope !== 'element' || s.selectedKeys.value.some(key => s.current.value.elements[key]?.type !== 'shape')) return null;
+    if (property === 'fill') return 'color';
+    return Object.keys(shapeAnimationFields).find(field => shapeAnimationFields[field] === property) || null;
+  }
+  function shouldKey(name) {
+    return autoKey.value || !!clip.value?.frames.some(f => f.field === name);
+  }
   const inspectedEffect=ref(null);
   function inspectEffect(id){const e=config.value.effects.find(e=>e.id===id);if(!e||!s.current.value.positions[e.key])return;stop();s.selected.value=e.key;s.selectedKeys.value=[e.key];activeKey.value=null;activeFrame.value=null;inspectedEffect.value={id,sequence:(inspectedEffect.value?.sequence||0)+1};}
   const construction = ref(true);
@@ -781,16 +801,16 @@ export function useAnimationStudio(s) {
       controller = null;
     }
   }
-  function propertyValue(name, animated = preview.value) {
+  function propertyValue(name, animated = preview.value, targetKey = null) {
     const ef=parseEffectField(name);
     if(ef){const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;const e=cfg.effects.find(e=>e.id===ef.id);return e?(ef.property==='progress'?effectProgress(e,time.value):e[ef.property]):0;}
-    if(name==='scale')return clip.value?frameValue(clip.value.frames,'scale',time.value-clip.value.start,100):100;
+    if(name==='scale'){const c=targetKey?editableClip(config.value.clips,selectedClip.value,targetKey,time.value):clip.value;return c?frameValue(c.frames,'scale',time.value-c.start,100):100;}
     if([...backgroundAnimationFields,...cameraFields].includes(name)) {
       if(cameraFields.includes(name)){const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;const p=name.slice(6);return cfg.camera[p[0].toLowerCase()+p.slice(1)];}
       const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;
       return name==='backgroundColor'?boundColor(cfg,'color',s.theme.value):name==='backgroundColor2'?cfg.color2:cfg.gradientAngle;
     }
-    const key =
+    const key = targetKey ||
       clip.value?.keys.find((k) => s.selectedKeys.value.includes(k)) ||
       s.selected.value ||
       s.selectedKeys.value[0];
@@ -875,41 +895,75 @@ export function useAnimationStudio(s) {
     if(c.start){for(const f of c.frames)f.time+=c.start;c.start=0;}c.duration=config.value.duration;
     selectedClip.value=c.id;return c;
   }
-  function setProperty(name, value) {
+  function setProperty(name, value, force = false) {
     if (!Number.isFinite(Number(value)) && !colorAnimationFields.includes(name))
       return;
     stop();
     s.beginGesture();
     try {
-      const previous = propertyValue(name, true),
-        c = [...backgroundAnimationFields,...cameraFields].includes(name) ? ensureBackgroundClip(name) : ensureClip();
-      if (!c) return;
-      const local = Math.max(0, Math.min(c.duration, time.value - c.start));
-      const interpolation =
-        c.frames.filter((f) => f.field === name && f.time <= local).at(-1)
-          ?.ease ||
-        c.frames.find((f) => f.field === name)?.ease ||
-        c.easing;
-      if (local > 0 && !c.frames.some((f) => f.field === name && f.time < local))
+      const sceneProperty = [...backgroundAnimationFields,...cameraFields].includes(name);
+      const targets = autoKey.value && !sceneProperty
+        ? s.selectedKeys.value.filter(key => s.current.value.positions[key] && (!parseEffectField(name) || config.value.effects.find(e => e.id === parseEffectField(name).id)?.key === key)) : [null];
+      for (const key of targets) {
+        const previous = propertyValue(name, true, key);
+        if (autoKey.value && !force && (previous === value ||
+            !colorAnimationFields.includes(name) && Math.abs(Number(previous) - Number(value)) < 0.0001)) continue;
+        const c = sceneProperty ? ensureBackgroundClip(name) : key ? objectClip(key) : ensureClip();
+        if (!c) continue;
+        const local = Math.max(0, Math.min(c.duration, time.value - c.start));
+        const interpolation =
+          c.frames.filter((f) => f.field === name && f.time <= local).at(-1)
+            ?.ease ||
+          c.frames.find((f) => f.field === name)?.ease ||
+          c.easing;
+        if (local > 0 && !c.frames.some((f) => f.field === name && f.time < local))
+          addAnimationKey(
+            c,
+            name,
+            0,
+            previous,
+            discreteAnimationFields.includes(name) ? "hold" : interpolation,
+          );
         addAnimationKey(
           c,
           name,
-          0,
-          previous,
+          local,
+          colorAnimationFields.includes(name) ? value : Number(value),
           discreteAnimationFields.includes(name) ? "hold" : interpolation,
         );
-      addAnimationKey(
-        c,
-        name,
-        local,
-        colorAnimationFields.includes(name) ? value : Number(value),
-        discreteAnimationFields.includes(name) ? "hold" : interpolation,
-      );
-      activeKey.value=null;activeFrame.value=null;
-      preview.value = true;
+        activeKey.value=null;activeFrame.value=null;
+        preview.value = true;
+      }
     } finally {
       s.endGesture();
       s.requestDraw();
+    }
+  }
+  function objectClip(key) {
+    let c = editableClip(config.value.clips, selectedClip.value, key, time.value);
+    if (!c) {
+      if (config.value.clips.length >= 100) return null;
+      c = normalizeAnimation({clips:[{id:crypto.randomUUID(), name:s.current.value.elements[key]?.name || "Mouvement", keys:[key], duration:config.value.duration}]}).clips[0];
+      config.value.clips.push(c);
+    }
+    // Editing before a track starts must not silently clamp the new key to its start.
+    if (time.value < c.start) {
+      for (const f of c.frames) f.time += c.start;
+      c.duration += c.start;
+      c.start = 0;
+    }
+    if (time.value > c.start + c.duration) c.duration = time.value - c.start;
+    selectedClip.value = c.id;
+    return c;
+  }
+  function introduceObjects(keys) {
+    if (!autoKey.value || time.value <= 0) return;
+    for (const key of keys) {
+      const c = objectClip(key);
+      if (!c) continue;
+      // Hold keeps newly inserted objects invisible until their insertion time.
+      addAnimationKey(c, 'opacity', 0, 0, 'hold');
+      addAnimationKey(c, 'opacity', Math.max(0, time.value - c.start), s.current.value.positions[key]?.opacity ?? 100, 'hold');
     }
   }
   function commitPose(positions, origins, manageHistory = true) {
@@ -918,12 +972,8 @@ export function useAnimationStudio(s) {
       for (const [key, p] of Object.entries(positions)) {
         const before = origins[key];
         if (!before) continue;
-        let c = editableClip(config.value.clips,selectedClip.value,key,time.value);
-        if (!c) {
-          if(config.value.clips.length >= 100) continue;
-          c = normalizeAnimation({clips:[{id:crypto.randomUUID(),name:s.current.value.elements[key]?.name || "Mouvement",keys:[key],duration:config.value.duration}]}).clips[0];
-          config.value.clips.push(c);
-        }
+        const c = objectClip(key);
+        if (!c) continue;
         const local = Math.max(0, Math.min(c.duration,time.value-c.start));
         for(const field of ["x","y","w","h","rotation","size","contentScale"]) {
           if(c.pathId && ["x","y"].includes(field)) continue;
@@ -1078,6 +1128,7 @@ export function useAnimationStudio(s) {
   });
   return {
     exportQuality,exportBackground,exportError,exportPhase,construction,setConstruction,editorScene,
+    autoKey,setAutoKey,shouldKey,commonField,introduceObjects,
     inspectedEffect,inspectEffect,
     motionPrefs,keySelection,keyClipboard,selectKey,keyEntries,copyKeys,pasteKeys,deleteKeys,diagnostics,commitPose,selectedPathPoint,addPathPoint,removePathPoint,
     activeFrame,
@@ -1096,7 +1147,7 @@ export function useAnimationStudio(s) {
     keyAt,
     setProperty,
     toggleProperty,
-    recordProperty:(name)=>setProperty(name,propertyValue(name)),
+    recordProperty:(name)=>setProperty(name,propertyValue(name),true),
     setClipEasing,
     addEffect,
     removeEffect,moveEffect,duplicateEffect,resetEffect,

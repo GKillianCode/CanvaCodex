@@ -19,6 +19,14 @@ Styles par mots, textes progressifs, SVG, images, tableaux, bits, groupes, verro
 
 **Disposition initiale** permet de travailler la géométrie de base et laisse le texte entier visible. **État animé** calcule le rendu au temps du curseur, sans remplacer cette base. Déplacer la disposition initiale d’un moteur translate également ses clés X/Y propres ; les clés ne le ramènent plus à son ancienne position au lancement. Un moteur attaché à une spline suit toujours sa trajectoire.
 
+## Images clés automatiques
+
+Dans la barre de lecture, **Clés auto** active l’enregistrement des propriétés animables sans préparer leurs losanges. Place la tête de lecture, déplace/redimensionne/tourne un objet ou modifie ses couleurs, son contour, son opacité ou les paramètres animables d’un moteur : les clés apparaissent dans la timeline. Une première modification après le début conserve une clé de départ ; chaque objet d’une sélection multiple conserve ses valeurs initiales. Les mouvements à la souris sont validés en fin de geste.
+
+Exemple : compose à 0 s, active Clés auto, avance à 2 s et déplace un cercle en changeant son remplissage. L’application conserve sa position et sa couleur de départ et interpole vers ce nouvel état. À 4 s, tu peux commencer à modifier une autre propriété sans revenir à 0 s.
+
+Les effets ajoutés commencent à l’instant courant. Un objet ajouté, dupliqué, collé ou une image déposée avec Clés auto actif après 0 s apparaît à cet instant, sans être visible avant. Les réglages sans canal d’animation (contenu textuel, choix de police, etc.) restent des réglages statiques. La préférence est mémorisée dans le navigateur ; désactivée initialement, elle conserve le fonctionnement manuel existant. Les losanges restent utilisables pour poser une clé explicite, même sans changement de valeur. Activer/désactiver Clés auto, parcourir la timeline ou lire ne crée aucune clé.
+
 ## Clés par propriété
 
 Dans Objet → Placement, les losanges se trouvent à côté de X, Y, largeur, hauteur et rotation. Ils existent aussi pour la taille du texte, l’opacité et la couleur. Animation → Propriétés animées rassemble les canaux de transformation, inclinaison, échelle et progression du chemin.
