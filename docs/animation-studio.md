@@ -165,3 +165,40 @@ La fenêtre Exporter regroupe l’aperçu, ses commandes de lecture et les infor
 MP4 : compression avec perte, trois qualités (CRF18/21/24 : élevée/équilibrée/compacte), équilibrée par défaut, H.2648bits YUV420/BT709 avec faststart. MKV : FFV1/BGRA sans perte, codeur arithmétique avec table personnalisée et contexte large, alpha exact ; les mêmes réglages améliorent la compression des autres exports MKV existants. MOV conserve QTRLE pour la compatibilité précédemment demandée : il reste volumineux, signalé dans l’interface. WebM reste disponible.
 
 Mesure réelle de la démo Slime5scènes : **54s,1920×1080,30fps,1620images,MP4 équilibré :5997527octets (~6Mo)**. Ce chiffre est propre à cette démo, pas une estimation garantie pour tout contenu. Source de référence : [options d’encodage FFmpeg](https://ffmpeg.org/ffmpeg-codecs.html) et [formats de rendu Kdenlive](https://docs.kdenlive.org/en/exporting/render.html). Aucun test direct du logiciel Kdenlive n’a été effectué.
+
+## Bibliothèque d’effets — 23 octobre 2026
+
+Nouvelle branche de test `test/animation-effects-library`, issue [#159](https://github.com/GKillianCode/CanvaCodex/issues/159). Elle prolonge les composants de la branche des ateliers ; aucune fusion automatique.
+
+### Prise en main
+
+1. Sélectionner un objet → onglet **Animation** → **Ajouter un effet**.
+2. Choisir une catégorie ou rechercher un nom. Les vignettes utilisent le vrai moteur et s’animent au survol.
+3. L’effet fonctionne immédiatement. Ouvrir son tiroir pour régler son début, sa durée et ses paramètres. Les effets temporels progressent automatiquement ; leurs losanges permettent un contrôle par clés.
+4. Glisser une poignée pour ordonner la pile, cocher pour activer/désactiver ; dupliquer, retirer (confirmation) ou réinitialiser. Les pistes d’effets dans la timeline se déplacent ; leur poignée droite règle la durée.
+5. **Mémoriser** enregistre réglages et clés dans la bibliothèque locale de mouvements existante. Les réglages sont réutilisables entre animations ; les références à d’autres objets et aux chemins doivent être choisies à nouveau. Aucun contenu d’image n’est copié dans ce préréglage.
+
+**Exemples → Laboratoire d’effets** ajoute quatre scènes indépendantes et modifiables : transformations/révélations, fragments, déformations et typographie. Les scènes existantes sont conservées.
+
+### Effets disponibles
+
+- Transformer : fondu entre deux objets/images, morphing de contours fermés natifs. Choisir l’objet d’arrivée dans le tiroir ; son original peut être masqué. Un fondu entre images opaques conserve son alpha à mi-transition.
+- Révéler : fondu, balayage directionnel, ouverture circulaire, dissolution, mosaïque et dessin progressif du contour natif.
+- Fragments : explosion, poussière, effondrement, reconstruction ; carrés/triangles, finesse, force, gravité, vent, rotation et décalage des départs.
+- Déformer : balancement depuis un pivot, ondulation, courbure, torsion 2D et déformation le long d’une spline existante. Le suivi d’objet sur spline et les outils de points historiques restent disponibles.
+- Graphisme : glitch, flou, ombre, halo, traînée du mouvement réel, pulsation, scintillement, désaturation, rotation de teinte et pointillés mobiles.
+- Typographie : néon, doré/métallique, reflet mobile et apparition/dispersion par lettre, mot ou ligne. Le moteur machine à écrire existant reste disponible dans Objet.
+
+La graine de variante est enregistrée : la lecture, le déplacement du curseur et l’export produisent les mêmes fragments. « Nouvelle variante » change cette graine. Les couleurs utilisent PaletteColor, donc le thème et les couleurs personnalisées. Les valeurs numériques utilisent NumberRange et les clés/interpolations utilisent la timeline existante.
+
+### Passerelle vectorielle
+
+Depuis **Animation → Depuis l’atelier vectoriel**, charger ses illustrations enregistrées, choisir un plan et l’ajouter comme **nouvelle scène**. Les formes, tracés libres, textes, images, groupes, dégradés et découpes restent des éléments natifs indépendants. La copie ne modifie pas l’original. Le format du plan est adapté à la scène 1920 × 1080 en conservant ses proportions. Limite existante : 100 objets par scène ; un plan plus grand doit être réparti.
+
+Autre accès : **Vectoriel → Fichier → Exporter pour Animation…** produit un JSON typé Animation, importable dans cet atelier. L’import SVG comme image et la recoloration utilisent toujours les moteurs SVG historiques. Un SVG importé comme image reste un objet ; utiliser un plan natif pour animer ses parties séparément.
+
+### Rendu et limites de cette version
+
+Même renderAnimation/renderSlide pour le travail, l’aperçu et les exports MOV/MKV/MP4 existants. Aucun service d’IA. Les transformations d’images sont des transitions calculées ; il ne s’agit pas d’une correspondance sémantique entre les détails de deux photographies. Le morphing concerne les silhouettes fermées simples sans trous ni image de remplissage ; les autres cibles utilisent un fondu. Fragmentation et déformations visuelles sont en 2D, avec des fragments de texture, pas une simulation 3D de matière.
+
+Les effets visuels utilisent trois surfaces temporaires réutilisées, plafonnées à 2048 px par côté ; au-delà, leur texture intermédiaire est réduite. Le nombre de cellules est borné (40 × 40, deux triangles éventuels par cellule). La traînée est limitée à huit échos et échantillonne le mouvement réel sans mémoriser les frames de la vidéo. Le rendu typographique réutilise les mesures et la disposition du texte existantes.

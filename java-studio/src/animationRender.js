@@ -1,3 +1,4 @@
+import {createVisualEffectRenderer} from "./animationVisualRender.js";
 import {drawSceneBackground} from './sceneBackground.js';
 import {applyCamera} from "./animationWorkflow.js";
 import {drawAnimationDiagnostics} from "./animationDiagnostics.js";
@@ -24,7 +25,7 @@ export function renderAnimation(
   const cutters = state.config.effects
     .filter(
       (e) =>
-        e.enabled && ["subtract", "intersect"].includes(e.kind) && e.target,
+        e.enabled && state.scene.positions[e.key] && (["subtract", "intersect"].includes(e.kind)||["transition","morph"].includes(e.kind)&&e.hideTarget) && e.target,
     )
     .map((e) => e.target);
   renderSlide(
@@ -40,6 +41,7 @@ export function renderAnimation(
       omitBackground:true,
       order: Infinity,
       typingElapsed: state.typingElapsed,
+      renderObject:createVisualEffectRenderer(state,scene,config,time,theme),
       beforeObject: (ctx, key) => {
         for (const effect of state.config.effects.filter(
           (e) =>

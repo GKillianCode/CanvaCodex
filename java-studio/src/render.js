@@ -151,6 +151,15 @@ export function fitText(ctx,value,p,weight,leading) {
   let size=p.size;if(!p.h||p.fitFont!==true)return size;
   while(size>16){ctx.font=styleFont(size,fontCss(p.font),normalizeTextStyle(p.textStyle,p.font,'text',weight===700));if(layoutStyledText(ctx,value,p.w,size,leading,{...p.textStyle,runs:p.textRuns||[]},wrapLines).height<=p.h)break;size-=1;}return size;
 }
+export function textEffectRegions(ctx,s,key,unit='word'){
+ const factor=s.positions[key].contentScale||1;if(factor!==1){const origin=s.positions[key],regions=textEffectRegions(ctx,unscaledObject(s,key),key,unit);return regions.map(r=>({x:origin.x+r.x*factor,y:origin.y+r.y*factor,w:r.w*factor,h:r.h*factor}));}
+ const p=s.positions[key],b=blockBounds(ctx,s,key),value=blockText(s,key),style=richTextStyle(s,key),leading=textRole(s,key).leading,size=p.autoSize?p.size:fitText(ctx,value,p,style.weight,leading),font=fontCss(p.font);
+ ctx.save();ctx.font=styleFont(size,font,style);ctx.textBaseline='top';applyLetterSpacing(ctx,style,size);
+ const layout=layoutStyledText(ctx,value,p.autoSize?p.wrapWidth:p.w,size,leading,style,wrapLines,font),top=p.y-(b.inkOffset||0)+verticalTextOffset(ctx,layout.rows,size,p.autoSize?null:p.h,style.verticalAlign),regions=[];
+ for(const row of layout.rows){const chunks=unit==='line'?[row.text]:unit==='letter'?graphemes(row.text):row.text.match(/\S+\s*|\s+/g)||[''];let offset=0;
+ for(const part of chunks){const prefix=row.text.slice(0,offset),x=p.x+row.x+ctx.measureText(prefix).width,w=ctx.measureText(part).width;regions.push({x:x-1,y:top+row.y-1,w:w+2,h:size*leading+2});offset+=part.length;}}
+ ctx.restore();return regions;
+}
 export function renderSlideBackground(ctx,s,theme,options={}){
  if(options.omitBackground)return;
  const config=options.background??s.background;
@@ -170,6 +179,7 @@ export function renderSlide(ctx, s, theme, options = {}) {
     if(s.elements[key]?.engineKind)continue;
     const f = s.fragments[key];
     if (f.order > order) continue;
+    if(options.renderObject?.(ctx,s,key,theme,options))continue;
     let p = s.positions[key], b = blockBounds(ctx, s, key);const style=richTextStyle(s,key);style.richTheme=theme;style.markerColor=textColor(style.list,theme,textColor(style,theme));
     const exiting=motion?.exit&&f.order===motion.order;
     const progress = motion && f.order > 0 && f.order === motion.order ? Math.min(1, Math.max(0, (now - motion.started) / 420)) : 1;

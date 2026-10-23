@@ -1,4 +1,5 @@
 <script setup>
+import { effectFieldLabel } from "../animationEffectCatalog.js";
 import InspectorDrawer from "./InspectorDrawer.vue";
 import { Diamond } from "lucide-vue-next";
 import AnimationCurveEditor from "./AnimationCurveEditor.vue";
@@ -102,7 +103,7 @@ const labels = {
       </p>
       <div v-for="f in frames" :key="f.field" class="key-property">
         <label
-          >{{ labels[f.field]
+          >{{ labels[f.field] || effectFieldLabel(f.field, a.config.effects)
           }}<input
             v-if="discreteAnimationFields.includes(f.field)"
             type="checkbox"

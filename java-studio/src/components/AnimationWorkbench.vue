@@ -101,6 +101,7 @@ function apply() {
   );
   a.beginGesture();
   a.config.clips.push(result.clip);
+  a.config.effects.push(...result.effects);
   if (result.path) a.config.paths.push(result.path);
   a.config.duration = Math.max(
     a.config.duration,
@@ -417,6 +418,7 @@ function connector() {
               s.current.positions[a.clip.keys[0]],
               a.config.paths.find((p) => p.id === a.clip.pathId),
               name,
+              a.config.effects,
             ),
           ),
         )

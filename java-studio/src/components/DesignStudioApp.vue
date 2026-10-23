@@ -1,4 +1,6 @@
 <script setup>
+import {designAnimationFile} from "../designAnimationBridge.js";
+import {downloadDesign} from "../designExport.js";
 import {
   reactive,
   provide,
@@ -400,6 +402,7 @@ function choosePen() {
   s.penNodes = [];
   s.nodeEditing = false;
 }
+function exportForAnimation(){try{downloadDesign(JSON.stringify(designAnimationFile(s.doc,s.pageIndex)),s.doc.name+'.animation.json','application/json');}catch(e){s.say(e.message);}}
 defineExpose({ flush: s.flush });
 </script>
 <template>
@@ -425,7 +428,7 @@ defineExpose({ flush: s.flush });
         ><template v-if="s.doc"
           ><hr />
           <button @click="exportOpen = true">Exporter…</button
-          ><button v-if="s.isLayout" @click="s.pdf">
+          ><button v-if="!s.isLayout" @click="exportForAnimation">Exporter pour Animation…</button><button v-if="s.isLayout" @click="s.pdf">
             Exporter le document en PDF…
           </button></template
         ></template

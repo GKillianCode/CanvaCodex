@@ -1,3 +1,5 @@
+import { normalizeEffect } from "./animationEffects.js";
+import { parseEffectField, effectField } from "./animationEffectCatalog.js";
 import {
   normalizeAnimation,
   backgroundAnimationFields,
@@ -25,10 +27,13 @@ export function normalizeMotionPresets(raw) {
         rotation: Number(r.reference?.rotation) || 0,
       },
       clip: normalizeAnimation({ clips: [r.clip] }).clips[0],
+      effects: (Array.isArray(r.effects) ? r.effects : [])
+        .slice(0, 20)
+        .map(normalizeEffect),
       path: r.path ? normalizeAnimation({ paths: [r.path] }).paths[0] : null,
     }));
 }
-export function captureMotion(clip, position, path, name) {
+export function captureMotion(clip, position, path, name, effects = []) {
   if (!clip || clip.keys.length !== 1 || !position)
     throw Error("Sélectionne une séquence d’un seul objet.");
   const frames = clip.frames.filter(
@@ -48,6 +53,37 @@ export function captureMotion(clip, position, path, name) {
       reference: position,
       clip: { ...clip, keys: [], frames, particles: { enabled: false } },
       path,
+      effects: effects
+        .filter((e) => e.key === clip.keys[0])
+        .map((e) => ({ ...e, start: Math.max(0, e.start - clip.start) })),
+    },
+  ])[0];
+}
+export function captureEffect(
+  effect,
+  position,
+  clips = [],
+  name = effect.name,
+) {
+  const keys = clips.flatMap((c) =>
+    c.frames
+      .filter((f) => parseEffectField(f.field)?.id === effect.id)
+      .map((f) => ({
+        ...f,
+        time: Math.max(0, c.start + f.time - effect.start),
+      })),
+  );
+  const frames = [
+    ...new Map(keys.map((f) => [f.field + ":" + f.time, f])).values(),
+  ];
+  const duration = Math.max(effect.duration, ...frames.map((f) => f.time));
+  return normalizeMotionPresets([
+    {
+      id: crypto.randomUUID(),
+      name: name || "Mon effet",
+      reference: position,
+      clip: { duration, keys: [], frames },
+      effects: [{ ...effect, start: 0, key: "", target: "", pathId: "" }],
     },
   ])[0];
 }
@@ -94,7 +130,27 @@ export function applyMotion(preset, position, key, start, duration) {
     }));
     clip.pathId = path.id;
   } else clip.pathId = "";
-  return { clip, path };
+  const idMap = new Map();
+  const effects = (preset.effects || []).map((e) => {
+    const id = crypto.randomUUID();
+    idMap.set(e.id, id);
+    return normalizeEffect({
+      ...e,
+      id,
+      key,
+      target: "",
+      pathId: path && e.pathId === preset.path?.id ? path.id : "",
+      start: start + e.start * ratio,
+      duration: e.duration * ratio,
+    });
+  });
+  clip.frames = clip.frames.map((f) => {
+    const p = parseEffectField(f.field);
+    return p && idMap.has(p.id)
+      ? { ...f, field: effectField(idMap.get(p.id), p.property) }
+      : f;
+  });
+  return { clip, path, effects };
 }
 export const builtinMotions = normalizeMotionPresets([
   {

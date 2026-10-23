@@ -1,4 +1,5 @@
 <script setup>
+import {effectCatalog,effectFieldLabel} from "../animationEffectCatalog.js";
 import {moveKeySelection} from "../animationEditing.js";
 import { reactive, ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import {
@@ -118,7 +119,7 @@ function resize(event) {
 }
 function dragClip(event, c) {
   event.preventDefault();
-  a.selectClip(c.id);
+  if(c.key){s.selected=c.key;s.selectedKeys=[c.key];}else a.selectClip(c.id);
   const rect = event.currentTarget.parentElement.getBoundingClientRect(),
     x = event.clientX,
     start = c.start;
@@ -136,6 +137,7 @@ function dragClip(event, c) {
       )),
   );
 }
+function resizeEffect(event,e){event.preventDefault();event.stopPropagation();const lane=event.currentTarget.closest('.track-lane').getBoundingClientRect(),x=event.clientX,duration=e.duration;gesture(ev=>{e.duration=Math.max(.05,Math.min(a.config.duration-e.start,duration+(ev.clientX-x)/lane.width*view.value.span));});}
 async function zoomAt(value, event) {
   const el = tracks.value;
   if (!el) return;
@@ -470,16 +472,16 @@ onUnmounted(() => {
           </div>
           <template v-if="a.selectedClip === c.id && !c.collapsed"
             ><div
-              v-for="f in animationFields.filter((f) =>
+              v-for="f in [...new Set([...animationFields,...c.frames.map(f=>f.field)])].filter((f) =>
                 c.frames.some((k) => k.field === f),
               )"
               :key="f"
               class="animation-property-track"
             >
               <span class="property-track-label"
-                >{{ labels[f]
+                >{{ (labels[f]||effectFieldLabel(f,a.config.effects))
                 }}<select
-                  :aria-label="'Interpolation · ' + labels[f]"
+                  :aria-label="'Interpolation · ' + (labels[f]||effectFieldLabel(f,a.config.effects))"
                   :value="c.frames.find((k) => k.field === f)?.ease || c.easing"
                   title="Interpolation de cette propriété"
                   :disabled="discreteAnimationFields.includes(f)"
@@ -510,10 +512,10 @@ onUnmounted(() => {
                     top: '6px',
                   }"
                   :aria-label="
-                    labels[key.field] + ' à ' + key.time + ' secondes'
+                    (labels[key.field]||effectFieldLabel(key.field,a.config.effects)) + ' à ' + key.time + ' secondes'
                   "
                   :title="
-                    labels[key.field] + ' · ' + key.time + ' s · ' + key.value
+                    (labels[key.field]||effectFieldLabel(key.field,a.config.effects)) + ' · ' + key.time + ' s · ' + key.value
                   "
                   @pointerdown="dragKey($event, c, key)"
                   @dblclick.stop.prevent="a.focusKey(c, key)"
@@ -526,7 +528,11 @@ onUnmounted(() => {
                 ></i>
               </div></div></template
         ></template>
-        <p v-if="!a.config.clips.length" class="animation-empty">
+        <div v-for="effect in a.config.effects" :key="effect.id" class="animation-track effect-timeline-track">
+         <div class="track-name"><button class="icon-btn" :title="effect.enabled?'Désactiver l’effet':'Activer l’effet'" @click="effect.enabled=!effect.enabled"><Power :size="12"/></button><span>{{effect.name||effectCatalog.find(e=>e.id===effect.kind)?.name||effect.kind}}</span></div>
+         <div class="track-lane"><span class="clip-span" :style="{left:effect.start/view.span*100+'%',width:effect.duration/view.span*100+'%',opacity:effect.enabled?1:.3}" title="Glisser pour déplacer l’effet" @pointerdown="dragClip($event,effect)"><button class="effect-duration-handle" aria-label="Ajuster la durée de l’effet" title="Glisser pour régler la durée" @pointerdown="resizeEffect($event,effect)"></button></span></div>
+        </div>
+        <p v-if="!a.config.clips.length&&!a.config.effects.length" class="animation-empty">
           Sélectionne un objet puis « Animer la sélection ». Ajoute un moteur
           par clic droit sur la scène.
         </p>

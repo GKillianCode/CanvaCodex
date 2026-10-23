@@ -1,3 +1,5 @@
+import {makeEffectsDemo} from "./animationEffectExamples.js";
+import {parseEffectField,effectField,effectProgress,effectCatalog} from "./animationEffectCatalog.js";
 import {seekVideos} from './videoMedia.js';
 import { resolveAnimationFormat } from "./animationExportSettings.js";
 import {makeWorkflowExample} from "./animationWorkflowExample.js";
@@ -596,6 +598,7 @@ export function useAnimationStudio(s) {
     }
   }
   function example(kind) {
+    if(kind==='effects'){const scenes=makeEffectsDemo();if(s.slides.value.length+scenes.length>100){s.notify('Quatre places de scène sont nécessaires.');return;}stop();s.beginGesture();const offset=Math.max(0,...s.slides.value.map(s=>s.grid.x))+1;for(const scene of scenes)scene.grid.x+=offset;const index=s.slides.value.length;s.slides.value.push(...scenes);s.index.value=index;s.endGesture();preview.value=true;s.notify('Laboratoire d’effets ajouté : quatre scènes modifiables.');return;}
     if(kind==='reference'){if(s.slides.value.length>=100)return;stop();s.beginGesture();const scene=makeWorkflowExample().slides[0];scene.id=crypto.randomUUID();scene.grid={x:Math.max(0,...s.slides.value.map(s=>s.grid.x))+1,y:0};s.slides.value.push(scene);s.index.value=s.slides.value.length-1;s.endGesture();preview.value=true;return;}
     if(kind === "slime") {
       if(s.slides.value.length>96){s.notify("Quatre places de scène sont nécessaires.");return;}
@@ -777,6 +780,8 @@ export function useAnimationStudio(s) {
     }
   }
   function propertyValue(name, animated = preview.value) {
+    const ef=parseEffectField(name);
+    if(ef){const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;const e=cfg.effects.find(e=>e.id===ef.id);return e?(ef.property==='progress'?effectProgress(e,time.value):e[ef.property]):0;}
     if(name==='scale')return clip.value?frameValue(clip.value.frames,'scale',time.value-clip.value.start,100):100;
     if([...backgroundAnimationFields,...cameraFields].includes(name)) {
       if(cameraFields.includes(name)){const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;const p=name.slice(6);return cfg.camera[p[0].toLowerCase()+p.slice(1)];}
@@ -939,7 +944,7 @@ export function useAnimationStudio(s) {
     for (const f of c.frames) f.ease = value;
     s.endGesture();
   }
-  function addEffect(kind) {
+  function addEffect(kind,settings={}) {
     if (!s.selectedKeys.value.length) {
       s.notify("Sélectionne un objet.");
       return;
@@ -948,7 +953,7 @@ export function useAnimationStudio(s) {
     for (const key of s.selectedKeys.value) {
       if (config.value.effects.length >= 100) break;
       config.value.effects.push(
-        normalizeEffect({ id: crypto.randomUUID(), kind, key }),
+        normalizeEffect({ id: crypto.randomUUID(), kind, key, start:Math.min(time.value,Math.max(0,config.value.duration-.05)),duration:Math.min(1.5,Math.max(.05,config.value.duration-time.value)),...settings }),
       );
     }
     s.endGesture();
@@ -957,9 +962,18 @@ export function useAnimationStudio(s) {
     requestDelete("cet effet", () => {
       s.beginGesture();
       config.value.effects = config.value.effects.filter((e) => e.id !== id);
+      activeKey.value=null;activeFrame.value=null;
+      for(const c of config.value.clips)c.frames=c.frames.filter(f=>parseEffectField(f.field)?.id!==id);
       s.endGesture();
     });
   }
+  function moveEffect(id,beforeId,after=false){
+    const list=config.value.effects,from=list.findIndex(e=>e.id===id),to=list.findIndex(e=>e.id===beforeId);
+    if(from<0||to<0||from===to)return;
+    s.beginGesture();const [e]=list.splice(from,1);list.splice(list.findIndex(e=>e.id===beforeId)+(after?1:0),0,e);s.endGesture();
+  }
+  function duplicateEffect(id){const e=config.value.effects.find(e=>e.id===id);if(!e||config.value.effects.length>=100)return;s.beginGesture();const next=normalizeEffect({...copy(e),id:crypto.randomUUID(),name:(e.name||effectCatalog.find(c=>c.id===e.kind)?.name||'Effet')+' · copie'});config.value.effects.splice(config.value.effects.indexOf(e)+1,0,next);for(const c of config.value.clips){const frames=c.frames.filter(f=>parseEffectField(f.field)?.id===id).map(f=>({...copy(f),field:effectField(next.id,parseEffectField(f.field).property)}));c.frames.push(...frames);c.frames.sort((a,b)=>a.time-b.time);}s.endGesture();}
+  function resetEffect(id){const e=config.value.effects.find(e=>e.id===id);if(!e)return;requestDelete('les réglages et clés de cet effet',()=>{s.beginGesture();Object.assign(e,normalizeEffect({id:e.id,kind:e.kind,key:e.key,start:e.start}));for(const c of config.value.clips)c.frames=c.frames.filter(f=>parseEffectField(f.field)?.id!==id);s.endGesture();});}
   function attachEngine(parent) {
     const e = engine.value,
       p = s.current.value.positions[e?.key],
@@ -1082,7 +1096,7 @@ export function useAnimationStudio(s) {
     recordProperty:(name)=>setProperty(name,propertyValue(name)),
     setClipEasing,
     addEffect,
-    removeEffect,
+    removeEffect,moveEffect,duplicateEffect,resetEffect,
     attachEngine,
     previewOpen,
     activeKey,

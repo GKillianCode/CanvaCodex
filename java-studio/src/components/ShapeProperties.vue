@@ -79,10 +79,7 @@ const shapeView = new Proxy(
 <template>
   <div class="shape-properties">
     <template v-if="mode === 'colors'"
-      ><div
-        v-if="!isOpenShape(shape)"
-        class="animated-color-field"
-      >
+      ><div v-if="!isOpenShape(shape)" class="animated-color-field">
         <span
           >Couleur du remplissage<AnimationKeyButton
             v-if="studio"
@@ -95,6 +92,16 @@ const shapeView = new Proxy(
           :theme="theme"
         />
       </div>
+      <label v-if="!isOpenShape(shape)" class="checkbox-label"
+        ><input type="checkbox" v-model="shape.gradient" />Dégradé du
+        remplissage</label
+      >
+      <PaletteColor
+        v-if="shape.gradient"
+        :element="shapeView"
+        field="fill2"
+        label="Deuxième couleur"
+        :theme="theme" />
       <div class="animated-color-field">
         <span
           >Couleur du contour<AnimationKeyButton
@@ -111,15 +118,15 @@ const shapeView = new Proxy(
     <template v-else
       ><label
         >Forme<select v-model="shape.shape" aria-label="Type de forme">
-          <option v-if="shape.shape==='freeform'" value="freeform">Forme libre · plume</option>
+          <option v-if="shape.shape === 'freeform'" value="freeform">
+            Forme libre · plume
+          </option>
           <option v-for="item in shapes" :key="item.id" :value="item.id">
             {{ item.name }}
           </option>
         </select></label
       >
-      <label
-        v-if="isOpenShape(shape)"
-        class="checkbox-label"
+      <label v-if="isOpenShape(shape)" class="checkbox-label"
         ><input
           type="checkbox"
           :checked="shape.roundedEnds !== false"
@@ -133,9 +140,7 @@ const shapeView = new Proxy(
           <option value="up">Diagonale ↗</option>
         </select></label
       >
-      <label
-        v-if="!isOpenShape(shape)"
-        class="checkbox-label"
+      <label v-if="!isOpenShape(shape)" class="checkbox-label"
         ><input
           type="checkbox"
           aria-label="Remplissage"
@@ -146,9 +151,7 @@ const shapeView = new Proxy(
           v-if="studio"
           :studio="studio"
           field="fillEnabled" /></label
-      ><label
-        v-if="!isOpenShape(shape)"
-        class="checkbox-label"
+      ><label v-if="!isOpenShape(shape)" class="checkbox-label"
         ><input
           type="checkbox"
           aria-label="Contour"
@@ -160,8 +163,7 @@ const shapeView = new Proxy(
           :studio="studio"
           field="strokeEnabled"
       /></label>
-      <template
-        v-if="shapeView.outlined || isOpenShape(shape)"
+      <template v-if="shapeView.outlined || isOpenShape(shape)"
         ><label
           >Épaisseur · px<AnimationKeyButton
             v-if="studio"
@@ -247,6 +249,5 @@ const shapeView = new Proxy(
           :model-value="shapeView.innerRatio"
           @update:model-value="set('innerRatio', $event)" /></template
     ></template>
-
   </div>
 </template>

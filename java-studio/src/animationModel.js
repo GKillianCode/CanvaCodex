@@ -1,3 +1,4 @@
+import {parseEffectField} from "./animationEffectCatalog.js";
 import {scaleObjects} from "./scaleObjects.js";
 const contactHistory=new WeakMap();
 import {normalizeAttachments,applyAttachments,normalizeEvents,eventSchedule,applyEvents,normalizeCamera,cameraFields} from "./animationWorkflow.js";
@@ -214,7 +215,7 @@ export function normalizeAnimation(raw = {}) {
       frames: list(c?.frames, 1000)
         .filter(
           (f) =>
-            animationFields.includes(f?.field) &&
+            (animationFields.includes(f?.field)||parseEffectField(f?.field)) &&
             Number.isFinite(Number(f?.time)) &&
             (colorAnimationFields.includes(f.field)
               ? /^#[a-f0-9]{6}$/i.test(f.value)
@@ -330,6 +331,7 @@ export function animationScene(scene, raw, time, options={}) {
   }
   for (const clip of config.clips) {
     if (!clip.enabled || time < clip.start) continue;
+    for(const f of clip.frames){const ef=parseEffectField(f.field);if(!ef)continue;const e=config.effects.find(e=>e.id===ef.id);if(e)e[ef.property]=frameValue(clip.frames,f.field,Math.min(clip.duration,time-clip.start),e[ef.property]);}
     const local = Math.min(clip.duration, time - clip.start),
       progress = frameValue(
         clip.frames,

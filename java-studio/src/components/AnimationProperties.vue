@@ -13,8 +13,8 @@ const props = defineProps({ studio: Object }),
     title="Propriétés animées"
     :icon="Diamond"
     ><p class="field-help">
-      À l’instant du curseur, clique sur un losange pour poser ou retirer une
-      clé. Modifier une valeur crée sa clé.
+      À l’instant du curseur, clique sur un losange pour enregistrer une
+      clé. Le clic droit permet de la retirer. Modifier une valeur crée sa clé.
     </p>
     <label
       v-for="[field, label] in [
