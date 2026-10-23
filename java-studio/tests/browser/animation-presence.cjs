@@ -116,6 +116,23 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1):5289$/.test(base || ""))
       ),
       7,
     );
+    // Jump actions seek to the exact stored bounds without changing any object data.
+    const beforeJump = await page.evaluate(() => JSON.stringify(live().current.value));
+    await page.getByRole('button', {name:'Aller au début de présence', exact:true}).click();
+    assert.equal(await page.evaluate(()=>live().animation.time.value),5);
+    await page.getByRole('button', {name:'Aller à la fin de présence', exact:true}).click();
+    assert.equal(await page.evaluate(()=>live().animation.time.value),7);
+    assert.equal(await page.evaluate(()=>JSON.stringify(live().current.value)),beforeJump);
+    await page.evaluate(()=>live().animation.setPresence([title],'end',null));
+    await page.getByRole('button', {name:'Aller à la fin de présence', exact:true}).click();
+    assert.equal(await page.evaluate(()=>live().animation.time.value),10);
+    await page.evaluate(()=>live().animation.setPresence([title],'start',5+7/30));
+    await page.getByRole('button', {name:'Aller au début de présence', exact:true}).click();
+    assert.equal(await page.evaluate(()=>live().animation.time.value),5+7/30);
+    await page.evaluate(()=>{
+      live().animation.setPresence([title],'start',5);
+      live().animation.setPresence([title],'end',7);
+    });
     // Same interval on the circle allows a pixel-level preview/export-render check.
     await page.evaluate(() => live().animation.setPresence([object], "end", 7));
     for (const [t, visible] of [

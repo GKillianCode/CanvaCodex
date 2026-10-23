@@ -1,6 +1,6 @@
 <script setup>
 import { reactive, computed } from "vue";
-import { Clock } from "lucide-vue-next";
+import { Clock, SkipBack, SkipForward } from "lucide-vue-next";
 import InspectorDrawer from "./InspectorDrawer.vue";
 import TimecodeInput from "./TimecodeInput.vue";
 import MotionProperties from "./MotionProperties.vue";
@@ -26,6 +26,20 @@ function update(field, value) {
       Début et fin indépendants des séquences d’animation. Les réglages
       s’appliquent à la sélection.
     </p>
+    <div class="presence-navigation">
+      <button type="button" class="btn" :disabled="a.busy"
+        aria-label="Aller au début de présence"
+        title="Placer le curseur à l’apparition de l’objet"
+        @click="a.seek(range.start)">
+        <SkipBack :size="13" aria-hidden="true" />Aller au début
+      </button>
+      <button type="button" class="btn" :disabled="a.busy"
+        aria-label="Aller à la fin de présence"
+        title="Placer le curseur à la disparition de l’objet (ou à la fin de la scène)"
+        @click="a.seek(range.end ?? a.config.duration)">
+        <SkipForward :size="13" aria-hidden="true" />Aller à la fin
+      </button>
+    </div>
     <TimecodeInput
       label="Apparaît à"
       :frame-rate="a.audio.frameRate"
@@ -98,6 +112,19 @@ function update(field, value) {
   </InspectorDrawer>
 </template>
 <style scoped>
+.presence-navigation {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.presence-navigation .btn {
+  flex: 1;
+  white-space: nowrap;
+  font-size: 11px;
+  padding: 7px;
+}
+
 .presence-until-end {
   display: flex;
   align-items: center;
