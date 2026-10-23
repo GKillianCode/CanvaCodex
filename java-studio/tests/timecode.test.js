@@ -79,3 +79,24 @@ test("timecode rollover, fractional precision and excerpt endpoints agree", () =
     "00:01:06.125",
   );
 });
+
+test("frame timecodes use frame counts, preserve cumulative chapter starts and reject overflow", () => {
+  const parts = { hours: "00", minutes: "00", seconds: "21", frames: "15" };
+  assert.equal(timecodeSeconds(parts, 30), 21.5);
+  assert.equal(formatTimecode(21.5, 30), "00:00:21:15");
+  assert.equal(timecodeSeconds({ ...parts, frames: "30" }, 30), null);
+  assert.equal(formatTimecode(59 + 29 / 30, 30), "00:00:59:29");
+  assert.equal(formatTimecode(60, 30), "00:01:00:00");
+  for (const fps of [24, 30, 60]) {
+    for (const frames of [0, 1, fps - 1, fps, fps * 54 + 7]) {
+      assert.equal(
+        timecodeSeconds(timecodeParts(frames / fps, fps), fps),
+        frames / fps,
+      );
+    }
+  }
+  assert.deepEqual(
+    [0, 21, 21 + 33, 21 + 33 + 31].map((t) => formatTimecode(t, 30)),
+    ["00:00:00:00", "00:00:21:00", "00:00:54:00", "00:01:25:00"],
+  );
+});

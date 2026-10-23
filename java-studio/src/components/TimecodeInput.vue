@@ -1,43 +1,50 @@
 <script setup>
-import { reactive, ref, watch } from "vue";
+import { reactive, ref, watch, computed } from "vue";
 import { timecodeParts, timecodeSeconds } from "../timecode.js";
 const props = defineProps({
   modelValue: Number,
   label: { type: String, default: "Temps" },
   disabled: Boolean,
   compact: Boolean,
+  frameRate: { type: Number, default: 0 },
 });
 const emit = defineEmits(["update:modelValue"]);
-const draft = reactive(timecodeParts(props.modelValue)),
+const draft = reactive(timecodeParts(props.modelValue, props.frameRate)),
   invalid = ref(false);
-const fields = [
+const fields = computed(() => [
   ["hours", "heures", "h", 2],
   ["minutes", "minutes", "min", 2],
   ["seconds", "secondes", "s", 2],
-  ["milliseconds", "millisecondes", "ms", 3],
-];
+  props.frameRate
+    ? ["frames", "images", "im.", props.frameRate > 100 ? 3 : 2]
+    : ["milliseconds", "millisecondes", "ms", 3],
+]);
 watch(
-  () => props.modelValue,
-  (value) => {
-    Object.assign(draft, timecodeParts(value));
+  () => [props.modelValue, props.frameRate],
+  ([value]) => {
+    Object.assign(draft, timecodeParts(value, props.frameRate));
     invalid.value = false;
   },
 );
 function commit() {
-  const value = timecodeSeconds(draft);
+  const value = timecodeSeconds(draft, props.frameRate);
   invalid.value = value === null;
   if (value === null) return;
-  Object.assign(draft, timecodeParts(value));
+  Object.assign(draft, timecodeParts(value, props.frameRate));
   emit("update:modelValue", value);
 }
 function step(amount, key) {
-  const value = timecodeSeconds(draft);
+  const value = timecodeSeconds(draft, props.frameRate);
   if (value === null) return;
-  const unit = { hours: 3600, minutes: 60, seconds: 1, milliseconds: 0.001 }[
-    key
-  ];
+  const unit = {
+    hours: 3600,
+    minutes: 60,
+    seconds: 1,
+    milliseconds: 0.001,
+    frames: 1 / props.frameRate,
+  }[key];
   const next = Math.max(0, Math.min(86400, value + amount * unit));
-  Object.assign(draft, timecodeParts(next));
+  Object.assign(draft, timecodeParts(next, props.frameRate));
   invalid.value = false;
   emit("update:modelValue", next);
 }
@@ -48,7 +55,7 @@ function step(amount, key) {
     <div class="timecode-segments">
       <template v-for="([key, name, unit, size], index) in fields" :key="key">
         <span v-if="index" class="timecode-separator" aria-hidden="true">{{
-          index === 3 ? "." : ":"
+          index === 3 && !frameRate ? "." : ":"
         }}</span>
         <label
           ><input
@@ -68,7 +75,11 @@ function step(amount, key) {
     </div>
     <small v-if="invalid" role="alert"
       >Saisis des nombres entiers : minutes et secondes de 00 à 59,
-      millisecondes de 000 à 999.</small
+      {{
+        frameRate
+          ? `images de 00 à ${frameRate - 1}.`
+          : "millisecondes de 000 à 999."
+      }}</small
     >
   </fieldset>
 </template>

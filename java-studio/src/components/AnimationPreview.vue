@@ -199,10 +199,10 @@ onUnmounted(() => {
               @input="a.seekPlayback($event.target.value)"
             />
             <div class="animation-export-time">
-              <TimecodeInput compact label="Temps de l’aperçu" :model-value="a.playbackTime"
+              <TimecodeInput :frame-rate="a.audio.frameRate" compact label="Temps de l’aperçu" :model-value="a.playbackTime"
                 :disabled="a.busy" @focusin="a.stop()" @update:model-value="a.seekPlayback" />
-              <span>/ {{ audioTimeLabel(a.totalDuration) }}</span>
-              <small v-if="a.config.audio.src">Dans l’audio : {{ audioTimeLabel(a.audio.position) }}</small>
+              <span>/ {{ audioTimeLabel(a.totalDuration, a.audio.frameRate) }}</span>
+              <small v-if="a.config.audio.src">Dans l’audio : {{ audioTimeLabel(a.audio.position, a.audio.frameRate) }}</small>
             </div>
             <label
               class="animation-export-loop"

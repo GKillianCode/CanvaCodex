@@ -1,3 +1,4 @@
+import { prepareAudioPlayback } from "./audioPlayback.js";
 import { computed, ref, shallowRef, watch, onUnmounted } from "vue";
 import { importAnimationAudio, loadAudioAsset } from "./animationAudioMedia.js";
 import { audioSourceTime, normalizeSceneAudio } from "./animationAudioModel.js";
@@ -6,11 +7,25 @@ export function useAnimationAudio(s, playback) {
     loading = ref(false),
     importing = ref(false),
     error = ref(""),
-    muted = ref(false);
+    muted = ref(false),
+    timeUnit = ref("ms");
   try {
+    timeUnit.value =
+      localStorage.getItem("frame-animation-audio-time-unit") === "frames"
+        ? "frames"
+        : "ms";
     muted.value =
       localStorage.getItem("frame-animation-audio-muted") === "true";
   } catch {}
+  const frameRate = computed(() =>
+    timeUnit.value === "frames" ? s.current.value.animation.fps : 0,
+  );
+  function setTimeUnit(value) {
+    timeUnit.value = value === "frames" ? "frames" : "ms";
+    try {
+      localStorage.setItem("frame-animation-audio-time-unit", timeUnit.value);
+    } catch {}
+  }
   const settings = computed(() => s.current.value.animation.audio);
   const position = computed(() =>
     audioSourceTime(
@@ -111,7 +126,8 @@ export function useAnimationAudio(s, playback) {
       loading.value = true;
       try {
         const record = await loadAudioAsset(src);
-        const blob = await (await fetch(record.src)).blob();
+        if (disposed || token !== generation) return;
+        const blob = await prepareAudioPlayback(record);
         if (disposed || token !== generation) return;
         asset.value = record;
         url = URL.createObjectURL(blob);
@@ -222,6 +238,9 @@ export function useAnimationAudio(s, playback) {
   });
   return {
     settings,
+    timeUnit,
+    frameRate,
+    setTimeUnit,
     position,
     asset,
     loading,

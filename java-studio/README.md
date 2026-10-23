@@ -270,3 +270,5 @@ L’atelier Animation accepte un **audio de référence** dans Scène → Audio 
 Le début de l’extrait audio se saisit explicitement en **heures / minutes / secondes / millisecondes**. Début, fin calculée et durée sont distincts ; la règle Audio affiche les temps du fichier, tandis que la lecture de l’animation reste relative à la scène.
 
 Modifier le début audio arrête la lecture et ramène le curseur de scène à zéro pour écouter ce début précis. Les compteurs de scène et d’aperçu affichent HH:MM:SS.mmm, avec la position absolue dans le fichier audio séparément.
+
+L’écoute de référence prépare les fichiers compressés en PCM temporaire pour fiabiliser les départs MP3 VBR. Le fichier sauvegardé reste l’original. Dans Scène → Audio de référence, l’unité **Images** permet de reprendre les timecodes de montage (ex. 21 s + 15 images à 30 i/s = 21,5 s).

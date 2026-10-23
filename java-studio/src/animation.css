@@ -956,3 +956,5 @@
 .animation-export-time { flex-wrap: wrap; }
 .animation-export-time > small { flex-basis: 100%; font-variant-numeric: tabular-nums; }
 .animation-export-time .timecode-input input { width: 100%; }
+
+.animation-audio-time-format {display:flex;flex-direction:column;gap:6px;margin-top:14px;font-size:12px;}

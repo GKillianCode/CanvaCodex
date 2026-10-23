@@ -44,8 +44,20 @@ const end = computed(() => a.config.audio.start + a.config.duration);
         a.audio.asset?.name ||
         (a.audio.loading ? "Chargement…" : "Audio de référence")
       }}</strong>
+      <label class="animation-audio-time-format"
+        >Unité du timecode
+        <select
+          :value="a.audio.timeUnit"
+          :disabled="a.busy"
+          @change="a.audio.setTimeUnit($event.target.value)"
+        >
+          <option value="ms">Millisecondes</option>
+          <option value="frames">Images · {{ a.config.fps }} i/s</option>
+        </select>
+      </label>
       <TimecodeInput
         label="Début dans le fichier"
+        :frame-rate="a.audio.frameRate"
         :model-value="a.config.audio.start"
         :disabled="a.busy"
         @update:model-value="a.audio.setStart"
@@ -53,15 +65,15 @@ const end = computed(() => a.config.audio.start + a.config.duration);
       <dl class="animation-audio-interval">
         <div>
           <dt>Début de l’extrait</dt>
-          <dd>{{ audioTimeLabel(a.config.audio.start) }}</dd>
+          <dd>{{ audioTimeLabel(a.config.audio.start, a.audio.frameRate) }}</dd>
         </div>
         <div>
           <dt>Fin calculée</dt>
-          <dd>{{ audioTimeLabel(end) }}</dd>
+          <dd>{{ audioTimeLabel(end, a.audio.frameRate) }}</dd>
         </div>
         <div>
           <dt>Durée de la scène</dt>
-          <dd>{{ audioTimeLabel(a.config.duration) }}</dd>
+          <dd>{{ audioTimeLabel(a.config.duration, a.audio.frameRate) }}</dd>
         </div>
       </dl>
       <p
@@ -69,7 +81,7 @@ const end = computed(() => a.config.audio.start + a.config.duration);
         class="field-help"
       >
         L’extrait dépasse la fin de l’audio ({{
-          audioTimeLabel(a.audio.asset.duration)
+          audioTimeLabel(a.audio.asset.duration, a.audio.frameRate)
         }}). La partie restante sera silencieuse.
       </p>
       <button

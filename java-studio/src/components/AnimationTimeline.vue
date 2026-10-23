@@ -274,10 +274,10 @@ onUnmounted(() => {
           <ChevronRight :size="16" /></button
         >
         <div class="timeline-time">
-          <TimecodeInput compact label="Temps de la scène" :model-value="a.time"
+          <TimecodeInput :frame-rate="a.audio.frameRate" compact label="Temps de la scène" :model-value="a.time"
             :disabled="a.busy" @focusin="a.stop()" @update:model-value="a.seek" />
           <small v-if="a.config.audio.src" class="timeline-source-time">
-            Dans l’audio : {{ audioTimeLabel(a.audio.position) }}
+            Dans l’audio : {{ audioTimeLabel(a.audio.position, a.audio.frameRate) }}
           </small>
         </div>
         <label title="Recommencer la scène à la fin"
@@ -395,7 +395,7 @@ onUnmounted(() => {
               v-for="i in 9"
               :key="i"
               :style="{ left: ((i - 1) / 8) * 100 + '%', transform: timelinePanel === 'audio' ? (i === 1 ? 'none' : i === 9 ? 'translateX(-100%)' : undefined) : undefined }"
-              >{{ timelinePanel === 'audio' ? audioTimeLabel(a.config.audio.start + ((i - 1) * view.span) / 8) : (((i - 1) * view.span) / 8).toFixed(1) }}</span
+              >{{ timelinePanel === 'audio' ? audioTimeLabel(a.config.audio.start + ((i - 1) * view.span) / 8, a.audio.frameRate) : (((i - 1) * view.span) / 8).toFixed(1) }}</span
             ><button
               class="playhead-head"
               :style="{ left: (a.time / view.span) * 100 + '%' }"

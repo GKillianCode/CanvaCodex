@@ -34,8 +34,8 @@ const wave = computed(() =>
             a.audio.asset?.name || "Audio de référence"
           }}</span></strong
         ><small
-          >{{ audioTimeLabel(a.config.audio.start) }} →
-          {{ audioTimeLabel(a.config.audio.start + a.config.duration) }}</small
+          >{{ audioTimeLabel(a.config.audio.start, a.audio.frameRate) }} →
+          {{ audioTimeLabel(a.config.audio.start + a.config.duration, a.audio.frameRate) }}</small
         ></span
       >
     </div>
