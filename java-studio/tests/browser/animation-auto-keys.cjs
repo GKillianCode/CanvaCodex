@@ -132,9 +132,9 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
         await tick();
         const k = s.selected.value;
         a.seek(2.9);
-        const before = a.editorScene.value.positions[k].opacity;
+        const before = a.editorScene.value.hiddenKeys?.includes(k) ? 0 : a.editorScene.value.positions[k].opacity ?? 100;
         a.seek(3);
-        return [before, a.editorScene.value.positions[k].opacity];
+        return [before, a.editorScene.value.hiddenKeys?.includes(k) ? 0 : a.editorScene.value.positions[k].opacity ?? 100];
       }),
       [0, 100],
     );
@@ -159,12 +159,12 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       s.undo();
       await tick();
       const afterUndo = a.config.value.clips.some((c) =>
-        c.frames.some((f) => f.field === "x" && f.time === 5),
+        c.frames.some((f) => f.field === "x" && c.start + f.time === 5),
       );
       s.redo();
       await tick();
       const afterRedo = a.config.value.clips.filter((c) =>
-        c.frames.some((f) => f.field === "x" && f.time === 5),
+        c.frames.some((f) => f.field === "x" && c.start + f.time === 5),
       ).length;
       return { values, afterUndo, afterRedo };
     });

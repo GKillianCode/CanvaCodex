@@ -270,7 +270,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     assert.equal(await page.evaluate(() => live().animation.time.value), 5.5);
     // The existing preview uses the same clock and mute control.
     await page
-      .getByRole("button", { name: "Aperçu plein écran", exact: true })
+      .getByRole("button", { name: "Animer / Exporter", exact: true })
       .click();
     const dialog = page.getByRole("dialog", { name: "Aperçu de l’animation" });
     await dialog.waitFor();

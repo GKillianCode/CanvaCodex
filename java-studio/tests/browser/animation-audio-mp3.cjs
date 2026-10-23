@@ -124,7 +124,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
           "Changing the source start must reset the old scene playhead");
         assert.equal(await page.evaluate(() => live().animation.playing.value), false,
           "Changing source start must pause playback");
-        assert.match(await page.locator(".timeline-source-time").innerText(),
+        assert.match(await page.locator(".timeline-time").getAttribute("title"),
           new RegExp(`00:00:${String(offset).padStart(2, "0")}\\.000`));
         await page.waitForFunction((offset) => !referenceAudio.seeking &&
           Math.abs(referenceAudio.currentTime - offset) < 0.02, offset);

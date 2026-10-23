@@ -258,6 +258,7 @@ export function useDrawingTools(s) {
     });
     s.current.value.positions[key] = framed.position;
     s.current.value.fragments[key] = { order: 0, animation: "none" };
+    s.animation()?.introduceObjects([key]);
     s.end();
     draft.value = null;
     drag = null;

@@ -1,0 +1,79 @@
+import {
+  normalizeAnimation,
+  resolvedAnimation,
+  motionState,
+} from "./motion.js";
+import { scaleObjects } from "./scaleObjects.js";
+const number = (v, fallback, min, max) =>
+  Number.isFinite(Number(v))
+    ? Math.max(min, Math.min(max, Number(v)))
+    : fallback;
+export function normalizePresence(raw = {}) {
+  const start = number(raw.start, 0, 0, 120);
+  return {
+    start,
+    end: raw.end == null ? null : number(raw.end, start, start, 120),
+    entrance: normalizeAnimation(raw.entrance, "none"),
+    exit: normalizeAnimation(raw.exit, "none"),
+    enterDuration: number(raw.enterDuration, 0.3, 0, 5),
+    exitDuration: number(raw.exitDuration, 0.3, 0, 5),
+  };
+}
+export function normalizePresences(raw) {
+  return Object.fromEntries(
+    Object.entries(
+      raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {},
+    )
+      .slice(0, 200)
+      .filter(
+        ([key, value]) =>
+          key.length <= 100 && value && typeof value === "object",
+      )
+      .map(([key, value]) => [key, normalizePresence(value)]),
+  );
+}
+export function presenceState(raw, time, duration, scene, key) {
+  const p = normalizePresence(raw),
+    end = p.end == null ? duration : Math.min(p.end, duration),
+    visible = time >= p.start && (p.end == null ? time <= end : time < end);
+  const span = Math.max(0, end - p.start),
+    enter = Math.min(p.enterDuration, span / 2),
+    exit = Math.min(p.exitDuration, span / 2);
+  const a = motionState(
+      resolvedAnimation(p.entrance, { id: scene.id + key }, 0),
+      enter ? (time - p.start) / enter : 1,
+    ),
+    b = motionState(
+      resolvedAnimation(p.exit, { id: scene.id + key }, 0),
+      exit ? (time - (end - exit)) / exit : 0,
+      true,
+    );
+  return {
+    visible,
+    alpha: visible ? a.alpha * b.alpha : 0,
+    x: a.x + b.x,
+    y: a.y + b.y,
+    scale: a.scale * b.scale,
+    elapsed: Math.max(0, time - p.start) * 1000,
+  };
+}
+// Apply the shared motion primitives only to the evaluated render copy, never to
+// the object's editable pose or the values used when recording property keys.
+export function applyPresenceMotion(scene, states) {
+  for (const [key, state] of Object.entries(states)) {
+    if (!state.visible || !scene.positions[key]) continue;
+    let p = { ...scene.positions[key] };
+    if (state.scale !== 1 && p.w && p.h)
+      p =
+        scaleObjects(
+          { [key]: p },
+          { x: p.x, y: p.y, w: p.w, h: p.h },
+          state.scale,
+          { x: p.x + p.w / 2, y: p.y + p.h / 2 },
+        )?.positions[key] || p;
+    p.x += state.x;
+    p.y += state.y;
+    p.opacity = (p.opacity ?? 100) * state.alpha;
+    scene.positions[key] = p;
+  }
+}

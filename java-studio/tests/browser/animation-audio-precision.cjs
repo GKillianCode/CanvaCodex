@@ -216,7 +216,7 @@ function measure(reference, chunk) {
       21.5,
     );
     assert.match(
-      await page.locator(".timeline-source-time").innerText(),
+      await page.locator(".timeline-time").getAttribute("title"),
       /00:00:21:15/,
     );
     assert.equal(

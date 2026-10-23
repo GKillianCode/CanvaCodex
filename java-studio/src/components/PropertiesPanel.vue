@@ -1,4 +1,6 @@
 <script setup>
+import AnimationCounterProperties from "./AnimationCounterProperties.vue";
+import AnimationPresenceProperties from "./AnimationPresenceProperties.vue";
 import TransformFields from "./TransformFields.vue";
 import InspectorShell from "./InspectorShell.vue";
 import FontSelect from "./FontSelect.vue";
@@ -184,7 +186,7 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
           }}</small>
         </div>
         <button
-          v-if="s.selected && (isText || s.selectedType === 'table')"
+          v-if="s.selected && (isText || s.selectedType === 'table') && (!s.isAnimation || !s.animation.config.counters[s.selected])"
           class="icon-btn"
           aria-label="Éditer le contenu"
           title="Éditer le contenu"
@@ -458,6 +460,8 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
         :studio="s"
         :mode="category"
       />
+      <AnimationCounterProperties v-if="s.isAnimation && s.selected && s.animation.config.counters[s.selected] && category === 'style'" :studio="s" />
+      <AnimationPresenceProperties v-if="s.isAnimation && section === 'element' && s.selectedKeys.length && category === 'style'" :studio="s" />
       <AnimationProperties
         v-if="s.isAnimation && category === 'motion'"
         :studio="s"

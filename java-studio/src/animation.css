@@ -958,3 +958,34 @@
 .animation-export-time .timecode-input input { width: 100%; }
 
 .animation-audio-time-format {display:flex;flex-direction:column;gap:6px;margin-top:14px;font-size:12px;}
+
+.presence-name {background:transparent;color:var(--text);border:0;text-align:left;cursor:pointer;gap:8px;min-width:0;}
+.presence-name span {font-size:10px;color:var(--muted);font-weight:400;}
+.presence-name strong {font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.presence-span {position:absolute;top:8px;height:26px;border:1px solid var(--accent);border-radius:5px;background:color-mix(in srgb,var(--accent) 14%,transparent);cursor:grab;display:flex;align-items:center;justify-content:center;min-width:4px;}
+.presence-span small {font-size:10px;white-space:nowrap;overflow:hidden;padding:0 10px;font-variant-numeric:tabular-nums;pointer-events:none;}
+.presence-handle {position:absolute;top:0;bottom:0;width:9px;border:0;background:transparent;cursor:ew-resize;padding:0;}
+.presence-handle:hover {background:color-mix(in srgb,var(--accent) 30%,transparent);}
+.presence-handle.start {left:0;border-radius:4px 0 0 4px;}
+.presence-handle.end {right:0;border-radius:0 4px 4px 0;}
+
+.animation-presence-properties .btn {background:transparent;color:inherit;border:1px solid var(--border);}
+.animation-track .presence-name {background:transparent;color:var(--ink);}
+
+/* One shared compact row: timeline view, playback and construction controls. */
+.animation-timeline-header {display:flex;align-items:center;gap:12px;min-height:46px;padding:5px 14px;border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;scrollbar-width:thin;}
+.animation-timeline-header .animation-timeline-views {padding:0;border:0;flex-wrap:nowrap;flex-shrink:0;}
+.animation-timeline-header .animation-transport {padding:0;border:0;flex:1;flex-wrap:nowrap;justify-content:center;min-width:max-content;}
+.animation-timeline-header .bottom-tools {padding:0;border:0;background:transparent;gap:5px;flex-wrap:nowrap;}
+.animation-timeline-header .workspace-switch {margin:0;flex-shrink:0;}
+.animation-timeline-header .workspace-switch button {white-space:nowrap;font-size:11px;padding:6px 9px;min-height:28px;}
+.animation-timeline-header .timeline-time {padding:0 4px;}
+.animation-timeline-header .playback-loop {border:1px solid var(--line);border-radius:6px;color:var(--muted);}
+.animation-timeline-header .playback-loop.active,.animation-timeline-header .playback-toggle.active {background:color-mix(in srgb,var(--accent) 14%,transparent);border-color:var(--accent);color:var(--accent);}
+.animation-timeline .animation-key-tools {flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:5px 14px;min-height:40px;gap:6px;flex-shrink:0;scrollbar-width:thin;}
+.animation-key-tools > * {flex-shrink:0;white-space:nowrap;}
+.animation-key-tools .animation-key-selection-tools {padding:0 0 0 8px;border-top:0;border-left:1px solid var(--line);margin-left:auto;gap:4px;}
+.animation-timeline-header .workspace-switch button,.animation-timeline-header .btn {background:transparent;color:var(--ink);}
+.animation-timeline-header .workspace-switch button.active,.animation-timeline-header .btn.active {background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);border-color:var(--accent);}
+.animation-key-tools .btn:not(.primary) {background:transparent;color:var(--ink);border-color:var(--line);}
+.animation-key-tools .btn.primary {background:var(--accent);color:var(--panel);border-color:var(--accent);}

@@ -1,3 +1,4 @@
+import {applyPresenceMotion} from "./animationPresence.js";
 import {createVisualEffectRenderer} from "./animationVisualRender.js";
 import {drawSceneBackground} from './sceneBackground.js';
 import {applyCamera} from "./animationWorkflow.js";
@@ -19,6 +20,7 @@ export function renderAnimation(
 ) {
   const state = animationScene(scene, config, time);
   if(positions) Object.assign(state.scene.positions, positions);
+  applyPresenceMotion(state.scene,state.presence);
   ctx.save();
   if(scene.background?.mode&&scene.background.mode!=='inherit')drawSceneBackground(ctx,scene.background,theme);else drawAnimationBackground(ctx,state.config,theme);
   if(camera)applyCamera(ctx,state.config.camera);
@@ -77,7 +79,7 @@ export function renderAnimation(
     },
   );
   for (const link of state.config.links) {
-    if(link.visible===false)continue;
+    if(link.visible===false || state.presence[link.from]?.visible===false || state.presence[link.to]?.visible===false)continue;
     const a = state.scene.positions[link.from],
       b = state.scene.positions[link.to];
     if (!a || !b) continue;
@@ -122,7 +124,7 @@ export function renderAnimation(
   for (const clip of state.config.clips) {
     if (!clip.enabled || !clip.particles?.enabled) continue;
     const p = state.scene.positions[clip.keys[0]];
-    if (!p) continue;
+    if (!p || state.presence[clip.keys[0]]?.visible===false) continue;
     for (const particle of animationParticles(clip, time, particleOriginSampler(scene,config,clip.keys[0]))) {
       ctx.save();
       ctx.globalAlpha = particle.alpha;
@@ -134,7 +136,7 @@ export function renderAnimation(
     }
   }
   for (const engine of state.config.engines) {
-    if (!engine.enabled || engine.kind !== "particles") continue;
+    if (!engine.enabled || engine.kind !== "particles" || state.presence[engine.key]?.visible===false) continue;
     const p = state.scene.positions[engine.key];
     if (!p) continue;
     for (const particle of animationParticles(

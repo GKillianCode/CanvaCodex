@@ -6,6 +6,8 @@ const props = defineProps({
   label: { type: String, default: "Temps" },
   disabled: Boolean,
   compact: Boolean,
+  dense: Boolean,
+  hideLabel: Boolean,
   frameRate: { type: Number, default: 0 },
 });
 const emit = defineEmits(["update:modelValue"]);
@@ -50,8 +52,12 @@ function step(amount, key) {
 }
 </script>
 <template>
-  <fieldset class="timecode-input" :class="{ compact }" :disabled="disabled">
-    <legend>
+  <fieldset
+    class="timecode-input"
+    :class="{ compact, dense }"
+    :disabled="disabled"
+  >
+    <legend :class="{ 'timecode-legend-hidden': hideLabel }">
       {{ label
       }}<template v-if="compact && frameRate"> · {{ frameRate }} i/s</template>
     </legend>
@@ -159,5 +165,22 @@ function step(amount, key) {
 }
 .compact .timecode-segments label span {
   display: none;
+}
+.dense {
+  width: 128px;
+}
+.dense .timecode-segments input {
+  min-height: 26px;
+  font-size: 11px;
+}
+.timecode-legend-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
 }
 </style>

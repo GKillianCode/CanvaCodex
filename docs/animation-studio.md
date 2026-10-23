@@ -19,6 +19,26 @@ Styles par mots, textes progressifs, SVG, images, tableaux, bits, groupes, verro
 
 **Disposition initiale** permet de travailler la géométrie de base et laisse le texte entier visible. **État animé** calcule le rendu au temps du curseur, sans remplacer cette base. Déplacer la disposition initiale d’un moteur translate également ses clés X/Y propres ; les clés ne le ramènent plus à son ancienne position au lancement. Un moteur attaché à une spline suit toujours sa trajectoire.
 
+## Timeline compacte
+
+Les vues **Images clés / Audio** et les commandes de lecture partagent une seule ligne : début, image précédente/suivante, lecture/pause, timecode, **Boucle**, Construction/État animé et Clés auto. Les noms des commandes apparaissent au survol ; les légendes de temps et d’audio ne prennent plus une ligne supplémentaire. La position dans le fichier audio reste accessible au survol du timecode. Boucle est un bouton activable, pas une checkbox.
+
+Le raccourci d’aperçu de cette barre est retiré ; **Animer / Exporter** reste dans l’en-tête. Copier/coller/supprimer les clés sont intégrés à la barre d’actions existante. Hauteur initiale de timeline réduite de 340 à 260 px ; les contrôles occupent une ligne même sur une fenêtre étroite, avec défilement horizontal si nécessaire. La poignée de hauteur et le zoom temporel restent disponibles.
+
+## Présence des objets
+
+Un objet ajouté au curseur commence **à cet instant**, même sans clip et sans Clés auto. Dans **Objet → Style → Présence dans la scène**, règle **Apparaît à** et **Disparaît à**, ou utilise **Commencer / Terminer au curseur**. La fin peut suivre automatiquement celle de la scène. La présence reste indépendante des séquences de mouvement : un texte peut exister de 5 à 7 s dans une scène de 10 s sans clés d’opacité artificielles.
+
+Dans la vue **Images clés**, chaque objet réglé possède une ligne **Présence**. Glisse sa barre pour déplacer la plage, ou ses extrémités pour changer son début et sa fin, avec aimantation aux images de la scène. Le tiroir propose les animations d’apparition/disparition partagées (fondu, glissements, zoom, etc.) et leurs durées. Elles se déroulent à l’intérieur de la plage ; les longues transitions sont limitées à la moitié de la plage chacune. Un objet est visible dès le début inclus, absent à partir de sa fin explicite. Les anciens objets sans réglage gardent leur comportement.
+
+Les textes, images, formes, formes libres, tableaux, code et bits ajoutés utilisent cette présence. Un objet absent ne gêne pas la sélection à la souris ; la liste des calques et sa ligne de présence restent accessibles. Le texte progressif commence à la naissance de l’objet. Duplication, historique et sauvegarde conservent les réglages ; une copie dupliquée démarre au curseur courant. Les transitions modifient la copie de rendu, pas la pose éditable ni les valeurs des clés.
+
+## Compteurs animés
+
+Utilise **Insérer → Compteur animé** ou **clic droit → Ajouter un compteur**. C’est un texte standard : police, taille, couleur, alignement et autres styles utilisent les propriétés communes. Dans **Objet → Style → Compteur animé**, choisis les valeurs de départ/d’arrivée et la durée du défilement. Le compteur commence à l’apparition de l’objet et conserve sa valeur finale ensuite, jusqu’à sa disparition. Il ne demande aucun clip ni clé préalable.
+
+Le mode **Nombre** compte dans les deux sens ; les zéros initiaux utilisent la largeur du maximum (`000` pour 100, `0000000` pour un million). Décimales, séparateur décimal, séparation des milliers et texte avant/après sont réglables. Le mode **Temps** respecte les retenues à 60 secondes et 60 minutes, affiche HH:MM:SS ou MM:SS et accepte un séparateur personnalisé (`:`, `.`, `,`, vide…). Le rythme peut être constant, progressif, accéléré ou décéléré, calculé par l’interpolation existante. Les valeurs sont évaluées à chaque image : un grand intervalle peut franchir plusieurs entiers entre deux images. L’aperçu et les exports utilisent le même rendu déterministe.
+
 ## Audio de référence
 
 Dans **Scène → Audio de référence**, importe un fichier MP3, WAV, Ogg, M4A, AAC, FLAC ou WebM lisible par le navigateur. Le fichier est partagé par toutes les scènes de l’animation. À la première importation, leurs débuts d’extrait se suivent selon leur durée ; remplacer le fichier conserve les débuts déjà configurés.

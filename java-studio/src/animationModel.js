@@ -1,3 +1,5 @@
+import {normalizeCounters,counterText} from "./animationCounter.js";
+import {normalizePresences,presenceState} from "./animationPresence.js";
 import {normalizeSceneAudio} from './animationAudioModel.js';
 import {parseEffectField} from "./animationEffectCatalog.js";
 import {scaleObjects} from "./scaleObjects.js";
@@ -126,6 +128,8 @@ export function normalizeEngine(raw = {}, i = 0) {
 export function normalizeAnimation(raw = {}) {
   return {
     version: 5,
+    presences: normalizePresences(raw?.presences),
+    counters: normalizeCounters(raw?.counters),
     attachments:normalizeAttachments(raw?.attachments),events:normalizeEvents(raw?.events),camera:normalizeCamera(raw?.camera),
     actorKey: String(raw?.actorKey || "").slice(0, 100),
     actorId: String(raw?.actorId || "").slice(0, 100),
@@ -617,7 +621,20 @@ export function animationScene(scene, raw, time, options={}) {
         y: parent.y + (parent.h || 0) / 2 + engine.offsetY - p.h / 2,
       };
   }
-  return { scene: result, typingElapsed, config, firedEvents,eventTimes:schedule.times,warnings:[...schedule.warnings,...attachmentWarnings] };
+  for(const [key,counter] of Object.entries(config.counters)) {
+    if(result.elements[key]?.type !== 'text') continue;
+    const start=config.presences[key]?.start ?? 0;
+    const value=frameValue([{field:'counter',time:0,value:counter.from,ease:counter.easing},{field:'counter',time:counter.duration,value:counter.to,ease:counter.easing}], 'counter', Math.max(0,time-start),counter.from);
+    result.elements[key]={...result.elements[key],text:counterText(counter,value)};
+  }
+  const presence = {};
+  for (const [key, range] of Object.entries(config.presences)) {
+    if (!result.positions[key]) continue;
+    presence[key] = presenceState(range, time, config.duration, scene, key);
+    typingElapsed[key] = presence[key].elapsed;
+    if (!presence[key].visible) result.hiddenKeys = [...(result.hiddenKeys || []), key];
+  }
+  return { scene: result, presence, typingElapsed, config, firedEvents,eventTimes:schedule.times,warnings:[...schedule.warnings,...attachmentWarnings] };
 }
 // Closed-form, seeded particles: seeking and exporting do not depend on preview FPS.
 export function animationParticles(clip, time, origin) {

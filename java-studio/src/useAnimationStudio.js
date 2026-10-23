@@ -1,3 +1,5 @@
+import {normalizeCounter,counterText} from "./animationCounter.js";
+import {normalizePresence} from "./animationPresence.js";
 import {useAnimationAudio} from './useAnimationAudio.js';
 import {makeEffectsDemo} from "./animationEffectExamples.js";
 import {parseEffectField,effectField,effectProgress,effectCatalog} from "./animationEffectCatalog.js";
@@ -945,7 +947,8 @@ export function useAnimationStudio(s) {
     let c = editableClip(config.value.clips, selectedClip.value, key, time.value);
     if (!c) {
       if (config.value.clips.length >= 100) return null;
-      c = normalizeAnimation({clips:[{id:crypto.randomUUID(), name:s.current.value.elements[key]?.name || "Mouvement", keys:[key], duration:config.value.duration}]}).clips[0];
+      const start=Math.min(config.value.duration-1/config.value.fps,config.value.presences[key]?.start??0);
+      c = normalizeAnimation({clips:[{id:crypto.randomUUID(), name:s.current.value.elements[key]?.name || "Mouvement", keys:[key], start, duration:config.value.duration-start}]}).clips[0];
       config.value.clips.push(c);
     }
     // Editing before a track starts must not silently clamp the new key to its start.
@@ -959,14 +962,30 @@ export function useAnimationStudio(s) {
     return c;
   }
   function introduceObjects(keys) {
-    if (!autoKey.value || time.value <= 0) return;
+    for (const key of keys) config.value.presences[key] = normalizePresence({start: time.value});
+  }
+  function setPresence(keys, field, value) {
+    if (busy.value) return;
+    s.beginGesture();
     for (const key of keys) {
-      const c = objectClip(key);
-      if (!c) continue;
-      // Hold keeps newly inserted objects invisible until their insertion time.
-      addAnimationKey(c, 'opacity', 0, 0, 'hold');
-      addAnimationKey(c, 'opacity', Math.max(0, time.value - c.start), s.current.value.positions[key]?.opacity ?? 100, 'hold');
+      if (!s.current.value.positions[key]) continue;
+      const range = normalizePresence(config.value.presences[key]);
+      if (field === 'start') {
+        range.start = Math.max(0,Math.min(config.value.duration - 1/config.value.fps,Number(value)||0));
+        if (range.end != null && range.end <= range.start) range.end = Math.min(config.value.duration, range.start+1/config.value.fps);
+      } else if (field === 'end') range.end = value == null ? null : Math.max(range.start+1/config.value.fps,Math.min(config.value.duration, Number(value)||0));
+      else range[field] = value;
+      config.value.presences[key] = normalizePresence(range);
     }
+    s.endGesture(); s.requestDraw();
+  }
+  function setCounter(key, field, value, manageHistory = true) {
+    if(busy.value || s.current.value.elements[key]?.type !== 'text')return;
+    if(manageHistory)s.beginGesture();
+    const counter=normalizeCounter({...config.value.counters[key],[field]:value});
+    config.value.counters[key]=counter;
+    s.current.value.elements[key].text=counterText(counter,counter.from);
+    if(manageHistory)s.endGesture();s.requestDraw();
   }
   function commitPose(positions, origins, manageHistory = true) {
     if(manageHistory)s.beginGesture();
@@ -1131,7 +1150,7 @@ export function useAnimationStudio(s) {
   return {
     audio,
     exportQuality,exportBackground,exportError,exportPhase,construction,setConstruction,editorScene,
-    autoKey,setAutoKey,shouldKey,commonField,introduceObjects,
+    autoKey,setAutoKey,shouldKey,commonField,introduceObjects,setPresence,setCounter,
     inspectedEffect,inspectEffect,
     motionPrefs,keySelection,keyClipboard,selectKey,keyEntries,copyKeys,pasteKeys,deleteKeys,diagnostics,commitPose,selectedPathPoint,addPathPoint,removePathPoint,
     activeFrame,

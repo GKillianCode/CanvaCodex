@@ -272,3 +272,7 @@ Le début de l’extrait audio se saisit explicitement en **heures / minutes / s
 Modifier le début audio arrête la lecture et ramène le curseur de scène à zéro pour écouter ce début précis. Les compteurs de scène et d’aperçu affichent HH:MM:SS.mmm, avec la position absolue dans le fichier audio séparément.
 
 L’écoute de référence prépare les fichiers compressés en PCM temporaire pour fiabiliser les départs MP3 VBR. Le fichier sauvegardé reste l’original. Dans Scène → Audio de référence, l’unité **Images** permet de reprendre les timecodes de montage (ex. 21 s + 15 images à 30 i/s = 21,5 s).
+
+Les objets Animation ont une **présence indépendante des clips** : création à l’instant courant, début/fin dans Objet → Style, plage déplaçable et redimensionnable dans la timeline, transitions d’apparition/disparition optionnelles.
+
+**Insérer → Compteur animé** ajoute un texte stylable qui compte de A à B sur une durée donnée, en nombre ou en temps (HH:MM:SS/MM:SS), avec zéros initiaux, rythme, séparateurs et préfixe/suffixe personnalisés.
