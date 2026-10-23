@@ -1,3 +1,4 @@
+import {enrichSlimeEffects} from "./animationSlimeEffects.js";
 import { enrichSlimeWorkflow } from "./animationSlimeWorkflow.js";
 import {extendSlimeWorlds} from "./animationSlimeWorlds.js";
 import { makeSlide } from "./model.js";
@@ -628,6 +629,7 @@ export function makeSlimeDemo() {
   });
   extendSlimeWorlds(scenes);
   enrichSlimeWorkflow(scenes);
+  enrichSlimeEffects(scenes);
   return applicationFile(
     {
       projectId: "slime-platform-demo",

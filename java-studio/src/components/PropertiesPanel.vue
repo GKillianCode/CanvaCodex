@@ -61,7 +61,8 @@ const props = defineProps({ studio: Object }),
   panel = ref(null),
   scrolls = {};
 const body = computed(() => panel.value?.body);
-provide("inspectorDrawers", reactive({}));
+const drawers = reactive({});
+provide("inspectorDrawers", drawers);
 const tabs = computed(() => [
     ["element", "Objet", Square],
     [
@@ -101,6 +102,20 @@ function chooseCategory(target) {
     if (body.value) body.value.scrollTop = scrolls[scrollKey.value] || 0;
   });
 }
+watch(
+  () => s.animation?.inspectedEffect,
+  async (request) => {
+    if (!request) return;
+    switchTo("engines");
+    for (const key of Object.keys(drawers)) drawers[key] = false;
+    drawers["effect-" + request.id] = true;
+    await nextTick();
+    body.value
+      ?.querySelector('[data-drawer="effect-' + request.id + '"]')
+      ?.scrollIntoView({ block: "nearest" });
+  },
+  { flush: "post" },
+);
 watch(
   () => s.selectionScope,
   (value) => {

@@ -261,7 +261,8 @@ function connector() {
       >
       <label
         >Action<select v-model="e.action" @change="e.target = ''">
-          <option value="show">Faire apparaître un objet</option>
+          <option value="show">Faire apparaître un objet ou une flèche</option>
+          <option value="hide">Masquer un objet ou une flèche</option>
           <option value="color">Changer une couleur</option>
           <option value="shape">Changer une forme</option>
           <option value="startClip">Démarrer une séquence</option>

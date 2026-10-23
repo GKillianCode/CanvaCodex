@@ -202,3 +202,11 @@ Autre accès : **Vectoriel → Fichier → Exporter pour Animation…** produit 
 Même renderAnimation/renderSlide pour le travail, l’aperçu et les exports MOV/MKV/MP4 existants. Aucun service d’IA. Les transformations d’images sont des transitions calculées ; il ne s’agit pas d’une correspondance sémantique entre les détails de deux photographies. Le morphing concerne les silhouettes fermées simples sans trous ni image de remplissage ; les autres cibles utilisent un fondu. Fragmentation et déformations visuelles sont en 2D, avec des fragments de texture, pas une simulation 3D de matière.
 
 Les effets visuels utilisent trois surfaces temporaires réutilisées, plafonnées à 2048 px par côté ; au-delà, leur texture intermédiaire est réduite. Le nombre de cellules est borné (40 × 40, deux triangles éventuels par cellule). La traînée est limitée à huit échos et échantillonne le mouvement réel sans mémoriser les frames de la vidéo. Le rendu typographique réutilise les mesures et la disposition du texte existantes.
+
+## Slime enrichi — cinq scènes, 31 effets
+
+L’exemple Slime et le JSON à la racine utilisent désormais tous les effets dans le parcours continu de **54 secondes**. Le [guide détaillé](slime-effects.md) donne pour chaque scène les objets et les temps à observer. Ouvrir **Exemples → Slime · cinq mondes** pour ajouter la nouvelle version au document actuel, puis cocher **Toutes les scènes** dans l’aperçu/export. Les copies déjà modifiées par l’utilisateur ne sont pas remplacées automatiquement.
+
+Avec beaucoup de pistes, cocher **Sélection** pour se concentrer sur l’objet actif et les pistes globales. Cliquer sur le nom d’un effet dans la timeline ouvre directement son tiroir partagé. Les obstacles physiques, qui agissent sur la scène sans plage temporelle, restent dans leurs propriétés et ne présentent plus de fausse durée dans la timeline.
+
+Les événements proposent maintenant **Masquer un objet ou une flèche**, en complément de Faire apparaître. Plusieurs événements de visibilité sur une cible sont évalués dans l’ordre de leur déclenchement, y compris après une recherche temporelle en arrière.

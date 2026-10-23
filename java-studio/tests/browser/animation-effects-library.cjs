@@ -67,6 +67,9 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       return result;
     });
     console.log("All effects rendered and deterministic:", results.length);
+    const regression=await p.evaluate(async()=>{const {effectSample}=await import('/src/animationEffectExamples.js'),{renderAnimation}=await import('/src/animationRender.js'),{themes}=await import('/src/model.js');const c=document.createElement('canvas');c.width=480;c.height=270;const x=c.getContext('2d');const draw=(s,t)=>{x.resetTransform();x.clearRect(0,0,480,270);x.scale(.25,.25);renderAnimation(x,s,themes[0],s.animation,t);return c.toDataURL();};const s=effectSample('glitch');s.animation.effects[0].amount=0;const zero=draw(s,1);s.animation.effects=[];const neutral=draw(s,1);const line=effectSample('drawPath');line.elements.sample.shape='line';line.elements.sample.direction='horizontal';line.elements.sample.stroke='#ffffff';line.elements.sample.strokeWidth=8;draw(line,1);const halfway=x.getImageData(279,135,1,1).data[3];draw(line,2);const full=x.getImageData(279,135,1,1).data[3];return {neutral:zero===neutral,halfway,full};});
+    assert.ok(regression.neutral);assert.equal(regression.halfway,0);assert.ok(regression.full>0);
+
     const imageResult = await p.evaluate(async () => {
       const { effectSample } = await import("/src/animationEffectExamples.js"),
         { prepareImages } = await import("/src/render.js"),

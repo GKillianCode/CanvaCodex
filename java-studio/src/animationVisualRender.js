@@ -1,3 +1,4 @@
+import { effectWorkingBounds } from "./animationEffectBounds.js";
 import { rotatePoint } from "./editor.js";
 import { splinePoint, splineAngle, splineParameter } from "./splines.js";
 // Object pixels always come from renderSlide: fonts, SVG colours, masks and media stay shared.
@@ -11,6 +12,22 @@ import {
   visualEffectKinds,
 } from "./animationEffectCatalog.js";
 import { animationScene } from "./animationModel.js";
+const neutralKinds = new Set([
+  "glitch",
+  "blur",
+  "grayscale",
+  "hue",
+  "shadow",
+  "glow",
+  "wave",
+  "bend",
+  "twist",
+  "sway",
+  "pulse",
+  "trail",
+  "flicker",
+  "shine",
+]);
 const pool = [];
 function surface(i, w, h) {
   const c = pool[i] || (pool[i] = document.createElement("canvas"));
@@ -26,20 +43,21 @@ function surface(i, w, h) {
   return [c, x];
 }
 const sampleCache = new Map();
-function contour(e) {
-  const d = shapePath(e);
-  if (sampleCache.has(d)) return sampleCache.get(d);
+function contour(e, includeEnd = false) {
+  const d = shapePath(e),
+    cacheKey = d + (includeEnd ? "-open" : "");
+  if (sampleCache.has(cacheKey)) return sampleCache.get(cacheKey);
   const p = document.createElementNS("http://www.w3.org/2000/svg", "path");
   p.setAttribute("d", d);
   const length = p.getTotalLength();
   if (!length) return null;
-  const points = Array.from({ length: 128 }, (_, i) => {
+  const points = Array.from({ length: includeEnd ? 129 : 128 }, (_, i) => {
     const q = p.getPointAtLength((length * i) / 128);
     return { x: q.x, y: q.y };
   });
   if (sampleCache.size >= 100)
     sampleCache.delete(sampleCache.keys().next().value);
-  sampleCache.set(d, points);
+  sampleCache.set(cacheKey, points);
   return points;
 }
 function morph(x, scene, key, target, u, theme) {
@@ -193,62 +211,41 @@ export function createVisualEffectRenderer(
 ) {
   return (ctx, scene, key, _theme, options) => {
     const effects = state.config.effects.filter(
-      (e) => e.enabled && e.key === key && visualEffectKinds.includes(e.kind),
+      (e) =>
+        e.enabled &&
+        e.key === key &&
+        visualEffectKinds.includes(e.kind) &&
+        !(neutralKinds.has(e.kind) && e.amount === 0),
     );
     if (!effects.length) return false;
     const p = scene.positions[key],
       bb = blockBounds(ctx, scene, key),
       h = p.h || bb.h,
       w = p.w,
-      diagonal = Math.hypot(w, h),
-      pad = Math.min(
-        1800,
-        Math.max(
-          64,
-          ...effects.map(
-            (e) =>
-              Math.abs(e.amount) * 2 +
-              (Math.abs(
-                ["shatter", "scatter", "collapse", "rebuild"].includes(e.kind)
-                  ? e.gravity
-                  : 0,
-              ) *
-                Math.min(e.duration, 3) ** 2) /
-                2 +
-              (Math.abs(
-                ["shatter", "scatter", "collapse", "rebuild"].includes(e.kind)
-                  ? e.wind
-                  : 0,
-              ) *
-                Math.min(e.duration, 3) ** 2) /
-                2,
-          ),
+      trailStates = new Map();
+    for (const e of effects.filter((e) => e.kind === "trail")) {
+      const n = Math.min(8, e.count);
+      trailStates.set(
+        e.id,
+        Array.from(
+          { length: n },
+          (_, i) =>
+            animationScene(
+              rawScene,
+              rawConfig,
+              Math.max(0, time - ((i + 1) * Math.max(1, e.amount)) / 1000),
+            ).scene,
         ),
-      ),
-      cx = p.x + w / 2,
-      cy = p.y + h / 2,
-      box = {
-        x: Math.floor(cx - diagonal / 2 - pad),
-        y: Math.floor(cy - diagonal / 2 - pad),
-        w: Math.ceil(diagonal + pad * 2),
-        h: Math.ceil(diagonal + pad * 2),
-      };
-    // Bound working memory independently of document coordinates and output resolution.
-    for (const e of effects.filter((e) => e.kind === "pathDeform")) {
-      const path = state.config.paths.find((p) => p.id === e.pathId);
-      if (path) {
-        const minX = Math.min(box.x, ...path.points.map((p) => p.x - pad)),
-          minY = Math.min(box.y, ...path.points.map((p) => p.y - pad)),
-          maxX = Math.max(box.x + box.w, ...path.points.map((p) => p.x + pad)),
-          maxY = Math.max(box.y + box.h, ...path.points.map((p) => p.y + pad));
-        Object.assign(box, {
-          x: minX,
-          y: minY,
-          w: maxX - minX,
-          h: maxY - minY,
-        });
-      }
+      );
     }
+    const box = effectWorkingBounds(
+      { ...p, h },
+      effects,
+      state.config.paths,
+      [...trailStates.values()].flatMap((states) =>
+        states.map((s) => s.positions[key]).filter(Boolean),
+      ),
+    );
     const ratio = Math.min(1, 2048 / box.w, 2048 / box.h),
       W = Math.max(1, Math.ceil(box.w * ratio)),
       H = Math.max(1, Math.ceil(box.h * ratio));
@@ -398,10 +395,10 @@ export function createVisualEffectRenderer(
           dx.rotate(((p.rotation || 0) * Math.PI) / 180);
           dx.translate(-p.x - p.w / 2, -p.y - p.h / 2);
           const path = shapeGeometry(e0, p),
-            points = contour(e0);
+            points = contour(e0, isOpenShape(e0));
           let length = 0;
           if (points)
-            for (let i = 1; i <= points.length; i++)
+            for (let i = 1; i < points.length + (isOpenShape(e0) ? 0 : 1); i++)
               length += Math.hypot(
                 ((points[i % points.length].x - points[i - 1].x) * p.w) / 100,
                 ((points[i % points.length].y - points[i - 1].y) * p.h) / 100,
@@ -591,11 +588,7 @@ export function createVisualEffectRenderer(
       } else if (e.kind === "trail") {
         const n = Math.min(8, e.count);
         for (let i = n; i >= 1; i--) {
-          const past = animationScene(
-            rawScene,
-            rawConfig,
-            Math.max(0, time - (i * Math.max(1, e.amount)) / 1000),
-          ).scene;
+          const past = trailStates.get(e.id)[i - 1];
           dx.globalAlpha = (1 - i / (n + 1)) * 0.25;
           paint(dx, past, key);
         }

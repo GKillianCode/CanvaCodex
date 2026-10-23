@@ -1,5 +1,5 @@
 <script setup>
-import {effectCatalog,effectFieldLabel} from "../animationEffectCatalog.js";
+import {effectCatalog,effectFieldLabel,visualEffectKinds} from "../animationEffectCatalog.js";
 import {moveKeySelection} from "../animationEditing.js";
 import { reactive, ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import {
@@ -33,7 +33,9 @@ const props = defineProps({ studio: Object }),
   tracks = ref(null),
   world = ref(null),
   menu = ref(null),
-  showHidden = ref(false);
+  showHidden = ref(false), selectedOnly=ref(false);
+const visibleClips=computed(()=>a.config.clips.filter(c=>(!c.hidden||showHidden.value)&&(!selectedOnly.value||!s.selectedKeys.length||!c.keys.length||c.keys.some(k=>s.selectedKeys.includes(k)))));
+const visibleEffects=computed(()=>a.config.effects.filter(e=>visualEffectKinds.includes(e.kind)&&(!selectedOnly.value||!s.selectedKeys.length||s.selectedKeys.includes(e.key))));
 const view = computed(() => timelineView(a.config.duration, zoom.value));
 const labels = {
   fillEnabled: "Remplissage activé",
@@ -336,7 +338,7 @@ onUnmounted(() => {
         <Route :size="14" />Spline</button
       ><label title="Réafficher les séquences masquées"
         ><input type="checkbox" v-model="showHidden" />Pistes masquées</label
-      ><span class="field-help"
+      ><label title="Afficher uniquement les pistes de la sélection et les pistes de scène"><input type="checkbox" v-model="selectedOnly" aria-label="Pistes de la sélection"/>Sélection</label><span class="field-help"
         >Losanges dans les propriétés · Ctrl + molette : zoom temporel.</span
       >
     </div>
@@ -366,7 +368,7 @@ onUnmounted(() => {
           </div>
         </div>
         <template
-          v-for="c in a.config.clips.filter((c) => !c.hidden || showHidden)"
+          v-for="c in visibleClips"
           :key="c.id"
           ><div
             :class="[
@@ -528,8 +530,8 @@ onUnmounted(() => {
                 ></i>
               </div></div></template
         ></template>
-        <div v-for="effect in a.config.effects" :key="effect.id" class="animation-track effect-timeline-track">
-         <div class="track-name"><button class="icon-btn" :title="effect.enabled?'Désactiver l’effet':'Activer l’effet'" @click="effect.enabled=!effect.enabled"><Power :size="12"/></button><span>{{effect.name||effectCatalog.find(e=>e.id===effect.kind)?.name||effect.kind}}</span></div>
+        <div v-for="effect in visibleEffects" :key="effect.id" class="animation-track effect-timeline-track">
+         <div class="track-name"><button class="icon-btn" :title="effect.enabled?'Désactiver l’effet':'Activer l’effet'" @click="effect.enabled=!effect.enabled"><Power :size="12"/></button><button class="effect-track-owner" :aria-label="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" :title="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" @click="a.inspectEffect(effect.id)"><span>{{effect.name||effectCatalog.find(e=>e.id===effect.kind)?.name||effect.kind}}</span><small>{{s.current.elements[effect.key]?.name||effect.key}}</small></button></div>
          <div class="track-lane"><span class="clip-span" :style="{left:effect.start/view.span*100+'%',width:effect.duration/view.span*100+'%',opacity:effect.enabled?1:.3}" title="Glisser pour déplacer l’effet" @pointerdown="dragClip($event,effect)"><button class="effect-duration-handle" aria-label="Ajuster la durée de l’effet" title="Glisser pour régler la durée" @pointerdown="resizeEffect($event,effect)"></button></span></div>
         </div>
         <p v-if="!a.config.clips.length&&!a.config.effects.length" class="animation-empty">

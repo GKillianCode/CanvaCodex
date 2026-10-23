@@ -53,6 +53,8 @@ export function useAnimationStudio(s) {
     pathEditing = ref(false),
     activePath = ref("");
   const exportError = ref(""), exportPhase = ref("");
+  const inspectedEffect=ref(null);
+  function inspectEffect(id){const e=config.value.effects.find(e=>e.id===id);if(!e||!s.current.value.positions[e.key])return;stop();s.selected.value=e.key;s.selectedKeys.value=[e.key];activeKey.value=null;activeFrame.value=null;inspectedEffect.value={id,sequence:(inspectedEffect.value?.sequence||0)+1};}
   const construction = ref(true);
   function setConstruction(value) { stop(); construction.value = value; preview.value = true; }
   const editorScene = computed(() => preview.value ? animationScene(s.current.value, config.value, time.value).scene : s.current.value);
@@ -601,7 +603,7 @@ export function useAnimationStudio(s) {
     if(kind==='effects'){const scenes=makeEffectsDemo();if(s.slides.value.length+scenes.length>100){s.notify('Quatre places de scène sont nécessaires.');return;}stop();s.beginGesture();const offset=Math.max(0,...s.slides.value.map(s=>s.grid.x))+1;for(const scene of scenes)scene.grid.x+=offset;const index=s.slides.value.length;s.slides.value.push(...scenes);s.index.value=index;s.endGesture();preview.value=true;s.notify('Laboratoire d’effets ajouté : quatre scènes modifiables.');return;}
     if(kind==='reference'){if(s.slides.value.length>=100)return;stop();s.beginGesture();const scene=makeWorkflowExample().slides[0];scene.id=crypto.randomUUID();scene.grid={x:Math.max(0,...s.slides.value.map(s=>s.grid.x))+1,y:0};s.slides.value.push(scene);s.index.value=s.slides.value.length-1;s.endGesture();preview.value=true;return;}
     if(kind === "slime") {
-      if(s.slides.value.length>96){s.notify("Quatre places de scène sont nécessaires.");return;}
+      if(s.slides.value.length>95){s.notify("Cinq places de scène sont nécessaires.");return;}
       stop();s.beginGesture();
       const scenes=makeSlimeDemo().slides;
       let offset=0;
@@ -610,7 +612,7 @@ export function useAnimationStudio(s) {
       const first=s.slides.value.length;
       s.slides.value.push(...scenes);s.index.value=first;
       s.endGesture();preview.value=true;
-      s.notify("Parcours Slime ajouté : quatre scènes, un personnage continu.");return;
+      s.notify("Parcours Slime ajouté : cinq scènes, un personnage continu et 31 effets.");return;
     }
     if (s.slides.value.length >= 100) {
       s.notify("Limite de 100 scènes.");
@@ -1076,6 +1078,7 @@ export function useAnimationStudio(s) {
   });
   return {
     exportQuality,exportBackground,exportError,exportPhase,construction,setConstruction,editorScene,
+    inspectedEffect,inspectEffect,
     motionPrefs,keySelection,keyClipboard,selectKey,keyEntries,copyKeys,pasteKeys,deleteKeys,diagnostics,commitPose,selectedPathPoint,addPathPoint,removePathPoint,
     activeFrame,
     pendingDelete,

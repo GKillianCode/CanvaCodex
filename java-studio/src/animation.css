@@ -895,3 +895,5 @@
 
 .effect-timeline-track .track-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted)}
 .effect-duration-handle{position:absolute;right:0;top:0;bottom:0;width:10px;border:0;border-radius:3px;background:var(--accent);cursor:ew-resize}
+
+.effect-track-owner{border:0;background:transparent;color:inherit;display:flex;flex:1;min-width:0;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;padding:3px 0;cursor:pointer}.effect-track-owner span,.effect-track-owner small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.effect-track-owner small{font-size:9px;color:var(--muted)}
