@@ -1,4 +1,5 @@
 <script setup>
+import TimecodeInput from "./TimecodeInput.vue";
 import AnimationCounterProperties from "./AnimationCounterProperties.vue";
 import AnimationPresenceProperties from "./AnimationPresenceProperties.vue";
 import TransformFields from "./TransformFields.vue";
@@ -921,14 +922,16 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
     ><template v-if="section === 'slide' && s.isAnimation"
       ><InspectorDrawer id="animation-scene" title="Scène"
         ><label>Nom<input v-model="s.current.title" maxlength="200" /></label
-        ><label
-          >Durée · s<input
-            type="number"
-            v-model.number="s.animation.config.duration"
-            min="0.1"
-            max="120"
-            step="0.1" /></label
-        ><label
+        ><TimecodeInput
+          :model-value="s.animation.config.duration"
+          label="Durée de la scène"
+          :frame-rate="s.animation.config.fps"
+          :show-hours="false"
+          :min="0.1"
+          :max="120"
+          :disabled="s.animation.busy"
+          @update:model-value="s.animation.beginGesture(); s.animation.config.duration = $event; s.animation.endGesture()"
+        /><label
           >Fréquence<select v-model.number="s.animation.config.fps">
             <option v-for="n in [24, 30, 60]" :value="n" :key="n">
               {{ n }} images / seconde

@@ -9,6 +9,9 @@ const props = defineProps({
   dense: Boolean,
   hideLabel: Boolean,
   frameRate: { type: Number, default: 0 },
+  showHours: { type: Boolean, default: true },
+  min: { type: Number, default: 0 },
+  max: { type: Number, default: 86400 },
 });
 const emit = defineEmits(["update:modelValue"]);
 const draft = reactive(timecodeParts(props.modelValue, props.frameRate)),
@@ -20,7 +23,7 @@ const fields = computed(() => [
   props.frameRate
     ? ["frames", "images", "im.", props.frameRate > 100 ? 3 : 2]
     : ["milliseconds", "millisecondes", "ms", 3],
-]);
+].filter(([key]) => props.showHours || key !== "hours"));
 watch(
   () => [props.modelValue, props.frameRate],
   ([value]) => {
@@ -28,12 +31,18 @@ watch(
     invalid.value = false;
   },
 );
+function bounded(value) {
+  const rate = props.frameRate || 1000;
+  return Math.max(Math.ceil(props.min * rate) / rate,
+    Math.min(Math.floor(props.max * rate) / rate, value));
+}
 function commit() {
   const value = timecodeSeconds(draft, props.frameRate);
   invalid.value = value === null;
   if (value === null) return;
-  Object.assign(draft, timecodeParts(value, props.frameRate));
-  emit("update:modelValue", value);
+  const next = bounded(value);
+  Object.assign(draft, timecodeParts(next, props.frameRate));
+  emit("update:modelValue", next);
 }
 function step(amount, key) {
   const value = timecodeSeconds(draft, props.frameRate);
@@ -45,7 +54,7 @@ function step(amount, key) {
     milliseconds: 0.001,
     frames: 1 / props.frameRate,
   }[key];
-  const next = Math.max(0, Math.min(86400, value + amount * unit));
+  const next = bounded(value + amount * unit);
   Object.assign(draft, timecodeParts(next, props.frameRate));
   invalid.value = false;
   emit("update:modelValue", next);
@@ -64,7 +73,7 @@ function step(amount, key) {
     <div class="timecode-segments">
       <template v-for="([key, name, unit, size], index) in fields" :key="key">
         <span v-if="index" class="timecode-separator" aria-hidden="true">{{
-          index === 3 && !frameRate ? "." : ":"
+          key === "milliseconds" && !frameRate ? "." : ":"
         }}</span>
         <label
           ><input

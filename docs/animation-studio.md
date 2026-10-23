@@ -9,7 +9,7 @@ L’atelier est accessible depuis l’accueil, une vidéo ou `#/animations`. Cha
 Le cadre central délimite la vidéo, avec bordure complète sur fond uni ou transparent. L’extérieur de la scène est un plateau fini à points en clair/sombre. Les points s’arrêtent à sa bordure extérieure ; la zone de travail autour reste unie. Les objets peuvent dépasser du cadre. Ctrl + molette zoome la scène ; bouton central ou Espace + glisser déplace la vue. Les points, repères et commandes ne sont pas exportés.
 
 - **Objet** : les propriétés communes aux autres ateliers, ou uniquement les paramètres du moteur sélectionné. Sélectionner un objet ou moteur revient à sa fiche de propriétés.
-- **Scène** : nom, durée de 0,1 à 120 s, 24/30/60 images par seconde, fond et palette.
+- **Scène** : nom, durée en **minutes / secondes / images**, 24/30/60 images par seconde, fond et palette. Les images suivent la cadence de la scène (15 images à 30 i/s = 0,5 s). La durée reste limitée à 120 s ; le minimum est arrondi à la première image entière au-dessus de 0,1 s. Les anciens projets conservent leur durée et le stockage interne reste en secondes.
 - **Animation** : effets ajoutés à la sélection, regroupés en Mouvement, Déformation, Génération et Physique 2D ; séquences, clés, splines et références.
 - **Calques / Composants** : outils partagés avec Diaporama, sans duplication du panneau.
 
