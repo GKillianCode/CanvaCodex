@@ -777,6 +777,7 @@ export function useAnimationStudio(s) {
     }
   }
   function propertyValue(name, animated = preview.value) {
+    if(name==='scale')return clip.value?frameValue(clip.value.frames,'scale',time.value-clip.value.start,100):100;
     if([...backgroundAnimationFields,...cameraFields].includes(name)) {
       if(cameraFields.includes(name)){const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;const p=name.slice(6);return cfg.camera[p[0].toLowerCase()+p.slice(1)];}
       const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;
@@ -897,9 +898,7 @@ export function useAnimationStudio(s) {
         colorAnimationFields.includes(name) ? value : Number(value),
         discreteAnimationFields.includes(name) ? "hold" : interpolation,
       );
-      activeKey.value = c.frames.find(
-        (f) => f.field === name && Math.abs(f.time - local) < 0.0001,
-      );
+      activeKey.value=null;activeFrame.value=null;
       preview.value = true;
     } finally {
       s.endGesture();
@@ -1080,6 +1079,7 @@ export function useAnimationStudio(s) {
     keyAt,
     setProperty,
     toggleProperty,
+    recordProperty:(name)=>setProperty(name,propertyValue(name)),
     setClipEasing,
     addEffect,
     removeEffect,

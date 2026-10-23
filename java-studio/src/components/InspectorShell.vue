@@ -53,3 +53,22 @@ defineExpose({ body });
     </div>
   </aside>
 </template>
+
+<style scoped>
+.inspector {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+.properties-heading,
+.inspector-navigation {
+  flex-shrink: 0;
+}
+.inspector-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+</style>

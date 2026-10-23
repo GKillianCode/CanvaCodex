@@ -59,6 +59,7 @@ const labels = {
   opacity: "Opacité",
   size: "Taille du texte",
   contentScale: "Échelle du contenu",
+  scale: "Échelle · %",
   progress: "Progression du chemin",
   color: "Couleur du remplissage",
   cameraX:"Caméra · centre X",cameraY:"Caméra · centre Y",cameraZoom:"Caméra · zoom",cameraRotation:"Caméra · rotation",

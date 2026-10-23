@@ -827,29 +827,30 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
           title="Alignement et espacement"
           ><GroupLayoutControls :studio="s"
         /></InspectorDrawer>
-        <InspectorDrawer id="selection-scale" title="Mise à l’échelle"
-          ><label class="checkbox-label"
-            ><input
-              type="checkbox"
-              :checked="s.scaleMode || s.selectedKeys.length > 1"
-              :disabled="s.selectedKeys.length > 1"
-              @change="s.scaleMode = $event.target.checked"
-            />Poignées proportionnelles</label
-          >
+        <InspectorDrawer id="selection-scale" title="Mise à l’échelle">
+          <NumberRange
+            label="Échelle de la sélection"
+            unit="%"
+            :min="1"
+            :max="1000"
+            :step="1"
+            :model-value="
+              s.isAnimation
+                ? s.animation.propertyValue('scale')
+                : s.scalePercent
+            "
+            @update:model-value="
+              s.isAnimation
+                ? s.animation.setProperty('scale', $event)
+                : s.applySelectionScale($event)
+            "
+            ><template v-if="s.isAnimation" #actions
+              ><AnimationKeyButton :studio="s" field="scale" /></template
+          ></NumberRange>
           <p class="field-help">
-            Les coins adaptent ensemble les objets, textes, contours et
-            espacements.
-          </p>
-          <label
-            >Échelle à appliquer · %<input
-              type="number"
-              min="1"
-              max="1000"
-              v-model.number="s.scalePercent"
-              aria-label="Échelle de la sélection" /></label
-          ><button class="btn full" @click="s.applySelectionScale">
-            Appliquer l’échelle
-          </button></InspectorDrawer
+            Objets, texte, contours et espacements sont redimensionnés ensemble.
+            Maj + poignée conserve les proportions.
+          </p> </InspectorDrawer
         ><InspectorDrawer id="slide-placement" title="Placer sur la diapo"
           ><PlacementControls @place="(x, y) => s.placeObjects(x, y)" /><label
             >Marge · px<input

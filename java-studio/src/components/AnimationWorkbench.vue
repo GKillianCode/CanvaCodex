@@ -327,7 +327,6 @@ function connector() {
       <button @click="a.seek(0)">Début de scène</button
       ><button @click="a.seek(a.config.duration)">Fin de scène</button>
     </div>
-    <label>Zoom <AnimationKeyButton :studio="s" field="cameraZoom" /></label>
     <NumberRange
       label="Zoom de la caméra"
       unit="%"
@@ -336,7 +335,9 @@ function connector() {
       :step="1"
       :model-value="a.propertyValue('cameraZoom')"
       @update:model-value="a.setProperty('cameraZoom', $event)"
-    />
+      ><template #actions
+        ><AnimationKeyButton :studio="s" field="cameraZoom" /></template
+    ></NumberRange>
     <button class="btn" @click="a.setProperty('cameraZoom', 100)">
       100 % à cet instant
     </button>
