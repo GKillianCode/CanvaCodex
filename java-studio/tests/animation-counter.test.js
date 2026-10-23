@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { counterText, normalizeCounter } from "../src/animationCounter.js";
+import { counterText, counterScroll, normalizeCounter } from "../src/animationCounter.js";
 import { animationScene, normalizeAnimation } from "../src/animationModel.js";
 const scene = {
   id: "counter-test",
@@ -113,4 +113,34 @@ test("countdown and progressive rates are deterministic under seeking", () => {
   animationScene(scene, cfg, 8);
   assert.deepEqual(animationScene(scene, cfg, 3), first);
   assert.equal(normalizeCounter({ duration: 0 }).duration, 0.001);
+});
+
+test('scroll counters evaluate adjacent full values in all directions without enumerating the range', () => {
+  for(const direction of ['up','down','left','right']) {
+    const c={display:'scroll',direction,from:2026,to:2022,duration:4};
+    assert.deepEqual(counterScroll(c,2025.5),{current:'2026',next:'2025',progress:.5,direction});
+    assert.equal(counterScroll(c,2022).progress,0);
+    assert.equal(counterScroll(c,2022).current,'2022');
+    const increasing=counterScroll({...c,from:2022,to:2026},2022.25);
+    assert.equal(increasing.current,'2022');assert.equal(increasing.next,'2023');
+    assert.equal(increasing.progress,.25);
+  }
+  assert.equal(counterScroll({from:0,to:100},1),null);
+  assert.equal(counterScroll({display:'scroll',from:5,to:5},5),null);
+  assert.equal(counterScroll({display:'scroll',from:0,to:1e12},1000000.5).current,'0000001000000');
+  const clock=counterScroll({display:'scroll',mode:'time',from:61,to:59},60.5);
+  assert.equal(clock.current,'00:01:01');assert.equal(clock.next,'00:01:00');
+  const decimal=counterScroll({display:'scroll',from:0,to:1,decimals:1},.15);
+  assert.equal(decimal.current,'0.1');assert.equal(decimal.next,'0.2');
+  assert(Math.abs(decimal.progress-.5)<1e-6);
+});
+test('scroll state uses presence and rate interpolation and survives JSON normalization',()=>{
+  const cfg=normalizeAnimation({duration:10,presences:{textCount:{start:2}},counters:{textCount:{display:'scroll',direction:'right',from:2026,to:2022,duration:4}}});
+  const sample=t=>animationScene(scene,cfg,t).scene.counterFrames.textCount;
+  assert.equal(sample(2).current,'2026');assert.equal(sample(2).progress,0);
+  assert.equal(sample(2.5).next,'2025');assert.equal(sample(2.5).progress,.5);
+  assert.equal(sample(6).current,'2022');assert.equal(sample(6).progress,0);
+  assert.deepEqual(normalizeAnimation(JSON.parse(JSON.stringify(cfg))).counters,cfg.counters);
+  const first=sample(3.5);sample(8);assert.deepEqual(sample(3.5),first);
+  assert.equal(scene.counterFrames,undefined);
 });

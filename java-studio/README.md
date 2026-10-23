@@ -280,3 +280,5 @@ Les objets Animation ont une **présence indépendante des clips** : création �
 La durée d’une scène Animation se saisit dans Scène en **minutes, secondes et images**, à la cadence choisie (24/30/60 i/s), avec le champ de timecode partagé.
 
 Dans la timeline Animation, les actions de chaque tiroir restent accessibles replié : désactiver/réactiver les animations, masquer/réafficher la piste via **Pistes masquées**, supprimer les animations avec confirmation et annulation, en conservant l’objet et sa présence.
+
+L’audio de référence Animation dispose d’un volume d’écoute **0–100 %** partagé entre timeline et aperçu, mémorisé avec le mode muet. Les compteurs peuvent remplacer les chiffres ou **faire défiler les valeurs entières dans les quatre directions**, en progression ou compte à rebours, avec les styles de texte et clés de couleur habituels.

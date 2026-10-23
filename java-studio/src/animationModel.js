@@ -1,4 +1,4 @@
-import {normalizeCounters,counterText} from "./animationCounter.js";
+import {normalizeCounters,counterText,counterScroll} from "./animationCounter.js";
 import {normalizePresences,presenceState} from "./animationPresence.js";
 import {normalizeSceneAudio} from './animationAudioModel.js';
 import {parseEffectField} from "./animationEffectCatalog.js";
@@ -626,6 +626,8 @@ export function animationScene(scene, raw, time, options={}) {
     const start=config.presences[key]?.start ?? 0;
     const value=frameValue([{field:'counter',time:0,value:counter.from,ease:counter.easing},{field:'counter',time:counter.duration,value:counter.to,ease:counter.easing}], 'counter', Math.max(0,time-start),counter.from);
     result.elements[key]={...result.elements[key],text:counterText(counter,value)};
+    const scroll=counterScroll(counter,value);
+    if(scroll) (result.counterFrames??={})[key]=scroll;
   }
   const presence = {};
   for (const [key, range] of Object.entries(config.presences)) {

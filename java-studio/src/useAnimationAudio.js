@@ -8,6 +8,7 @@ export function useAnimationAudio(s, playback) {
     importing = ref(false),
     error = ref(""),
     muted = ref(false),
+    volume = ref(1),
     timeUnit = ref("frames");
   try {
     timeUnit.value =
@@ -16,6 +17,9 @@ export function useAnimationAudio(s, playback) {
         : "frames";
     muted.value =
       localStorage.getItem("frame-animation-audio-muted") === "true";
+    const savedVolume = localStorage.getItem('frame-animation-audio-volume');
+    if (savedVolume != null && Number.isFinite(Number(savedVolume)))
+      volume.value = Math.max(0, Math.min(1, Number(savedVolume)));
   } catch {}
   const frameRate = computed(() =>
     timeUnit.value === "frames" ? s.current.value.animation.fps : 0,
@@ -55,6 +59,7 @@ export function useAnimationAudio(s, playback) {
   };
   function sync() {
     media.muted = muted.value;
+    media.volume = volume.value;
     const duration = s.current.value.animation.duration;
     const target = position.value;
     const active =
@@ -151,6 +156,7 @@ export function useAnimationAudio(s, playback) {
       playback.busy,
       importing,
       muted,
+      volume,
       () => settings.value?.start,
       () => s.current.value.animation.duration,
     ],
@@ -160,6 +166,13 @@ export function useAnimationAudio(s, playback) {
   watch(playback.playing, () => {
     blocked = false;
   });
+  function setVolume(percent) {
+    const value = Number(percent);
+    if (!Number.isFinite(value)) return;
+    volume.value = Math.max(0, Math.min(1, value / 100));
+    try { localStorage.setItem('frame-animation-audio-volume', String(volume.value)); } catch {}
+    sync();
+  }
   function toggleMute() {
     muted.value = !muted.value;
     try {
@@ -246,7 +259,7 @@ export function useAnimationAudio(s, playback) {
     loading,
     importing,
     error,
-    muted,
+    muted,volume,setVolume,
     toggleMute,
     importFile,
     setStart,

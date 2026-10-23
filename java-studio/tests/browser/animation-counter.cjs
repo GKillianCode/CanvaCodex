@@ -139,6 +139,47 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1):5289$/.test(base || ""))
       { key },
     );
     assert(rendered.includes("0500"));
+    // Scroll whole values through a clipped text window with standard keyframed styling.
+    await page.getByLabel('Valeur de départ',{exact:true}).fill('2026');
+    await page.getByLabel('Valeur d’arrivée',{exact:true}).fill('2022');
+    await page.getByLabel('Texte avant',{exact:true}).fill('');
+    await page.getByLabel('Texte après',{exact:true}).fill('');
+    await page.getByLabel('Affichage du compteur',{exact:true}).selectOption('scroll');
+    await page.evaluate(({key})=>{
+      const s=live(),a=s.animation.config.value;
+      s.current.value.positions[key]={...s.current.value.positions[key],x:200,y:200,w:600,h:160,autoSize:false};
+      a.clips.push({id:'counter-style',name:'Couleur du compteur',keys:[key],enabled:true,start:5,duration:4,easing:'linear',frames:[{field:'color',time:0,value:'#ff0000',ease:'linear'},{field:'color',time:4,value:'#0000ff',ease:'linear'}]});
+    },{key});
+    for(const direction of ['up','down','left','right']) {
+      await page.getByLabel('Sens du défilement',{exact:true}).selectOption(direction);
+      const render=await page.evaluate(async({key})=>{
+        const s=live(),{renderAnimation}=await import('/src/animationRender.js');
+        const canvas=document.createElement('canvas');canvas.width=1920;canvas.height=1080;
+        const ctx=canvas.getContext('2d'),calls=[],fill=ctx.fillText.bind(ctx);
+        ctx.fillText=(text,...args)=>{const m=ctx.getTransform();calls.push({text,color:ctx.fillStyle,font:ctx.font,x:m.e,y:m.f});fill(text,...args);};
+        renderAnimation(ctx,s.current.value,s.theme.value,s.animation.config.value,5.5);
+        let outside=0;for(let y=0;y<1080;y+=5)for(let x=0;x<1920;x+=5)if((x<200||x>=800||y<200||y>=360)&&ctx.getImageData(x,y,1,1).data[3])outside++;
+        return {calls,outside};
+      },{key});
+      assert.equal(render.outside,0,'Counter pixels must remain inside its window');
+      assert(render.calls.some(c=>c.text.includes('2026')));
+      assert(render.calls.some(c=>c.text.includes('2025')));
+      const first=render.calls.find(c=>c.text.includes('2026')),next=render.calls.find(c=>c.text.includes('2025'));
+      assert.equal(first.color,next.color);assert.notEqual(first.color,'#ff0000');
+      assert.match(first.font,/JetBrains/);
+      assert.equal(Math.sign(direction==='left'||direction==='right'?first.x:first.y),['left','up'].includes(direction)?-1:1);
+      assert.equal(Math.sign(direction==='left'||direction==='right'?next.x:next.y),['left','up'].includes(direction)?1:-1);
+    }
+    await page.evaluate(()=>live().animation.seek(5.5));
+    await page.screenshot({path:'/tmp/frame-counter-scroll-dark.png'});
+    await page.evaluate(()=>document.documentElement.dataset.appearance='light');
+    await page.screenshot({path:'/tmp/frame-counter-scroll-light.png'});
+    await page.evaluate(()=>document.documentElement.dataset.appearance='dark');
+    await page.getByLabel('Affichage du compteur',{exact:true}).selectOption('replace');
+    await page.getByLabel('Valeur de départ',{exact:true}).fill('0');
+    await page.getByLabel('Valeur d’arrivée',{exact:true}).fill('1000');
+    await page.getByLabel('Texte avant',{exact:true}).fill('Total : ');
+    await page.getByLabel('Texte après',{exact:true}).fill(' pts');
     await page
       .getByLabel("Type de compteur", { exact: true })
       .selectOption("time");

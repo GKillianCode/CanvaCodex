@@ -6,6 +6,8 @@ export function normalizeCounter(raw = {}) {
     limit = mode === "time" ? 86400 : 1e12;
   return {
     mode,
+    display: raw.display === 'scroll' ? 'scroll' : 'replace',
+    direction: ['left','right','up','down'].includes(raw.direction) ? raw.direction : 'up',
     from: number(raw.from, 0, mode === "time" ? 0 : -limit, limit),
     to: number(raw.to, 100, mode === "time" ? 0 : -limit, limit),
     duration: number(raw.duration, 10, 0.001, 120),
@@ -71,4 +73,17 @@ export function counterText(raw, value) {
       sign + whole + (fraction != null ? c.decimalSeparator + fraction : "");
   }
   return c.prefix + text + c.suffix;
+}
+
+// Only the two adjacent values are evaluated: no list of all intermediate numbers.
+export function counterScroll(raw, value) {
+  const c = normalizeCounter(raw);
+  if (c.display !== 'scroll' || c.from === c.to) return null;
+  const sign = Math.sign(c.to-c.from), factor = c.mode === 'time' ? 1 : 10**c.decimals;
+  const bounded = Math.max(Math.min(c.from,c.to),Math.min(Math.max(c.from,c.to),value));
+  if (Math.abs(bounded-c.to)<1e-9) return {current:counterText(c,c.to),next:counterText(c,c.to),progress:0,direction:c.direction};
+  const current = (sign > 0 ? Math.floor(bounded*factor+1e-7) : Math.ceil(bounded*factor-1e-7))/factor;
+  const next = sign > 0 ? Math.min(c.to,current+1/factor) : Math.max(c.to,current-1/factor);
+  const progress = next === current ? 0 : Math.max(0,Math.min(1,(bounded-current)/(next-current)));
+  return {current:counterText(c,current),next:counterText(c,next),progress,direction:c.direction};
 }

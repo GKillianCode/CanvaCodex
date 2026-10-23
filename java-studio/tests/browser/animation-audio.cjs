@@ -131,6 +131,15 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       [0, 3],
     );
     assert.equal(await page.locator(".animation-audio-track").count(), 1);
+    await page.getByLabel('Volume · valeur',{exact:true}).fill('35');
+    assert.equal(await page.evaluate(()=>referenceAudio.volume),.35);
+    assert.equal(await page.evaluate(()=>localStorage.getItem('frame-animation-audio-volume')),'0.35');
+    await page.getByRole('button',{name:'Couper l’audio',exact:true}).click();
+    await page.getByLabel('Volume · valeur',{exact:true}).fill('20');
+    assert.equal(await page.evaluate(()=>referenceAudio.muted),true);
+    await page.getByRole('button',{name:'Réactiver l’audio',exact:true}).click();
+    assert.equal(await page.evaluate(()=>referenceAudio.volume),.2);
+
     const before = await page
       .locator(".animation-audio-lane path")
       .getAttribute("d");
@@ -274,6 +283,10 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       .click();
     const dialog = page.getByRole("dialog", { name: "Aperçu de l’animation" });
     await dialog.waitFor();
+    assert.equal(await dialog.getByLabel('Volume · valeur',{exact:true}).inputValue(),'20');
+    await dialog.getByLabel('Volume · valeur',{exact:true}).fill('60');
+    assert.equal(await page.evaluate(()=>referenceAudio.volume),.6);
+
     await dialog
       .getByRole("button", { name: "Lire l’aperçu", exact: true })
       .click();
@@ -350,6 +363,8 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       await page.evaluate(() => live().animation.audio.muted.value),
       true,
     );
+    assert.equal(await page.evaluate(()=>live().animation.audio.volume.value),.6);
+    assert.equal(await page.evaluate(()=>referenceAudio.volume),.6);
     await page
       .getByRole("button", { name: "Scène · propriétés", exact: true })
       .click();

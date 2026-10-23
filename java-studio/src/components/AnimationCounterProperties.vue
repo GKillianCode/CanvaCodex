@@ -65,6 +65,14 @@ function update(field, value) {
           @input="update('to', $event.target.value)"
       /></label>
     </div>
+    <p class="field-help">Le compteur monte ou descend selon les valeurs de départ et d’arrivée.</p>
+    <label>Affichage du compteur<select aria-label="Affichage du compteur" :value="counter.display" @input="update('display',$event.target.value)">
+      <option value="replace">Chiffres remplacés</option><option value="scroll">Défilement des valeurs</option>
+    </select></label>
+    <label v-if="counter.display === 'scroll'">Sens du défilement<select aria-label="Sens du défilement" :value="counter.direction" @input="update('direction',$event.target.value)">
+      <option value="right">De gauche à droite</option><option value="left">De droite à gauche</option>
+      <option value="down">Du haut vers le bas</option><option value="up">Du bas vers le haut</option>
+    </select></label>
     <TimecodeInput
       label="Durée du défilement"
       :frame-rate="a.audio.frameRate"

@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, computed } from "vue";
-import { Volume2, VolumeX, Music2 } from "lucide-vue-next";
+import AnimationAudioVolume from "./AnimationAudioVolume.vue";
+import { Music2 } from "lucide-vue-next";
 import { audioWavePath, audioTimeLabel } from "../animationAudioModel.js";
 const props = defineProps({ studio: Object, span: Number }),
   s = reactive(props.studio),
@@ -18,16 +19,6 @@ const wave = computed(() =>
 <template>
   <div v-if="a.config.audio.src" class="animation-track animation-audio-track">
     <div class="track-name">
-      <button
-        type="button"
-        class="icon-btn"
-        :aria-label="a.audio.muted ? 'Réactiver l’audio' : 'Couper l’audio'"
-        :title="a.audio.muted ? 'Réactiver l’audio' : 'Couper l’audio'"
-        :aria-pressed="a.audio.muted"
-        @click="a.audio.toggleMute"
-      >
-        <component :is="a.audio.muted ? VolumeX : Volume2" :size="15" />
-      </button>
       <span class="animation-audio-label"
         ><strong
           ><Music2 :size="12" /><span>{{
@@ -38,6 +29,7 @@ const wave = computed(() =>
           {{ audioTimeLabel(a.config.audio.start + a.config.duration, a.audio.frameRate) }}</small
         ></span
       >
+      <AnimationAudioVolume :audio="a.audio"/>
     </div>
     <div
       class="track-lane animation-audio-lane"
@@ -66,3 +58,7 @@ const wave = computed(() =>
     </div>
   </div>
 </template>
+
+<style scoped>
+.animation-audio-track > .track-name {display:flex;flex-direction:column;align-items:stretch;justify-content:center;padding:6px 10px;gap:6px;}
+</style>
