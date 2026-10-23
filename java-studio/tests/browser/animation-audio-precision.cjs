@@ -65,6 +65,9 @@ function measure(reference, chunk) {
       viewport: { width: 1600, height: 1050 },
     });
     await page.goto(url);
+    await page.evaluate(() =>
+      localStorage.setItem("frame-animation-audio-time-unit", "ms"),
+    );
     await page.evaluate(async () => {
       const { createApp, h, ref, nextTick } =
         await import("/node_modules/.vite/deps/vue.js");
@@ -92,14 +95,28 @@ function measure(reference, chunk) {
       window.live = () => v.value.getStudio();
       live().workspace.value = "editor";
     });
+    assert.equal(
+      await page.getByLabel("Temps de la scène · images").count(),
+      1,
+      "Playback defaults to frame units even without reference audio",
+    );
     await page
       .getByRole("button", { name: "Scène · propriétés", exact: true })
       .click();
     await page.getByText("Audio de référence", { exact: true }).first().click();
+    assert.equal(
+      await page.getByLabel("Unité du timecode").inputValue(),
+      "frames",
+    );
     await page
       .getByLabel("Importer l’audio de référence", { exact: true })
       .setInputFiles(file);
     await page.waitForFunction(() => !!live().animation.audio.asset.value);
+    assert.equal(
+      await page.getByLabel("Début dans le fichier · images").count(),
+      1,
+      "Scene properties and playback must share frame units by default",
+    );
     const reference = await page.evaluate(async () => {
       const asset = live().animation.audio.asset.value;
       const buffer = await new OfflineAudioContext(1, 1, 8000).decodeAudioData(
@@ -221,6 +238,12 @@ function measure(reference, chunk) {
         .getByLabel("Début dans le fichier · millisecondes")
         .inputValue(),
       "500",
+    );
+    assert.equal(
+      await page.evaluate(() =>
+        localStorage.getItem("frame-animation-time-unit"),
+      ),
+      "ms",
     );
     console.log(
       "Frames 30fps: 21s15f = 21.5s, scene2 = source23.5, switching units preserves start OK",

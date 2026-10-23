@@ -115,6 +115,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       .getByRole("button", { name: "Scène · propriétés", exact: true })
       .click();
     await page.getByText("Audio de référence", { exact: true }).first().click();
+    await page.getByLabel("Unité du timecode").selectOption("ms");
     await page
       .getByLabel("Importer l’audio de référence", { exact: true })
       .setInputFiles(fixture);

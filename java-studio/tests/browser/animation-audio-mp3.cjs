@@ -102,6 +102,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
         .getByLabel("Importer l’audio de référence", { exact: true })
         .setInputFiles(file);
       await page.waitForFunction(() => !!live().animation.audio.asset.value);
+      await page.getByLabel("Unité du timecode").selectOption("ms");
       await page.evaluate(async () => {
         window.ctx = new AudioContext();
         window.spectrum = ctx.createAnalyser();

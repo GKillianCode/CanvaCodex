@@ -8,12 +8,12 @@ export function useAnimationAudio(s, playback) {
     importing = ref(false),
     error = ref(""),
     muted = ref(false),
-    timeUnit = ref("ms");
+    timeUnit = ref("frames");
   try {
     timeUnit.value =
-      localStorage.getItem("frame-animation-audio-time-unit") === "frames"
-        ? "frames"
-        : "ms";
+      localStorage.getItem("frame-animation-time-unit") === "ms"
+        ? "ms"
+        : "frames";
     muted.value =
       localStorage.getItem("frame-animation-audio-muted") === "true";
   } catch {}
@@ -23,7 +23,7 @@ export function useAnimationAudio(s, playback) {
   function setTimeUnit(value) {
     timeUnit.value = value === "frames" ? "frames" : "ms";
     try {
-      localStorage.setItem("frame-animation-audio-time-unit", timeUnit.value);
+      localStorage.setItem("frame-animation-time-unit", timeUnit.value);
     } catch {}
   }
   const settings = computed(() => s.current.value.animation.audio);

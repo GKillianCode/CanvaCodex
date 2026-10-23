@@ -51,7 +51,10 @@ function step(amount, key) {
 </script>
 <template>
   <fieldset class="timecode-input" :class="{ compact }" :disabled="disabled">
-    <legend>{{ label }}</legend>
+    <legend>
+      {{ label
+      }}<template v-if="compact && frameRate"> · {{ frameRate }} i/s</template>
+    </legend>
     <div class="timecode-segments">
       <template v-for="([key, name, unit, size], index) in fields" :key="key">
         <span v-if="index" class="timecode-separator" aria-hidden="true">{{

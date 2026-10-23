@@ -39,22 +39,22 @@ const end = computed(() => a.config.audio.start + a.config.duration);
       Un fichier partagé par les scènes de cette animation. Écoute de référence,
       sans ajout au fichier vidéo exporté.
     </p>
+    <label class="animation-audio-time-format"
+      >Unité du timecode
+      <select
+        :value="a.audio.timeUnit"
+        :disabled="a.busy"
+        @change="a.audio.setTimeUnit($event.target.value)"
+      >
+        <option value="ms">Millisecondes</option>
+        <option value="frames">Images · {{ a.config.fps }} i/s</option>
+      </select>
+    </label>
     <template v-if="a.config.audio.src">
       <strong class="animation-audio-filename">{{
         a.audio.asset?.name ||
         (a.audio.loading ? "Chargement…" : "Audio de référence")
       }}</strong>
-      <label class="animation-audio-time-format"
-        >Unité du timecode
-        <select
-          :value="a.audio.timeUnit"
-          :disabled="a.busy"
-          @change="a.audio.setTimeUnit($event.target.value)"
-        >
-          <option value="ms">Millisecondes</option>
-          <option value="frames">Images · {{ a.config.fps }} i/s</option>
-        </select>
-      </label>
       <TimecodeInput
         label="Début dans le fichier"
         :frame-rate="a.audio.frameRate"
