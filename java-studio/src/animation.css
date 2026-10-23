@@ -1006,3 +1006,5 @@
 .presence-exit-zone {background:repeating-linear-gradient(130deg,transparent 0 4px,color-mix(in srgb,var(--ink) 9%,transparent) 4px 6px);}
 .presence-span small {position:relative;z-index:1;}
 .presence-handle {z-index:2;}
+
+.clip-span.presence-aligned-sequence {cursor:pointer;}

@@ -79,7 +79,7 @@ Un losange plein indique une clé à cet instant ; un contour coloré indique un
 
 Les moteurs à particules disposent également de clés pour la force, la vitesse, la taille, la quantité, la durée de vie et la gravité. La couleur animée est prise dans le rendu réel de la palette.
 
-- Glisser un losange déplace son instant. Glisser la barre décale la séquence.
+- Glisser un losange déplace son instant. La barre de séquence d’un objet reprend les bornes de sa présence : cliquer dessus sélectionne la séquence, sans déplacer ses clés. Les poignées de présence règlent les bornes de l’objet et conservent les instants des clés. Les pistes globales et les effets gardent leurs barres de durée indépendantes et déplaçables.
 - Double-clic ou clic droit → **Afficher cet état** place le curseur au temps exact, active le rendu animé et ouvre les valeurs de la clé à gauche.
 - Clic droit : dupliquer/supprimer une clé. La duplication la décale pour ne pas la recouvrir immédiatement.
 - Chaque ligne de propriété a sa propre interpolation : linéaire, progressive, accélération, décélération, instantanée ou Bézier. Les paramètres Bézier et valeurs individuelles restent à gauche.
@@ -256,3 +256,14 @@ L’exemple Slime et le JSON à la racine utilisent désormais tous les effets d
 Avec beaucoup de pistes, cocher **Sélection** pour se concentrer sur l’objet actif et les pistes globales. Cliquer sur le nom d’un effet dans la timeline ouvre directement son tiroir partagé. Les obstacles physiques, qui agissent sur la scène sans plage temporelle, restent dans leurs propriétés et ne présentent plus de fausse durée dans la timeline.
 
 Les événements proposent maintenant **Masquer un objet ou une flèche**, en complément de Faire apparaître. Plusieurs événements de visibilité sur une cible sont évalués dans l’ordre de leur déclenchement, y compris après une recherche temporelle en arrière.
+
+
+## Pistes autour du curseur, groupes et motifs animés
+
+**Autour du curseur**, activé par défaut et mémorisé dans le navigateur, affiche chaque tiroir d’objet de deux secondes avant son apparition à deux secondes après sa disparition. Revenir en arrière retrouve ses pistes ; décocher ce filtre retrouve toutes les pistes. Ce filtrage change uniquement la liste, pas le rendu ni les animations. Les pistes globales restent visibles. Une séquence commune à plusieurs objets reste accessible lorsqu’au moins un de ses membres est dans cette fenêtre. Pendant un déplacement, la piste manipulée reste visible jusqu’au relâchement.
+
+Une sélection groupée dispose de **Position et dimensions du groupe**, avec des clés communes pour la position, la taille et la rotation. Les nouveaux clips de groupe transforment les membres ensemble. Les anciens clips conservent leur comportement : ajouter une propriété commune crée au besoin une nouvelle couche de groupe à l’instant courant, sans réécrire leurs anciennes clés. Les mouvements réutilisables peuvent être appliqués à la sélection groupée et enregistrés depuis sa séquence ; leur transformation commune et les effets du membre de référence sont réutilisés.
+
+Dans **Scène → Fond et motifs**, les losanges permettent d’animer le type de fond, les couleurs, la rotation, la taille, l’espacement, l’épaisseur, l’opacité et les décalages horizontal/vertical des motifs. Les contrôles apparaissent selon le mode de fond choisi. Les valeurs numériques et couleurs suivent l’interpolation et la courbe de la séquence ; un changement de type de fond produit un fondu entre les deux types choisis. Le quinconce est un changement discret. Les préréglages enregistrent leurs propriétés à l’instant courant en une seule opération annulable.
+
+L’éditeur, l’aperçu et l’export utilisent le même fond évalué. Le format automatique prend aussi en compte les clés menant à un fond transparent pour conserver son alpha.

@@ -410,27 +410,18 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
         Sélectionne un objet pour le personnaliser.
       </p>
       <InspectorDrawer
-        v-if="
-          s.selectedKeys.length > 1 && !s.multiType && category === 'layout'
-        "
-        id="selection-frame"
-        title="Cadre de la sélection"
-        ><div class="position-grid">
-          <label
-            v-for="[key, name] in [
-              ['x', 'Position X'],
-              ['y', 'Position Y'],
-              ['w', 'Largeur'],
-              ['h', 'Hauteur'],
-            ]"
-            :key="key"
-            >{{ name
-            }}<output
-              >{{ pixels(s.selectionBounds?.[key] || 0) }} px</output
-            ></label
-          >
-        </div></InspectorDrawer
-      ><InspectorDrawer
+        v-if="s.isAnimation && s.selectedKeys.length > 1 && category === 'layout'"
+        id="selection-frame" title="Position et dimensions du groupe">
+        <TransformFields :value="Object.fromEntries(['x','y','w','h','rotation'].map(field=>[field,field==='rotation'?s.animation.propertyValue(field):pixels(s.animation.propertyValue(field))]))"
+          :limit="pixels(10000)" aria-suffix=" du groupe"
+          @change="(field,event)=>s.animation.setProperty(field,field==='rotation'?Number(event.target.value):Number(event.target.value)*1920/s.resolution.width)">
+          <template #key="{field}"><AnimationKeyButton :studio="s" :field="field"/></template>
+        </TransformFields>
+      </InspectorDrawer>
+      <InspectorDrawer v-else-if="s.selectedKeys.length > 1 && !s.multiType && category === 'layout'" id="selection-frame" title="Cadre de la sélection">
+        <div class="position-grid"><label v-for="[key,name] in [['x','Position X'],['y','Position Y'],['w','Largeur'],['h','Hauteur']]" :key="key">{{name}}<output>{{pixels(s.selectionBounds?.[key]||0)}} px</output></label></div>
+      </InspectorDrawer>
+      <InspectorDrawer
         v-if="
           !s.isAnimation &&
           s.selectedKeys.length > 1 &&
@@ -457,7 +448,7 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
           " /></InspectorDrawer
       ><MultiProperties
         v-if="
-          s.selectedKeys.length > 1 && (!s.isAnimation || category !== 'motion')
+          s.selectedKeys.length > 1 && (!s.isAnimation || !['motion','layout'].includes(category))
         "
         :studio="s"
         :mode="category"

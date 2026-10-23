@@ -1,4 +1,5 @@
 <script setup>
+import {patternLabels} from "../sceneBackground.js";
 import { effectFieldLabel } from "../animationEffectCatalog.js";
 import InspectorDrawer from "./InspectorDrawer.vue";
 import { Diamond } from "lucide-vue-next";
@@ -17,6 +18,7 @@ const frames = computed(() =>
     : [],
 );
 const labels = {
+  ...patternLabels,
   backgroundColor: "Fond · couleur 1",
   backgroundColor2: "Fond · couleur 2",
   backgroundAngle: "Fond · angle",

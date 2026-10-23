@@ -284,3 +284,8 @@ Dans la timeline Animation, les actions de chaque tiroir restent accessibles rep
 L’audio de référence Animation dispose d’un volume d’écoute **0–100 %** partagé entre timeline et aperçu, mémorisé avec le mode muet. Les compteurs peuvent remplacer les chiffres ou **faire défiler les valeurs entières dans les quatre directions**, en progression ou compte à rebours, avec les styles de texte et clés de couleur habituels.
 
 **Présence dans la scène → Maintien final** réserve un délai avant la sortie, nul par défaut et réglable pour tous les blocs. Les compteurs adaptent leur vitesse pour laisser leur valeur finale lisible pendant ce délai, puis conservent cette valeur pendant l’effacement. Les bornes de présence et les clés manuelles restent inchangées.
+
+
+La timeline Animation filtre par défaut les objets **deux secondes avant leur apparition et deux secondes après leur disparition** ; décocher **Autour du curseur** retrouve toutes les pistes. Le résumé de séquence reprend la taille de la barre de présence sans décaler ses clés. Les groupes disposent de transformations communes et acceptent les mouvements réutilisables.
+
+Dans **Scène → Fond et motifs**, les losanges animent couleurs, opacité, taille, espacement, épaisseur, rotation et décalages. Les changements de type de motif utilisent un fondu, avec le même rendu dans l’éditeur, l’aperçu et l’export.

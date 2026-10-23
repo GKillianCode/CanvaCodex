@@ -1,4 +1,5 @@
 <script setup>
+import {patternLabels} from "../sceneBackground.js";
 import { normalizePresence, presenceTiming } from "../animationPresence.js";
 import TimecodeInput from "./TimecodeInput.vue";
 import {audioTimeLabel} from "../animationAudioModel.js";
@@ -41,7 +42,9 @@ const props = defineProps({ studio: Object }),
   world = ref(null),
   menu = ref(null),
   draggingKey = ref(null),
-  showHidden = ref(false), selectedOnly=ref(false);
+  showHidden = ref(false), selectedOnly=ref(false), nearPlayhead=ref(true), draggedGroup=ref(null);
+try { nearPlayhead.value=localStorage.getItem('frame-animation-near-playhead')!=='false'; } catch {}
+watch(nearPlayhead,value=>{try{localStorage.setItem('frame-animation-near-playhead',String(value));}catch{}});
 const visibleClips=computed(()=>a.config.clips.filter(c=>(!c.hidden||showHidden.value)&&(!selectedOnly.value||!s.selectedKeys.length||!c.keys.length||c.keys.some(k=>s.selectedKeys.includes(k)))));
 const visibleEffects=computed(()=>a.config.effects.filter(e=>visualEffectKinds.includes(e.kind)&&(!selectedOnly.value||!s.selectedKeys.length||s.selectedKeys.includes(e.key))));
 // Each sequence/effect belongs to one drawer, including sequences targeting several objects.
@@ -53,6 +56,14 @@ function groupAnimations(key) {
     ...a.config.clips.filter(c => (c.keys[0] || '$scene') === key),
     ...a.config.effects.filter(e => visualEffectKinds.includes(e.kind) && e.key === key),
   ];
+}
+function groupIsNear(group) {
+  if(!nearPlayhead.value || !group.range || draggedGroup.value===group.key)return true;
+  const keys=new Set([group.key,...group.clips.flatMap(c=>c.keys)]);
+  return [...keys].some(key=>{
+    const timing=key===group.key?group.timing:presenceTiming(a.config.presences[key],a.config.duration);
+    return a.time>=timing.start-2 && a.time<=timing.end+2;
+  });
 }
 function toggleGroupHidden(key) {
   const id = groupId(key);
@@ -91,7 +102,8 @@ const trackGroups = computed(() => {
   }
   for (const c of visibleClips.value) group(c.keys[0] || '$scene').clips.push(c);
   for (const effect of visibleEffects.value) group(effect.key).effects.push(effect);
-  return [...groups.values()].filter(g => showHidden.value || !hiddenGroups.has(groupId(g.key)));
+  return [...groups.values()].filter(g => (showHidden.value || !hiddenGroups.has(groupId(g.key))) &&
+    groupIsNear(g));
 });
 watch(() => a.selectedClip, () => {
   const group = trackGroups.value.find(g => g.clips.some(c => c.id === a.selectedClip));
@@ -120,11 +132,12 @@ function dragPresence(event,key,edge) {
     a.config.presences[key]=normalizePresence(range);
     const at=edge==='end'?range.end:range.start;
     draggingKey.value={time:at,frame:Math.round(at*a.config.fps),x:Math.max(8,Math.min(window.innerWidth-240,e.clientX+14)),y:Math.max(8,Math.min(window.innerHeight-64,e.clientY+22)),blocked:false};
-  });
+  },key);
 }
 const view = computed(() => timelineView(a.config.duration, zoom.value));
 watch(() => !!a.config.audio.src, present => { if (present) { timelinePanel.value = 'audio'; } }, {immediate:true});
 const labels = {
+  ...patternLabels,
   fillEnabled: "Remplissage activé",
   strokeEnabled: "Contour activé",
   dashed: "Pointillés",
@@ -164,8 +177,9 @@ const easeLabels = {
   bezier: "Bézier",
 };
 let cleanup = () => {};
-function gesture(move) {
+function gesture(move,owner=null) {
   cleanup();
+  draggedGroup.value=owner;
   a.beginGesture();
   const end = () => {
     window.removeEventListener("pointermove", move);
@@ -173,6 +187,7 @@ function gesture(move) {
     window.removeEventListener("pointercancel", end);
     window.removeEventListener("blur", end);
     draggingKey.value = null;
+    draggedGroup.value=null;
     a.endGesture();
     cleanup = () => {};
   };
@@ -203,7 +218,7 @@ function dragKey(event, c, key) {
     const delta = Math.round((e.clientX - x) / rect.width * view.value.span * a.config.fps) / a.config.fps;
     const moved = moveKeySelection(entries, delta, origins);
     indicate(e, !moved);
-  });
+  },c.keys[0]||null);
   indicate(event);
 }
 function keyShortcuts(e){if(timelinePanel.value!=='keys')return;if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if((e.ctrlKey||e.metaKey)&&['c','v'].includes(e.key.toLowerCase())){e.preventDefault();e.stopPropagation();if(e.key.toLowerCase()==='c')a.copyKeys();else a.pasteKeys();}if(e.key==='Delete'&&a.keyEntries().length){e.preventDefault();e.stopPropagation();a.deleteKeys();}}
@@ -442,7 +457,8 @@ onUnmounted(() => {
         <Route :size="14" />Spline</button
       ><label title="Réafficher les séquences masquées"
         ><input type="checkbox" v-model="showHidden" />Pistes masquées</label
-      ><label title="Afficher uniquement les pistes de la sélection et les pistes de scène"><input type="checkbox" v-model="selectedOnly" aria-label="Pistes de la sélection"/>Sélection</label>
+      ><label title="Afficher les objets de 2 secondes avant leur apparition à 2 secondes après leur disparition"><input type="checkbox" v-model="nearPlayhead" aria-label="Pistes autour du curseur"/>Autour du curseur</label>
+      <label title="Afficher uniquement les pistes de la sélection et les pistes de scène"><input type="checkbox" v-model="selectedOnly" aria-label="Pistes de la sélection"/>Sélection</label>
 <div class="animation-key-selection-tools"><button class="icon-btn" :disabled="!a.keySelection.length" aria-label="Copier les clés sélectionnées" title="Copier les clés sélectionnées · Ctrl C" @click="a.copyKeys()"><Copy :size="14"/></button><button class="icon-btn" :disabled="!a.keyClipboard.length||!a.clip" aria-label="Coller les clés" title="Coller à la tête de lecture · Ctrl V" @click="a.pasteKeys()"><ClipboardPaste :size="14"/></button><button class="icon-btn" :disabled="!a.keySelection.length" aria-label="Supprimer les clés sélectionnées" @click="a.deleteKeys()"><Trash2 :size="14"/></button></div>    </div>
 
 <div ref="tracks" class="animation-tracks">
@@ -576,11 +592,12 @@ onUnmounted(() => {
               <span
                 class="clip-span"
                 :style="{
-                  left: (c.start / view.span) * 100 + '%',
-                  width: (c.duration / view.span) * 100 + '%',
+                  left: ((group.range ? group.timing.start : c.start) / view.span) * 100 + '%',
+                  width: ((group.range ? group.timing.end-group.timing.start : c.duration) / view.span) * 100 + '%',
                 }"
-                title="Glisser pour décaler la séquence"
-                @pointerdown="dragClip($event, c)"
+                :title="group.range ? 'Plage de présence de l’objet · régler ses bornes sur la ligne de l’objet ; les clés gardent leur temps' : 'Glisser pour décaler la séquence'"
+                :class="{'presence-aligned-sequence':!!group.range}"
+                @pointerdown="group.range ? a.selectClip(c.id) : dragClip($event, c)"
               ></span
               ><button
                 v-for="t in c.collapsed ? frameTimes(c) : frameTimes(c).filter(t => !c.frames.some(f => Math.abs(f.time-t)<0.0001))"

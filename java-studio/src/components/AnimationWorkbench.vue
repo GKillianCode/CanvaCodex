@@ -12,6 +12,7 @@ import {
 import InspectorDrawer from "./InspectorDrawer.vue";
 import NumberRange from "./NumberRange.vue";
 import AnimationKeyButton from "./AnimationKeyButton.vue";
+import { enclosingBounds } from "../selection.js";
 import { attachmentCycle } from "../animationWorkflow.js";
 import { shapes } from "../shapes.js";
 import {
@@ -87,15 +88,16 @@ function event() {
 }
 function apply() {
   const preset = motions.value.find((m) => m.id === motion.value),
-    p = s.current.positions[s.selected];
+    p = s.selectedKeys.length>1 ? s.selectionBounds : s.current.positions[s.selected];
   if (!preset || !p) return;
   if (a.config.clips.length >= 100) throw Error("Limite de 100 séquences.");
+  if(a.config.effects.length+(preset.effects?.length||0)*s.selectedKeys.length>100)throw Error('Limite de 100 effets.');
   if (preset.path && a.config.paths.length >= 50)
     throw Error("Limite de 50 trajectoires.");
   const result = applyMotion(
     preset,
     p,
-    s.selected,
+    s.selectedKeys.length>1 ? [...s.selectedKeys] : s.selected,
     a.time,
     Number(duration.value),
   );
@@ -399,24 +401,24 @@ function connector() {
         step=".1" /></label
     ><button
       class="btn full"
-      :disabled="!s.selected || !!a.engine"
+      :disabled="!s.selectedKeys.length || !!a.engine"
       @click="run(apply)"
     >
-      Appliquer à l’objet sélectionné</button
+      Appliquer à la sélection</button
     ><label
       >Nom du mouvement à enregistrer<input
         v-model="name"
         maxlength="80" /></label
     ><button
       class="btn full"
-      :disabled="!a.clip || a.clip.keys.length !== 1 || !!a.engine"
+      :disabled="!a.clip?.keys.length || !!a.engine"
       @click="
         run(() =>
           upsertAsset(
             'motions',
             captureMotion(
               a.clip,
-              s.current.positions[a.clip.keys[0]],
+              a.clip.groupTransform ? enclosingBounds(a.clip.keys.map(k=>s.current.positions[k]).filter(Boolean)) : s.current.positions[a.clip.keys[0]],
               a.config.paths.find((p) => p.id === a.clip.pathId),
               name,
               a.config.effects,

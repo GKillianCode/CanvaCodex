@@ -1,5 +1,16 @@
 import {boundColor,validColorRole} from './colors.js';
 export const backgroundModes=[['inherit','Fond actuel'],['transparent','Transparent'],['solid','Couleur unie'],['gradient','Dégradé'],['dots','Points'],['grid','Grille'],['lines','Lignes'],['squares','Carrés'],['crosses','Croix'],['hexagons','Hexagones']];
+// Shared channel metadata: the inspector, evaluator and timeline use the same names.
+export const patternChannels = {
+ patternMode:['mode','Fond · type'],patternBase:['base','Fond · couleur'],
+ patternColor:['color','Motif · couleur'],patternColor2:['color2','Fond · deuxième couleur'],
+ patternOpacity:['opacity','Motif · opacité'],patternSize:['size','Motif · taille'],
+ patternSpacing:['spacing','Motif · espacement'],patternThickness:['thickness','Motif · épaisseur'],
+ patternRotation:['rotation','Fond · rotation'],patternOffsetX:['offsetX','Motif · décalage horizontal'],
+ patternOffsetY:['offsetY','Motif · décalage vertical'],patternStagger:['stagger','Motif · quinconce'],
+};
+export const patternLabels=Object.fromEntries(Object.entries(patternChannels).map(([key,[,label]])=>[key,label]));
+export const patternField=property=>Object.keys(patternChannels).find(key=>patternChannels[key][0]===property);
 const number=(value,fallback,min,max)=>Number.isFinite(value)?Math.max(min,Math.min(max,value)):fallback;
 const color=(value,fallback)=>/^#[a-f\d]{6}$/i.test(value||'')?value:fallback;
 export function normalizeBackground(raw={}){

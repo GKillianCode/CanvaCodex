@@ -34,10 +34,12 @@ export function normalizeMotionPresets(raw) {
     }));
 }
 export function captureMotion(clip, position, path, name, effects = []) {
-  if (!clip || clip.keys.length !== 1 || !position)
-    throw Error("Sélectionne une séquence d’un seul objet.");
+  if (!clip || !clip.keys.length || !position)
+    throw Error("Sélectionne une séquence d’objet ou de groupe.");
+  const capturedEffects=effects.filter(e=>e.key===clip.keys[0]);
+  const effectIds=new Set(capturedEffects.map(e=>e.id));
   const frames = clip.frames.filter(
-    (f) =>
+    (f) => (!parseEffectField(f.field)||effectIds.has(parseEffectField(f.field).id)) &&
       ![
         ...backgroundAnimationFields,
         ...cameraFields,
@@ -53,8 +55,7 @@ export function captureMotion(clip, position, path, name, effects = []) {
       reference: position,
       clip: { ...clip, keys: [], frames, particles: { enabled: false } },
       path,
-      effects: effects
-        .filter((e) => e.key === clip.keys[0])
+      effects: capturedEffects
         .map((e) => ({ ...e, start: Math.max(0, e.start - clip.start) })),
     },
   ])[0];
@@ -97,7 +98,9 @@ export function applyMotion(preset, position, key, start, duration) {
   const clip = JSON.parse(JSON.stringify(preset.clip));
   clip.id = crypto.randomUUID();
   clip.name = preset.name;
-  clip.keys = [key];
+  const keys=Array.isArray(key)?key:[key];
+  clip.keys=keys;
+  if(keys.length>1)clip.groupTransform=true;else delete clip.groupTransform;
   clip.start = start;
   clip.duration = duration;
   clip.enabled = true;
@@ -130,25 +133,16 @@ export function applyMotion(preset, position, key, start, duration) {
     }));
     clip.pathId = path.id;
   } else clip.pathId = "";
-  const idMap = new Map();
-  const effects = (preset.effects || []).map((e) => {
-    const id = crypto.randomUUID();
-    idMap.set(e.id, id);
-    return normalizeEffect({
-      ...e,
-      id,
-      key,
-      target: "",
-      pathId: path && e.pathId === preset.path?.id ? path.id : "",
-      start: start + e.start * ratio,
-      duration: e.duration * ratio,
-    });
-  });
-  clip.frames = clip.frames.map((f) => {
-    const p = parseEffectField(f.field);
-    return p && idMap.has(p.id)
-      ? { ...f, field: effectField(idMap.get(p.id), p.property) }
-      : f;
+  const idMap = new Map(), effects=[];
+  for(const targetKey of keys)for(const e of preset.effects||[]) {
+    const id=crypto.randomUUID();
+    if(!idMap.has(e.id))idMap.set(e.id,[]);
+    idMap.get(e.id).push(id);
+    effects.push(normalizeEffect({...e,id,key:targetKey,target:'',pathId:path&&e.pathId===preset.path?.id?path.id:'',start:start+e.start*ratio,duration:e.duration*ratio}));
+  }
+  clip.frames=clip.frames.flatMap(f=>{
+    const p=parseEffectField(f.field);
+    return p&&idMap.has(p.id)?idMap.get(p.id).map(id=>({...f,field:effectField(id,p.property)})):[f];
   });
   return { clip, path, effects };
 }

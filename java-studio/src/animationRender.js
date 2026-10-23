@@ -1,10 +1,9 @@
 import {applyPresenceMotion} from "./animationPresence.js";
 import {createVisualEffectRenderer} from "./animationVisualRender.js";
-import {drawSceneBackground} from './sceneBackground.js';
 import {applyCamera} from "./animationWorkflow.js";
 import {drawAnimationDiagnostics} from "./animationDiagnostics.js";
 import {particleOriginSampler} from "./particleHistory.js";
-import {drawAnimationBackground} from "./animationBackground.js";
+import {drawAnimationSceneBackground} from "./animationBackground.js";
 import {splineSegments} from "./splines.js";
 import { drawShape, normalizeShape, shapeGeometry } from "./shapes.js";
 import { boundColor } from "./colors.js";
@@ -22,7 +21,7 @@ export function renderAnimation(
   if(positions) Object.assign(state.scene.positions, positions);
   applyPresenceMotion(state.scene,state.presence);
   ctx.save();
-  if(scene.background?.mode&&scene.background.mode!=='inherit')drawSceneBackground(ctx,scene.background,theme);else drawAnimationBackground(ctx,state.config,theme);
+  drawAnimationSceneBackground(ctx,state.scene,state.config,theme);
   if(camera)applyCamera(ctx,state.config.camera);
   const cutters = state.config.effects
     .filter(

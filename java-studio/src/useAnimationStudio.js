@@ -1,10 +1,12 @@
+import {enclosingBounds} from './selection.js';
+import {patternChannels,normalizeBackground,backgroundModes} from './sceneBackground.js';
 import {normalizeCounter,counterText} from "./animationCounter.js";
 import {normalizePresence} from "./animationPresence.js";
 import {useAnimationAudio} from './useAnimationAudio.js';
 import {makeEffectsDemo} from "./animationEffectExamples.js";
 import {parseEffectField,effectField,effectProgress,effectCatalog} from "./animationEffectCatalog.js";
 import {seekVideos} from './videoMedia.js';
-import { resolveAnimationFormat } from "./animationExportSettings.js";
+import { resolveAnimationFormat, hasTransparentScenes } from "./animationExportSettings.js";
 import {makeWorkflowExample} from "./animationWorkflowExample.js";
 import {cameraFields} from "./animationWorkflow.js";
 import {editableClip,copyKeySelection} from "./animationEditing.js";
@@ -442,6 +444,7 @@ export function useAnimationStudio(s) {
           name: "Séquence " + (config.value.clips.length + 1),
           duration: config.value.duration,
           keys: [...s.selectedKeys.value],
+          groupTransform:s.selectedKeys.value.length>1,
         },
       ],
     }).clips[0];
@@ -680,7 +683,7 @@ export function useAnimationStudio(s) {
       width = exportWidth.value;
       if (
         outputFormat === "webm" &&
-        scenes.some((scene) => scene.animation?.background === "transparent")
+        hasTransparentScenes(scenes)
       )
         throw Error(
           "Pour conserver la transparence, choisis MOV ou MKV. WebM utilise un fond uni ou vert.",
@@ -815,13 +818,25 @@ export function useAnimationStudio(s) {
     }
   }
   function propertyValue(name, animated = preview.value, targetKey = null) {
+    if(patternChannels[name]) {
+      const background=normalizeBackground((animated?animationScene(s.current.value,config.value,time.value).scene:s.current.value).background);
+      const prop=patternChannels[name][0];
+      return prop==='mode'?backgroundModes.findIndex(([id])=>id===background.mode):prop==='stagger'?Number(background.stagger):['base','color','color2'].includes(prop)?boundColor(background,prop,s.theme.value):background[prop];
+    }
     const ef=parseEffectField(name);
     if(ef){const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;const e=cfg.effects.find(e=>e.id===ef.id);return e?(ef.property==='progress'?effectProgress(e,time.value):e[ef.property]):0;}
-    if(name==='scale'){const c=targetKey?editableClip(config.value.clips,selectedClip.value,targetKey,time.value):clip.value;return c?frameValue(c.frames,'scale',time.value-c.start,100):100;}
+    if(name==='scale'){if(!targetKey&&s.selectedKeys.value.length>1&&!clip.value?.groupTransform)return 100;const c=targetKey?editableClip(config.value.clips,selectedClip.value,targetKey,time.value):clip.value;return c?frameValue(c.frames,'scale',time.value-c.start,100):100;}
     if([...backgroundAnimationFields,...cameraFields].includes(name)) {
       if(cameraFields.includes(name)){const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;const p=name.slice(6);return cfg.camera[p[0].toLowerCase()+p.slice(1)];}
       const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;
       return name==='backgroundColor'?boundColor(cfg,'color',s.theme.value):name==='backgroundColor2'?cfg.color2:cfg.gradientAngle;
+    }
+    if(!targetKey && s.selectedKeys.value.length>1) {
+      if(['x','y','w','h'].includes(name)) {
+        const scene=animated?animationScene(s.current.value,config.value,time.value).scene:s.current.value;
+        return enclosingBounds(s.selectedKeys.value.map(k=>scene.positions[k]).filter(Boolean))?.[name]||0;
+      }
+      if(name==='rotation')return clip.value?.groupTransform?frameValue(clip.value.frames,name,time.value-clip.value.start,0):0;
     }
     const key = targetKey ||
       clip.value?.keys.find((k) => s.selectedKeys.value.includes(k)) ||
@@ -894,11 +909,21 @@ export function useAnimationStudio(s) {
     );
   }
   function ensureClip() {
+    if(s.selectedKeys.value.length>1 && clip.value?.keys.length>1 && !clip.value.groupTransform) {
+      // Add a group-frame layer at the cursor; never reinterpret existing group keys.
+      const previousId=clip.value.id;addClip();
+      if(clip.value?.id===previousId)return null;
+      if(clip.value){clip.value.start=time.value;clip.value.duration=Math.max(.1,config.value.duration-time.value);}
+      return clip.value;
+    }
     if (
       !clip.value ||
+      (s.selectedKeys.value.length>1 && (clip.value.keys.length!==s.selectedKeys.value.length || !s.selectedKeys.value.every(k=>clip.value.keys.includes(k)))) ||
       !s.selectedKeys.value.some((k) => clip.value.keys.includes(k))
-    )
-      addClip();
+    ) {
+      const previousId=clip.value?.id;addClip();
+      if(clip.value?.id===previousId)return null;
+    }
     return clip.value;
   }
   function ensureBackgroundClip(field){
@@ -908,14 +933,15 @@ export function useAnimationStudio(s) {
     if(c.start){for(const f of c.frames)f.time+=c.start;c.start=0;}c.duration=config.value.duration;
     selectedClip.value=c.id;return c;
   }
-  function setProperty(name, value, force = false) {
+  function setProperty(name, value, force = false, manageHistory = true) {
     if (!Number.isFinite(Number(value)) && !colorAnimationFields.includes(name))
       return;
     stop();
-    s.beginGesture();
+    if(manageHistory)s.beginGesture();
     try {
       const sceneProperty = [...backgroundAnimationFields,...cameraFields].includes(name);
-      const targets = autoKey.value && !sceneProperty
+      const grouped = s.selectedKeys.value.length>1 && s.current.value.groups?.some(g=>g.keys.length===s.selectedKeys.value.length&&g.keys.every(k=>s.selectedKeys.value.includes(k)));
+      const targets = autoKey.value && !sceneProperty && !grouped
         ? s.selectedKeys.value.filter(key => s.current.value.positions[key] && (!parseEffectField(name) || config.value.effects.find(e => e.id === parseEffectField(name).id)?.key === key)) : [null];
       for (const key of targets) {
         const previous = propertyValue(name, true, key);
@@ -948,7 +974,7 @@ export function useAnimationStudio(s) {
         preview.value = true;
       }
     } finally {
-      s.endGesture();
+      if(manageHistory)s.endGesture();
       s.requestDraw();
     }
   }

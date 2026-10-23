@@ -1,3 +1,6 @@
+import {enclosingBounds} from './selection.js';
+import {patternChannels} from './sceneBackground.js';
+import {evaluatePatternBackground} from './animationBackground.js';
 import {normalizeCounters,counterText,counterScroll,counterTiming} from "./animationCounter.js";
 import {normalizePresences,presenceState} from "./animationPresence.js";
 import {normalizeSceneAudio} from './animationAudioModel.js';
@@ -38,17 +41,20 @@ export const discreteAnimationFields = [
   "fillEnabled",
   "strokeEnabled",
   "dashed",
+  "patternStagger",
 ];
 export const backgroundAnimationFields = [
   "backgroundColor",
   "backgroundColor2",
   "backgroundAngle",
+  ...Object.keys(patternChannels),
 ];
 export const colorAnimationFields = [
   "color",
   "strokeColor",
   "backgroundColor",
   "backgroundColor2",
+  "patternBase", "patternColor", "patternColor2",
 ];
 export const animationFields = [
   ...cameraFields,
@@ -193,6 +199,7 @@ export function normalizeAnimation(raw = {}) {
       enabled: c?.enabled !== false,
       collapsed: c?.collapsed === true,
       hidden: c?.hidden === true,
+      ...(c?.groupTransform === true ? {groupTransform:true} : {}),
       easing: animationEasings.includes(c?.easing) ? c.easing : "smooth",
       start: number(c?.start, 0, 0, 120),
       duration: number(c?.duration, 8, 0.1, 120),
@@ -361,22 +368,28 @@ export function animationScene(scene, raw, time, options={}) {
         if (prop === "color") config.colorRole = null;
       }
     }
+    if(clip.frames.some(f=>patternChannels[f.field])) {
+      const bg=evaluatePatternBackground(result.background,clip.frames,local,frameValue,easeAnimation);
+      result.background=bg.background;result.backgroundBlend=bg.blend;
+    }
     for(const field of cameraFields)if(clip.frames.some(f=>f.field===field)){const prop=field.slice(6);const key=prop[0].toLowerCase()+prop.slice(1);config.camera[key]=frameValue(clip.frames,field,local,config.camera[key]);}
-    const keys = clip.keys.filter((k) => result.positions[k]),
-      anchor = result.positions[keys[0]];
+    const keys = clip.keys.filter((k) => result.positions[k]);
+    let anchor = result.positions[keys[0]];
     if (!anchor) continue;
-    const left = Math.min(...keys.map((k) => result.positions[k].x)),
-      top = Math.min(...keys.map((k) => result.positions[k].y)),
-      right = Math.max(
+    const bounds=clip.groupTransform?enclosingBounds(keys.map(k=>result.positions[k])):null;
+    const left = bounds?.x ?? Math.min(...keys.map((k) => result.positions[k].x)),
+      top = bounds?.y ?? Math.min(...keys.map((k) => result.positions[k].y)),
+      right = bounds ? bounds.x+bounds.w : Math.max(
         ...keys.map(
           (k) => result.positions[k].x + (result.positions[k].w || 0),
         ),
       ),
-      bottom = Math.max(
+      bottom = bounds ? bounds.y+bounds.h : Math.max(
         ...keys.map(
           (k) => result.positions[k].y + (result.positions[k].h || 0),
         ),
       );
+    if(clip.groupTransform && keys.length>1)anchor={x:left,y:top,w:right-left,h:bottom-top,rotation:0};
     const px = left + (right - left) * clip.pivotX,
       py = top + (bottom - top) * clip.pivotY;
     let sx = anchor.w
@@ -476,6 +489,12 @@ export function animationScene(scene, raw, time, options={}) {
       }
       result.positions[key] = p;
       typingElapsed[key] = local * 1000;
+    }
+    if(clip.groupTransform && keys.length>1 && !point) {
+      const bounds=enclosingBounds(keys.map(k=>result.positions[k]));
+      const dx=frameValue(clip.frames,'x',local,left)-bounds.x,
+        dy=frameValue(clip.frames,'y',local,top)-bounds.y;
+      for(const key of keys){result.positions[key].x+=dx;result.positions[key].y+=dy;}
     }
     if(clip.frames.some(f=>f.field==='scale')){
       const poses=Object.fromEntries(keys.map(key=>[key,result.positions[key]]));
