@@ -919,3 +919,29 @@
 }
 .animation-key-drag-time strong { color: var(--accent); }
 .animation-key-drag-time small { flex-basis: 100%; }
+
+.animation-audio-track { min-height: 68px; }
+.animation-audio-label { display: grid; gap: 4px; min-width: 0; }
+.animation-audio-label strong { display: flex; align-items: center; gap: 6px; font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.animation-audio-label small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.animation-audio-lane { min-height: 64px; cursor: ew-resize; background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.animation-audio-lane svg { position: absolute; inset: 0; width: 100%; height: 64px; pointer-events: none; }
+.animation-audio-lane path { fill: color-mix(in srgb, var(--accent) 40%, transparent); stroke: var(--accent); stroke-width: .5; }
+.animation-audio-lane.muted svg { opacity: .45; }
+.animation-audio-loading { display: block; padding: 20px 12px; color: var(--muted); font-size: 11px; }
+.animation-audio-import { position: relative; justify-content: center; cursor: pointer; }
+.animation-audio-import input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.animation-audio-import.disabled { opacity: .5; cursor: default; }
+.animation-audio-filename { display: block; overflow-wrap: anywhere; font-size: 12px; }
+.animation-audio-interval { font-variant-numeric: tabular-nums; }
+
+.animation-audio-label strong span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.animation-audio-label strong svg { flex-shrink: 0; }
+.properties-panel .animation-audio-import { display: flex; flex-direction: row; gap: 8px; align-items: center; }
+
+.animation-timeline-views { display: flex; align-items: center; gap: 16px; padding: 8px 14px; border-bottom: 1px solid var(--line); flex-shrink: 0; flex-wrap: wrap; }
+.animation-timeline-views .workspace-switch button { display: inline-flex; align-items: center; gap: 7px; }
+.animation-timeline-views small { color: var(--muted); font-size: 11px; }
+.animation-audio-properties .btn { background: transparent; color: inherit; border: 1px solid var(--border); }
+
+.animation-tracks { scroll-padding-top: 44px; scroll-padding-bottom: 12px; }

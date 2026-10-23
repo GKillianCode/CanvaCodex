@@ -26,6 +26,7 @@ import {
   Settings2,
   CheckCircle2,
   AlertCircle,
+  Volume2, VolumeX,
 } from "lucide-vue-next";
 import { renderAnimationStoryboard } from "../animationStoryboardRender.js";
 import { renderAnimation } from "../animationRender.js";
@@ -185,6 +186,7 @@ onUnmounted(() => {
                 <component :is="a.playing ? Pause : Play" :size="17" />
               </button>
             </div>
+            <button v-if="a.config.audio.src" type="button" class="icon-btn" :aria-label="a.audio.muted ? 'Réactiver l’audio' : 'Couper l’audio'" :title="a.audio.muted ? 'Réactiver l’audio' : 'Couper l’audio'" :aria-pressed="a.audio.muted" @click="a.audio.toggleMute"><component :is="a.audio.muted ? VolumeX : Volume2" :size="16" /></button>
             <input
               type="range"
               min="0"

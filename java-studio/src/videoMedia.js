@@ -1,3 +1,4 @@
+import {portableAudioProject,restoreAudioProject} from './animationAudioMedia.js';
 // Videos are stored once in IndexedDB settings; documents retain small stable references.
 const entries = new Map();
 let repository;
@@ -228,7 +229,7 @@ export async function portableVideoProject(project) {
       clone.videoMedia[src] = asset;
     }
   }
-  return clone;
+  return portableAudioProject(clone);
 }
 export async function restoreVideoProject(project) {
   const media = project?.videoMedia;
@@ -251,5 +252,5 @@ export async function restoreVideoProject(project) {
       });
     }
   }
-  return project;
+  return restoreAudioProject(project);
 }

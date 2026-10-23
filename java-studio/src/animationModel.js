@@ -1,3 +1,4 @@
+import {normalizeSceneAudio} from './animationAudioModel.js';
 import {parseEffectField} from "./animationEffectCatalog.js";
 import {scaleObjects} from "./scaleObjects.js";
 const contactHistory=new WeakMap();
@@ -146,6 +147,7 @@ export function normalizeAnimation(raw = {}) {
     effects: list(raw?.effects, 100).map(normalizeEffect),
     colorRole: validColorRole(raw?.colorRole),
     engines: list(raw?.engines, 50).map(normalizeEngine),
+    audio: normalizeSceneAudio(raw?.audio),
     duration: number(raw?.duration, 8, 0.1, 120),
     fps: [24, 30, 60].includes(raw?.fps) ? raw.fps : 30,
     background: ["solid", "gradient"].includes(raw?.background)

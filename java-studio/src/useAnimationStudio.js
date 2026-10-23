@@ -1,3 +1,4 @@
+import {useAnimationAudio} from './useAnimationAudio.js';
 import {makeEffectsDemo} from "./animationEffectExamples.js";
 import {parseEffectField,effectField,effectProgress,effectCatalog} from "./animationEffectCatalog.js";
 import {seekVideos} from './videoMedia.js';
@@ -144,6 +145,7 @@ export function useAnimationStudio(s) {
     },
     { immediate: true },
   );
+  const audio = useAnimationAudio(s, {time,playing,busy,stop,requestDelete});
   watch([time, preview, construction, pathEditing], s.requestDraw);
   watch(diagnostics,s.requestDraw,{deep:true});
   watch(
@@ -1127,6 +1129,7 @@ export function useAnimationStudio(s) {
     window.removeEventListener("blur", blur);
   });
   return {
+    audio,
     exportQuality,exportBackground,exportError,exportPhase,construction,setConstruction,editorScene,
     autoKey,setAutoKey,shouldKey,commonField,introduceObjects,
     inspectedEffect,inspectEffect,

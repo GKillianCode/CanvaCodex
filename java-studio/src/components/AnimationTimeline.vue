@@ -1,7 +1,8 @@
 <script setup>
+import AnimationAudioTrack from "./AnimationAudioTrack.vue";
 import {effectCatalog,effectFieldLabel,visualEffectKinds} from "../animationEffectCatalog.js";
 import {moveKeySelection} from "../animationEditing.js";
-import { reactive, ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { reactive, ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import {
   Play,
   Pause,
@@ -12,6 +13,7 @@ import {
   Trash2,
   Copy,
   Diamond,
+  AudioLines,
   Route,
   Maximize2,
   Eye,
@@ -28,7 +30,8 @@ import { timelineView, timelineTime } from "../animationTimelineView.js";
 const props = defineProps({ studio: Object }),
   s = reactive(props.studio),
   a = s.animation,
-  height = ref(260),
+  height = ref(340),
+  timelinePanel = ref("keys"),
   zoom = ref(100),
   tracks = ref(null),
   world = ref(null),
@@ -38,6 +41,7 @@ const props = defineProps({ studio: Object }),
 const visibleClips=computed(()=>a.config.clips.filter(c=>(!c.hidden||showHidden.value)&&(!selectedOnly.value||!s.selectedKeys.length||!c.keys.length||c.keys.some(k=>s.selectedKeys.includes(k)))));
 const visibleEffects=computed(()=>a.config.effects.filter(e=>visualEffectKinds.includes(e.kind)&&(!selectedOnly.value||!s.selectedKeys.length||s.selectedKeys.includes(e.key))));
 const view = computed(() => timelineView(a.config.duration, zoom.value));
+watch(() => !!a.config.audio.src, present => { if (present) { if (height.value < 340) height.value = 340; timelinePanel.value = 'audio'; } }, {immediate:true});
 const labels = {
   fillEnabled: "Remplissage activé",
   strokeEnabled: "Contour activé",
@@ -120,7 +124,7 @@ function dragKey(event, c, key) {
   });
   indicate(event);
 }
-function keyShortcuts(e){if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if((e.ctrlKey||e.metaKey)&&['c','v'].includes(e.key.toLowerCase())){e.preventDefault();e.stopPropagation();if(e.key.toLowerCase()==='c')a.copyKeys();else a.pasteKeys();}if(e.key==='Delete'&&a.keyEntries().length){e.preventDefault();e.stopPropagation();a.deleteKeys();}}
+function keyShortcuts(e){if(timelinePanel.value!=='keys')return;if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if((e.ctrlKey||e.metaKey)&&['c','v'].includes(e.key.toLowerCase())){e.preventDefault();e.stopPropagation();if(e.key.toLowerCase()==='c')a.copyKeys();else a.pasteKeys();}if(e.key==='Delete'&&a.keyEntries().length){e.preventDefault();e.stopPropagation();a.deleteKeys();}}
 function scrub(event) {
   event.preventDefault();
   const rect = (
@@ -231,7 +235,7 @@ onUnmounted(() => {
     @keydown="keyShortcuts"
     :style="{ height: height + 'px' }"
     aria-label="Timeline de l’animation"
-    @keydown.delete.stop="!a.keyEntries().length&&deleteEvent($event)"
+    @keydown.delete.stop="timelinePanel === 'keys'&&!a.keyEntries().length&&deleteEvent($event)"
     @keydown.left.stop
     @keydown.right.stop
     @keydown.up.stop
@@ -325,7 +329,14 @@ onUnmounted(() => {
       ></progress
       ><button class="btn" @click="a.cancel()">Annuler</button>
     </div>
-    <div class="animation-key-tools">
+    <div class="animation-timeline-views">
+      <div class="workspace-switch" role="group" aria-label="Vue de la timeline">
+        <button type="button" :class="{active:timelinePanel === 'keys'}" :aria-pressed="timelinePanel === 'keys'" @click="timelinePanel = 'keys'; menu = null"><Diamond :size="14" />Images clés</button>
+        <button type="button" :class="{active:timelinePanel === 'audio'}" :aria-pressed="timelinePanel === 'audio'" @click="timelinePanel = 'audio'; menu = null"><AudioLines :size="14" />Audio</button>
+      </div>
+      <small>{{ timelinePanel === 'audio' ? 'Extrait de la scène sélectionnée · clic pour déplacer la lecture' : 'Propriétés et effets animés' }}</small>
+    </div>
+    <div v-if="timelinePanel === 'keys'" class="animation-key-tools">
       <button
         class="btn primary"
         title="Poser une image clé à cet instant, puis lui associer des propriétés avec les losanges"
@@ -371,7 +382,7 @@ onUnmounted(() => {
         >Losanges dans les propriétés · Ctrl + molette : zoom temporel.</span
       >
     </div>
-    <div class="animation-key-selection-tools"><button class="btn" :disabled="!a.keySelection.length" title="Copier les clés sélectionnées · Ctrl C" @click="a.copyKeys()">Copier {{a.keySelection.length}} clé(s)</button><button class="btn" :disabled="!a.keyClipboard.length||!a.clip" title="Coller à la tête de lecture · Ctrl V" @click="a.pasteKeys()">Coller les clés</button><button class="icon-btn" :disabled="!a.keySelection.length" aria-label="Supprimer les clés sélectionnées" @click="a.deleteKeys()"><Trash2 :size="14"/></button><small>Ctrl ou Maj + clic : sélection multiple · glisser pour décaler ensemble.</small></div>
+    <div v-if="timelinePanel === 'keys'" class="animation-key-selection-tools"><button class="btn" :disabled="!a.keySelection.length" title="Copier les clés sélectionnées · Ctrl C" @click="a.copyKeys()">Copier {{a.keySelection.length}} clé(s)</button><button class="btn" :disabled="!a.keyClipboard.length||!a.clip" title="Coller à la tête de lecture · Ctrl V" @click="a.pasteKeys()">Coller les clés</button><button class="icon-btn" :disabled="!a.keySelection.length" aria-label="Supprimer les clés sélectionnées" @click="a.deleteKeys()"><Trash2 :size="14"/></button><small>Ctrl ou Maj + clic : sélection multiple · glisser pour décaler ensemble.</small></div>
 <div ref="tracks" class="animation-tracks">
       <div
         ref="world"
@@ -379,7 +390,7 @@ onUnmounted(() => {
         :style="{ width: view.widthPercent + '%' }"
       >
         <div class="animation-ruler">
-          <span>Séquences</span>
+          <span>{{ timelinePanel === 'audio' ? 'Audio de référence' : 'Séquences' }}</span>
           <div class="timeline-ruler" @pointerdown="scrub">
             <span
               v-for="i in 9"
@@ -396,8 +407,9 @@ onUnmounted(() => {
             ><i :style="{ left: (a.time / view.span) * 100 + '%' }"></i>
           </div>
         </div>
+        <AnimationAudioTrack v-if="timelinePanel === 'audio'" :studio="s" :span="view.span" @scrub="scrub" />
         <template
-          v-for="c in visibleClips"
+          v-for="c in timelinePanel === 'keys' ? visibleClips : []"
           :key="c.id"
           ><div
             :class="[
@@ -559,14 +571,15 @@ onUnmounted(() => {
                 ></i>
               </div></div></template
         ></template>
-        <div v-for="effect in visibleEffects" :key="effect.id" class="animation-track effect-timeline-track">
+        <div v-for="effect in timelinePanel === 'keys' ? visibleEffects : []" :key="effect.id" class="animation-track effect-timeline-track">
          <div class="track-name"><button class="icon-btn" :title="effect.enabled?'Désactiver l’effet':'Activer l’effet'" @click="effect.enabled=!effect.enabled"><Power :size="12"/></button><button class="effect-track-owner" :aria-label="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" :title="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" @click="a.inspectEffect(effect.id)"><span>{{effect.name||effectCatalog.find(e=>e.id===effect.kind)?.name||effect.kind}}</span><small>{{s.current.elements[effect.key]?.name||effect.key}}</small></button></div>
          <div class="track-lane"><span class="clip-span" :style="{left:effect.start/view.span*100+'%',width:effect.duration/view.span*100+'%',opacity:effect.enabled?1:.3}" title="Glisser pour déplacer l’effet" @pointerdown="dragClip($event,effect)"><button class="effect-duration-handle" aria-label="Ajuster la durée de l’effet" title="Glisser pour régler la durée" @pointerdown="resizeEffect($event,effect)"></button></span></div>
         </div>
-        <p v-if="!a.config.clips.length&&!a.config.effects.length" class="animation-empty">
+        <p v-if="timelinePanel === 'keys'&&!a.config.clips.length&&!a.config.effects.length" class="animation-empty">
           Sélectionne un objet puis « Animer la sélection ». Ajoute un moteur
           par clic droit sur la scène.
         </p>
+        <p v-if="timelinePanel === 'audio' && !a.config.audio.src" class="animation-empty">Importe un audio dans Scène → Audio de référence pour afficher l’extrait ici.</p>
       </div>
     </div>
     <output

@@ -6,6 +6,7 @@ import PlacementControls from "./PlacementControls.vue";
 import MediaProperties from "./MediaProperties.vue";
 import GroupLayoutControls from "./GroupLayoutControls.vue";
 import BackgroundProperties from "./BackgroundProperties.vue";
+import AnimationAudioProperties from "./AnimationAudioProperties.vue";
 import AnimationBackground from "./AnimationBackground.vue";
 import AnimationKeyInspector from "./AnimationKeyInspector.vue";
 import AnimationKeyButton from "./AnimationKeyButton.vue";
@@ -934,7 +935,7 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
           Le cadre central est exporté. Les objets peuvent être placés à
           l’extérieur pour entrer dans l’image.
         </p></InspectorDrawer
-      ></template
+      ><AnimationAudioProperties :studio="s" /></template
     ><template v-else-if="section === 'slide' && s.view === 'banners'"
       ><InspectorDrawer id="overlay-format" title="Composition"
         ><label v-if="s.banner.type === 'java-primitive'"

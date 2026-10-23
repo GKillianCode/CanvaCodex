@@ -19,6 +19,18 @@ Styles par mots, textes progressifs, SVG, images, tableaux, bits, groupes, verro
 
 **Disposition initiale** permet de travailler la géométrie de base et laisse le texte entier visible. **État animé** calcule le rendu au temps du curseur, sans remplacer cette base. Déplacer la disposition initiale d’un moteur translate également ses clés X/Y propres ; les clés ne le ramènent plus à son ancienne position au lancement. Un moteur attaché à une spline suit toujours sa trajectoire.
 
+## Audio de référence
+
+Dans **Scène → Audio de référence**, importe un fichier MP3, WAV, Ogg, M4A, AAC, FLAC ou WebM lisible par le navigateur. Le fichier est partagé par toutes les scènes de l’animation. À la première importation, leurs débuts d’extrait se suivent selon leur durée ; remplacer le fichier conserve les débuts déjà configurés.
+
+Règle **Début dans le fichier · s** dans ce tiroir. La fin est calculée avec la durée de la scène : début 20 s et scène de 11 s donnent l’extrait 00:20–00:31. Modifier la durée modifie automatiquement la longueur affichée, sans imposer de manipulation sur la forme d’onde. Une nouvelle scène reprend la source précédente et commence après son extrait ; chaque début reste ensuite indépendant et modifiable. Au-delà de la fin du fichier, la partie restante est silencieuse.
+
+La timeline a deux vues exclusives, **Images clés** et **Audio**, avec la même barre de lecture. Audio affiche uniquement l’extrait de la scène sélectionnée. Clique sur la forme d’onde pour déplacer la lecture ; Ctrl + molette utilise le zoom temporel existant. Le bouton haut-parleur coupe/réactive le son sans masquer le graphe ; ce choix est mémorisé dans le navigateur. La lecture sonore reste disponible dans Images clés, et le passage entre les deux vues conserve le temps courant.
+
+Lecture, pause, recherche, boucle et aperçu réutilisent l’horloge Animation. En mode Toutes les scènes, chaque scène lit son propre extrait, même avec des débuts non consécutifs. La piste audio reste une référence de travail : les vidéos exportées gardent leur fonctionnement sans cette bande-son.
+
+Le fichier original et une enveloppe de forme d’onde sont conservés une seule fois dans IndexedDB, via le dépôt de médias local existant. Les scènes et leur historique gardent uniquement une référence et un début ; aucun audio n’est encodé dans localStorage. L’analyse locale utilise un décodage à 8 kHz et des extrema à 100 Hz, puis libère le buffer PCM ; la lecture utilise le fichier original. Limites d’import : 128 Mo et une heure. Les sauvegardes JSON de l’éditeur incluent le média une seule fois grâce au pipeline portable existant ; la sauvegarde globale inclut aussi le dépôt de médias. Aucun service distant ni IA.
+
 ## Images clés automatiques
 
 Dans la barre de lecture, **Clés auto** active l’enregistrement des propriétés animables sans préparer leurs losanges. Place la tête de lecture, déplace/redimensionne/tourne un objet ou modifie ses couleurs, son contour, son opacité ou les paramètres animables d’un moteur : les clés apparaissent dans la timeline. Une première modification après le début conserve une clé de départ ; chaque objet d’une sélection multiple conserve ses valeurs initiales. Les mouvements à la souris sont validés en fin de geste.
