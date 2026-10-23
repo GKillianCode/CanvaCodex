@@ -46,15 +46,19 @@ export function useAnimationAudio(s, playback) {
       target < asset.value.duration;
     if (!shouldPlay) media.pause();
     if (!active || !media.src || media.readyState < 1) return;
+    // Never queue play while the decoder is still seeking/loading the excerpt.
+    if (media.seeking) return;
     const desired = Math.min(target, asset.value.duration);
     // The animation is the master clock: seek on scrub/scene change and correct audible drift.
     if (Math.abs(media.currentTime - desired) > (shouldPlay ? 0.12 : 0.005)) {
       try {
         media.currentTime = desired;
+        return; // seeked/loadeddata will recheck the current scene time before play.
       } catch {
         return;
       }
     }
+    if (media.readyState < 2) return;
     if (shouldPlay && media.paused && !playPending && !blocked) {
       playPending = true;
       const token = generation;
@@ -76,6 +80,9 @@ export function useAnimationAudio(s, playback) {
     }
   }
   media.onloadedmetadata = sync;
+  media.onloadeddata = sync;
+  media.oncanplay = sync;
+  media.onseeked = sync;
   media.onerror = () => {
     if (!disposed && url)
       error.value =
@@ -99,6 +106,7 @@ export function useAnimationAudio(s, playback) {
         asset.value = record;
         url = URL.createObjectURL(blob);
         media.src = url;
+        media.load();
       } catch (e) {
         if (!disposed && token === generation) error.value = e.message;
       } finally {
@@ -193,6 +201,9 @@ export function useAnimationAudio(s, playback) {
     disposed = true;
     generation++;
     media.onloadedmetadata = null;
+    media.onloadeddata = null;
+    media.oncanplay = null;
+    media.onseeked = null;
     media.onerror = null;
     clear();
   });
