@@ -22,7 +22,7 @@ export function duplicateElement(s,key) {
 
 export function normalizeAngle(value){return Number.isFinite(Number(value))?((Number(value)%360)+360)%360:0;}
 export function rotatePoint(point,b,degrees=b.rotation||0){const a=degrees*Math.PI/180,c=Math.cos(a),s=Math.sin(a),cx=b.x+b.w/2,cy=b.y+b.h/2,dx=point.x-cx,dy=point.y-cy;return {x:cx+dx*c-dy*s,y:cy+dx*s+dy*c};}
-export function rotationFromPointer(b,start,point,snap=false){const cx=b.x+b.w/2,cy=b.y+b.h/2;let angle=(b.rotation||0)+(Math.atan2(point.y-cy,point.x-cx)-Math.atan2(start.y-cy,start.x-cx))*180/Math.PI;if(snap)angle=Math.round(angle/90)*90;return normalizeAngle(angle);}
+export function rotationFromPointer(b,start,point,snap=false,snapStep=90){const cx=b.x+b.w/2,cy=b.y+b.h/2;let angle=(b.rotation||0)+(Math.atan2(point.y-cy,point.x-cx)-Math.atan2(start.y-cy,start.x-cx))*180/Math.PI;if(snap)angle=Math.round(angle/snapStep)*snapStep;return normalizeAngle(angle);}
 export function resizeRotated(origin,handle,dx,dy,type,uniform=false){const a=(origin.rotation||0)*Math.PI/180,c=Math.cos(a),s=Math.sin(a),b=(uniform?resizeProportional:resizePosition)(origin,handle,dx*c+dy*s,-dx*s+dy*c,type),ox=origin.x+origin.w/2,oy=origin.y+origin.h/2,cx=b.x+b.w/2,cy=b.y+b.h/2;return {...b,x:b.x+(cx-ox)*c-(cy-oy)*s-(cx-ox),y:b.y+(cx-ox)*s+(cy-oy)*c-(cy-oy)};}
 
 export function resizeProportional(origin,handle,dx,dy,type){

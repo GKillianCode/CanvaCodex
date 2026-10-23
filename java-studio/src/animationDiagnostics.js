@@ -1,4 +1,4 @@
-import {anchorPoint} from "./animationWorkflow.js";
+import { anchorPoint, cameraFrame } from "./animationWorkflow.js";
 import { visibleBlocks } from "./model.js";
 export function drawAnimationDiagnostics(ctx, state, flags = {}) {
   const { scene, config } = state;
@@ -40,8 +40,10 @@ export function drawAnimationDiagnostics(ctx, state, flags = {}) {
       if (!a || !b) continue;
       ctx.strokeStyle = "#b7a0d4";
       ctx.beginPath();
-      const from=anchorPoint(a,r.parentX,r.parentY),to=anchorPoint(b,r.childX,r.childY);
-      ctx.moveTo(from.x,from.y);ctx.lineTo(to.x,to.y);
+      const from = anchorPoint(a, r.parentX, r.parentY),
+        to = anchorPoint(b, r.childX, r.childY);
+      ctx.moveTo(from.x, from.y);
+      ctx.lineTo(to.x, to.y);
       ctx.stroke();
     }
   if (flags.forces)
@@ -51,7 +53,10 @@ export function drawAnimationDiagnostics(ctx, state, flags = {}) {
       for (const key of e.targets) {
         const p = scene.positions[key];
         if (!p) continue;
-        const r = [...(p.contacts||[])].reverse().map(id=>config.triggers.find(r=>r.id===id)).find(r=>r?.gravity!=null),
+        const r = [...(p.contacts || [])]
+            .reverse()
+            .map((id) => config.triggers.find((r) => r.id === id))
+            .find((r) => r?.gravity != null),
           g = r?.gravity ?? e.gravity,
           sign = Math.sign(g),
           x = p.x + p.w / 2,
@@ -69,12 +74,40 @@ export function drawAnimationDiagnostics(ctx, state, flags = {}) {
       }
   if (flags.camera) {
     const c = config.camera,
-      w = (1920 * 100) / c.zoom,
-      h = (1080 * 100) / c.zoom;
+      { w, h, corners } = cameraFrame(c);
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(0, 0, 1920, 1080);
+    ctx.clip();
+    ctx.beginPath();
+    ctx.rect(0, 0, 1920, 1080);
+    ctx.moveTo(corners[0].x, corners[0].y);
+    for (const p of corners.slice(1)) ctx.lineTo(p.x, p.y);
+    ctx.closePath();
+    ctx.fillStyle = "rgba(20,24,35,0.22)";
+    ctx.fill("evenodd");
+    ctx.restore();
     ctx.save();
     ctx.translate(c.x, c.y);
     ctx.rotate((c.rotation * Math.PI) / 180);
-    box({ x: -w / 2, y: -h / 2, w, h }, "#c4a5d6", "Cadrage caméra");
+    ctx.setLineDash([]);
+    ctx.strokeStyle = "#ad8bd1";
+    ctx.lineWidth = 3;
+    ctx.strokeRect(-w / 2, -h / 2, w, h);
+    ctx.beginPath();
+    ctx.moveTo(-10, 0);
+    ctx.lineTo(10, 0);
+    ctx.moveTo(0, -10);
+    ctx.lineTo(0, 10);
+    ctx.stroke();
+    const text =
+      "CAMÉRA · " + Number(c.zoom.toFixed(1)).toLocaleString("fr-FR") + " %";
+    ctx.font = "600 20px Inter";
+    const width = ctx.measureText(text).width + 24;
+    ctx.fillStyle = "#342a44";
+    ctx.fillRect(-w / 2, -h / 2 - 32, width, 32);
+    ctx.fillStyle = "#f3ebff";
+    ctx.fillText(text, -w / 2 + 12, -h / 2 - 10);
     ctx.restore();
   }
   ctx.restore();

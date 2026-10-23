@@ -63,7 +63,7 @@ export async function exportAnimationFrames({
         const i = next;
         if (signal?.aborted)
           throw new DOMException("Export annulé.", "AbortError");
-        draw(i / fps);
+        await draw(i / fps);
         const blob = await new Promise((resolve, reject) =>
           canvas.toBlob(
             (b) => (b ? resolve(b) : reject(Error("Image indisponible."))),

@@ -1,4 +1,6 @@
 <script setup>
+import InspectorDrawer from "./InspectorDrawer.vue";
+import { Diamond } from "lucide-vue-next";
 import AnimationCurveEditor from "./AnimationCurveEditor.vue";
 import { reactive, computed } from "vue";
 import {
@@ -14,8 +16,13 @@ const frames = computed(() =>
     : [],
 );
 const labels = {
-  backgroundColor:"Fond · couleur 1",backgroundColor2:"Fond · couleur 2",backgroundAngle:"Fond · angle",
-  cameraX:"Caméra · centre X",cameraY:"Caméra · centre Y",cameraZoom:"Caméra · zoom",cameraRotation:"Caméra · rotation",
+  backgroundColor: "Fond · couleur 1",
+  backgroundColor2: "Fond · couleur 2",
+  backgroundAngle: "Fond · angle",
+  cameraX: "Caméra · centre X",
+  cameraY: "Caméra · centre Y",
+  cameraZoom: "Caméra · zoom",
+  cameraRotation: "Caméra · rotation",
   fillEnabled: "Remplissage activé",
   strokeEnabled: "Contour activé",
   dashed: "Pointillés",
@@ -39,18 +46,22 @@ const labels = {
   skewY: "Inclinaison Y",
   opacity: "Opacité",
   size: "Taille du texte",
-  contentScale: "Échelle",
+  contentScale: "Échelle du contenu",
+  scale: "Échelle · %",
   progress: "Progression de la spline",
   color: "Couleur du remplissage",
 };
 </script>
 <template>
-  <section
+  <InspectorDrawer
+    id="animation-key-details"
+    title="Détails de la clé"
+    :icon="Diamond"
     v-if="a.clip && (a.activeKey || a.activeFrame?.clipId === a.clip.id)"
     class="animation-key-inspector"
   >
     <div>
-      <strong>Image clé</strong
+      <strong>Paramètres avancés</strong
       ><button
         class="icon-btn"
         aria-label="Fermer les paramètres de la clé"
@@ -99,13 +110,25 @@ const labels = {
             @change="f.value = $event.target.checked ? 1 : 0" /><input
             v-else
             :type="
-              ['color', 'strokeColor', 'backgroundColor', 'backgroundColor2'].includes(f.field) ? 'color' : 'number'
+              [
+                'color',
+                'strokeColor',
+                'backgroundColor',
+                'backgroundColor2',
+              ].includes(f.field)
+                ? 'color'
+                : 'number'
             "
             :disabled="!!a.clip.pathId && ['x', 'y'].includes(f.field)"
             :value="f.value"
             step="0.1"
             @input="
-              f.value = ['color', 'strokeColor', 'backgroundColor', 'backgroundColor2'].includes(f.field)
+              f.value = [
+                'color',
+                'strokeColor',
+                'backgroundColor',
+                'backgroundColor2',
+              ].includes(f.field)
                 ? $event.target.value
                 : Number($event.target.value)
             " /></label
@@ -129,7 +152,11 @@ const labels = {
             </option>
           </select></label
         >
-        <AnimationCurveEditor v-if="!discreteAnimationFields.includes(f.field)" :frame="f"/><div v-if="f.ease === 'bezier'" class="position-grid">
+        <AnimationCurveEditor
+          v-if="!discreteAnimationFields.includes(f.field)"
+          :frame="f"
+        />
+        <div v-if="f.ease === 'bezier'" class="position-grid">
           <label v-for="(name, i) in ['X1', 'Y1', 'X2', 'Y2']" :key="i"
             >{{ name
             }}<input
@@ -149,5 +176,5 @@ const labels = {
         </button>
       </div>
     </template>
-  </section>
+  </InspectorDrawer>
 </template>

@@ -1,3 +1,4 @@
+import {validVideoReference} from './videoMedia.js';
 import {normalizeBackground} from './sceneBackground.js';
 import {normalizeInstances} from './componentInstances.js';
 import {normalizeAnimation as normalizeAnimationDocument} from './animationModel.js';
@@ -169,7 +170,7 @@ export function normalizeSlide(raw, n = 0) {
       if(e.type==='bits'){s.elements[key]=normalizeBits(e);continue;}
       if(e.type==='table'){s.elements[key]=normalizeTable(e);continue;}
       if(e.type==='shape'){s.elements[key]=normalizeShape(e);continue;}
-      s.elements[key] = e.type !== 'image' ? {type:e.type,weight:e.weight===700?700:400,label:String(e.label||'').slice(0,100),caption:String(e.caption||'').slice(0,200),template:e.template===true,custom:e.custom===true||e.custom!==false&&!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',template:e.template===true,custom:e.custom===true||e.custom!==false&&!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),src:validImageSource(e.src)?e.src:'',svgColors:normalizeSvgColors(e.svgColors,e.src),fit:e.fit==='cover'?'cover':'contain',effects:normalizeImageEffects(e.effects),background:e.background===true,roundedCorners:e.roundedCorners===true,cornerRadius:finite(e.cornerRadius,10,0,50)};
+      s.elements[key] = e.type !== 'image' ? {type:e.type,weight:e.weight===700?700:400,label:String(e.label||'').slice(0,100),caption:String(e.caption||'').slice(0,200),template:e.template===true,custom:e.custom===true||e.custom!==false&&!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Texte').slice(0,100),text:String(e.text || '').slice(0,100000)} : {type:'image',template:e.template===true,custom:e.custom===true||e.custom!==false&&!['text1','text2','image1','image2'].includes(key),name:String(e.name || 'Image').slice(0,100),mediaKind:e.mediaKind==='video'?'video':'image',autoplay:e.autoplay!==false,videoLoop:e.videoLoop===true,videoStart:finite(e.videoStart,0,0,86400),src:e.mediaKind==='video'&&validVideoReference(e.src)?e.src:validImageSource(e.src)?e.src:'',svgColors:normalizeSvgColors(e.svgColors,e.src),fit:e.fit==='cover'?'cover':'contain',effects:normalizeImageEffects(e.effects),background:e.background===true,roundedCorners:e.roundedCorners===true,cornerRadius:finite(e.cornerRadius,10,0,50)};
     }
   }
   // Upgrade the former white playlist patch without replacing user content.

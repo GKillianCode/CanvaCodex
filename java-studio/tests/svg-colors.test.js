@@ -32,3 +32,5 @@ test('SVG edits and global opacity survive overlay states, JSON and reusable com
  assert.equal(restored.positions.imageMiniature.opacity,45);assert.deepEqual(restored.elements.imageMiniature.svgColors,slide.elements.imageMiniature.svgColors);
  const component=normalizeComponents([captureComponent(restored,['imageMiniature'],{x:0,y:0},'SVG')])[0];assert.deepEqual(component.items[0].element.svgColors,slide.elements.imageMiniature.svgColors);
 });
+
+test('SVG style sheets reuse the existing palette and recoloring engine',()=>{const source=src('<svg xmlns="http://www.w3.org/2000/svg"><style>.box {fill:#ff0000;stroke:#0000ff !important}</style><path class="box" d="M0 0H10V10Z"/></svg>');assert.ok(svgColors(source).includes('#ff0000'));const image={src:source,svgColors:{'#ff0000':{color:'#00ff00'}}};const output=decodeURIComponent(escape(atob(svgImageSource(image).split(',')[1])));assert.match(output,/fill:#00ff00/);});

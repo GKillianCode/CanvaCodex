@@ -1,3 +1,4 @@
+import {scaleObjects} from "./scaleObjects.js";
 const contactHistory=new WeakMap();
 import {normalizeAttachments,applyAttachments,normalizeEvents,eventSchedule,applyEvents,normalizeCamera,cameraFields} from "./animationWorkflow.js";
 import { splinePoint, splineAngle, splineParameter } from "./splines.js";
@@ -60,6 +61,7 @@ export const animationFields = [
   "opacity",
   "size",
   "contentScale",
+  "scale",
   "progress",
   "color",
 ];
@@ -466,6 +468,13 @@ export function animationScene(scene, raw, time, options={}) {
       }
       result.positions[key] = p;
       typingElapsed[key] = local * 1000;
+    }
+    if(clip.frames.some(f=>f.field==='scale')){
+      const poses=Object.fromEntries(keys.map(key=>[key,result.positions[key]]));
+      // Scale the evaluated pose, preserving all internal metrics with the shared transform.
+      const values=Object.values(poses),x=Math.min(...values.map(p=>p.x)),y=Math.min(...values.map(p=>p.y)),w=Math.max(...values.map(p=>p.x+p.w))-x,h=Math.max(...values.map(p=>p.y+(p.h||0)))-y;
+      const scaled=scaleObjects(poses,{x,y,w,h},Math.max(1,Math.min(1000,frameValue(clip.frames,'scale',local,100)))/100,{x:x+w*clip.pivotX,y:y+h*clip.pivotY});
+      if(scaled)Object.assign(result.positions,scaled.positions);
     }
   }
   const restGravity=new Map(config.engines.map(e=>[e.id,e.gravity]));

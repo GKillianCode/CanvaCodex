@@ -36,6 +36,7 @@ export function renderAnimation(
     theme,
     {
       transparent: true,
+      videoTime:time,
       omitBackground:true,
       order: Infinity,
       typingElapsed: state.typingElapsed,

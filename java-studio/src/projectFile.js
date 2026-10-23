@@ -17,7 +17,7 @@ export class ProjectFile {
  let handle=this.handle,baseline=this.baseline;
  if(saveAs||!handle){handle=await this.api.showSaveFilePicker({...options,suggestedName:saveAs?this.suggestedName:this.handle?.name||this.suggestedName});baseline=null;}
  let incoming,existing;try{incoming=JSON.parse(text);}catch{}try{existing=JSON.parse(await (await handle.getFile()).text());}catch{}
- if(incoming?.format==='frame-workspace'&&existing?.format==='frame-workspace'&&incoming.kind!==existing.kind)throw Error('wrong-kind');
+ if(['frame-workspace','frame-design'].includes(incoming?.format)&&['frame-workspace','frame-design'].includes(existing?.format)&&(incoming.format!==existing.format||incoming.kind!==existing.kind))throw Error('wrong-kind');
  const permission={mode:'readwrite'};
  if(handle.queryPermission&&await handle.queryPermission(permission)!=='granted'&&await handle.requestPermission(permission)!=='granted')throw Error('permission');
  if(baseline!==null&&await (await handle.getFile()).text()!==baseline)throw Error('conflict');

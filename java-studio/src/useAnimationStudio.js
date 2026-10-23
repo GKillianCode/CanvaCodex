@@ -1,3 +1,4 @@
+import {seekVideos} from './videoMedia.js';
 import { resolveAnimationFormat } from "./animationExportSettings.js";
 import {makeWorkflowExample} from "./animationWorkflowExample.js";
 import {cameraFields} from "./animationWorkflow.js";
@@ -55,7 +56,7 @@ export function useAnimationStudio(s) {
   const editorScene = computed(() => preview.value ? animationScene(s.current.value, config.value, time.value).scene : s.current.value);
   const motionPrefs=ref({name:'Mon mouvement',duration:1,motion:'builtin-fade'});
   const keySelection=ref([]),keyClipboard=ref([]);
-  const diagnostics=ref({bounds:false,collisions:false,contacts:false,attachments:false,forces:false,camera:false,paths:false});
+  const diagnostics=ref({bounds:false,collisions:false,contacts:false,attachments:false,forces:false,camera:true,paths:false});
   const selectedPathPoint=ref(0);
   const previewOpen = ref(false),
     activeKey = ref(null),
@@ -748,7 +749,7 @@ export function useAnimationStudio(s) {
         });
       } else {
         const output = await exportAnimationFrames({
-          canvas, draw, duration: config.duration, fps: config.fps,
+          canvas, draw:async t=>{const part=storyboardAt(scenes,t);if(part){await seekVideos([part.scene],part.time);if(scenes[part.index+1])await seekVideos([scenes[part.index+1]],0);}draw(t);}, duration: config.duration, fps: config.fps,
           format: outputFormat, quality, signal,
           onProgress(value,phase) { progress.value=value; exportPhase.value=phase==='encoding'?'Encodage…':'Création des images…'; },
         });
@@ -776,6 +777,7 @@ export function useAnimationStudio(s) {
     }
   }
   function propertyValue(name, animated = preview.value) {
+    if(name==='scale')return clip.value?frameValue(clip.value.frames,'scale',time.value-clip.value.start,100):100;
     if([...backgroundAnimationFields,...cameraFields].includes(name)) {
       if(cameraFields.includes(name)){const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;const p=name.slice(6);return cfg.camera[p[0].toLowerCase()+p.slice(1)];}
       const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;
@@ -896,9 +898,7 @@ export function useAnimationStudio(s) {
         colorAnimationFields.includes(name) ? value : Number(value),
         discreteAnimationFields.includes(name) ? "hold" : interpolation,
       );
-      activeKey.value = c.frames.find(
-        (f) => f.field === name && Math.abs(f.time - local) < 0.0001,
-      );
+      activeKey.value=null;activeFrame.value=null;
       preview.value = true;
     } finally {
       s.endGesture();
@@ -1079,6 +1079,7 @@ export function useAnimationStudio(s) {
     keyAt,
     setProperty,
     toggleProperty,
+    recordProperty:(name)=>setProperty(name,propertyValue(name)),
     setClipEasing,
     addEffect,
     removeEffect,

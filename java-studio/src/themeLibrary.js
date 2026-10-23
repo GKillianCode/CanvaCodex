@@ -43,3 +43,21 @@ export function savePersonalTheme(storage, theme, remove = false) {
   storage.setItem("frame-personal-themes", JSON.stringify(themes.slice(-100)));
   storage.setItem("frame-theme-tombstones", JSON.stringify([...removed]));
 }
+
+export function defaultThemeId(storage, palette) {
+  let requested;
+  try {
+    requested = storage.getItem("frame-default-theme");
+  } catch {}
+  if (palette.some((t) => t.id === requested)) return requested;
+  for (const key of ["frame-slides-project", "slides:frame-slides-project"]) {
+    const saved = read(storage, key);
+    if (palette.some((t) => t.id === saved?.themeId)) return saved.themeId;
+  }
+  return palette[0]?.id;
+}
+export function saveDefaultTheme(storage, id) {
+  try {
+    storage.setItem("frame-default-theme", id);
+  } catch {}
+}
