@@ -1,0 +1,124 @@
+<script setup>
+import { reactive, ref, watch } from "vue";
+import { timecodeParts, timecodeSeconds } from "../timecode.js";
+const props = defineProps({
+  modelValue: Number,
+  label: { type: String, default: "Temps" },
+  disabled: Boolean,
+});
+const emit = defineEmits(["update:modelValue"]);
+const draft = reactive(timecodeParts(props.modelValue)),
+  invalid = ref(false);
+const fields = [
+  ["hours", "heures", "h", 2],
+  ["minutes", "minutes", "min", 2],
+  ["seconds", "secondes", "s", 2],
+  ["milliseconds", "millisecondes", "ms", 3],
+];
+watch(
+  () => props.modelValue,
+  (value) => {
+    Object.assign(draft, timecodeParts(value));
+    invalid.value = false;
+  },
+);
+function commit() {
+  const value = timecodeSeconds(draft);
+  invalid.value = value === null;
+  if (value === null) return;
+  Object.assign(draft, timecodeParts(value));
+  emit("update:modelValue", value);
+}
+function step(amount, key) {
+  const value = timecodeSeconds(draft);
+  if (value === null) return;
+  const unit = { hours: 3600, minutes: 60, seconds: 1, milliseconds: 0.001 }[
+    key
+  ];
+  const next = Math.max(0, Math.min(86400, value + amount * unit));
+  Object.assign(draft, timecodeParts(next));
+  invalid.value = false;
+  emit("update:modelValue", next);
+}
+</script>
+<template>
+  <fieldset class="timecode-input" :disabled="disabled">
+    <legend>{{ label }}</legend>
+    <div class="timecode-segments">
+      <template v-for="([key, name, unit, size], index) in fields" :key="key">
+        <span v-if="index" class="timecode-separator" aria-hidden="true">{{
+          index === 3 ? "." : ":"
+        }}</span>
+        <label
+          ><input
+            v-model="draft[key]"
+            type="text"
+            inputmode="numeric"
+            :maxlength="size"
+            :aria-label="label + ' · ' + name"
+            :aria-invalid="invalid"
+            @change="commit"
+            @keydown.enter.prevent="commit"
+            @keydown.up.prevent="step(1, key)"
+            @keydown.down.prevent="step(-1, key)"
+          /><span>{{ unit }}</span></label
+        >
+      </template>
+    </div>
+    <small v-if="invalid" role="alert"
+      >Saisis des nombres entiers : minutes et secondes de 00 à 59,
+      millisecondes de 000 à 999.</small
+    >
+  </fieldset>
+</template>
+<style scoped>
+.timecode-input {
+  min-width: 0;
+  border: 0;
+  margin: 12px 0;
+  padding: 0;
+  color: inherit;
+}
+.timecode-input legend {
+  padding: 0;
+  font-size: 12px;
+  margin-bottom: 8px;
+}
+.timecode-segments {
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+}
+.timecode-segments label {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+.timecode-segments label:last-child {
+  flex: 1.4;
+}
+.timecode-segments input {
+  width: 100%;
+  min-width: 0;
+  padding: 8px 3px;
+  text-align: center;
+  font-variant-numeric: tabular-nums;
+}
+.timecode-segments label span {
+  color: var(--muted);
+  font-size: 10px;
+}
+.timecode-separator {
+  padding-top: 8px;
+  opacity: 0.6;
+}
+.timecode-input small {
+  display: block;
+  margin-top: 8px;
+  font-size: 11px;
+  color: var(--muted);
+}
+</style>

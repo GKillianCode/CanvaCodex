@@ -1,4 +1,5 @@
 <script setup>
+import {audioTimeLabel} from "../animationAudioModel.js";
 import AnimationAudioTrack from "./AnimationAudioTrack.vue";
 import {effectCatalog,effectFieldLabel,visualEffectKinds} from "../animationEffectCatalog.js";
 import {moveKeySelection} from "../animationEditing.js";
@@ -390,13 +391,13 @@ onUnmounted(() => {
         :style="{ width: view.widthPercent + '%' }"
       >
         <div class="animation-ruler">
-          <span>{{ timelinePanel === 'audio' ? 'Audio de référence' : 'Séquences' }}</span>
+          <span>{{ timelinePanel === 'audio' ? 'Temps dans le fichier' : 'Séquences' }}</span>
           <div class="timeline-ruler" @pointerdown="scrub">
             <span
               v-for="i in 9"
               :key="i"
-              :style="{ left: ((i - 1) / 8) * 100 + '%' }"
-              >{{ (((i - 1) * view.span) / 8).toFixed(1) }}</span
+              :style="{ left: ((i - 1) / 8) * 100 + '%', transform: timelinePanel === 'audio' ? (i === 1 ? 'none' : i === 9 ? 'translateX(-100%)' : undefined) : undefined }"
+              >{{ timelinePanel === 'audio' ? audioTimeLabel(a.config.audio.start + ((i - 1) * view.span) / 8) : (((i - 1) * view.span) / 8).toFixed(1) }}</span
             ><button
               class="playhead-head"
               :style="{ left: (a.time / view.span) * 100 + '%' }"

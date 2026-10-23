@@ -266,3 +266,5 @@ Le bouton **Clés auto** de la timeline Animation enregistre les modifications d
 Pendant le déplacement d’une clé Animation, une bulle affiche le temps dans la scène et le numéro d’image. Les nouvelles scènes reprennent les réglages du fond précédent, tout en conservant un contenu et des animations indépendants.
 
 L’atelier Animation accepte un **audio de référence** dans Scène → Audio de référence. Le début d’extrait se règle en secondes et sa durée suit celle de la scène. La timeline sépare Images clés et Audio : forme d’onde de la scène sélectionnée, lecture/aperçu synchronisés et muet. Le fichier est stocké une seule fois localement et inclus une seule fois dans les sauvegardes JSON de l’éditeur. Il n’est pas mixé dans les vidéos exportées.
+
+Le début de l’extrait audio se saisit explicitement en **heures / minutes / secondes / millisecondes**. Début, fin calculée et durée sont distincts ; la règle Audio affiche les temps du fichier, tandis que la lecture de l’animation reste relative à la scène.

@@ -945,3 +945,8 @@
 .animation-audio-properties .btn { background: transparent; color: inherit; border: 1px solid var(--border); }
 
 .animation-tracks { scroll-padding-top: 44px; scroll-padding-bottom: 12px; }
+
+.animation-audio-interval { display:grid; gap:8px; margin:14px 0; font-size:11px; }
+.animation-audio-interval > div { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.animation-audio-interval dt { color:var(--muted); }
+.animation-audio-interval dd { margin:0; font-variant-numeric:tabular-nums; white-space:nowrap; }

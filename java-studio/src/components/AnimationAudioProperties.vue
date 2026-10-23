@@ -1,6 +1,7 @@
 <script setup>
 import { reactive, computed } from "vue";
 import { Music2, Upload, Trash2 } from "lucide-vue-next";
+import TimecodeInput from "./TimecodeInput.vue";
 import InspectorDrawer from "./InspectorDrawer.vue";
 import { audioTimeLabel } from "../animationAudioModel.js";
 const props = defineProps({ studio: Object }),
@@ -43,21 +44,26 @@ const end = computed(() => a.config.audio.start + a.config.duration);
         a.audio.asset?.name ||
         (a.audio.loading ? "Chargement…" : "Audio de référence")
       }}</strong>
-      <label
-        >Début dans le fichier · s<input
-          type="number"
-          min="0"
-          max="86400"
-          step="0.01"
-          :value="a.config.audio.start"
-          aria-label="Début de l’extrait audio en secondes"
-          :disabled="a.busy"
-          @change="a.audio.setStart($event.target.value)"
-      /></label>
-      <p class="field-help animation-audio-interval">
-        {{ audioTimeLabel(a.config.audio.start) }} → {{ audioTimeLabel(end) }} ·
-        {{ a.config.duration }} s
-      </p>
+      <TimecodeInput
+        label="Début dans le fichier"
+        :model-value="a.config.audio.start"
+        :disabled="a.busy"
+        @update:model-value="a.audio.setStart"
+      />
+      <dl class="animation-audio-interval">
+        <div>
+          <dt>Début de l’extrait</dt>
+          <dd>{{ audioTimeLabel(a.config.audio.start) }}</dd>
+        </div>
+        <div>
+          <dt>Fin calculée</dt>
+          <dd>{{ audioTimeLabel(end) }}</dd>
+        </div>
+        <div>
+          <dt>Durée de la scène</dt>
+          <dd>{{ audioTimeLabel(a.config.duration) }}</dd>
+        </div>
+      </dl>
       <p
         v-if="a.audio.asset && end > a.audio.asset.duration"
         class="field-help"

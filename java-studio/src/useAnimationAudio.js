@@ -18,6 +18,7 @@ export function useAnimationAudio(s, playback) {
     generation = 0,
     disposed = false,
     playPending = false,
+    forceSeek = false,
     blocked = false;
   const clear = () => {
     media.pause();
@@ -27,6 +28,7 @@ export function useAnimationAudio(s, playback) {
     url = "";
     asset.value = null;
     playPending = false;
+    forceSeek = false;
     blocked = false;
   };
   function sync() {
@@ -50,14 +52,19 @@ export function useAnimationAudio(s, playback) {
     if (media.seeking) return;
     const desired = Math.min(target, asset.value.duration);
     // The animation is the master clock: seek on scrub/scene change and correct audible drift.
-    if (Math.abs(media.currentTime - desired) > (shouldPlay ? 0.12 : 0.005)) {
+    if (
+      Math.abs(media.currentTime - desired) >
+      (forceSeek ? 0.000001 : shouldPlay ? 0.12 : 0.005)
+    ) {
       try {
         media.currentTime = desired;
+        forceSeek = false;
         return; // seeked/loadeddata will recheck the current scene time before play.
       } catch {
         return;
       }
     }
+    forceSeek = false;
     if (media.readyState < 2) return;
     if (shouldPlay && media.paused && !playPending && !blocked) {
       playPending = true;
@@ -185,6 +192,7 @@ export function useAnimationAudio(s, playback) {
       start,
     });
     s.endGesture();
+    forceSeek = true;
     sync();
   }
   function remove() {

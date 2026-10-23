@@ -1,3 +1,4 @@
+export { formatTimecode as audioTimeLabel } from "./timecode.js";
 // Scene settings contain only a stable media reference and a source-time offset.
 export const validAudioReference = (value) =>
   typeof value === "string" && /^frame-audio:[a-f0-9-]{36}$/.test(value);
@@ -14,10 +15,6 @@ export function audioSourceTime(settings, time, sceneDuration) {
     normalizeSceneAudio(settings).start +
     Math.max(0, Math.min(sceneDuration, Number(time) || 0))
   );
-}
-export function audioTimeLabel(seconds) {
-  const centiseconds = Math.round(Math.max(0, Number(seconds) || 0) * 100);
-  return `${String(Math.floor(centiseconds / 6000)).padStart(2, "0")}:${((centiseconds % 6000) / 100).toFixed(2).padStart(5, "0")}`;
 }
 export function audioPeaks(buffer, rate = 100) {
   const count = Math.ceil(buffer.duration * rate),

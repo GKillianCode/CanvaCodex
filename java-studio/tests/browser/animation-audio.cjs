@@ -133,9 +133,9 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     const before = await page
       .locator(".animation-audio-lane path")
       .getAttribute("d");
-    await page.getByLabel("Début de l’extrait audio en secondes").fill("20");
+    await page.getByLabel("Début dans le fichier · secondes").fill("20");
     await page
-      .getByLabel("Début de l’extrait audio en secondes")
+      .getByLabel("Début dans le fichier · secondes")
       .dispatchEvent("change");
     assert.notEqual(
       await page.locator(".animation-audio-lane path").getAttribute("d"),
@@ -145,12 +145,88 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     await page.waitForFunction(() =>
       document
         .querySelector(".animation-audio-label small")
-        .textContent.includes("00:31.00"),
+        .textContent.includes("00:00:31.000"),
     );
     assert.equal(
       await page.evaluate(() => live().animation.config.value.audio.start),
       20,
     );
+    // Explicit h/min/s/ms: source start is never confused with decimal seconds or the endpoint.
+    const secondField = page.getByLabel("Début dans le fichier · secondes", {
+      exact: true,
+    });
+    const msField = page.getByLabel("Début dans le fichier · millisecondes", {
+      exact: true,
+    });
+    await secondField.fill("33");
+    await secondField.press("Tab");
+    await msField.fill("125");
+    await msField.press("Tab");
+    await page.evaluate(() => (live().animation.config.value.duration = 33));
+    await page.waitForFunction(
+      () => live().animation.config.value.audio.start === 33.125,
+    );
+    await page.waitForFunction(
+      () => Math.abs(referenceAudio.currentTime - 33.125) < 0.001,
+    );
+    assert.match(
+      await page.locator(".animation-audio-interval").innerText(),
+      /00:00:33\.125/,
+    );
+    assert.match(
+      await page.locator(".animation-audio-interval").innerText(),
+      /00:01:06\.125/,
+    );
+    assert.equal(
+      await page.locator(".timeline-ruler > span").first().innerText(),
+      "00:00:33.125",
+    );
+    assert.equal(
+      await page.locator(".timeline-ruler > span").last().innerText(),
+      "00:01:06.125",
+    );
+    await msField.fill("126");
+    await msField.press("Tab");
+    await page.waitForFunction(
+      () => Math.abs(referenceAudio.currentTime - 33.126) < 0.0005,
+    );
+    await secondField.fill("xx");
+    await secondField.press("Tab");
+    assert.equal(await secondField.getAttribute("aria-invalid"), "true");
+    assert.equal(
+      await page.evaluate(() => live().animation.config.value.audio.start),
+      33.126,
+    );
+    await secondField.fill("33");
+    await secondField.press("Tab");
+    const minuteField = page.getByLabel("Début dans le fichier · minutes", {
+      exact: true,
+    });
+    await minuteField.fill("01");
+    await minuteField.press("Tab");
+    await secondField.fill("02");
+    await secondField.press("Tab");
+    assert.equal(
+      await page.evaluate(() => live().animation.config.value.audio.start),
+      62.126,
+    );
+    await page.evaluate(() => {
+      const a = live().animation;
+      a.audio.setStart(0.33);
+    });
+    await page.waitForFunction(
+      () =>
+        document.querySelector(
+          'input[aria-label="Début dans le fichier · millisecondes"]',
+        ).value === "330",
+    );
+    assert.equal(await secondField.inputValue(), "00");
+    await page.evaluate(() => {
+      const a = live().animation;
+      a.audio.setStart(20);
+      a.config.value.duration = 11;
+    });
+
     await page
       .getByRole("button", { name: "Couper l’audio", exact: true })
       .click();

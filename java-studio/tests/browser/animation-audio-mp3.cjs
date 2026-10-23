@@ -112,7 +112,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       });
       // Check actual decoded sound, not only the media element's declared currentTime.
       for (const offset of [33, 0, 33]) {
-        const input = page.getByLabel("Début de l’extrait audio en secondes");
+        const input = page.getByLabel("Début dans le fichier · secondes");
         await input.fill(String(offset));
         await input.press("Tab");
         await page.evaluate(() => {

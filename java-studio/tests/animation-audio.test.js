@@ -34,8 +34,8 @@ test("source position follows scene offset and duration, with correct time-label
   assert.equal(audioSourceTime({ src, start: 20 }, 2.5, 11), 22.5);
   assert.equal(audioSourceTime({ src, start: 20 }, 100, 11), 31);
   assert.equal(audioSourceTime({ src, start: 20 }, -4, 11), 20);
-  assert.equal(audioTimeLabel(59.999), "01:00.00");
-  assert.equal(audioTimeLabel(620.25), "10:20.25");
+  assert.equal(audioTimeLabel(59.9996), "00:01:00.000");
+  assert.equal(audioTimeLabel(620.25), "00:10:20.250");
 });
 test("waveform retains transients from every channel without keeping the decoded buffer", () => {
   const buffer = {
