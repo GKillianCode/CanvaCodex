@@ -168,7 +168,7 @@ Mesure réelle de la démo Slime5scènes : **54s,1920×1080,30fps,1620images,MP4
 
 ## Bibliothèque d’effets — 23 octobre 2026
 
-Nouvelle branche de test `test/animation-effects-library`, issue [#159](https://github.com/GKillianCode/CanvaCodex/issues/159). Elle prolonge les composants de la branche des ateliers ; aucune fusion automatique.
+Nouvelle branche de test `test/animation-effects-library`, [PR #160](https://github.com/GKillianCode/CanvaCodex/pull/160), issue [#159](https://github.com/GKillianCode/CanvaCodex/issues/159). Elle prolonge les composants de la branche des ateliers ; aucune fusion automatique.
 
 ### Prise en main
 
