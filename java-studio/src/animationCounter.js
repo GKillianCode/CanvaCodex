@@ -1,3 +1,4 @@
+import { presenceTiming } from "./animationPresence.js";
 import { timecodeParts } from "./timecode.js";
 const number = (v, f, min, max) =>
   Number.isFinite(Number(v)) ? Math.max(min, Math.min(max, Number(v))) : f;
@@ -89,8 +90,8 @@ export function counterScroll(raw, value) {
 
 // The disappearance bound is exclusive: reach the target on the last visible frame.
 export function counterTiming(range, sceneDuration, fps) {
-  const end = Math.max(0, Math.min(sceneDuration, range?.end ?? sceneDuration));
-  const start = Math.max(0, Math.min(end, range?.start ?? 0));
-  const finish = Math.max(start, (Math.ceil(end * fps - 1e-7) - 1) / fps);
-  return {start,end,finish,duration:finish-start};
+  const timing = presenceTiming(range,sceneDuration), {start,end} = timing;
+  const lastFrame = (Math.ceil(end * fps - 1e-7) - 1) / fps;
+  const finish = Math.max(start,Math.min(lastFrame,Math.floor(timing.holdStart*fps+1e-7)/fps));
+  return {...timing,finish,duration:finish-start};
 }

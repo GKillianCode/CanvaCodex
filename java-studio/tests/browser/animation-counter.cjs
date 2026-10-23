@@ -106,7 +106,7 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1):5289$/.test(base || ""))
     assert.equal((await sample(10)).text, "0500");
     assert.equal((await sample(15)).text, "1000");
     assert.equal((await sample(4)).visible, false);
-    assert.equal(await page.getByLabel('Durée de présence calculée · secondes').isDisabled(),true);
+    assert.equal(await page.getByLabel('Durée du comptage calculée · secondes').isDisabled(),true);
     await page.evaluate(({key})=>live().animation.setPresence([key],'end',9+1/30),{key});
     assert.equal((await sample(7)).text, "0500");
     await page.getByLabel("Texte avant", { exact: true }).fill("Total : ");

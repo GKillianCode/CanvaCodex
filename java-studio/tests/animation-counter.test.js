@@ -174,3 +174,26 @@ test('counter timing handles fractional boundaries, a single visible frame and l
   assert.equal(animationScene(scene,cfg,5).scene.elements.textCount.text,'999');
   assert.equal(animationScene(scene,cfg,5).presence.textCount.visible,true);
 });
+
+test('counters reach their target before the final hold and exit for every rhythm and display',()=>{
+  for(const fps of [24,30,60]) for(const easing of ['linear','smooth','easeIn','easeOut'])
+    for(const display of ['replace','scroll']) for(const mode of ['number','time']) for(const [from,to] of [[0,38000],[38000,0]]) {
+      const cfg=normalizeAnimation({duration:20,fps,presences:{textCount:{start:5,end:15,exit:'fade',exitDuration:1,holdDuration:2}},
+        counters:{textCount:{from,to,easing,display,mode}}});
+      const timing=counterTiming(cfg.presences.textCount,20,fps);
+      assert.equal(timing.finish,12);assert.equal(timing.duration,7);
+      for(const t of [12,13,14,14.5,15-1/fps]){
+        const state=animationScene(scene,cfg,t);
+        assert.equal(state.scene.elements.textCount.text,counterText(cfg.counters.textCount,to));
+        assert.equal(state.presence.textCount.visible,true);
+        if(t<=14)assert.equal(state.presence.textCount.alpha,1);
+        if(display==='scroll')assert.equal(state.scene.counterFrames.textCount.progress,0);
+      }
+      assert.equal(animationScene(scene,cfg,15).presence.textCount.visible,false);
+      cfg.presences.textCount.holdDuration=0;
+      assert.equal(counterTiming(cfg.presences.textCount,20,fps).finish,14,
+        'Even without a hold, the target must be reached before exit');
+      cfg.presences.textCount.end=null;
+      assert.equal(counterTiming(cfg.presences.textCount,20,fps).finish,19);
+    }
+});

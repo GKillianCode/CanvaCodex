@@ -275,10 +275,12 @@ L’écoute de référence prépare les fichiers compressés en PCM temporaire p
 
 Les objets Animation ont une **présence indépendante des clips** : création à l’instant courant, début/fin dans Objet → Style, boutons Aller au début / Aller à la fin pour positionner précisément le curseur, plage déplaçable et redimensionnable dans le tiroir de l’objet dans la timeline (séquences, propriétés et effets regroupés, clés sans doublon), transitions d’apparition/disparition optionnelles.
 
-**Insérer → Compteur animé** ajoute un texte stylable qui compte de A à B sur toute sa plage de présence, jusqu’à sa valeur finale sur la dernière image visible, en nombre ou en temps (HH:MM:SS/MM:SS), avec zéros initiaux, rythme, séparateurs et préfixe/suffixe personnalisés.
+**Insérer → Compteur animé** ajoute un texte stylable qui compte de A à B sur toute sa plage de présence, jusqu’à sa valeur finale avant le maintien et l’effacement, en nombre ou en temps (HH:MM:SS/MM:SS), avec zéros initiaux, rythme, séparateurs et préfixe/suffixe personnalisés.
 
 La durée d’une scène Animation se saisit dans Scène en **minutes, secondes et images**, à la cadence choisie (24/30/60 i/s), avec le champ de timecode partagé.
 
 Dans la timeline Animation, les actions de chaque tiroir restent accessibles replié : désactiver/réactiver les animations, masquer/réafficher la piste via **Pistes masquées**, supprimer les animations avec confirmation et annulation, en conservant l’objet et sa présence.
 
 L’audio de référence Animation dispose d’un volume d’écoute **0–100 %** partagé entre timeline et aperçu, mémorisé avec le mode muet. Les compteurs peuvent remplacer les chiffres ou **faire défiler les valeurs entières dans les quatre directions**, en progression ou compte à rebours, avec les styles de texte et clés de couleur habituels.
+
+**Présence dans la scène → Maintien final** réserve un délai avant la sortie, nul par défaut et réglable pour tous les blocs. Les compteurs adaptent leur vitesse pour laisser leur valeur finale lisible pendant ce délai, puis conservent cette valeur pendant l’effacement. Les bornes de présence et les clés manuelles restent inchangées.

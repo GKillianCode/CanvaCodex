@@ -17,6 +17,7 @@ export function normalizePresence(raw = {}) {
     exit: normalizeAnimation(raw.exit, "none"),
     enterDuration: number(raw.enterDuration, 0.3, 0, 5),
     exitDuration: number(raw.exitDuration, 0.3, 0, 5),
+    holdDuration: number(raw.holdDuration, 0, 0, 120),
   };
 }
 export function normalizePresences(raw) {
@@ -32,20 +33,30 @@ export function normalizePresences(raw) {
       .map(([key, value]) => [key, normalizePresence(value)]),
   );
 }
+// Presence phases share one clock: active content, final hold, then exit.
+export function presenceTiming(raw, duration) {
+  const p = normalizePresence(raw), start = Math.min(duration,p.start),
+    end = Math.min(p.end ?? duration,duration), span = Math.max(0,end-start),
+    exitDuration = p.exit === 'none' ? 0 : Math.min(p.exitDuration,span/2),
+    exitStart = end-exitDuration,
+    holdDuration = Math.min(p.holdDuration,Math.max(0,exitStart-start));
+  return {start,end,exitDuration,exitStart,holdDuration,holdStart:exitStart-holdDuration};
+}
 export function presenceState(raw, time, duration, scene, key) {
   const p = normalizePresence(raw),
     end = p.end == null ? duration : Math.min(p.end, duration),
     visible = time >= p.start && (p.end == null ? time <= end : time < end);
   const span = Math.max(0, end - p.start),
     enter = Math.min(p.enterDuration, span / 2),
-    exit = Math.min(p.exitDuration, span / 2);
+    timing = presenceTiming(p,duration),
+    exit = timing.exitDuration;
   const a = motionState(
       resolvedAnimation(p.entrance, { id: scene.id + key }, 0),
       enter ? (time - p.start) / enter : 1,
     ),
     b = motionState(
       resolvedAnimation(p.exit, { id: scene.id + key }, 0),
-      exit ? (time - (end - exit)) / exit : 0,
+      exit ? (time - timing.exitStart) / exit : 0,
       true,
     );
   return {

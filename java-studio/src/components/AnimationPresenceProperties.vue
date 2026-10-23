@@ -4,13 +4,14 @@ import { Clock, SkipBack, SkipForward } from "lucide-vue-next";
 import InspectorDrawer from "./InspectorDrawer.vue";
 import TimecodeInput from "./TimecodeInput.vue";
 import MotionProperties from "./MotionProperties.vue";
-import { normalizePresence } from "../animationPresence.js";
+import { normalizePresence, presenceTiming } from "../animationPresence.js";
 const props = defineProps({ studio: Object }),
   s = reactive(props.studio),
   a = s.animation;
 const range = computed(() =>
   normalizePresence(a.config.presences[s.selectedKeys[0]]),
 );
+const timing = computed(() => presenceTiming(range.value,a.config.duration));
 function update(field, value) {
   a.setPresence(s.selectedKeys, field, value);
 }
@@ -81,6 +82,16 @@ function update(field, value) {
     >
       Terminer au curseur
     </button>
+    <TimecodeInput
+      label="Maintien final"
+      :frame-rate="a.config.fps"
+      :model-value="timing.holdDuration"
+      :max="Math.max(0,timing.exitStart-timing.start)"
+      :disabled="a.busy"
+      @update:model-value="update('holdDuration',$event)"
+    />
+    <p class="field-help">Temps réservé avant la sortie, à l’intérieur de la présence.
+      Les compteurs atteignent leur cible avant ce maintien. Les images clés des autres blocs gardent leurs positions.</p>
     <MotionProperties
       compact
       exit-label="Disparition"

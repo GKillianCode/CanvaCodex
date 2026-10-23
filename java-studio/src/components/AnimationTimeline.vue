@@ -1,5 +1,5 @@
 <script setup>
-import { normalizePresence } from "../animationPresence.js";
+import { normalizePresence, presenceTiming } from "../animationPresence.js";
 import TimecodeInput from "./TimecodeInput.vue";
 import {audioTimeLabel} from "../animationAudioModel.js";
 import AnimationAudioTrack from "./AnimationAudioTrack.vue";
@@ -80,6 +80,7 @@ const trackGroups = computed(() => {
     if (!groups.has(key)) groups.set(key, {
       key, name: s.current.elements[key]?.name || (key === '$scene' ? 'Scène' : key),
       range: s.current.positions[key] ? normalizePresence(a.config.presences[key]) : null,
+      timing: presenceTiming(a.config.presences[key],a.config.duration),
       clips: [], effects: [],
     });
     return groups.get(key);
@@ -492,8 +493,14 @@ onUnmounted(() => {
                 @click.stop="removeGroup(group)"><Trash2 :size="12"/></button>
             </div>
             <div class="track-lane" @pointerdown.self="selectGroup(group)">
-              <div v-if="group.range" class="presence-span" :style="{left:Math.min(group.range.start,a.config.duration)/view.span*100+'%',width:Math.max(0,Math.min(group.range.end??a.config.duration,a.config.duration)-group.range.start)/view.span*100+'%'}" @pointerdown="dragPresence($event,group.key,'move')" :title="'Présence · '+audioTimeLabel(group.range.start,a.audio.frameRate)+' → '+audioTimeLabel(group.range.end??a.config.duration,a.audio.frameRate)">
+              <div v-if="group.range" class="presence-span" :style="{left:Math.min(group.range.start,a.config.duration)/view.span*100+'%',width:Math.max(0,Math.min(group.range.end??a.config.duration,a.config.duration)-group.range.start)/view.span*100+'%'}" @pointerdown="dragPresence($event,group.key,'move')" :title="'Présence · '+audioTimeLabel(group.range.start,a.audio.frameRate)+' → '+audioTimeLabel(group.range.end??a.config.duration,a.audio.frameRate)+(group.timing.holdDuration ? ' · Maintien : '+audioTimeLabel(group.timing.holdStart,a.audio.frameRate)+' → '+audioTimeLabel(group.timing.exitStart,a.audio.frameRate) : '')">
                 <button class="presence-handle start" :aria-label="'Début de présence de '+group.key" title="Déplacer l’apparition" @pointerdown.stop="dragPresence($event,group.key,'start')"></button>
+                <span v-if="group.timing.holdDuration > 0" class="presence-hold-zone"
+                  :style="{left:(group.timing.holdStart-group.range.start)/(group.timing.end-group.range.start)*100+'%',width:group.timing.holdDuration/(group.timing.end-group.range.start)*100+'%'}"
+                  :title="'Maintien final · '+audioTimeLabel(group.timing.holdStart,a.audio.frameRate)+' → '+audioTimeLabel(group.timing.exitStart,a.audio.frameRate)"></span>
+                <span v-if="group.timing.exitDuration > 0" class="presence-exit-zone"
+                  :style="{left:(group.timing.exitStart-group.range.start)/(group.timing.end-group.range.start)*100+'%',width:group.timing.exitDuration/(group.timing.end-group.range.start)*100+'%'}"
+                  title="Transition de sortie"></span>
                 <small>{{ audioTimeLabel(group.range.start,a.audio.frameRate) }} → {{ audioTimeLabel(group.range.end??a.config.duration,a.audio.frameRate) }}</small>
                 <button class="presence-handle end" :aria-label="'Fin de présence de '+group.key" title="Déplacer la disparition" @pointerdown.stop="dragPresence($event,group.key,'end')"></button>
               </div>

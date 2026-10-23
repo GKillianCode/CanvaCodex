@@ -1000,3 +1000,9 @@
 
 .animation-object-track.timeline-group-hidden > .track-lane {opacity:.35;}
 .animation-object-track .icon-btn[aria-pressed="false"] {opacity:.5;}
+
+.presence-hold-zone,.presence-exit-zone {position:absolute;top:0;bottom:0;pointer-events:none;border-left:1px solid color-mix(in srgb,var(--accent) 45%,transparent);}
+.presence-hold-zone {background:color-mix(in srgb,var(--accent) 15%,transparent);}
+.presence-exit-zone {background:repeating-linear-gradient(130deg,transparent 0 4px,color-mix(in srgb,var(--ink) 9%,transparent) 4px 6px);}
+.presence-span small {position:relative;z-index:1;}
+.presence-handle {z-index:2;}

@@ -17,7 +17,7 @@ function update(field, value) {
   <InspectorDrawer id="animation-counter" title="Compteur animé" :icon="Timer">
     <p class="field-help">
       Le compteur parcourt toute sa plage de présence : valeur de départ à
-      l’apparition, valeur d’arrivée sur la dernière image avant disparition.
+      l’apparition, valeur d’arrivée avant le maintien final et la transition de sortie.
       Le style se règle avec les outils de texte habituels.
     </p>
     <label
@@ -77,9 +77,9 @@ function update(field, value) {
       <option value="down">Du haut vers le bas</option><option value="up">Du bas vers le haut</option>
     </select></label>
     <TimecodeInput
-      label="Durée de présence calculée"
+      label="Durée du comptage calculée"
       :frame-rate="a.config.fps"
-      :model-value="timing.end-timing.start"
+      :model-value="timing.duration"
       disabled
     />
     <label

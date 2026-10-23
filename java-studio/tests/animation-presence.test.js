@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   normalizePresence,
   presenceState,
+  presenceTiming,
   applyPresenceMotion,
 } from "../src/animationPresence.js";
 import { animationScene, normalizeAnimation } from "../src/animationModel.js";
@@ -108,4 +109,20 @@ test("presence survives normalization and JSON roundtrip, overlaps stay bounded 
   assert.deepEqual(animationScene(scene, config, 5.15), first);
   assert(Number.isFinite(first.presence.title.alpha));
   assert(first.presence.title.alpha >= 0 && first.presence.title.alpha <= 1);
+});
+
+test('final holds default to zero and fit inside presence before the shared exit',()=>{
+  assert.equal(normalizePresence({}).holdDuration,0);
+  const range={start:5,end:15,exit:'fade',exitDuration:1,holdDuration:2};
+  assert.deepEqual(presenceTiming(range,20),{start:5,end:15,exitDuration:1,exitStart:14,holdDuration:2,holdStart:12});
+  assert.equal(presenceState(range,13,20,scene,'title').alpha,1);
+  assert.equal(presenceState(range,14,20,scene,'title').alpha,1);
+  assert(presenceState(range,14.5,20,scene,'title').alpha>0);
+  assert(presenceState(range,14.5,20,scene,'title').alpha<1);
+  assert.equal(presenceState(range,15,20,scene,'title').visible,false);
+  const short=presenceTiming({...range,end:6,holdDuration:20},20);
+  assert.equal(short.exitDuration,.5);assert.equal(short.holdDuration,.5);assert.equal(short.holdStart,5);
+  assert.equal(presenceTiming({...range,exit:'none'},20).holdStart,13);
+  const config=normalizeAnimation({presences:{title:range}});
+  assert.deepEqual(normalizeAnimation(JSON.parse(JSON.stringify(config))).presences,config.presences);
 });
