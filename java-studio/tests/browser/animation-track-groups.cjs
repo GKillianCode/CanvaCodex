@@ -137,6 +137,51 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     await page.screenshot({path:'/tmp/frame-timeline-group-dark.png'});
     await page.evaluate(()=>document.documentElement.dataset.appearance='light');
     await page.screenshot({path:'/tmp/frame-timeline-group-light.png'});
+    // Drawer actions remain accessible while collapsed.
+    await toggle.click();
+    const owner=page.locator('.animation-object-track[data-object="shape"]');
+    const power=owner.locator('button[aria-label^="Activer ou désactiver"]');
+    await power.click();
+    assert.equal(await page.evaluate(()=>live().animation.config.value.clips.filter(c=>c.keys[0]==='shape').every(c=>!c.enabled)),true);
+    assert.equal(await page.evaluate(()=>live().animation.config.value.effects[0].enabled),false);
+    await power.click();
+    assert.equal(await page.evaluate(()=>live().animation.config.value.effects[0].enabled),true);
+    const saved=await page.evaluate(()=>JSON.stringify(live().current.value));
+    await owner.locator('button[aria-label^="Masquer ou réafficher"]').click();
+    assert.equal(await owner.count(),0);
+    assert.equal(await page.evaluate(()=>JSON.stringify(live().current.value)),saved,
+      'Hiding a drawer must not change the rendered animation');
+    await page.getByLabel('Pistes masquées',{exact:true}).check();
+    assert.equal(await owner.count(),1);
+    await owner.locator('button[aria-label^="Masquer ou réafficher"]').click();
+    await page.getByLabel('Pistes masquées',{exact:true}).uncheck();
+    assert.equal(await owner.count(),1);
+    await page.evaluate(async()=>{
+      const a=live().animation.config.value;
+      const {effectField}=await import('/src/animationEffectCatalog.js');
+      a.clips.find(c=>c.id==='global').frames.push({field:effectField('fade-test','amount'),time:0,value:50});
+      a.events.push({id:'linked',trigger:'clipEnd',source:'movement',action:'startClip',target:'second'},
+        {id:'independent',trigger:'time',time:0,action:'show',target:'other'});
+      a.presences.shape={start:1,end:7};
+      await tick();
+    });
+    const beforeDelete=await page.evaluate(()=>JSON.stringify(live().current.value));
+    await owner.getByRole('button',{name:/^Supprimer les animations de/}).click();
+    const confirm=page.getByRole('dialog',{name:'Confirmer la suppression'});
+    await confirm.getByRole('button',{name:'Annuler',exact:true}).click();
+    assert.equal(await page.evaluate(()=>JSON.stringify(live().current.value)),beforeDelete);
+    await owner.getByRole('button',{name:/^Supprimer les animations de/}).click();
+    await confirm.getByRole('button',{name:'Supprimer',exact:true}).click();
+    const remaining=await page.evaluate(()=>{
+      const s=live(),a=s.animation.config.value;
+      return {clips:a.clips.map(c=>c.id),effects:a.effects.length,events:a.events.map(e=>e.id),
+        frames:a.clips[0].frames.length,object:!!s.current.value.positions.shape,presence:a.presences.shape};
+    });
+    assert.deepEqual(remaining,{clips:['global'],effects:0,events:['independent'],frames:3,
+      object:true,presence:{start:1,end:7}});
+    await page.evaluate(()=>live().undo());
+    assert.equal(await page.evaluate(()=>JSON.stringify(live().current.value)),beforeDelete,
+      'Deleting all owner animations must be one undoable operation');
     assert.deepEqual(errors,[]);
     console.log('Timeline object drawers, integrated lifetime, unique key markers and nested effects passed');
   } finally {await browser.close();}

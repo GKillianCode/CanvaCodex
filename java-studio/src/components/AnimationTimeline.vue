@@ -46,6 +46,34 @@ const visibleClips=computed(()=>a.config.clips.filter(c=>(!c.hidden||showHidden.
 const visibleEffects=computed(()=>a.config.effects.filter(e=>visualEffectKinds.includes(e.kind)&&(!selectedOnly.value||!s.selectedKeys.length||s.selectedKeys.includes(e.key))));
 // Each sequence/effect belongs to one drawer, including sequences targeting several objects.
 const expandedGroups = reactive(new Set());
+const hiddenGroups = reactive(new Set());
+const groupId = key => s.current.id + ':' + key;
+function groupAnimations(key) {
+  return [
+    ...a.config.clips.filter(c => (c.keys[0] || '$scene') === key),
+    ...a.config.effects.filter(e => visualEffectKinds.includes(e.kind) && e.key === key),
+  ];
+}
+function toggleGroupHidden(key) {
+  const id = groupId(key);
+  if (hiddenGroups.has(id)) hiddenGroups.delete(id);
+  else hiddenGroups.add(id);
+}
+function toggleGroupEnabled(key) {
+  if (a.busy) return;
+  const animations = groupAnimations(key), enabled = !animations.some(c => c.enabled);
+  a.stop(); a.beginGesture();
+  animations.forEach(c => c.enabled = enabled);
+  a.endGesture();
+}
+function removeGroup(group) {
+  const animations = groupAnimations(group.key);
+  a.removeTracks(
+    animations.filter(c => 'keys' in c).map(c => c.id),
+    animations.filter(c => !('keys' in c)).map(c => c.id),
+    'les animations de « ' + group.name + ' » (l’objet et sa présence seront conservés)',
+  );
+}
 const trackGroups = computed(() => {
   const groups = new Map();
   function group(key) {
@@ -62,7 +90,7 @@ const trackGroups = computed(() => {
   }
   for (const c of visibleClips.value) group(c.keys[0] || '$scene').clips.push(c);
   for (const effect of visibleEffects.value) group(effect.key).effects.push(effect);
-  return [...groups.values()];
+  return [...groups.values()].filter(g => showHidden.value || !hiddenGroups.has(groupId(g.key)));
 });
 watch(() => a.selectedClip, () => {
   const group = trackGroups.value.find(g => g.clips.some(c => c.id === a.selectedClip));
@@ -442,13 +470,26 @@ onUnmounted(() => {
         </div>
         <AnimationAudioTrack v-if="timelinePanel === 'audio'" :studio="s" :span="view.span" @scrub="scrub" />
         <template v-for="group in timelinePanel === 'keys' ? trackGroups : []" :key="group.key">
-          <div class="animation-track animation-object-track" :data-object="group.key" :class="{active:s.selectedKeys.includes(group.key)}">
+          <div class="animation-track animation-object-track" :data-object="group.key" :class="{active:s.selectedKeys.includes(group.key), 'timeline-group-hidden':hiddenGroups.has(groupId(group.key))}">
             <div class="track-name object-track-name">
               <button class="icon-btn" :aria-label="'Animations de '+group.name" :aria-expanded="expandedGroups.has(group.key)" :disabled="!group.clips.length&&!group.effects.length" @click="toggleGroup(group.key)">
                 <ChevronDown :size="14" :style="{transform:expandedGroups.has(group.key)?'':'rotate(-90deg)'}"/>
               </button>
               <button class="object-track-title" @click="selectGroup(group)" :title="group.name">{{group.name}}</button>
-              <small v-if="group.clips.length||group.effects.length" :title="group.clips.length+' séquence(s) · '+group.effects.length+' effet(s)'">{{group.clips.length+group.effects.length}}</small>
+              <button class="icon-btn" :disabled="a.busy || !groupAnimations(group.key).length"
+                :aria-label="'Activer ou désactiver les animations de '+group.name"
+                :title="groupAnimations(group.key).some(c=>c.enabled)?'Désactiver les animations':'Réactiver les animations'"
+                :aria-pressed="groupAnimations(group.key).some(c=>c.enabled)"
+                @click.stop="toggleGroupEnabled(group.key)"><Power :size="12"/></button>
+              <button class="icon-btn" :disabled="a.busy"
+                :aria-label="'Masquer ou réafficher la piste de '+group.name"
+                :title="hiddenGroups.has(groupId(group.key))?'Réafficher la piste':'Masquer la piste (sans modifier le rendu)'"
+                :aria-pressed="!hiddenGroups.has(groupId(group.key))"
+                @click.stop="toggleGroupHidden(group.key)"><component :is="hiddenGroups.has(groupId(group.key))?EyeOff:Eye" :size="12"/></button>
+              <button class="icon-btn" :disabled="a.busy || !groupAnimations(group.key).length"
+                :aria-label="'Supprimer les animations de '+group.name"
+                title="Supprimer les animations de cet objet…"
+                @click.stop="removeGroup(group)"><Trash2 :size="12"/></button>
             </div>
             <div class="track-lane" @pointerdown.self="selectGroup(group)">
               <div v-if="group.range" class="presence-span" :style="{left:Math.min(group.range.start,a.config.duration)/view.span*100+'%',width:Math.max(0,Math.min(group.range.end??a.config.duration,a.config.duration)-group.range.start)/view.span*100+'%'}" @pointerdown="dragPresence($event,group.key,'move')" :title="'Présence · '+audioTimeLabel(group.range.start,a.audio.frameRate)+' → '+audioTimeLabel(group.range.end??a.config.duration,a.audio.frameRate)">
@@ -624,14 +665,14 @@ onUnmounted(() => {
               </div></div></template
         ></template>
         <div v-for="effect in group.effects" :key="effect.id" class="animation-track effect-timeline-track">
-         <div class="track-name"><button class="icon-btn" :title="effect.enabled?'Désactiver l’effet':'Activer l’effet'" @click="effect.enabled=!effect.enabled"><Power :size="12"/></button><button class="effect-track-owner" :aria-label="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" :title="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" @click="a.inspectEffect(effect.id)"><span>{{effect.name||effectCatalog.find(e=>e.id===effect.kind)?.name||effect.kind}}</span><small>{{s.current.elements[effect.key]?.name||effect.key}}</small></button></div>
+         <div class="track-name"><button class="icon-btn" :title="effect.enabled?'Désactiver l’effet':'Activer l’effet'" @click="effect.enabled=!effect.enabled"><Power :size="12"/></button><button class="effect-track-owner" :aria-label="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" :title="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" @click="a.inspectEffect(effect.id)"><span>{{effect.name||effectCatalog.find(e=>e.id===effect.kind)?.name||effect.kind}}</span><small>{{s.current.elements[effect.key]?.name||effect.key}}</small></button><button class="icon-btn" title="Supprimer cet effet" :disabled="a.busy" @click="a.removeEffect(effect.id)"><Trash2 :size="12"/></button></div>
          <div class="track-lane"><span class="clip-span" :style="{left:effect.start/view.span*100+'%',width:effect.duration/view.span*100+'%',opacity:effect.enabled?1:.3}" title="Glisser pour déplacer l’effet" @pointerdown="dragClip($event,effect)"><button class="effect-duration-handle" aria-label="Ajuster la durée de l’effet" title="Glisser pour régler la durée" @pointerdown="resizeEffect($event,effect)"></button></span></div>
         </div>
           </template>
         </template>
         <p v-if="timelinePanel === 'keys'&&!trackGroups.length" class="animation-empty">
-          Sélectionne un objet puis « Animer la sélection ». Ajoute un moteur
-          par clic droit sur la scène.
+          Aucune piste visible. Vérifie les filtres, active « Pistes masquées »
+          ou sélectionne un objet puis « Animer la sélection ».
         </p>
         <p v-if="timelinePanel === 'audio' && !a.config.audio.src" class="animation-empty">Importe un audio dans Scène → Audio de référence pour afficher l’extrait ici.</p>
       </div>

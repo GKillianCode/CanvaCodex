@@ -466,22 +466,31 @@ export function useAnimationStudio(s) {
     pendingDelete.value = null;
     pending?.action();
   }
-  function removeClip() {
-    const id = selectedClip.value,
-      c = config.value.clips.find((c) => c.id === id),
-      scene = s.current.value;
-    if (!c) return;
-    requestDelete("la séquence « " + c.name + " »", () => {
+  function removeTracks(clipIds = [], effectIds = [], label = 'ces animations') {
+    if (busy.value || (!clipIds.length && !effectIds.length)) return;
+    const scene = s.current.value, clips = new Set(clipIds), effects = new Set(effectIds);
+    requestDelete(label, () => {
       s.beginGesture();
-      scene.animation.clips = scene.animation.clips.filter((c) => c.id !== id);
-      scene.animation.events=scene.animation.events.filter(e=>!(e.action==='startClip'&&e.target===id)&&!(e.trigger==='clipEnd'&&e.source===id));
-      if (selectedClip.value === id) {
-        selectedClip.value = "";
-        activeKey.value = null;
-        activeFrame.value = null;
-      }
+      const animation = scene.animation;
+      animation.clips = animation.clips.filter(c => !clips.has(c.id));
+      animation.events = animation.events.filter(e =>
+        !(e.action === 'startClip' && clips.has(e.target)) &&
+        !(e.trigger === 'clipEnd' && clips.has(e.source)));
+      animation.effects = animation.effects.filter(e => !effects.has(e.id));
+      for (const c of animation.clips)
+        c.frames = c.frames.filter(f => !effects.has(parseEffectField(f.field)?.id));
+      keySelection.value = keySelection.value.filter(r =>
+        !clips.has(r.clipId) && !effects.has(parseEffectField(r.key.field)?.id));
+      if (clips.has(selectedClip.value)) selectedClip.value = '';
+      activeKey.value = null;
+      activeFrame.value = null;
+      if (effects.has(inspectedEffect.value?.id)) inspectedEffect.value = null;
       s.endGesture();
     });
+  }
+  function removeClip() {
+    const c = config.value.clips.find(c => c.id === selectedClip.value);
+    if (c) removeTracks([c.id], [], 'la séquence « ' + c.name + ' »');
   }
   function addFrame() {
     const c = ensureClip();
@@ -1032,13 +1041,7 @@ export function useAnimationStudio(s) {
     s.endGesture();
   }
   function removeEffect(id) {
-    requestDelete("cet effet", () => {
-      s.beginGesture();
-      config.value.effects = config.value.effects.filter((e) => e.id !== id);
-      activeKey.value=null;activeFrame.value=null;
-      for(const c of config.value.clips)c.frames=c.frames.filter(f=>parseEffectField(f.field)?.id!==id);
-      s.endGesture();
-    });
+    removeTracks([], [id], 'cet effet');
   }
   function moveEffect(id,beforeId,after=false){
     const list=config.value.effects,from=list.findIndex(e=>e.id===id),to=list.findIndex(e=>e.id===beforeId);
@@ -1213,7 +1216,7 @@ export function useAnimationStudio(s) {
     play,
     addClip,
     duplicateClip,
-    removeClip,
+    removeClip,removeTracks,
     addKey,
     addPath,
     removePath,

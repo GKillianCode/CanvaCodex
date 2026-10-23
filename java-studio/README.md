@@ -278,3 +278,5 @@ Les objets Animation ont une **présence indépendante des clips** : création �
 **Insérer → Compteur animé** ajoute un texte stylable qui compte de A à B sur une durée donnée, en nombre ou en temps (HH:MM:SS/MM:SS), avec zéros initiaux, rythme, séparateurs et préfixe/suffixe personnalisés.
 
 La durée d’une scène Animation se saisit dans Scène en **minutes, secondes et images**, à la cadence choisie (24/30/60 i/s), avec le champ de timecode partagé.
+
+Dans la timeline Animation, les actions de chaque tiroir restent accessibles replié : désactiver/réactiver les animations, masquer/réafficher la piste via **Pistes masquées**, supprimer les animations avec confirmation et annulation, en conservant l’objet et sa présence.

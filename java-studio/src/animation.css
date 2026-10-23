@@ -997,3 +997,6 @@
 .animation-timeline-header .workspace-switch button.active,.animation-timeline-header .btn.active {background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);border-color:var(--accent);}
 .animation-key-tools .btn:not(.primary) {background:transparent;color:var(--ink);border-color:var(--line);}
 .animation-key-tools .btn.primary {background:var(--accent);color:var(--panel);border-color:var(--accent);}
+
+.animation-object-track.timeline-group-hidden > .track-lane {opacity:.35;}
+.animation-object-track .icon-btn[aria-pressed="false"] {opacity:.5;}
