@@ -12,6 +12,13 @@ export function useAnimationAudio(s, playback) {
       localStorage.getItem("frame-animation-audio-muted") === "true";
   } catch {}
   const settings = computed(() => s.current.value.animation.audio);
+  const position = computed(() =>
+    audioSourceTime(
+      settings.value,
+      playback.time.value,
+      s.current.value.animation.duration,
+    ),
+  );
   const media = document.createElement("audio");
   media.preload = "auto";
   let url = "",
@@ -34,11 +41,7 @@ export function useAnimationAudio(s, playback) {
   function sync() {
     media.muted = muted.value;
     const duration = s.current.value.animation.duration;
-    const target = audioSourceTime(
-      settings.value,
-      playback.time.value,
-      duration,
-    );
+    const target = position.value;
     const active =
       asset.value && !loading.value && !importing.value && !playback.busy.value;
     const shouldPlay =
@@ -192,6 +195,8 @@ export function useAnimationAudio(s, playback) {
       start,
     });
     s.endGesture();
+    // An explicit source start is auditioned at scene zero, never at the old playhead.
+    playback.seek(0);
     forceSeek = true;
     sync();
   }
@@ -217,6 +222,7 @@ export function useAnimationAudio(s, playback) {
   });
   return {
     settings,
+    position,
     asset,
     loading,
     importing,

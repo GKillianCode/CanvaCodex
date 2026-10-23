@@ -112,13 +112,23 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       });
       // Check actual decoded sound, not only the media element's declared currentTime.
       for (const offset of [33, 0, 33]) {
+        await page.evaluate(() => {
+          live().animation.seek(5);
+          live().animation.play();
+        });
         const input = page.getByLabel("Début dans le fichier · secondes");
         await input.fill(String(offset));
         await input.press("Tab");
-        await page.evaluate(() => {
-          live().animation.seek(0);
-          live().animation.play();
-        });
+        assert.equal(await page.evaluate(() => live().animation.time.value), 0,
+          "Changing the source start must reset the old scene playhead");
+        assert.equal(await page.evaluate(() => live().animation.playing.value), false,
+          "Changing source start must pause playback");
+        assert.match(await page.locator(".timeline-source-time").innerText(),
+          new RegExp(`00:00:${String(offset).padStart(2, "0")}\\.000`));
+        await page.waitForFunction((offset) => !referenceAudio.seeking &&
+          Math.abs(referenceAudio.currentTime - offset) < 0.02, offset);
+        assert.equal(await page.getByLabel("Temps de la scène · secondes").inputValue(), "00");
+        await page.evaluate(() => live().animation.play());
         await page.waitForFunction(
           () => !referenceAudio.paused && ctx.state === "running",
         );

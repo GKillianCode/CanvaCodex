@@ -145,7 +145,7 @@ export function useAnimationStudio(s) {
     },
     { immediate: true },
   );
-  const audio = useAnimationAudio(s, {time,playing,busy,stop,requestDelete});
+  const audio = useAnimationAudio(s, {time,playing,busy,stop,seek,requestDelete});
   watch([time, preview, construction, pathEditing], s.requestDraw);
   watch(diagnostics,s.requestDraw,{deep:true});
   watch(

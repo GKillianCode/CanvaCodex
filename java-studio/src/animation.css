@@ -950,3 +950,9 @@
 .animation-audio-interval > div { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
 .animation-audio-interval dt { color:var(--muted); }
 .animation-audio-interval dd { margin:0; font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+.animation-transport .timeline-time { display: flex; flex-direction: column; gap: 3px; }
+.timeline-source-time { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.animation-export-time { flex-wrap: wrap; }
+.animation-export-time > small { flex-basis: 100%; font-variant-numeric: tabular-nums; }
+.animation-export-time .timecode-input input { width: 100%; }

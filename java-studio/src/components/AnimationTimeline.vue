@@ -1,4 +1,5 @@
 <script setup>
+import TimecodeInput from "./TimecodeInput.vue";
 import {audioTimeLabel} from "../animationAudioModel.js";
 import AnimationAudioTrack from "./AnimationAudioTrack.vue";
 import {effectCatalog,effectFieldLabel,visualEffectKinds} from "../animationEffectCatalog.js";
@@ -271,18 +272,15 @@ onUnmounted(() => {
           @click="a.seek(a.time + 1 / a.config.fps)"
         >
           <ChevronRight :size="16" /></button
-        ><label class="timeline-time"
-          ><input
-            type="number"
-            :value="a.time.toFixed(2)"
-            min="0"
-            :max="a.config.duration"
-            step=".01"
-            aria-label="Temps en secondes"
-            @change="a.seek($event.target.value)"
-          />
-          s</label
-        ><label title="Recommencer la scène à la fin"
+        >
+        <div class="timeline-time">
+          <TimecodeInput compact label="Temps de la scène" :model-value="a.time"
+            :disabled="a.busy" @focusin="a.stop()" @update:model-value="a.seek" />
+          <small v-if="a.config.audio.src" class="timeline-source-time">
+            Dans l’audio : {{ audioTimeLabel(a.audio.position) }}
+          </small>
+        </div>
+        <label title="Recommencer la scène à la fin"
           ><input type="checkbox" v-model="a.loop" />Boucle</label
         >
         <div

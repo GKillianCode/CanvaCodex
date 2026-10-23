@@ -5,6 +5,7 @@ const props = defineProps({
   modelValue: Number,
   label: { type: String, default: "Temps" },
   disabled: Boolean,
+  compact: Boolean,
 });
 const emit = defineEmits(["update:modelValue"]);
 const draft = reactive(timecodeParts(props.modelValue)),
@@ -42,7 +43,7 @@ function step(amount, key) {
 }
 </script>
 <template>
-  <fieldset class="timecode-input" :disabled="disabled">
+  <fieldset class="timecode-input" :class="{ compact }" :disabled="disabled">
     <legend>{{ label }}</legend>
     <div class="timecode-segments">
       <template v-for="([key, name, unit, size], index) in fields" :key="key">
@@ -120,5 +121,29 @@ function step(amount, key) {
   margin-top: 8px;
   font-size: 11px;
   color: var(--muted);
+}
+.compact {
+  width: 192px;
+  margin: 0;
+  flex-shrink: 0;
+}
+.compact legend {
+  font-size: 10px;
+  margin-bottom: 3px;
+  color: var(--muted);
+}
+.compact .timecode-segments {
+  gap: 3px;
+}
+.compact .timecode-segments input {
+  min-height: 26px;
+  padding: 4px 2px;
+  font-size: 12px;
+}
+.compact .timecode-separator {
+  padding-top: 4px;
+}
+.compact .timecode-segments label span {
+  display: none;
 }
 </style>

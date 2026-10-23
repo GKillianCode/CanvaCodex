@@ -1816,3 +1816,10 @@ Validation : 495 tests Node et build réussis ; tests navigateur JSON cinq scèn
 - Pas d’inversion dans le calcul : fin = début + durée. Une saisie 33 s + 125 ms, durée 33 s produit [33,125 ; 66,125]. Les réglages hérités 0,33 restent 330 ms, sans migration qui devinerait l’intention. Un changement explicite de début force le recalage même pour 1 ms, au lieu du seuil de correction de dérive ordinaire.
 - Validation : 501 tests Node réussis, build réussi ; navigateur avec vrai WAV dix minutes et champs réels (secondes/millisecondes/minutes, refus de saisie invalide, ancienne fraction affichée en ms, bornes du graphe et du lecteur), plus MP3 indexé/non indexé avec analyse du son réellement décodé à 33 s. Aucune donnée utilisateur modifiée. Guide et README à jour.
 - Suivi #168, branche `test/animation-effects-library`, PR #160 ouverte, aucune fusion automatique.
+
+### 23 octobre 2026 — recalage explicite du début audio
+
+- Retour utilisateur : un début audio saisi avec un curseur de scène déjà avancé donnait l’impression d’un décalage ajouté. Le calcul source restait début + temps de scène ; désormais modifier explicitement le début arrête la lecture et appelle le seek existant à zéro. La valeur sauvegardée reste absolue, sans soustraction du curseur. Ensuite lecture et scrub restent synchronisés sur début + temps de scène.
+- Réutilisation de `TimecodeInput` pour les compteurs de timeline et d’aperçu, avec variante compacte ; format commun HH:MM:SS.mmm. Une position calculée commune au lecteur et aux indications « Dans l’audio » distingue l’horloge source de celle de scène.
+- Validation : build réussi, 501 tests Node réussis ; tests navigateur audio dix minutes, propriétés/caméra/défilement et déplacement de clés réussis. Test MP3 avec/sans index renforcé : curseur avancé à 5 s, lecture en cours puis modification du départ à 33/0/33 s ; arrêt, retour scène zéro et position source exacts. Analyse du son réellement décodé (220/880 Hz) réussie. Revue visuelle clair/sombre ; aucun accès aux données utilisateur. Serveur QA isolé sur 5289.
+- Suivi #169, branche `test/animation-effects-library`, PR #160 ouverte sans fusion.
