@@ -145,7 +145,7 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1):5289$/.test(base || ""))
       null,
       "An absent object must not intercept canvas selection",
     );
-    assert.equal(await page.locator(".presence-track").count(), 2);
+    assert.equal(await page.locator(".animation-object-track").count(), 2);
     // Drag the right handle in the shared timeline to extend the circle by one second.
     await page.evaluate(() => live().selectLayer(object));
     const handle = page.getByLabel(

@@ -44,7 +44,38 @@ const props = defineProps({ studio: Object }),
   showHidden = ref(false), selectedOnly=ref(false);
 const visibleClips=computed(()=>a.config.clips.filter(c=>(!c.hidden||showHidden.value)&&(!selectedOnly.value||!s.selectedKeys.length||!c.keys.length||c.keys.some(k=>s.selectedKeys.includes(k)))));
 const visibleEffects=computed(()=>a.config.effects.filter(e=>visualEffectKinds.includes(e.kind)&&(!selectedOnly.value||!s.selectedKeys.length||s.selectedKeys.includes(e.key))));
-const visiblePresences = computed(() => Object.entries(a.config.presences).filter(([key]) => s.current.positions[key] && (!selectedOnly.value || !s.selectedKeys.length || s.selectedKeys.includes(key))));
+// Each sequence/effect belongs to one drawer, including sequences targeting several objects.
+const expandedGroups = reactive(new Set());
+const trackGroups = computed(() => {
+  const groups = new Map();
+  function group(key) {
+    if (!groups.has(key)) groups.set(key, {
+      key, name: s.current.elements[key]?.name || (key === '$scene' ? 'Scène' : key),
+      range: s.current.positions[key] ? normalizePresence(a.config.presences[key]) : null,
+      clips: [], effects: [],
+    });
+    return groups.get(key);
+  }
+  const matches = key => !selectedOnly.value || !s.selectedKeys.length || s.selectedKeys.includes(key);
+  for (const key of Object.keys(a.config.presences)) {
+    if (s.current.positions[key] && matches(key)) group(key);
+  }
+  for (const c of visibleClips.value) group(c.keys[0] || '$scene').clips.push(c);
+  for (const effect of visibleEffects.value) group(effect.key).effects.push(effect);
+  return [...groups.values()];
+});
+watch(() => a.selectedClip, () => {
+  const group = trackGroups.value.find(g => g.clips.some(c => c.id === a.selectedClip));
+  if (group) expandedGroups.add(group.key);
+}, {immediate:true});
+function toggleGroup(key) {
+  if (expandedGroups.has(key)) expandedGroups.delete(key);
+  else expandedGroups.add(key);
+}
+function selectGroup(group) {
+  if (s.current.positions[group.key]) selectPresence(group.key);
+  else if (group.clips[0]) a.selectClip(group.clips[0].id);
+}
 function selectPresence(key) { s.selectLayer(key); }
 function dragPresence(event,key,edge) {
   if(event.button!==0 || a.busy) return;
@@ -410,26 +441,31 @@ onUnmounted(() => {
           </div>
         </div>
         <AnimationAudioTrack v-if="timelinePanel === 'audio'" :studio="s" :span="view.span" @scrub="scrub" />
-        <template v-if="timelinePanel === 'keys'">
-          <div v-for="[key, range] in visiblePresences" :key="'presence-'+key" class="animation-track presence-track" :class="{active:s.selectedKeys.includes(key)}">
-            <button class="track-name presence-name" @click="selectPresence(key)" :title="'Modifier la présence de '+(s.current.elements[key]?.name||key)">
-              <span>Présence</span><strong>{{ s.current.elements[key]?.name || key }}</strong>
-            </button>
-            <div class="track-lane" @pointerdown.self="selectPresence(key)">
-              <div class="presence-span" :style="{left:Math.min(range.start,a.config.duration)/view.span*100+'%',width:Math.max(0,Math.min(range.end??a.config.duration,a.config.duration)-range.start)/view.span*100+'%'}" @pointerdown="dragPresence($event,key,'move')" :title="audioTimeLabel(range.start,a.audio.frameRate)+' → '+audioTimeLabel(range.end??a.config.duration,a.audio.frameRate)">
-                <button class="presence-handle start" :aria-label="'Début de présence de '+key" title="Déplacer l’apparition" @pointerdown.stop="dragPresence($event,key,'start')"></button>
-                <small>{{ audioTimeLabel(range.start,a.audio.frameRate) }} → {{ audioTimeLabel(range.end??a.config.duration,a.audio.frameRate) }}</small>
-                <button class="presence-handle end" :aria-label="'Fin de présence de '+key" title="Déplacer la disparition" @pointerdown.stop="dragPresence($event,key,'end')"></button>
+        <template v-for="group in timelinePanel === 'keys' ? trackGroups : []" :key="group.key">
+          <div class="animation-track animation-object-track" :data-object="group.key" :class="{active:s.selectedKeys.includes(group.key)}">
+            <div class="track-name object-track-name">
+              <button class="icon-btn" :aria-label="'Animations de '+group.name" :aria-expanded="expandedGroups.has(group.key)" :disabled="!group.clips.length&&!group.effects.length" @click="toggleGroup(group.key)">
+                <ChevronDown :size="14" :style="{transform:expandedGroups.has(group.key)?'':'rotate(-90deg)'}"/>
+              </button>
+              <button class="object-track-title" @click="selectGroup(group)" :title="group.name">{{group.name}}</button>
+              <small v-if="group.clips.length||group.effects.length" :title="group.clips.length+' séquence(s) · '+group.effects.length+' effet(s)'">{{group.clips.length+group.effects.length}}</small>
+            </div>
+            <div class="track-lane" @pointerdown.self="selectGroup(group)">
+              <div v-if="group.range" class="presence-span" :style="{left:Math.min(group.range.start,a.config.duration)/view.span*100+'%',width:Math.max(0,Math.min(group.range.end??a.config.duration,a.config.duration)-group.range.start)/view.span*100+'%'}" @pointerdown="dragPresence($event,group.key,'move')" :title="'Présence · '+audioTimeLabel(group.range.start,a.audio.frameRate)+' → '+audioTimeLabel(group.range.end??a.config.duration,a.audio.frameRate)">
+                <button class="presence-handle start" :aria-label="'Début de présence de '+group.key" title="Déplacer l’apparition" @pointerdown.stop="dragPresence($event,group.key,'start')"></button>
+                <small>{{ audioTimeLabel(group.range.start,a.audio.frameRate) }} → {{ audioTimeLabel(group.range.end??a.config.duration,a.audio.frameRate) }}</small>
+                <button class="presence-handle end" :aria-label="'Fin de présence de '+group.key" title="Déplacer la disparition" @pointerdown.stop="dragPresence($event,group.key,'end')"></button>
               </div>
+              <i class="track-cursor" :style="{left:a.time/view.span*100+'%'}"></i>
             </div>
           </div>
-        </template>
+          <template v-if="expandedGroups.has(group.key)">
         <template
-          v-for="c in timelinePanel === 'keys' ? visibleClips : []"
+          v-for="c in group.clips"
           :key="c.id"
           ><div
             :class="[
-              'animation-track',
+              'animation-track animation-sequence-track',
               { active: a.selectedClip === c.id, muted: !c.enabled },
             ]"
           >
@@ -499,7 +535,7 @@ onUnmounted(() => {
                 @pointerdown="dragClip($event, c)"
               ></span
               ><button
-                v-for="t in frameTimes(c)"
+                v-for="t in c.collapsed ? frameTimes(c) : frameTimes(c).filter(t => !c.frames.some(f => Math.abs(f.time-t)<0.0001))"
                 :key="t"
                 class="frame-marker"
                 :class="{
@@ -529,7 +565,7 @@ onUnmounted(() => {
               ></i>
             </div>
           </div>
-          <template v-if="a.selectedClip === c.id && !c.collapsed"
+          <template v-if="!c.collapsed"
             ><div
               v-for="f in [...new Set([...animationFields,...c.frames.map(f=>f.field)])].filter((f) =>
                 c.frames.some((k) => k.field === f),
@@ -587,11 +623,13 @@ onUnmounted(() => {
                 ></i>
               </div></div></template
         ></template>
-        <div v-for="effect in timelinePanel === 'keys' ? visibleEffects : []" :key="effect.id" class="animation-track effect-timeline-track">
+        <div v-for="effect in group.effects" :key="effect.id" class="animation-track effect-timeline-track">
          <div class="track-name"><button class="icon-btn" :title="effect.enabled?'Désactiver l’effet':'Activer l’effet'" @click="effect.enabled=!effect.enabled"><Power :size="12"/></button><button class="effect-track-owner" :aria-label="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" :title="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" @click="a.inspectEffect(effect.id)"><span>{{effect.name||effectCatalog.find(e=>e.id===effect.kind)?.name||effect.kind}}</span><small>{{s.current.elements[effect.key]?.name||effect.key}}</small></button></div>
          <div class="track-lane"><span class="clip-span" :style="{left:effect.start/view.span*100+'%',width:effect.duration/view.span*100+'%',opacity:effect.enabled?1:.3}" title="Glisser pour déplacer l’effet" @pointerdown="dragClip($event,effect)"><button class="effect-duration-handle" aria-label="Ajuster la durée de l’effet" title="Glisser pour régler la durée" @pointerdown="resizeEffect($event,effect)"></button></span></div>
         </div>
-        <p v-if="timelinePanel === 'keys'&&!a.config.clips.length&&!visiblePresences.length&&!a.config.effects.length" class="animation-empty">
+          </template>
+        </template>
+        <p v-if="timelinePanel === 'keys'&&!trackGroups.length" class="animation-empty">
           Sélectionne un objet puis « Animer la sélection ». Ajoute un moteur
           par clic droit sur la scène.
         </p>

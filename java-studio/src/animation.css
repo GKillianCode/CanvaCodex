@@ -959,9 +959,6 @@
 
 .animation-audio-time-format {display:flex;flex-direction:column;gap:6px;margin-top:14px;font-size:12px;}
 
-.presence-name {background:transparent;color:var(--text);border:0;text-align:left;cursor:pointer;gap:8px;min-width:0;}
-.presence-name span {font-size:10px;color:var(--muted);font-weight:400;}
-.presence-name strong {font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .presence-span {position:absolute;top:8px;height:26px;border:1px solid var(--accent);border-radius:5px;background:color-mix(in srgb,var(--accent) 14%,transparent);cursor:grab;display:flex;align-items:center;justify-content:center;min-width:4px;}
 .presence-span small {font-size:10px;white-space:nowrap;overflow:hidden;padding:0 10px;font-variant-numeric:tabular-nums;pointer-events:none;}
 .presence-handle {position:absolute;top:0;bottom:0;width:9px;border:0;background:transparent;cursor:ew-resize;padding:0;}
@@ -970,7 +967,18 @@
 .presence-handle.end {right:0;border-radius:0 4px 4px 0;}
 
 .animation-presence-properties .btn {background:transparent;color:inherit;border:1px solid var(--border);}
-.animation-track .presence-name {background:transparent;color:var(--ink);}
+/* Object lifetime is the drawer header; sequences and properties live beneath it. */
+.animation-object-track {background:color-mix(in srgb,var(--panel) 97%,var(--ink));}
+.animation-track .object-track-name {padding:4px 10px;gap:7px;}
+.object-track-title {flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:transparent;color:var(--ink);border:0;padding:5px 0;font:inherit;font-size:11px;font-weight:600;cursor:pointer;}
+.object-track-name .icon-btn:disabled {opacity:.2;cursor:default;}
+.animation-track.animation-sequence-track .track-name,
+.effect-timeline-track .track-name {padding-left:25px;}
+.animation-property-track .property-track-label {padding-left:40px;}
+.animation-object-track .presence-span {border-color:color-mix(in srgb,var(--accent) 55%,transparent);background:color-mix(in srgb,var(--accent) 11%,transparent);}
+.animation-object-track .presence-span small {color:var(--ink);opacity:.8;}
+.animation-object-track .track-name small {font-variant-numeric:tabular-nums;border:1px solid var(--line);border-radius:4px;padding:2px 5px;}
+
 
 /* One shared compact row: timeline view, playback and construction controls. */
 .animation-timeline-header {display:flex;align-items:center;gap:12px;min-height:46px;padding:5px 14px;border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;scrollbar-width:thin;}
