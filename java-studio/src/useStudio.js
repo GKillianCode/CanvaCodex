@@ -462,7 +462,7 @@ export function useStudio(application='slides',creationContext=null) {
     if(isAnimation)animation.introduceObjects([key]);
     if(isAnimation&&variant==='counter'){
       s.elements[key].name='Compteur';Object.assign(s.positions[key],{font:'jetbrains-mono',size:96,w:650,h:160,autoSize:false});
-      animation.setCounter(key,'duration',Math.max(.001,Math.min(10,s.animation.duration-animation.time.value)),false);
+      animation.setCounter(key,'from',0,false);
     }
     selectedKeys.value=[key];selectionScope.value='elements';selected.value=key;if(type==='text'&&variant!=='counter')editing.value=key;
   }

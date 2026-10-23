@@ -75,6 +75,8 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1):5289$/.test(base || ""))
       5,
     );
     assert.equal(await page.locator(".text-dialog").count(), 0);
+    await page.evaluate(({key})=>live().animation.setPresence([key],'end',15+1/30),{key});
+    assert.equal(await page.locator('.inspector [data-drawer]').first().getAttribute('data-drawer'),'animation-presence');
     await page.getByText("Compteur animé", { exact: true }).click();
     await page.getByLabel("Valeur d’arrivée", { exact: true }).fill("1000");
     await page.getByLabel("Valeur d’arrivée", { exact: true }).press("Tab");
@@ -104,8 +106,8 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1):5289$/.test(base || ""))
     assert.equal((await sample(10)).text, "0500");
     assert.equal((await sample(15)).text, "1000");
     assert.equal((await sample(4)).visible, false);
-    await page.getByLabel("Durée du défilement · secondes").fill("04");
-    await page.getByLabel("Durée du défilement · secondes").press("Tab");
+    assert.equal(await page.getByLabel('Durée de présence calculée · secondes').isDisabled(),true);
+    await page.evaluate(({key})=>live().animation.setPresence([key],'end',9+1/30),{key});
     assert.equal((await sample(7)).text, "0500");
     await page.getByLabel("Texte avant", { exact: true }).fill("Total : ");
     await page.getByLabel("Texte avant", { exact: true }).press("Tab");
@@ -180,6 +182,30 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1):5289$/.test(base || ""))
     await page.getByLabel('Valeur d’arrivée',{exact:true}).fill('1000');
     await page.getByLabel('Texte avant',{exact:true}).fill('Total : ');
     await page.getByLabel('Texte après',{exact:true}).fill(' pts');
+    // A presence change is the only duration edit: every rate reaches the last visible frame.
+    for (const end of [7,12]) {
+      await page.evaluate(({key,end})=>live().animation.setPresence([key],'end',end),{key,end});
+      for(const easing of ['linear','smooth','easeIn','easeOut']) {
+        await page.getByLabel('Rythme du compteur',{exact:true}).selectOption(easing);
+        assert.equal((await sample(5)).text,'Total : 0000 pts');
+        assert.equal((await sample(end-1/30)).text,'Total : 1000 pts');
+        assert.equal((await sample(end-1/30)).visible,true);
+        assert.equal((await sample(end)).visible,false);
+      }
+    }
+    const finalPixels=await page.evaluate(async()=>{
+      const s=live(),{renderAnimation}=await import('/src/animationRender.js');
+      const c=document.createElement('canvas');c.width=1920;c.height=1080;
+      const ctx=c.getContext('2d'),texts=[],fill=ctx.fillText.bind(ctx);
+      ctx.fillText=(text,...args)=>{texts.push(text);fill(text,...args);};
+      renderAnimation(ctx,s.current.value,s.theme.value,s.animation.config.value,12-1/30);
+      return texts.join('');
+    });
+    assert(finalPixels.includes('1000'),'The final visible export frame must render the target value');
+    await page.evaluate(({key})=>{
+      live().animation.setPresence([key],'end',9+1/30);
+      live().animation.setCounter(key,'easing','linear');
+    },{key});
     await page
       .getByLabel("Type de compteur", { exact: true })
       .selectOption("time");
@@ -234,6 +260,14 @@ if (!/^http:\/\/(localhost|127\.0\.0\.1):5289$/.test(base || ""))
       ),
       false,
     );
+    // Presence stays first in other categories and on shapes/physics engines as well.
+    await page.evaluate(({key})=>live().selectLayer(key),{key});
+    await page.getByRole('button',{name:'Placement',exact:true}).click();
+    assert.equal(await page.locator('.inspector [data-drawer]').first().getAttribute('data-drawer'),'animation-presence');
+    await page.evaluate(async()=>{live().addShape('circle');await tick();});
+    assert.equal(await page.locator('.inspector [data-drawer]').first().getAttribute('data-drawer'),'animation-presence');
+    await page.evaluate(async()=>{live().animation.addEngine('particles');await tick();});
+    assert.equal(await page.locator('.inspector [data-drawer]').first().getAttribute('data-drawer'),'animation-presence');
     assert.deepEqual(errors, []);
     console.log(
       "Counter: shared insertion, text style/font, padding, duration, prefix/suffix, real render, clock carry/separator and JSON roundtrip OK",

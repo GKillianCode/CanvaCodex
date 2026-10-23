@@ -251,7 +251,8 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
           <component :is="icon" :size="14" /><span>{{ label }}</span>
         </button>
       </div> </template
-    ><AnimationKeyInspector v-if="s.isAnimation" :studio="s" /><InspectorDrawer
+    ><AnimationPresenceProperties v-if="s.isAnimation && section === 'element' && s.selectedKeys.length" :studio="s" />
+    <AnimationKeyInspector v-if="s.isAnimation" :studio="s" /><InspectorDrawer
       v-if="section === 'element' && s.selectedInstance"
       id="component-instance"
       title="Composant lié"
@@ -462,7 +463,6 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
         :mode="category"
       />
       <AnimationCounterProperties v-if="s.isAnimation && s.selected && s.animation.config.counters[s.selected] && category === 'style'" :studio="s" />
-      <AnimationPresenceProperties v-if="s.isAnimation && section === 'element' && s.selectedKeys.length && category === 'style'" :studio="s" />
       <AnimationProperties
         v-if="s.isAnimation && category === 'motion'"
         :studio="s"

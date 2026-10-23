@@ -275,7 +275,7 @@ L’écoute de référence prépare les fichiers compressés en PCM temporaire p
 
 Les objets Animation ont une **présence indépendante des clips** : création à l’instant courant, début/fin dans Objet → Style, boutons Aller au début / Aller à la fin pour positionner précisément le curseur, plage déplaçable et redimensionnable dans le tiroir de l’objet dans la timeline (séquences, propriétés et effets regroupés, clés sans doublon), transitions d’apparition/disparition optionnelles.
 
-**Insérer → Compteur animé** ajoute un texte stylable qui compte de A à B sur une durée donnée, en nombre ou en temps (HH:MM:SS/MM:SS), avec zéros initiaux, rythme, séparateurs et préfixe/suffixe personnalisés.
+**Insérer → Compteur animé** ajoute un texte stylable qui compte de A à B sur toute sa plage de présence, jusqu’à sa valeur finale sur la dernière image visible, en nombre ou en temps (HH:MM:SS/MM:SS), avec zéros initiaux, rythme, séparateurs et préfixe/suffixe personnalisés.
 
 La durée d’une scène Animation se saisit dans Scène en **minutes, secondes et images**, à la cadence choisie (24/30/60 i/s), avec le champ de timecode partagé.
 

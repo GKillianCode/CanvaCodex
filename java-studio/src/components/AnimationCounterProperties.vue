@@ -1,4 +1,5 @@
 <script setup>
+import { counterTiming } from "../animationCounter.js";
 import { computed, reactive } from "vue";
 import { Timer } from "lucide-vue-next";
 import InspectorDrawer from "./InspectorDrawer.vue";
@@ -7,6 +8,7 @@ const props = defineProps({ studio: Object }),
   s = reactive(props.studio),
   a = s.animation;
 const counter = computed(() => a.config.counters[s.selected]);
+const timing = computed(() => counterTiming(a.config.presences[s.selected],a.config.duration,a.config.fps));
 function update(field, value) {
   a.setCounter(s.selected, field, value);
 }
@@ -14,8 +16,9 @@ function update(field, value) {
 <template>
   <InspectorDrawer id="animation-counter" title="Compteur animé" :icon="Timer">
     <p class="field-help">
-      Le défilement commence à l’apparition du texte. Le style se règle avec les
-      outils de texte habituels.
+      Le compteur parcourt toute sa plage de présence : valeur de départ à
+      l’apparition, valeur d’arrivée sur la dernière image avant disparition.
+      Le style se règle avec les outils de texte habituels.
     </p>
     <label
       >Type de compteur<select
@@ -74,10 +77,10 @@ function update(field, value) {
       <option value="down">Du haut vers le bas</option><option value="up">Du bas vers le haut</option>
     </select></label>
     <TimecodeInput
-      label="Durée du défilement"
-      :frame-rate="a.audio.frameRate"
-      :model-value="counter.duration"
-      @update:model-value="update('duration', $event)"
+      label="Durée de présence calculée"
+      :frame-rate="a.config.fps"
+      :model-value="timing.end-timing.start"
+      disabled
     />
     <label
       >Rythme<select

@@ -10,7 +10,6 @@ export function normalizeCounter(raw = {}) {
     direction: ['left','right','up','down'].includes(raw.direction) ? raw.direction : 'up',
     from: number(raw.from, 0, mode === "time" ? 0 : -limit, limit),
     to: number(raw.to, 100, mode === "time" ? 0 : -limit, limit),
-    duration: number(raw.duration, 10, 0.001, 120),
     easing: ["linear", "smooth", "easeIn", "easeOut"].includes(raw.easing)
       ? raw.easing
       : "linear",
@@ -86,4 +85,12 @@ export function counterScroll(raw, value) {
   const next = sign > 0 ? Math.min(c.to,current+1/factor) : Math.max(c.to,current-1/factor);
   const progress = next === current ? 0 : Math.max(0,Math.min(1,(bounded-current)/(next-current)));
   return {current:counterText(c,current),next:counterText(c,next),progress,direction:c.direction};
+}
+
+// The disappearance bound is exclusive: reach the target on the last visible frame.
+export function counterTiming(range, sceneDuration, fps) {
+  const end = Math.max(0, Math.min(sceneDuration, range?.end ?? sceneDuration));
+  const start = Math.max(0, Math.min(end, range?.start ?? 0));
+  const finish = Math.max(start, (Math.ceil(end * fps - 1e-7) - 1) / fps);
+  return {start,end,finish,duration:finish-start};
 }

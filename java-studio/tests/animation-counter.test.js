@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { counterText, counterScroll, normalizeCounter } from "../src/animationCounter.js";
+import { counterText, counterScroll, counterTiming, normalizeCounter } from "../src/animationCounter.js";
 import { animationScene, normalizeAnimation } from "../src/animationModel.js";
 const scene = {
   id: "counter-test",
@@ -67,9 +67,10 @@ test("counter interpolation shares the clip evaluator but is independent of clip
   for (const [time, text] of [
     [0, "000"],
     [5, "000"],
-    [10, "050"],
-    [15, "100"],
-    [17, "100"],
+    [10, "038"],
+    [15, "077"],
+    [17, "092"],
+    [18-1/30, "100"],
   ])
     assert.equal(
       animationScene(scene, cfg, time).scene.elements.textCount.text,
@@ -85,7 +86,7 @@ test("counter interpolation shares the clip evaluator but is independent of clip
   assert.deepEqual(restored.counters, cfg.counters);
   assert.equal(
     animationScene(scene, restored, 10).scene.elements.textCount.text,
-    "050",
+    "038",
   );
 });
 test("countdown and progressive rates are deterministic under seeking", () => {
@@ -112,7 +113,7 @@ test("countdown and progressive rates are deterministic under seeking", () => {
   const first = animationScene(scene, cfg, 3);
   animationScene(scene, cfg, 8);
   assert.deepEqual(animationScene(scene, cfg, 3), first);
-  assert.equal(normalizeCounter({ duration: 0 }).duration, 0.001);
+  assert.equal('duration' in normalizeCounter({duration:100}),false);
 });
 
 test('scroll counters evaluate adjacent full values in all directions without enumerating the range', () => {
@@ -135,7 +136,7 @@ test('scroll counters evaluate adjacent full values in all directions without en
   assert(Math.abs(decimal.progress-.5)<1e-6);
 });
 test('scroll state uses presence and rate interpolation and survives JSON normalization',()=>{
-  const cfg=normalizeAnimation({duration:10,presences:{textCount:{start:2}},counters:{textCount:{display:'scroll',direction:'right',from:2026,to:2022,duration:4}}});
+  const cfg=normalizeAnimation({duration:10,presences:{textCount:{start:2,end:6+1/30}},counters:{textCount:{display:'scroll',direction:'right',from:2026,to:2022,duration:4}}});
   const sample=t=>animationScene(scene,cfg,t).scene.counterFrames.textCount;
   assert.equal(sample(2).current,'2026');assert.equal(sample(2).progress,0);
   assert.equal(sample(2.5).next,'2025');assert.equal(sample(2.5).progress,.5);
@@ -143,4 +144,33 @@ test('scroll state uses presence and rate interpolation and survives JSON normal
   assert.deepEqual(normalizeAnimation(JSON.parse(JSON.stringify(cfg))).counters,cfg.counters);
   const first=sample(3.5);sample(8);assert.deepEqual(sample(3.5),first);
   assert.equal(scene.counterFrames,undefined);
+});
+
+test('every counter rhythm reaches both bounds on the visible frame interval',()=>{
+  for(const fps of [24,30,60]) for(const easing of ['linear','smooth','easeIn','easeOut'])
+    for(const mode of ['number','time']) for(const display of ['replace','scroll']) for(const [from,to] of [[0,100],[2026,1900]]) {
+      const cfg=normalizeAnimation({duration:20,fps,presences:{textCount:{start:5,end:10}},
+        counters:{textCount:{from,to,mode,display,easing,duration:120}}});
+      const sample=t=>animationScene(scene,cfg,t);
+      assert.equal(sample(5).scene.elements.textCount.text,counterText(cfg.counters.textCount,from));
+      const last=sample(10-1/fps);
+      assert.equal(last.presence.textCount.visible,true);
+      assert.equal(last.scene.elements.textCount.text,counterText(cfg.counters.textCount,to));
+      if(display==='scroll')assert.equal(last.scene.counterFrames.textCount.progress,0);
+      assert.equal(sample(10).presence.textCount.visible,false);
+      const mid=Number(mode==='number'?sample(7).scene.elements.textCount.text:from);
+      if(mode==='number')assert(mid>Math.min(from,to)&&mid<Math.max(from,to));
+      cfg.presences.textCount.end=15;
+      assert.equal(sample(15-1/fps).scene.elements.textCount.text,counterText(cfg.counters.textCount,to));
+      cfg.presences.textCount.end=null;
+      assert.equal(sample(20-1/fps).scene.elements.textCount.text,counterText(cfg.counters.textCount,to));
+    }
+});
+test('counter timing handles fractional boundaries, a single visible frame and long spans',()=>{
+  const t=counterTiming({start:2,end:7.15},10,30);
+  assert(Math.abs(t.finish-214/30)<1e-9);
+  assert.equal(counterTiming({start:0},10800,30).finish,10800-1/30);
+  const cfg=normalizeAnimation({duration:10,fps:30,presences:{textCount:{start:5,end:5+1/30}},counters:{textCount:{to:999,easing:'easeIn'}}});
+  assert.equal(animationScene(scene,cfg,5).scene.elements.textCount.text,'999');
+  assert.equal(animationScene(scene,cfg,5).presence.textCount.visible,true);
 });
