@@ -1,4 +1,5 @@
 <script setup>
+import { VIDEO_FILE_ACCEPT } from "../videoMedia.js";
 import NumberRange from "./NumberRange.vue";
 defineProps({ element: Object, theme: Object });
 const emit = defineEmits(["upload", "play", "video"]);
@@ -8,7 +9,7 @@ const emit = defineEmits(["upload", "play", "video"]);
     ><label class="menu-file"
       >Remplacer la vidéo<input
         type="file"
-        accept="video/mp4,video/webm,video/ogg,video/quicktime,.mov"
+        :accept="VIDEO_FILE_ACCEPT"
         @change="emit('video', $event)" /></label
     ><label class="checkbox-label"
       ><input type="checkbox" v-model="element.autoplay" />Lecture

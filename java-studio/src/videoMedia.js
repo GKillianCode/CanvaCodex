@@ -14,23 +14,24 @@ const validData = (src) =>
   src.length < 90000000 &&
   /^data:video\/(mp4|webm|ogg|quicktime);base64,[A-Za-z0-9+/=]+$/.test(src);
 const notify = () => window.dispatchEvent(new Event("frame-images-ready"));
+export const VIDEO_FILE_ACCEPT='video/mp4,video/webm,video/ogg,video/quicktime,.mp4,.webm,.ogv,.ogg,.mov,.m4v';
+export function videoFileType(file){
+ const type=file?.type?.toLowerCase()||'';
+ if(type==='video/x-m4v')return 'video/mp4';
+ if(['video/mp4','video/webm','video/ogg','video/quicktime'].includes(type))return type;
+ if(type&&type!=='application/octet-stream')return '';
+ return {mp4:'video/mp4',m4v:'video/mp4',webm:'video/webm',ogv:'video/ogg',ogg:'video/ogg',mov:'video/quicktime'}[file?.name?.split('.').pop()?.toLowerCase()]||'';
+}
 export async function importVideoFile(file) {
-  if (
-    !file ||
-    !["video/mp4", "video/webm", "video/ogg", "video/quicktime"].includes(
-      file.type,
-    )
-  )
-    throw Error(
-      "Choisis une vidéo MP4, WebM, Ogg ou MOV lisible par ce navigateur.",
-    );
+  const type=videoFileType(file);
+  if(!type)throw Error('Choisis une vidéo MP4, WebM, Ogg ou MOV lisible par ce navigateur.');
   if (file.size > 64 * 1024 * 1024)
     throw Error("Cette vidéo dépasse 64 Mo. Prépare un extrait plus court.");
   const src = await new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = () => resolve(reader.result);
     reader.onerror = () => reject(Error("Lecture de la vidéo impossible."));
-    reader.readAsDataURL(file);
+    reader.readAsDataURL(file.type===type?file:file.slice(0,file.size,type));
   });
   const id = "frame-video:" + crypto.randomUUID();
   await (await store()).setSetting(id, { src, name: file.name });

@@ -2161,3 +2161,7 @@
 }
 :root[data-appearance="light"] .resource-editor-fields:disabled input::placeholder,:root[data-appearance="light"] .resource-editor-fields:disabled textarea::placeholder {color:transparent
 }
+:root[data-appearance="light"] .element-context .menu-file {border-radius:7px;color:inherit
+}
+:root[data-appearance="light"] .element-context .menu-file:focus-within {outline:1px solid var(--mint);outline-offset:-2px
+}
