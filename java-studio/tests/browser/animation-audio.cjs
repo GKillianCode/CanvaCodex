@@ -131,14 +131,40 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       [0, 3],
     );
     assert.equal(await page.locator(".animation-audio-track").count(), 1);
+    const volumeButton=page.getByRole('button',{name:'Régler le volume',exact:true});
+    const volumePopup=page.getByRole('dialog',{name:'Volume d’écoute',exact:true});
+    assert.equal(await volumePopup.isVisible(),false);
+    const nameBounds=await page.locator('.animation-audio-track .track-name').boundingBox();
+    const buttonBounds=await volumeButton.boundingBox();
+    const laneBounds=await page.locator('.animation-audio-lane').boundingBox();
+    assert(buttonBounds.x+buttonBounds.width<=nameBounds.x+nameBounds.width+1);
+    assert(buttonBounds.x+buttonBounds.width<=laneBounds.x);
+    const durationBounds=await page.locator('.animation-audio-label small').boundingBox();
+    assert(buttonBounds.y>=durationBounds.y+durationBounds.height,'Buttons must sit below the duration');
+    await volumeButton.click();await volumePopup.waitFor();
+    const popupBounds=await volumePopup.boundingBox();
+    assert(popupBounds.x+popupBounds.width<=laneBounds.x,'Open volume stays inside the left column');
+    const slider=await volumePopup.getByRole('slider',{name:'Volume',exact:true}).boundingBox();
+    assert(slider.height>slider.width*3,'Volume slider is vertical');
+    assert.equal(await volumePopup.getByRole('slider').getAttribute('aria-orientation'),'vertical');
+    await page.mouse.click(slider.x+slider.width/2,slider.y+slider.height*.25);
+    assert(await page.evaluate(()=>referenceAudio.volume>.6&&referenceAudio.volume<.9));
+    await page.mouse.click(slider.x+slider.width/2,slider.y+slider.height*.75);
+    assert(await page.evaluate(()=>referenceAudio.volume>.1&&referenceAudio.volume<.4));
     await page.getByLabel('Volume · valeur',{exact:true}).fill('35');
     assert.equal(await page.evaluate(()=>referenceAudio.volume),.35);
     assert.equal(await page.evaluate(()=>localStorage.getItem('frame-animation-audio-volume')),'0.35');
     await page.getByRole('button',{name:'Couper l’audio',exact:true}).click();
+    await volumeButton.click();
     await page.getByLabel('Volume · valeur',{exact:true}).fill('20');
     assert.equal(await page.evaluate(()=>referenceAudio.muted),true);
     await page.getByRole('button',{name:'Réactiver l’audio',exact:true}).click();
     assert.equal(await page.evaluate(()=>referenceAudio.volume),.2);
+    assert.equal(await volumePopup.isVisible(),false,'Outside click closes volume');
+    await volumeButton.click();await volumePopup.waitFor();
+    await volumeButton.click();assert.equal(await volumePopup.isVisible(),false,'Trigger toggles closed');
+    await volumeButton.click();await volumePopup.waitFor();await page.keyboard.press('Escape');
+    assert.equal(await volumePopup.isVisible(),false,'Escape closes volume');
 
     const before = await page
       .locator(".animation-audio-lane path")
@@ -283,6 +309,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       .click();
     const dialog = page.getByRole("dialog", { name: "Aperçu de l’animation" });
     await dialog.waitFor();
+    await dialog.getByRole('button',{name:'Régler le volume',exact:true}).click();
     assert.equal(await dialog.getByLabel('Volume · valeur',{exact:true}).inputValue(),'20');
     await dialog.getByLabel('Volume · valeur',{exact:true}).fill('60');
     assert.equal(await page.evaluate(()=>referenceAudio.volume),.6);
@@ -375,11 +402,14 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       a.audio.setStart(20);
       if (a.audio.muted.value) a.audio.toggleMute();
     });
+    await page.getByRole('button',{name:'Régler le volume',exact:true}).click();
+    await page.getByRole('dialog',{name:'Volume d’écoute',exact:true}).waitFor();
     await page.screenshot({ path: "/tmp/frame-animation-audio-dark.png" });
     await page.evaluate(
       () => (document.documentElement.dataset.appearance = "light"),
     );
     await page.screenshot({ path: "/tmp/frame-animation-audio-light.png" });
+    await page.keyboard.press('Escape');
     // Missing media and invalid imports report an error instead of silently losing the reference.
     await page.evaluate(() => {
       live().animation.config.value.audio.src =

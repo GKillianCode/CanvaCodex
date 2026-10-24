@@ -60,5 +60,8 @@ const wave = computed(() =>
 </template>
 
 <style scoped>
-.animation-audio-track > .track-name {display:flex;flex-direction:column;align-items:stretch;justify-content:center;padding:6px 10px;gap:6px;}
+.animation-audio-track > .track-name {display:flex;flex-direction:column;align-items:stretch;justify-content:center;min-width:0;padding:6px 10px;gap:6px;}
+.animation-audio-label {min-width:0;}
+.animation-audio-volume {align-self:flex-start;}
+.animation-audio-label small {overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 </style>

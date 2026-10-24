@@ -300,3 +300,5 @@ Pour animer plusieurs objets ensemble, sélectionne-les avec **Ctrl + clic**, ac
 Dans la timeline Animation, **clic droit sur le nom d’un objet → Renommer** modifie son nom partagé avec les calques. Entrée valide, Échap annule. Les propriétés sont directement sous l’objet, sans tiroir de séquence intermédiaire ni actions de piste en double ; les marqueurs vides et les séquences multiples restent accessibles.
 
 Le tiroir **Scène** de la timeline suit la même présentation directe que les objets : propriétés de caméra et de fond sans tiroirs de séquence ni barres redondantes.
+
+Les commandes audio sont sous la durée de l’extrait. Le pourcentage ouvre une palette de volume verticale, repliée par défaut, sans débordement sur la forme d’onde.
