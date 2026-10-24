@@ -90,16 +90,33 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     await toggle.click();
     assert.equal(await page.locator('.animation-sequence-track').count(), 0);
     assert.equal(await page.locator('.key-diamond').count(), 0);
+    await page.evaluate(()=>live().animation.config.value.clips[0].collapsed=true);
     await toggle.click();
     assert.equal(await page.locator('.key-diamond').count(), 3);
-    const sequence = page.locator('.animation-sequence-track');
-    await sequence.getByTitle('Replier les propriétés').click();
+    assert.equal(await page.locator('.animation-sequence-track').count(),0);
+    assert.equal(await page.locator('.direct-object-property').count(),2);
+    await toggle.click();
     assert.equal(await page.locator('.key-diamond').count(), 0);
     assert.equal(await page.locator('.frame-marker').count(), 2);
     await page.getByLabel('Image clé à 3 secondes', {exact:true}).dblclick();
     assert.equal(await page.evaluate(()=>live().animation.time.value),4);
-    await sequence.getByTitle('Déplier les propriétés').click();
+    await toggle.click();
     assert.equal(await page.locator('.key-diamond').count(), 3);
+    // Rename the owner through the shared block-name model, with one undo step.
+    await group.locator('.object-track-title').click({button:'right'});
+    await page.getByRole('menuitem',{name:'Renommer',exact:true}).click();
+    const rename=group.getByRole('textbox',{name:'Nom de l’objet',exact:true});
+    await rename.fill('Illustration principale');await rename.press('Enter');
+    assert.equal(await group.locator('.object-track-title').innerText(),'Illustration principale');
+    assert.equal(await page.evaluate(()=>live().current.value.elements.shape.name),'Illustration principale');
+    await page.evaluate(()=>live().undo());
+    assert.notEqual(await group.locator('.object-track-title').innerText(),'Illustration principale');
+    await page.evaluate(()=>live().redo());
+    assert.equal(await group.locator('.object-track-title').innerText(),'Illustration principale');
+    await group.locator('.object-track-title').click({button:'right'});
+    await page.getByRole('menuitem',{name:'Renommer',exact:true}).click();
+    await rename.fill('Annulé');await rename.press('Escape');
+    assert.equal(await group.locator('.object-track-title').innerText(),'Illustration principale');
     // Effects stay inside their owner. Multiple sequences share one drawer.
     await page.evaluate(async()=>{
       const a=live().animation.config.value;
@@ -108,7 +125,8 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       await tick();
     });
     assert.equal(await page.locator('.animation-object-track').count(),1);
-    assert.equal(await page.locator('.animation-sequence-track').count(),2);
+    assert.equal(await page.locator('.animation-sequence-track').count(),0);
+    assert.equal(await page.locator('.direct-object-property').count(),4);
     assert.equal(await page.locator('.effect-timeline-track').count(),1);
     await toggle.click();
     assert.equal(await page.locator('.animation-sequence-track').count(),0);
@@ -126,8 +144,12 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       await tick();
     });
     assert.equal(await page.locator('.animation-object-track').count(),3);
-    assert.equal(await page.locator('.animation-sequence-track').count(),2,
-      'Multi-target sequence appears once, global drawer starts collapsed');
+    assert.equal(await page.locator('.animation-sequence-track').count(),0,
+      'Object sequences have no intermediate drawer; global drawer starts collapsed');
+    const sceneToggle=page.locator('.animation-object-track[data-object="$scene"] button[aria-expanded]');
+    await sceneToggle.click();assert.equal(await page.locator('.animation-sequence-track').count(),1);
+    await sceneToggle.click();
+
     await page.getByLabel('Pistes de la sélection').check();
     assert.equal(await page.locator('.animation-object-track').count(),2,
       'Selection keeps selected owner and global tracks');

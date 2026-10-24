@@ -286,7 +286,7 @@ L’audio de référence Animation dispose d’un volume d’écoute **0–100 %
 **Présence dans la scène → Maintien final** réserve un délai avant la sortie, nul par défaut et réglable pour tous les blocs. Les compteurs adaptent leur vitesse pour laisser leur valeur finale lisible pendant ce délai, puis conservent cette valeur pendant l’effacement. Les bornes de présence et les clés manuelles restent inchangées.
 
 
-La timeline Animation filtre par défaut les objets **deux secondes avant leur apparition et deux secondes après leur disparition** ; décocher **Autour du curseur** retrouve toutes les pistes. Le résumé de séquence reprend la taille de la barre de présence sans décaler ses clés. Les groupes disposent de transformations communes et acceptent les mouvements réutilisables.
+La timeline Animation filtre par défaut les objets **deux secondes avant leur apparition et deux secondes après leur disparition** ; décocher **Autour du curseur** retrouve toutes les pistes. Un seul tiroir d’objet contient directement ses propriétés animées ; la barre de présence reste seule, sans décaler les clés. Les groupes disposent de transformations communes et acceptent les mouvements réutilisables.
 
 Dans **Scène → Fond et motifs**, les losanges animent couleurs, opacité, taille, espacement, épaisseur, rotation et décalages. Les changements de type de motif utilisent un fondu, avec le même rendu dans l’éditeur, l’aperçu et l’export.
 
@@ -295,3 +295,6 @@ Les courbes Animation avec dépassement conservent des couleurs RGB valides et u
 
 
 Pour animer plusieurs objets ensemble, sélectionne-les avec **Ctrl + clic**, active **Clés auto**, avance le curseur puis déplace, tourne ou redimensionne la sélection. Les transformations partagent une séquence synchronisée et conservent les espacements, sans groupe permanent. Les réglages du cadre de sélection et les losanges manuels réutilisent cette même séquence.
+
+
+Dans la timeline Animation, **clic droit sur le nom d’un objet → Renommer** modifie son nom partagé avec les calques. Entrée valide, Échap annule. Les propriétés sont directement sous l’objet, sans tiroir de séquence intermédiaire ni actions de piste en double ; les marqueurs vides et les séquences multiples restent accessibles.

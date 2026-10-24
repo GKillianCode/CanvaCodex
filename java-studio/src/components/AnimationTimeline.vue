@@ -1,4 +1,5 @@
 <script setup>
+import {setBlockName} from '../model.js';
 import {patternLabels} from "../sceneBackground.js";
 import { normalizePresence, presenceTiming } from "../animationPresence.js";
 import TimecodeInput from "./TimecodeInput.vue";
@@ -41,6 +42,7 @@ const props = defineProps({ studio: Object }),
   tracks = ref(null),
   world = ref(null),
   menu = ref(null),
+  renaming = ref(null), renameInput = ref(null),
   draggingKey = ref(null),
   showHidden = ref(false), selectedOnly=ref(false), nearPlayhead=ref(true), draggedGroup=ref(null);
 try { nearPlayhead.value=localStorage.getItem('frame-animation-near-playhead')!=='false'; } catch {}
@@ -89,7 +91,7 @@ const trackGroups = computed(() => {
   const groups = new Map();
   function group(key) {
     if (!groups.has(key)) groups.set(key, {
-      key, name: s.current.elements[key]?.name || (key === '$scene' ? 'Scène' : key),
+      key, name: s.current.elements[key]?.name || s.current.blockNames?.[key] || (key === '$scene' ? 'Scène' : key),
       range: s.current.positions[key] ? normalizePresence(a.config.presences[key]) : null,
       timing: presenceTiming(a.config.presences[key],a.config.duration),
       clips: [], effects: [],
@@ -116,6 +118,28 @@ function toggleGroup(key) {
 function selectGroup(group) {
   if (s.current.positions[group.key]) selectPresence(group.key);
   else if (group.clips[0]) a.selectClip(group.clips[0].id);
+}
+function objectContext(event,group) {
+  if(!group.range)return;
+  event.preventDefault();event.stopPropagation();
+  menu.value={group,x:Math.min(innerWidth-210,event.clientX),y:Math.min(innerHeight-100,event.clientY)};
+}
+function renameGroup(group) {
+  if(a.busy)return;
+  menu.value=null;renaming.value={key:group.key,name:group.name};
+  nextTick(()=>{const input=Array.isArray(renameInput.value)?renameInput.value[0]:renameInput.value;input?.focus();input?.select();});
+}
+function commitName() {
+  const value=renaming.value;renaming.value=null;
+  if(!value||a.busy||!value.name.trim())return;
+  const name=value.name.trim().slice(0,100);
+  if(name===(s.current.elements[value.key]?.name||s.current.blockNames?.[value.key]||value.key))return;
+  a.beginGesture();setBlockName(s.current,value.key,name);a.endGesture();
+}
+function objectMarkers(group) {
+  return group.clips.flatMap(c=>frameTimes(c)
+    .filter(t=>!expandedGroups.has(group.key)||!c.frames.some(f=>Math.abs(f.time-t)<.0001))
+    .map(t=>({c,t})));
 }
 function selectPresence(key) { s.selectLayer(key); }
 function dragPresence(event,key,edge) {
@@ -297,10 +321,16 @@ function context(event, c, key) {
 function outside(event) {
   if (!event.target.closest(".animation-key-context")) menu.value = null;
 }
+function addObjectFrame(event, group) {
+  if(!group.range||event.target.closest('button'))return;
+  const c=group.clips.find(c=>c.id===a.selectedClip)||group.clips[0];
+  if(!c)selectGroup(group);
+  addFrameAt(event,c);
+}
 function addFrameAt(event, c) {
   if (event.target.closest("button")) return;
   const rect = event.currentTarget.getBoundingClientRect();
-  a.selectClip(c.id);
+  if(c)a.selectClip(c.id);
   a.seek(timelineTime(event.clientX, rect.left, rect.width, view.value.span));
   a.addFrame();
 }
@@ -488,11 +518,12 @@ onUnmounted(() => {
         <AnimationAudioTrack v-if="timelinePanel === 'audio'" :studio="s" :span="view.span" @scrub="scrub" />
         <template v-for="group in timelinePanel === 'keys' ? trackGroups : []" :key="group.key">
           <div class="animation-track animation-object-track" :data-object="group.key" :class="{active:s.selectedKeys.includes(group.key), 'timeline-group-hidden':hiddenGroups.has(groupId(group.key))}">
-            <div class="track-name object-track-name">
+            <div class="track-name object-track-name" @contextmenu="objectContext($event,group)">
               <button class="icon-btn" :aria-label="'Animations de '+group.name" :aria-expanded="expandedGroups.has(group.key)" :disabled="!group.clips.length&&!group.effects.length" @click="toggleGroup(group.key)">
                 <ChevronDown :size="14" :style="{transform:expandedGroups.has(group.key)?'':'rotate(-90deg)'}"/>
               </button>
-              <button class="object-track-title" @click="selectGroup(group)" :title="group.name">{{group.name}}</button>
+              <input v-if="renaming?.key===group.key" ref="renameInput" class="object-track-rename" v-model="renaming.name" maxlength="100" aria-label="Nom de l’objet" @pointerdown.stop @keydown.stop @keydown.enter.prevent="commitName" @keydown.esc.prevent="renaming=null" @blur="commitName"/>
+              <button v-else class="object-track-title" @click="selectGroup(group)" :title="group.name">{{group.name}}</button>
               <button class="icon-btn" :disabled="a.busy || !groupAnimations(group.key).length"
                 :aria-label="'Activer ou désactiver les animations de '+group.name"
                 :title="groupAnimations(group.key).some(c=>c.enabled)?'Désactiver les animations':'Réactiver les animations'"
@@ -508,7 +539,7 @@ onUnmounted(() => {
                 title="Supprimer les animations de cet objet…"
                 @click.stop="removeGroup(group)"><Trash2 :size="12"/></button>
             </div>
-            <div class="track-lane" @pointerdown.self="selectGroup(group)">
+            <div class="track-lane" @pointerdown.self="selectGroup(group)" @dblclick.stop.prevent="addObjectFrame($event,group)">
               <div v-if="group.range" class="presence-span" :style="{left:Math.min(group.range.start,a.config.duration)/view.span*100+'%',width:Math.max(0,Math.min(group.range.end??a.config.duration,a.config.duration)-group.range.start)/view.span*100+'%'}" @pointerdown="dragPresence($event,group.key,'move')" :title="'Présence · '+audioTimeLabel(group.range.start,a.audio.frameRate)+' → '+audioTimeLabel(group.range.end??a.config.duration,a.audio.frameRate)+(group.timing.holdDuration ? ' · Maintien : '+audioTimeLabel(group.timing.holdStart,a.audio.frameRate)+' → '+audioTimeLabel(group.timing.exitStart,a.audio.frameRate) : '')">
                 <button class="presence-handle start" :aria-label="'Début de présence de '+group.key" title="Déplacer l’apparition" @pointerdown.stop="dragPresence($event,group.key,'start')"></button>
                 <span v-if="group.timing.holdDuration > 0" class="presence-hold-zone"
@@ -520,6 +551,12 @@ onUnmounted(() => {
                 <small>{{ audioTimeLabel(group.range.start,a.audio.frameRate) }} → {{ audioTimeLabel(group.range.end??a.config.duration,a.audio.frameRate) }}</small>
                 <button class="presence-handle end" :aria-label="'Fin de présence de '+group.key" title="Déplacer la disparition" @pointerdown.stop="dragPresence($event,group.key,'end')"></button>
               </div>
+              <button v-for="{c,t} in group.range ? objectMarkers(group) : []" :key="c.id+':'+t" class="frame-marker"
+                :class="{empty:!c.frames.some(f=>Math.abs(f.time-t)<.0001)}"
+                :style="{left:(c.start+t)/view.span*100+'%'}"
+                :aria-label="'Image clé à '+t+' secondes'" :title="c.name+' · '+(c.start+t)+' s · double-clic : afficher cet état'"
+                @pointerdown.stop @click.stop="a.focusFrame(c,t)" @dblclick.stop.prevent="a.focusFrame(c,t)"
+                @contextmenu.prevent.stop="menu={c,frameTime:t,x:Math.min(innerWidth-210,$event.clientX),y:Math.min(innerHeight-180,$event.clientY)}">◆</button>
               <i class="track-cursor" :style="{left:a.time/view.span*100+'%'}"></i>
             </div>
           </div>
@@ -527,7 +564,7 @@ onUnmounted(() => {
         <template
           v-for="c in group.clips"
           :key="c.id"
-          ><div
+          ><div v-if="!group.range"
             :class="[
               'animation-track animation-sequence-track',
               { active: a.selectedClip === c.id, muted: !c.enabled },
@@ -592,12 +629,11 @@ onUnmounted(() => {
               <span
                 class="clip-span"
                 :style="{
-                  left: ((group.range ? group.timing.start : c.start) / view.span) * 100 + '%',
-                  width: ((group.range ? group.timing.end-group.timing.start : c.duration) / view.span) * 100 + '%',
+                  left: (c.start / view.span) * 100 + '%',
+                  width: (c.duration / view.span) * 100 + '%',
                 }"
-                :title="group.range ? 'Plage de présence de l’objet · régler ses bornes sur la ligne de l’objet ; les clés gardent leur temps' : 'Glisser pour décaler la séquence'"
-                :class="{'presence-aligned-sequence':!!group.range}"
-                @pointerdown="group.range ? a.selectClip(c.id) : dragClip($event, c)"
+                title="Glisser pour décaler la séquence"
+                @pointerdown="dragClip($event, c)"
               ></span
               ><button
                 v-for="t in c.collapsed ? frameTimes(c) : frameTimes(c).filter(t => !c.frames.some(f => Math.abs(f.time-t)<0.0001))"
@@ -630,16 +666,17 @@ onUnmounted(() => {
               ></i>
             </div>
           </div>
-          <template v-if="!c.collapsed"
+          <template v-if="group.range || !c.collapsed"
             ><div
               v-for="f in [...new Set([...animationFields,...c.frames.map(f=>f.field)])].filter((f) =>
                 c.frames.some((k) => k.field === f),
               )"
               :key="f"
-              class="animation-property-track"
+              class="animation-property-track" :class="{'direct-object-property':!!group.range,muted:!c.enabled}" :data-clip="c.id"
+              @pointerdown="a.selectedClip=c.id"
             >
-              <span class="property-track-label"
-                >{{ (labels[f]||effectFieldLabel(f,a.config.effects))
+              <span class="property-track-label" :title="group.clips.length>1 ? c.name : undefined"
+                ><small v-if="group.range && group.clips.length>1" class="property-sequence-name">{{c.name}}</small>{{ (labels[f]||effectFieldLabel(f,a.config.effects))
                 }}<select
                   :aria-label="'Interpolation · ' + (labels[f]||effectFieldLabel(f,a.config.effects))"
                   :value="c.frames.find((k) => k.field === f)?.ease || c.easing"
@@ -718,7 +755,8 @@ onUnmounted(() => {
       :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
       @pointerdown.stop
     >
-      <template v-if="menu.frameTime !== undefined"
+      <template v-if="menu.group"><button role="menuitem" :disabled="a.busy" @click="renameGroup(menu.group)">Renommer</button></template>
+      <template v-else-if="menu.frameTime !== undefined"
         ><button
           role="menuitem"
           @click="

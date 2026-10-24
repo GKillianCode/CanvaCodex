@@ -1007,4 +1007,9 @@
 .presence-span small {position:relative;z-index:1;}
 .presence-handle {z-index:2;}
 
-.clip-span.presence-aligned-sequence {cursor:pointer;}
+
+
+/* Object properties sit directly beneath their owner, without a second sequence row. */
+.animation-property-track.direct-object-property .property-track-label {padding-left:25px;}
+.object-track-rename {flex:1;min-width:0;max-width:100%;font:inherit;font-size:11px;padding:4px 5px;}
+.property-sequence-name {max-width:85px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.55;font-size:9px;margin-right:6px;}

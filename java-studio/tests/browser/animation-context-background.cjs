@@ -100,12 +100,9 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     assert.equal(await page.locator('.animation-object-track').count(),42);
     assert.equal(await page.evaluate(()=>localStorage.getItem('frame-animation-near-playhead')),'false');
     await page.evaluate(()=>live().animation.seek(4));
-    const bar=page.locator('.animation-sequence-track .clip-span').first();
-    const bounds=await owner.locator('.presence-span').boundingBox(),seq=await bar.boundingBox();
-    assert(Math.abs(bounds.x-seq.x)<1);assert(Math.abs(bounds.width-seq.width)<1);
+    assert.equal(await page.locator('.animation-sequence-track .presence-aligned-sequence').count(),0,'No duplicate object sequence bar');
+    assert(await page.locator('.direct-object-property').count()>0,'Properties are directly beneath the owner');
     const original=await page.evaluate(()=>JSON.stringify(live().animation.config.value.clips));
-    await page.mouse.move(seq.x+seq.width*.7,seq.y+5);await page.mouse.down();await page.mouse.move(seq.x+seq.width*.7+60,seq.y+5,{steps:4});await page.mouse.up();
-    assert.equal(await page.evaluate(()=>JSON.stringify(live().animation.config.value.clips)),original,'Dragging the aligned overview must not shift keys');
     // A presence dragged outside the temporal window stays mounted until pointer release.
     await page.getByLabel('Pistes autour du curseur',{exact:true}).check();
     await page.evaluate(()=>live().animation.seek(1));
@@ -193,6 +190,6 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     await page.evaluate(()=>live().animation.seek(10));
     assert.equal(await page.locator('.animation-object-track[data-object="shape"]').count(),1,'Shared tracks remain available while any of their objects is nearby');
     assert.deepEqual(errors,[]);
-    console.log('Context timeline ±2s, aligned bars without retiming, drag pin, pattern keyframes/crossfade/pixels/undo and mixed group controls/presets passed');
+    console.log('Context timeline ±2s, one owner bar with direct properties, drag pin, pattern keyframes/crossfade/pixels/undo and mixed group controls/presets passed');
   } finally {await browser.close();}
 })().catch(e=>{console.error(e);process.exitCode=1;});
