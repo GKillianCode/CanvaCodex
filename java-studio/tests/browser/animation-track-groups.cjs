@@ -82,7 +82,18 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     assert.equal(await group.count(), 1);
     assert.equal(await page.locator('.presence-track').count(), 0);
     const toggle = group.locator('button[aria-expanded]');
-    assert.equal(await toggle.getAttribute('aria-expanded'), 'true');
+    assert.equal(await toggle.getAttribute('aria-expanded'), 'false');
+    await page.evaluate(async()=>{const s=live();s.animation.selectedClip.value='';s.selectedKeys.value=[];s.selected.value=null;await tick();});
+    await group.locator('.object-track-title').click();
+    assert.equal(await page.evaluate(()=>live().selected.value),'shape');
+    assert.equal(await toggle.getAttribute('aria-expanded'),'false','Selecting an object must not expand its drawer');
+    await group.getByLabel('Image clé à 3 secondes',{exact:true}).dblclick();
+    assert.equal(await page.evaluate(()=>live().animation.time.value),4);
+    assert.equal(await toggle.getAttribute('aria-expanded'),'false','Focusing a key must not expand its drawer');
+    assert.equal(await page.locator('.key-diamond').count(),0);
+    await toggle.click();
+    await page.evaluate(async()=>{live().animation.selectedClip.value='';await tick();live().animation.selectClip('movement');await tick();});
+    assert.equal(await toggle.getAttribute('aria-expanded'),'true','Selecting also preserves an already open drawer');
     assert.equal(await page.locator('.key-diamond').count(), 3);
     assert.equal(await page.locator('.key-diamond').first().isVisible(),true);
     assert.equal(await page.locator('.frame-marker:not(.empty)').count(), 0,

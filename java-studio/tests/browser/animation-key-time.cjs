@@ -76,6 +76,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       await tick();
       s.animation.selectedClip.value = "movement";
     });
+    await page.locator('.animation-object-track[data-object="shape"] button[aria-expanded]').click();
     const tooltip = page.getByLabel("Position de l’image clé", { exact: true });
     const diamond = () =>
       page.locator(".key-diamond").filter({ hasText: "◆" }).first();

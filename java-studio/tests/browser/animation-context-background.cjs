@@ -101,6 +101,8 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     assert.equal(await page.evaluate(()=>localStorage.getItem('frame-animation-near-playhead')),'false');
     await page.evaluate(()=>live().animation.seek(4));
     assert.equal(await page.locator('.animation-sequence-track .presence-aligned-sequence').count(),0,'No duplicate object sequence bar');
+    const ownerToggle=owner.locator('button[aria-expanded]');
+    if(await ownerToggle.getAttribute('aria-expanded')!=='true')await ownerToggle.click();
     assert(await page.locator('.direct-object-property').count()>0,'Properties are directly beneath the owner');
     const original=await page.evaluate(()=>JSON.stringify(live().animation.config.value.clips));
     // A presence dragged outside the temporal window stays mounted until pointer release.

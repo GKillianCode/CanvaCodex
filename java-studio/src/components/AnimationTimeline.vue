@@ -108,10 +108,6 @@ const trackGroups = computed(() => {
   return [...groups.values()].filter(g => (showHidden.value || !hiddenGroups.has(groupId(g.key))) &&
     groupIsNear(g));
 });
-watch(() => a.selectedClip, () => {
-  const group = trackGroups.value.find(g => g.clips.some(c => c.id === a.selectedClip));
-  if (group) expandedGroups.add(group.key);
-}, {immediate:true});
 function toggleGroup(key) {
   if (expandedGroups.has(key)) expandedGroups.delete(key);
   else expandedGroups.add(key);
