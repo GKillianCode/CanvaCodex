@@ -115,7 +115,7 @@ if (!/5289$/.test(base || "")) throw Error("Isolated server required");
     assert(changes.xs[1] > changes.xs[0]);
     assert(changes.keys > 0);
     await page.evaluate(() => live().selectLayer("one"));
-    await root.getByRole("button", { name: "Style", exact: true }).click();
+    await root.getByRole("button", { name: "Objet", exact: true }).click();
     assert.equal(
       await root
         .getByRole("button", { name: "Composant", exact: true })

@@ -73,7 +73,7 @@ Un atlas de contrôle visuel des 30 dispositions et 10 thèmes est accessible en
 - SVG autonomes acceptés, sans script ni ressource externe. Le fond du thème derrière les images est facultatif. Une image opaque reste opaque.
 - Incrustation **Voir une autre vidéo** : surtitre, titre et indication complémentaire, export PNG transparent pour le montage.
 
-- **Style → Fond du diaporama → Dégradé de fond** : décocher pour un fond uni, commun à toutes les diapos et exports. Les anciens projets conservent leur dégradé.
+- **Objet → Fond du diaporama → Dégradé de fond** : décocher pour un fond uni, commun à toutes les diapos et exports. Les anciens projets conservent leur dégradé.
 - **Style de la forme → Extrémités arrondies** : décocher pour des bouts plats sur traits/courbes, y compris les pointillés.
 
 Les formes occupent leur cadre sans marge vide : étoiles, polygones, courbes et cœurs sont ajustés à leurs dimensions. Les traits horizontaux/verticaux ont un cadre correspondant à leur épaisseur ; étirer leur hauteur/largeur transversale règle cette épaisseur. Le contour est inclus dans les dimensions et la zone de clic ne déborde plus du cadre des formes.
@@ -162,7 +162,7 @@ Les boutons « + Formes » et « + Tableau » ont été retirés de la barre sup
 
 ### Propriétés, textes et palette du diaporama
 
-Le panneau conserve quatre accès : Objet, Diapo, Calques et Composants. Les options de l’objet sont réparties entre Style, Couleurs, Placement et Animation. Tous les tiroirs sont fermés au démarrage ; leur ouverture, la catégorie et le défilement sont conservés lorsqu’on sélectionne un autre objet. Les couleurs du tableau sont séparées en En-tête, Corps et Traits. Les sélections multiples disposent des mêmes réglages applicables, sans remplacer les contenus des tableaux.
+Le panneau conserve quatre accès : Objet, Diapo, Calques et Composants. Les options de l’objet sont réparties entre Objet, Couleurs, Placement et Animation. Tous les tiroirs sont fermés au démarrage ; leur ouverture, la catégorie et le défilement sont conservés lorsqu’on sélectionne un autre objet. Les couleurs du tableau sont séparées en En-tête, Corps et Traits. Les sélections multiples disposent des mêmes réglages applicables, sans remplacer les contenus des tableaux.
 
 Les préréglages Titre et Sous-titre utilisent Inter, et Texte utilise Montserrat. Les polices explicitement choisies dans les anciens projets sont conservées. Un texte peut recevoir une liste à puces, cercles, carrés, tirets, nombres, lettres, chiffres romains, cases ou symbole personnalisé. Départ de numérotation, retrait, espacement et couleur du marqueur sont réglables ; chaque nouvelle ligne crée un item.
 
@@ -171,9 +171,9 @@ Dans Thèmes, « Personnaliser la palette » modifie les couleurs uniquement pou
 
 ### Incrustations éditables et arrondis par coin
 
-Les incrustations utilisent le même composant Propriétés que les diaporamas : Style, Couleurs, Placement, Animation, Calques et Composants. Chaque texte, fond, accent et image est un objet modifiable, déplaçable, duplicable et supprimable. On peut ajouter des tableaux et tous les autres objets, grouper, aligner, espacer, copier/coller entre diapos et incrustations, utiliser les repères et l’aimantation. Le PNG utilise le rendu commun avec un fond transparent, sans en-tête ni pied global.
+Les incrustations utilisent le même composant Propriétés que les diaporamas : Objet, Couleurs, Placement, Animation, Calques et Composants. Chaque texte, fond, accent et image est un objet modifiable, déplaçable, duplicable et supprimable. On peut ajouter des tableaux et tous les autres objets, grouper, aligner, espacer, copier/coller entre diapos et incrustations, utiliser les repères et l’aimantation. Le PNG utilise le rendu commun avec un fond transparent, sans en-tête ni pied global.
 
-Le bouton « Formats · 24 » ouvre une galerie d’aperçus avec recherche et catégories, remplaçant la liste latérale. Les quatre formats historiques sont conservés et vingt formats ajoutés : vidéo avec miniature, portrait intervenant, cartouche compact, titre panoramique, numéro de chapitre, citation, définition, attention, validation, liste de contrôle, trois étapes, chiffre clé, avant/après, abonnement, profil social, lien du site, épisode podcast, crédits, écran de fin, fiche produit. Choisir un format remplace la composition ; Ctrl Z permet de revenir en arrière. Dans le format avec miniature, sélectionner le calque Miniature puis Style → Image et cadrage → Importer une image.
+Le bouton « Formats · 24 » ouvre une galerie d’aperçus avec recherche et catégories, remplaçant la liste latérale. Les quatre formats historiques sont conservés et vingt formats ajoutés : vidéo avec miniature, portrait intervenant, cartouche compact, titre panoramique, numéro de chapitre, citation, définition, attention, validation, liste de contrôle, trois étapes, chiffre clé, avant/après, abonnement, profil social, lien du site, épisode podcast, crédits, écran de fin, fiche produit. Choisir un format remplace la composition ; Ctrl Z permet de revenir en arrière. Dans le format avec miniature, sélectionner le calque Miniature puis Objet → Image et cadrage → Importer une image.
 
 Rectangles, carrés et rectangles arrondis disposent de l’option « Arrondis par coin ». Les quatre pourcentages sont indépendants, de 0 à 50 % du petit côté. Les rayons restent circulaires lors de l’étirement. Les réglages sont disponibles dans les deux éditeurs et en sélection multiple ; sauvegardes, copies et composants les conservent. Les anciens rectangles sans arrondi restent rectangulaires.
 
@@ -197,7 +197,7 @@ Les boutons Copier/Coller utilisent également le presse-papiers système lorsqu
 
 ### Alignement, échelle et animations
 
-Style → Typographie propose quatre alignements pour les textes : gauche, centre, droite et justifié. La justification répartit les espaces sur les lignes repliées ; la dernière ligne de chaque paragraphe reste à gauche. Les listes gardent leurs marqueurs et retraits. Le réglage est aussi disponible pour plusieurs textes sélectionnés.
+Objet → Typographie propose quatre alignements pour les textes : gauche, centre, droite et justifié. La justification répartit les espaces sur les lignes repliées ; la dernière ligne de chaque paragraphe reste à gauche. Les listes gardent leurs marqueurs et retraits. Le réglage est aussi disponible pour plusieurs textes sélectionnés.
 
 Placement → Mise à l’échelle : activer les poignées proportionnelles pour un objet, puis tirer un coin. Les sélections multiples et groupes utilisent automatiquement quatre poignées proportionnelles. Textes, cadres, marges, puces, contours, tableaux et code suivent le même facteur ; les rotations et groupes sont conservés. On peut également saisir un pourcentage puis Appliquer l’échelle. Les transformations sont annulables et conservées dans les projets/composants. Les poignées ordinaires restent disponibles pour déformer un objet individuel hors de ce mode.
 
@@ -239,7 +239,7 @@ Sélectionner un objet puis Objet → Couleurs → Opacité : curseur de 0 à 10
 
 ### Interligne et espacement des lettres
 
-Dans Objet → Style → Typographie, régler l’interligne (0,5–3 fois la taille du texte) et l’espacement des lettres (−0,1 à 1 em). Une valeur de 0,1 em ajoute 10 % de la taille du texte entre les lettres. « Espacement automatique » restaure l’interligne du style et un espacement nul. Réglages partagés entre diapos et incrustations, disponibles aussi sur les sélections de textes/code et dans la typographie des tableaux. Les retours à la ligne, cadres automatiques, décorations et exports utilisent le même espacement ; les valeurs relatives suivent le redimensionnement.
+Dans Objet → Typographie, régler l’interligne (0,5–3 fois la taille du texte) et l’espacement des lettres (−0,1 à 1 em). Une valeur de 0,1 em ajoute 10 % de la taille du texte entre les lettres. « Espacement automatique » restaure l’interligne du style et un espacement nul. Réglages partagés entre diapos et incrustations, disponibles aussi sur les sélections de textes/code et dans la typographie des tableaux. Les retours à la ligne, cadres automatiques, décorations et exports utilisent le même espacement ; les valeurs relatives suivent le redimensionnement.
 
 ### Tableaux et commandes de l’atelier
 
@@ -273,7 +273,7 @@ Modifier le début audio arrête la lecture et ramène le curseur de scène à z
 
 L’écoute de référence prépare les fichiers compressés en PCM temporaire pour fiabiliser les départs MP3 VBR. Le fichier sauvegardé reste l’original. Dans Scène → Audio de référence, l’unité **Images** permet de reprendre les timecodes de montage (ex. 21 s + 15 images à 30 i/s = 21,5 s).
 
-Les objets Animation ont une **présence indépendante des clips** : création à l’instant courant, début/fin dans Objet → Style, boutons Aller au début / Aller à la fin pour positionner précisément le curseur, plage déplaçable et redimensionnable dans le tiroir de l’objet dans la timeline (séquences, propriétés et effets regroupés, clés sans doublon), transitions d’apparition/disparition optionnelles.
+Les objets Animation ont une **présence indépendante des clips** : création à l’instant courant, début/fin dans Présence dans la scène, boutons Aller au début / Aller à la fin pour positionner précisément le curseur, plage déplaçable et redimensionnable dans le tiroir de l’objet dans la timeline (séquences, propriétés et effets regroupés, clés sans doublon), transitions d’apparition/disparition optionnelles.
 
 **Insérer → Compteur animé** ajoute un texte stylable qui compte de A à B sur toute sa plage de présence, jusqu’à sa valeur finale avant le maintien et l’effacement, en nombre ou en temps (HH:MM:SS/MM:SS), avec zéros initiaux, rythme, séparateurs et préfixe/suffixe personnalisés.
 
@@ -326,14 +326,17 @@ Les ateliers **Diaporama, Animation et Incrustation** acceptent le dépôt de vi
 
 ### Son et vitesse des vidéos importées
 
-Sélectionne une vidéo puis ouvre **Objet → Style → Vidéo et lecture** : **Volume vidéo** règle le niveau de 0 à 100 %, et **Vitesse de lecture** va de 0,1× à 4× (1× normal, 0,5× ralenti, 2× accéléré). Les contrôles réutilisent les réglettes communes de Frame. Dans Animation, chaque réglage dispose du même **losange d’image clé** que les autres propriétés ; Clés auto, courbes, copie et sauvegarde utilisent les pistes existantes.
+Sélectionne une vidéo puis ouvre **Objet → Vidéo et lecture** : **Volume vidéo** règle le niveau de 0 à 100 %, et **Vitesse de lecture** va de 0,1× à 4× (1× normal, 0,5× ralenti, 2× accéléré). Les contrôles réutilisent les réglettes communes de Frame. Dans Animation, chaque réglage dispose du même **losange d’image clé** que les autres propriétés ; Clés auto, courbes, copie et sauvegarde utilisent les pistes existantes.
 
 Les changements de vitesse font progresser le temps source sans saut, avec lecture/pause, présence et boucle synchronisées. Le son suit la vitesse, ce qui change aussi sa hauteur. Le mixage stéréo des vidéos présentes sur scène est inclus dans les exports Animation MP4/MOV/MKV/WebM, les exports d’incrustations et les enregistrements de présentation. L’audio de référence conserve son rôle de repère indépendant. Le volume de départ est 100 %, la vitesse 1× ; les paramètres et leurs clés sont conservés dans le JSON du projet.
 
 ### Propriétés contextuelles et animation
 
-À la sélection d’un objet, la navigation générale du panneau disparaît : Style, Couleurs, Placement et Animation sont les accès directs. Le nom et les actions d’édition, duplication, verrouillage et suppression se trouvent dans Style → Nom de l’objet. Composant apparaît dans ces sous-menus à partir de deux objets sélectionnés. Sans sélection, les réglages de scène et les accès Calques/Composants redeviennent disponibles. La structure et les actions sont partagées avec les autres ateliers.
+À la sélection d’un objet, la navigation générale du panneau disparaît : Objet, Couleurs, Placement et Animation sont les accès directs. Le nom et les actions d’édition, duplication, verrouillage et suppression se trouvent dans Objet → Nom de l’objet. Composant apparaît dans ces sous-menus à partir de deux objets sélectionnés. Sans sélection, les réglages de scène et les accès Calques/Composants redeviennent disponibles. La structure et les actions sont partagées avec les autres ateliers.
 
 Dans Animation, Effets, Mouvement et Relations regroupent les outils de l’objet ; caméra, événements et diagnostic restent dans la scène. Les effets se prévisualisent avant application. Les couleurs de SVG utilisent les mêmes losanges que les autres propriétés, y compris pour plusieurs SVG ; recliquer sur un losange actif retire la clé au curseur. L’export attend les ressources SVG recolorées de chaque image.
 
 Déplacer une barre de présence emporte les séquences et effets associés, sans changer leurs temps locaux ; étirer une borne conserve les clés à leur instant. Un début de séquence négatif peut conserver une animation déjà commencée avant la scène lorsque la présence est déplacée vers la gauche. La molette défile verticalement dans les pistes, Maj + molette horizontalement, Ctrl + molette zoome. Le panneau de propriétés garde toute la hauteur, à droite de la timeline. Les noms de scène sont validés par Entrée ou en quittant le champ.
+
+
+Le clic dans la scène pendant la lecture d’une animation désélectionne l’objet sans interrompre le transport ni lancer de déplacement. La pause reste une action explicite. Dans l’onglet Objet, le récapitulatif Début / Fin / Durée affiche la présence totale au format heures:minutes:secondes:images, selon la cadence de scène ; les valeurs différentes d’une sélection multiple sont indiquées « Mixte ». Les contrôles d’édition restent dans Présence dans la scène.

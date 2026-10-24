@@ -1,4 +1,6 @@
 <script setup>
+import {presenceTiming} from "../animationPresence.js";
+import {formatTimecode} from "../timecode.js";
 import SelectionActions from "./SelectionActions.vue";
 import TimecodeInput from "./TimecodeInput.vue";
 import AnimationCounterProperties from "./AnimationCounterProperties.vue";
@@ -93,7 +95,7 @@ const tabs = computed(() => [
     ["components", "Composants", Box],
   ]),
   categories = computed(() => [
-    ["style", "Style", SlidersHorizontal],
+    ["style", "Objet", SlidersHorizontal],
     ["colors", "Couleurs", Palette],
     ["layout", "Placement", Move],
     ["motion", "Animation", Sparkles],
@@ -162,6 +164,11 @@ watch(
 );
 function renameScene(event){const title=event.target.value.trim();if(title&&title!==s.current.title){s.animation.beginGesture();s.current.title=title;s.animation.endGesture();}event.target.value=s.current.title;}
 watch(()=>s.animation?.restoringView,(value)=>{if(value===false&&!["layers","components"].includes(section.value))switchTo(s.selectedKeys.length?"element":"slide");});
+const objectTiming=computed(()=>{
+  if(!s.isAnimation||!s.selectedKeys.length)return [];
+  const ranges=s.selectedKeys.map(key=>presenceTiming(s.animation.config.presences[key],s.animation.config.duration));
+  return [['start','Début'],['end','Fin'],['duration','Durée']].map(([id,label])=>{const values=ranges.map(range=>id==='duration'?range.end-range.start:range[id]);return {id,label,value:values.every(value=>Math.abs(value-values[0])<1/s.animation.config.fps/2)?formatTimecode(values[0],s.animation.config.fps):'Mixte'};});
+});
 const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
   isText = computed(() => ["text", "code"].includes(s.selectedType)),
   object = computed(() => s.current.elements[s.selected]);
@@ -194,6 +201,7 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
       </div> </template
     ><AnimationPresenceProperties v-if="s.isAnimation && section === 'element' && s.selectedKeys.length" :studio="s" />
     <AnimationKeyInspector v-if="s.isAnimation" :studio="s" />
+    <dl v-if="section==='element'&&category==='style'&&objectTiming.length" class="object-timing-summary" aria-label="Temps de l’objet"><div v-for="item in objectTiming" :key="item.id"><dt>{{item.label}}</dt><dd :data-object-time="item.id">{{item.value}}</dd></div></dl>
     <InspectorDrawer v-if="section==='element' && s.selectedKeys.length && (category==='style'||s.animation?.engine)" id="identity" :title="s.selectedKeys.length===1?'Nom de l’objet':'Actions de la sélection'"><label v-if="s.selected">Nom<input v-model="objectName" maxlength="100" aria-label="Nom de l’élément" :placeholder="blockLabel(s.current,s.selected)" @change="s.selectedName=objectName.trim()" @keydown.enter="$event.target.blur()"/></label><p v-else class="field-help">{{s.selectedKeys.length}} objets sélectionnés</p><SelectionActions :edit="s.selected && (isText||s.selectedType==='table') && !s.animation?.config.counters[s.selected]?s.editSelected:undefined" :duplicate="s.duplicateSelected" :toggle-lock="()=>s.toggleLock()" :locked="s.selectedKeys.every(k=>s.current.positions[k]?.locked)" :remove="s.removeBlock"/></InspectorDrawer>
     <InspectorDrawer
       v-if="section === 'element' && s.selectedInstance"
@@ -976,3 +984,8 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
     ></template>
   </InspectorShell>
 </template>
+
+<style scoped>
+.object-timing-summary{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:0 0 12px;padding:12px 0;border-bottom:1px solid var(--border)}
+.object-timing-summary div{min-width:0}.object-timing-summary dt{color:var(--muted);font-size:11px;margin-bottom:7px}.object-timing-summary dd{margin:0;font:500 11px/1.4 'JetBrains Mono',monospace;font-variant-numeric:tabular-nums;color:inherit;white-space:nowrap}
+</style>

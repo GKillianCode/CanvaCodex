@@ -381,9 +381,9 @@ export function useStudio(application='slides',creationContext=null) {
   }
   function down(e,outside=false) {
     if(!canvas.value)return;
-    const scene=editingScene();
-    if(isAnimation)animation.stop();
     if (e.button !== 0 || videoPreview.value) return;
+    if(isAnimation&&animation.playing.value){deselect();canvas.value.focus({preventScroll:true});requestDraw();return;}
+    const scene=editingScene();
     if(!presenting.value&&workspace.value==='editor'&&drawingTools.down(e))return;
     if(!presenting.value)canvas.value.focus({preventScroll:true});
     closeEdit();contextMenu.value=null;if(!presenting.value)selectionScope.value='elements';const p = coords(e);if(!presenting.value)guidePoint=p; canvas.value.setPointerCapture(e.pointerId);
