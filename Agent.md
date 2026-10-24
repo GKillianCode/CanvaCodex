@@ -1937,3 +1937,9 @@ Validation : 495 tests Node et build réussis ; tests navigateur JSON cinq scèn
 - Validation : 523 tests Node, build et diff-check réussis. Navigateur isolé : absence de tiroir/barre dupliqués, propriétés directes même sur ancien clip replié, résumé sans duplication des losanges, séquences multiples, piste globale distincte, renommage/Échap/undo/redo et actions groupées avec confirmation conservées. Régressions filtre temporel/présence/fonds/groupes et déplacements des clés (zoom/sélection/collisions) réussies. Revue visuelle clair/sombre ; QA 5289 isolée, aucune donnée utilisateur modifiée. Branche `test/animation-effects-library`, PR #160 maintenue ouverte sans fusion.
 
 - Publication confirmée le 24 octobre : push non interactif réussi jusqu’à `9f2655a`, incluant aussi les commits de synchronisation #183 précédemment en attente. Aucun dialogue ni secret requis ; PR #160 toujours ouverte, sans fusion.
+
+
+### 24 octobre 2026 — tiroir Scène également aplati
+
+- Suivi #184 : correction de l’exception laissée sur Scène. Suppression du dernier rendu de ligne/tiroir de séquence, mêmes propriétés directes pour tous les propriétaires. Caméra et fond gardent leurs clips, noms et clés distincts ; petits libellés si plusieurs séquences, marqueurs récapitulatifs/vides sur Scène comme sur les objets. Le double-clic de création de clé fonctionne aussi sur sa ligne. Aucune migration ni fusion de données, aucun nouveau composant.
+- Validation : build et diff-check réussis ; test navigateur tiroirs étendu à Scène, caméra et fond simultanés avec flags collapsed anciens, propriétés et clés visibles sans ligne intermédiaire, données inchangées. Renommage et actions des objets, confirmations, historique et filtres également vérifiés par ce parcours. QA 5289 isolée, aucune donnée utilisateur modifiée. Branche de test existante et PR #160 conservées sans fusion.

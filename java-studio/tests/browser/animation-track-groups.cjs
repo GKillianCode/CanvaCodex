@@ -147,7 +147,14 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     assert.equal(await page.locator('.animation-sequence-track').count(),0,
       'Object sequences have no intermediate drawer; global drawer starts collapsed');
     const sceneToggle=page.locator('.animation-object-track[data-object="$scene"] button[aria-expanded]');
-    await sceneToggle.click();assert.equal(await page.locator('.animation-sequence-track').count(),1);
+    const beforeScene=await page.locator('.animation-property-track').count();
+    const originalScene=await page.evaluate(()=>JSON.stringify(live().current.value));
+    await sceneToggle.click();assert.equal(await page.locator('.animation-sequence-track').count(),0);
+    assert.equal(await page.locator('.animation-property-track').count(),beforeScene+2);
+    assert.equal(await page.locator('.track-name input[title="Renommer la séquence"]').count(),0);
+    assert.equal(await page.evaluate(()=>JSON.stringify(live().current.value)),originalScene);
+    assert.equal(await page.locator('.frame-marker:not(.empty)').count(),0);
+    assert.equal(await page.locator('.direct-object-property[data-clip="global"]').count(),2);
     await sceneToggle.click();
 
     await page.getByLabel('Pistes de la sélection').check();
@@ -204,6 +211,23 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     await page.evaluate(()=>live().undo());
     assert.equal(await page.evaluate(()=>JSON.stringify(live().current.value)),beforeDelete,
       'Deleting all owner animations must be one undoable operation');
+    // Camera and background use exactly the same flat hierarchy as objects,
+    // even when their stored sequence flags say collapsed.
+    await page.evaluate(async()=>{
+      const a=live().animation.config.value;
+      a.clips.find(c=>c.id==='global').frames=[{field:'cameraZoom',time:0,value:100,ease:'linear'},{field:'cameraZoom',time:3,value:150}];
+      a.clips.find(c=>c.id==='global').collapsed=true;
+      a.clips.push({id:'global-background',name:'Fond de scène',keys:[],enabled:true,start:0,duration:8,collapsed:true,frames:[{field:'patternBase',time:0,value:'#000000',ease:'linear'},{field:'patternBase',time:3,value:'#ffffff'}]});
+      await tick();
+    });
+    const globalBefore=await page.evaluate(()=>JSON.stringify(live().animation.config.value));
+    if(await sceneToggle.getAttribute('aria-expanded')!=='true')await sceneToggle.click();
+    assert.equal(await page.locator('.animation-sequence-track').count(),0);
+    assert.equal(await page.locator('.direct-object-property[data-clip="global"]').count(),1);
+    assert.equal(await page.locator('.direct-object-property[data-clip="global-background"]').count(),1);
+    assert.equal(await page.locator('.direct-object-property[data-clip="global"] .key-diamond').count(),2);
+    assert.equal(await page.locator('.direct-object-property[data-clip="global-background"] .key-diamond').count(),2);
+    assert.equal(await page.evaluate(()=>JSON.stringify(live().animation.config.value)),globalBefore);
     assert.deepEqual(errors,[]);
     console.log('Timeline object drawers, integrated lifetime, unique key markers and nested effects passed');
   } finally {await browser.close();}

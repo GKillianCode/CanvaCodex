@@ -322,7 +322,7 @@ function outside(event) {
   if (!event.target.closest(".animation-key-context")) menu.value = null;
 }
 function addObjectFrame(event, group) {
-  if(!group.range||event.target.closest('button'))return;
+  if(event.target.closest('button'))return;
   const c=group.clips.find(c=>c.id===a.selectedClip)||group.clips[0];
   if(!c)selectGroup(group);
   addFrameAt(event,c);
@@ -551,7 +551,7 @@ onUnmounted(() => {
                 <small>{{ audioTimeLabel(group.range.start,a.audio.frameRate) }} → {{ audioTimeLabel(group.range.end??a.config.duration,a.audio.frameRate) }}</small>
                 <button class="presence-handle end" :aria-label="'Fin de présence de '+group.key" title="Déplacer la disparition" @pointerdown.stop="dragPresence($event,group.key,'end')"></button>
               </div>
-              <button v-for="{c,t} in group.range ? objectMarkers(group) : []" :key="c.id+':'+t" class="frame-marker"
+              <button v-for="{c,t} in objectMarkers(group)" :key="c.id+':'+t" class="frame-marker"
                 :class="{empty:!c.frames.some(f=>Math.abs(f.time-t)<.0001)}"
                 :style="{left:(c.start+t)/view.span*100+'%'}"
                 :aria-label="'Image clé à '+t+' secondes'" :title="c.name+' · '+(c.start+t)+' s · double-clic : afficher cet état'"
@@ -564,119 +564,18 @@ onUnmounted(() => {
         <template
           v-for="c in group.clips"
           :key="c.id"
-          ><div v-if="!group.range"
-            :class="[
-              'animation-track animation-sequence-track',
-              { active: a.selectedClip === c.id, muted: !c.enabled },
-            ]"
           >
-            <div class="track-name" @click="a.selectClip(c.id)">
-              <button
-                class="icon-btn"
-                :title="
-                  c.collapsed
-                    ? 'Déplier les propriétés'
-                    : 'Replier les propriétés'
-                "
-                @click.stop="c.collapsed = !c.collapsed"
-              >
-                <ChevronDown
-                  :size="12"
-                  :style="{ transform: c.collapsed ? 'rotate(-90deg)' : '' }"
-                /></button
-              ><input
-                :aria-label="'Nom de la séquence ' + c.name"
-                v-model="c.name"
-                maxlength="100"
-                title="Renommer la séquence"
-                @pointerdown.stop
-              /><button
-                class="icon-btn"
-                :title="
-                  c.enabled
-                    ? 'Désactiver cette animation'
-                    : 'Réactiver cette animation'
-                "
-                :aria-pressed="c.enabled"
-                @click.stop="c.enabled = !c.enabled"
-              >
-                <Power
-                  :size="12"
-                  :style="{ opacity: c.enabled ? 1 : 0.35 }"
-                /></button
-              ><button
-                class="icon-btn"
-                :title="c.hidden ? 'Réafficher la piste' : 'Masquer la piste'"
-                @click.stop="c.hidden = !c.hidden"
-              >
-                <component :is="c.hidden ? EyeOff : Eye" :size="12" /></button
-              ><button
-                class="icon-btn"
-                title="Supprimer cette séquence"
-                @click.stop="
-                  a.selectClip(c.id);
-                  a.removeClip();
-                "
-              >
-                <Trash2 :size="12" />
-              </button>
-            </div>
-            <div
-              class="track-lane"
-              @pointerdown.self="a.selectClip(c.id)"
-              @dblclick.stop.prevent="addFrameAt($event, c)"
-            >
-              <span
-                class="clip-span"
-                :style="{
-                  left: (c.start / view.span) * 100 + '%',
-                  width: (c.duration / view.span) * 100 + '%',
-                }"
-                title="Glisser pour décaler la séquence"
-                @pointerdown="dragClip($event, c)"
-              ></span
-              ><button
-                v-for="t in c.collapsed ? frameTimes(c) : frameTimes(c).filter(t => !c.frames.some(f => Math.abs(f.time-t)<0.0001))"
-                :key="t"
-                class="frame-marker"
-                :class="{
-                  empty: !c.frames.some((f) => Math.abs(f.time - t) < 0.0001),
-                }"
-                :style="{ left: ((c.start + t) / view.span) * 100 + '%' }"
-                :aria-label="'Image clé à ' + t + ' secondes'"
-                :title="
-                  'Image clé · ' + t + ' s · double-clic : afficher cet état'
-                "
-                @pointerdown.stop
-                @click.stop="a.focusFrame(c, t)"
-                @dblclick.stop.prevent="a.focusFrame(c, t)"
-                @contextmenu.prevent.stop="
-                  menu = {
-                    c,
-                    frameTime: t,
-                    x: Math.min(innerWidth - 210, $event.clientX),
-                    y: Math.min(innerHeight - 180, $event.clientY),
-                  }
-                "
-              >
-                ◆</button
-              ><i
-                class="track-cursor"
-                :style="{ left: (a.time / view.span) * 100 + '%' }"
-              ></i>
-            </div>
-          </div>
-          <template v-if="group.range || !c.collapsed"
+          <template
             ><div
               v-for="f in [...new Set([...animationFields,...c.frames.map(f=>f.field)])].filter((f) =>
                 c.frames.some((k) => k.field === f),
               )"
               :key="f"
-              class="animation-property-track" :class="{'direct-object-property':!!group.range,muted:!c.enabled}" :data-clip="c.id"
+              class="animation-property-track direct-object-property" :class="{muted:!c.enabled}" :data-clip="c.id"
               @pointerdown="a.selectedClip=c.id"
             >
               <span class="property-track-label" :title="group.clips.length>1 ? c.name : undefined"
-                ><small v-if="group.range && group.clips.length>1" class="property-sequence-name">{{c.name}}</small>{{ (labels[f]||effectFieldLabel(f,a.config.effects))
+                ><small v-if="group.clips.length>1" class="property-sequence-name">{{c.name}}</small>{{ (labels[f]||effectFieldLabel(f,a.config.effects))
                 }}<select
                   :aria-label="'Interpolation · ' + (labels[f]||effectFieldLabel(f,a.config.effects))"
                   :value="c.frames.find((k) => k.field === f)?.ease || c.easing"
