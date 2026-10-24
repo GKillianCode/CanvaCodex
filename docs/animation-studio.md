@@ -280,3 +280,5 @@ Dans **Objet → Placement → Position et dimensions de la sélection**, les po
 
 
 Dans la piste **Audio**, les boutons muet et volume sont placés **sous la durée de l’extrait**. Cliquer sur le pourcentage ouvre un curseur vertical (haut = plus fort, bas = moins fort), avec saisie numérique. Le réglage reste dans la largeur du bloc gauche et ne recouvre pas la forme d’onde. Un second clic, un clic extérieur ou Échap referme la palette. Le même contrôle est utilisé dans l’aperçu ; niveau mémorisé et mode muet restent indépendants.
+
+La colonne gauche est plus compacte dans la vue Audio (180 px), avec la même largeur utilisée par la règle, la piste et le calcul de zoom. Après un défilement horizontal, une tête de lecture hors de la zone temporelle reste derrière les libellés fixes ; elle ne donne plus l’impression que l’audio commence sous les commandes.

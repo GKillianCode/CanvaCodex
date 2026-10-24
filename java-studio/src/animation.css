@@ -85,7 +85,7 @@
 .animation-ruler,
 .animation-track {
   display: grid;
-  grid-template-columns: 210px minmax(250px, 1fr);
+  grid-template-columns: var(--animation-label-width, 280px) minmax(250px, 1fr);
   min-height: 44px;
   border-bottom: 1px solid color-mix(in srgb, currentColor 9%, transparent);
 }
@@ -93,6 +93,7 @@
   padding: 9px 16px;
 }
 .timeline-ruler {
+  isolation: isolate;
   position: relative;
   cursor: crosshair;
   margin: 0 22px 0 0;
@@ -326,7 +327,7 @@
 
 .animation-property-track {
   display: grid;
-  grid-template-columns: 210px minmax(250px, 1fr);
+  grid-template-columns: var(--animation-label-width, 280px) minmax(250px, 1fr);
   border-bottom: 1px solid color-mix(in srgb, currentColor 5%, transparent);
 }
 .animation-property-track .track-lane {
@@ -749,7 +750,7 @@
 .animation-ruler,
 .animation-track,
 .animation-property-track {
-  grid-template-columns: 280px minmax(250px, 1fr);
+  grid-template-columns: var(--animation-label-width, 280px) minmax(250px, 1fr);
 }
 .animation-track.muted .track-lane {
   opacity: 0.3;

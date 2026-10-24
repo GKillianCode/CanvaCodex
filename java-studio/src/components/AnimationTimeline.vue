@@ -47,6 +47,7 @@ const props = defineProps({ studio: Object }),
   showHidden = ref(false), selectedOnly=ref(false), nearPlayhead=ref(true), draggedGroup=ref(null);
 try { nearPlayhead.value=localStorage.getItem('frame-animation-near-playhead')!=='false'; } catch {}
 watch(nearPlayhead,value=>{try{localStorage.setItem('frame-animation-near-playhead',String(value));}catch{}});
+const labelWidth=computed(()=>timelinePanel.value==='audio'?180:280);
 const visibleClips=computed(()=>a.config.clips.filter(c=>(!c.hidden||showHidden.value)&&(!selectedOnly.value||!s.selectedKeys.length||!c.keys.length||c.keys.some(k=>s.selectedKeys.includes(k)))));
 const visibleEffects=computed(()=>a.config.effects.filter(e=>visualEffectKinds.includes(e.kind)&&(!selectedOnly.value||!s.selectedKeys.length||s.selectedKeys.includes(e.key))));
 // Each sequence/effect belongs to one drawer, including sequences targeting several objects.
@@ -291,14 +292,14 @@ async function zoomAt(value, event) {
     pointer = event ? event.clientX - rect.left : rect.width / 2,
     oldWidth = world.value.getBoundingClientRect().width,
     time =
-      ((el.scrollLeft + pointer - 280) / Math.max(1, oldWidth - 280)) *
+      ((el.scrollLeft + pointer - labelWidth.value) / Math.max(1, oldWidth - labelWidth.value)) *
       view.value.span;
   zoom.value = timelineView(a.config.duration, value).zoom;
   await nextTick();
   const width = world.value.getBoundingClientRect().width;
   el.scrollLeft = Math.max(
     0,
-    280 + (time / view.value.span) * (width - 280) - pointer,
+    labelWidth.value + (time / view.value.span) * (width - labelWidth.value) - pointer,
   );
 }
 function wheel(event) {
@@ -360,7 +361,7 @@ onUnmounted(() => {
   <section
     class="animation-timeline" tabindex="0"
     @keydown="keyShortcuts"
-    :style="{ height: height + 'px' }"
+    :style="{ height: height + 'px', '--animation-label-width':labelWidth+'px' }"
     aria-label="Timeline de l’animation"
     @keydown.delete.stop="timelinePanel === 'keys'&&!a.keyEntries().length&&deleteEvent($event)"
     @keydown.left.stop
@@ -565,8 +566,7 @@ onUnmounted(() => {
           v-for="c in group.clips"
           :key="c.id"
           >
-          <template
-            ><div
+          <div
               v-for="f in [...new Set([...animationFields,...c.frames.map(f=>f.field)])].filter((f) =>
                 c.frames.some((k) => k.field === f),
               )"
@@ -622,8 +622,7 @@ onUnmounted(() => {
                   class="track-cursor"
                   :style="{ left: (a.time / view.span) * 100 + '%' }"
                 ></i>
-              </div></div></template
-        ></template>
+              </div></div></template>
         <div v-for="effect in group.effects" :key="effect.id" class="animation-track effect-timeline-track">
          <div class="track-name"><button class="icon-btn" :title="effect.enabled?'Désactiver l’effet':'Activer l’effet'" @click="effect.enabled=!effect.enabled"><Power :size="12"/></button><button class="effect-track-owner" :aria-label="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" :title="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" @click="a.inspectEffect(effect.id)"><span>{{effect.name||effectCatalog.find(e=>e.id===effect.kind)?.name||effect.kind}}</span><small>{{s.current.elements[effect.key]?.name||effect.key}}</small></button><button class="icon-btn" title="Supprimer cet effet" :disabled="a.busy" @click="a.removeEffect(effect.id)"><Trash2 :size="12"/></button></div>
          <div class="track-lane"><span class="clip-span" :style="{left:effect.start/view.span*100+'%',width:effect.duration/view.span*100+'%',opacity:effect.enabled?1:.3}" title="Glisser pour déplacer l’effet" @pointerdown="dragClip($event,effect)"><button class="effect-duration-handle" aria-label="Ajuster la durée de l’effet" title="Glisser pour régler la durée" @pointerdown="resizeEffect($event,effect)"></button></span></div>

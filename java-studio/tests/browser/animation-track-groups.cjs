@@ -84,6 +84,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     const toggle = group.locator('button[aria-expanded]');
     assert.equal(await toggle.getAttribute('aria-expanded'), 'true');
     assert.equal(await page.locator('.key-diamond').count(), 3);
+    assert.equal(await page.locator('.key-diamond').first().isVisible(),true);
     assert.equal(await page.locator('.frame-marker:not(.empty)').count(), 0,
       'Expanded properties must not duplicate keyed markers on the summary');
     assert.equal(await group.locator('.presence-span').count(), 1);
@@ -227,6 +228,8 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     assert.equal(await page.locator('.direct-object-property[data-clip="global-background"]').count(),1);
     assert.equal(await page.locator('.direct-object-property[data-clip="global"] .key-diamond').count(),2);
     assert.equal(await page.locator('.direct-object-property[data-clip="global-background"] .key-diamond').count(),2);
+    assert.equal(await page.locator('.direct-object-property[data-clip="global"] .key-diamond').first().isVisible(),true);
+    assert.equal(await page.locator('.direct-object-property[data-clip="global-background"] .key-diamond').first().isVisible(),true);
     assert.equal(await page.evaluate(()=>JSON.stringify(live().animation.config.value)),globalBefore);
     assert.deepEqual(errors,[]);
     console.log('Timeline object drawers, integrated lifetime, unique key markers and nested effects passed');

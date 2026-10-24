@@ -139,6 +139,10 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     const laneBounds=await page.locator('.animation-audio-lane').boundingBox();
     assert(buttonBounds.x+buttonBounds.width<=nameBounds.x+nameBounds.width+1);
     assert(buttonBounds.x+buttonBounds.width<=laneBounds.x);
+    assert(Math.abs(nameBounds.width-180)<1,'Audio sidebar is compact');
+    const rulerBounds=await page.locator('.timeline-ruler').boundingBox();
+    assert(Math.abs(rulerBounds.x-laneBounds.x)<1,'Ruler and audio share their origin');
+    assert(Math.abs(rulerBounds.width-laneBounds.width)<1,'Ruler and waveform have the same time scale');
     const durationBounds=await page.locator('.animation-audio-label small').boundingBox();
     assert(buttonBounds.y>=durationBounds.y+durationBounds.height,'Buttons must sit below the duration');
     await volumeButton.click();await volumePopup.waitFor();
@@ -402,6 +406,25 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       a.audio.setStart(20);
       if (a.audio.muted.value) a.audio.toggleMute();
     });
+    // Scroll after a genuine timeline zoom: the head must not draw over sticky labels.
+    const ruler=await page.locator('.timeline-ruler').boundingBox();
+    await page.mouse.move(ruler.x+ruler.width/2,ruler.y+12);
+    await page.keyboard.down('Control');await page.mouse.wheel(0,-400);await page.keyboard.up('Control');
+    await page.waitForFunction(()=>document.querySelector('.animation-tracks-world').getBoundingClientRect().width>document.querySelector('.animation-tracks').clientWidth*1.2);
+    await page.locator('.animation-tracks').evaluate(el=>el.scrollLeft=100);
+    const aligned=await page.evaluate(()=>{
+      const rect=sel=>document.querySelector(sel).getBoundingClientRect();
+      const head=rect('.playhead-head'),ruler=rect('.timeline-ruler'),lane=rect('.animation-audio-lane'),label=rect('.animation-audio-track .track-name');
+      const hit=document.elementFromPoint(head.x+head.width/2,head.y+head.height/2);
+      return {ruler:ruler.x,lane:lane.x,width:ruler.width-lane.width,label:label.right,head:head.x+head.width/2,covered:!hit?.closest('.playhead-head')};
+    });
+    assert(Math.abs(aligned.ruler-aligned.lane)<1);assert(Math.abs(aligned.width)<1);
+    assert(aligned.head<aligned.label);assert(aligned.covered,'A scrolled-out head must stay behind the sticky label');
+    await page.evaluate(()=>live().animation.seek(6));
+    const head=await page.getByRole('button',{name:'Tête de lecture',exact:true}).boundingBox();
+    const audioCursor=await page.locator('.animation-audio-lane .track-cursor').boundingBox();
+    assert(Math.abs(head.x+head.width/2-audioCursor.x)<1,'Visible playhead and waveform cursor align after zoom/scroll');
+    await page.locator('.animation-tracks').evaluate(el=>el.scrollLeft=0);
     await page.getByRole('button',{name:'Régler le volume',exact:true}).click();
     await page.getByRole('dialog',{name:'Volume d’écoute',exact:true}).waitFor();
     await page.screenshot({ path: "/tmp/frame-animation-audio-dark.png" });

@@ -302,3 +302,5 @@ Dans la timeline Animation, **clic droit sur le nom d’un objet → Renommer** 
 Le tiroir **Scène** de la timeline suit la même présentation directe que les objets : propriétés de caméra et de fond sans tiroirs de séquence ni barres redondantes.
 
 Les commandes audio sont sous la durée de l’extrait. Le pourcentage ouvre une palette de volume verticale, repliée par défaut, sans débordement sur la forme d’onde.
+
+La vue Audio utilise une colonne gauche de 180 px, alignée sur la règle ; le curseur ne déborde plus au-dessus des commandes lors du défilement horizontal.
