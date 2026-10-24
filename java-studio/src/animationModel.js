@@ -135,6 +135,7 @@ export function normalizeEngine(raw = {}, i = 0) {
 export function normalizeAnimation(raw = {}) {
   return {
     version: 5,
+    ...(Array.isArray(raw?.timelineOrder)?{timelineOrder:[...new Set(raw.timelineOrder.filter(k=>typeof k==='string'&&k.length<100))].slice(0,101)}:{}),
     presences: normalizePresences(raw?.presences),
     counters: normalizeCounters(raw?.counters),
     attachments:normalizeAttachments(raw?.attachments),events:normalizeEvents(raw?.events),camera:normalizeCamera(raw?.camera),

@@ -138,7 +138,8 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     const buttonBounds=await volumeButton.boundingBox();
     const laneBounds=await page.locator('.animation-audio-lane').boundingBox();
     assert(buttonBounds.x+buttonBounds.width<=nameBounds.x+nameBounds.width+1);
-    assert(buttonBounds.x+buttonBounds.width<=laneBounds.x);
+    const zero=await page.locator(".animation-tracks-world").evaluate(e=>{const lane=e.querySelector(".animation-audio-lane").getBoundingClientRect();return lane.x+Number(e.dataset.timeOffset)/Number(e.dataset.timeSpan)*lane.width;});
+    assert(buttonBounds.x+buttonBounds.width<=zero,'Controls stay before the scene excerpt');
     assert(Math.abs(nameBounds.width-180)<1,'Audio sidebar is compact');
     const rulerBounds=await page.locator('.timeline-ruler').boundingBox();
     assert(Math.abs(rulerBounds.x-laneBounds.x)<1,'Ruler and audio share their origin');
@@ -147,7 +148,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     assert(buttonBounds.y>=durationBounds.y+durationBounds.height,'Buttons must sit below the duration');
     await volumeButton.click();await volumePopup.waitFor();
     const popupBounds=await volumePopup.boundingBox();
-    assert(popupBounds.x+popupBounds.width<=laneBounds.x,'Open volume stays inside the left column');
+    assert(popupBounds.x+popupBounds.width<=nameBounds.x+nameBounds.width+1,'Open volume stays inside the left column');
     const slider=await volumePopup.getByRole('slider',{name:'Volume',exact:true}).boundingBox();
     assert(slider.height>slider.width*3,'Volume slider is vertical');
     assert.equal(await volumePopup.getByRole('slider').getAttribute('aria-orientation'),'vertical');
@@ -302,6 +303,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       .getByRole("button", { name: "Images clés", exact: true })
       .click();
     assert.equal(await page.locator(".animation-audio-track").count(), 0);
+    await page.locator(".animation-object-track button[aria-expanded=\"false\"]:not(:disabled)").first().click();
     assert((await page.locator(".key-diamond").count()) > 0);
     await page.getByRole("button", { name: "Audio", exact: true }).click();
     assert.equal(await page.locator(".animation-audio-track").count(), 1);
@@ -411,7 +413,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     await page.mouse.move(ruler.x+ruler.width/2,ruler.y+12);
     await page.keyboard.down('Control');await page.mouse.wheel(0,-400);await page.keyboard.up('Control');
     await page.waitForFunction(()=>document.querySelector('.animation-tracks-world').getBoundingClientRect().width>document.querySelector('.animation-tracks').clientWidth*1.2);
-    await page.locator('.animation-tracks').evaluate(el=>el.scrollLeft=100);
+    await page.locator('.animation-tracks').evaluate(el=>{const lane=document.querySelector('.timeline-ruler'),world=document.querySelector('.animation-tracks-world');el.scrollLeft=Number(world.dataset.timeOffset)/Number(world.dataset.timeSpan)*lane.getBoundingClientRect().width+100;});
     const aligned=await page.evaluate(()=>{
       const rect=sel=>document.querySelector(sel).getBoundingClientRect();
       const head=rect('.playhead-head'),ruler=rect('.timeline-ruler'),lane=rect('.animation-audio-lane'),label=rect('.animation-audio-track .track-name');

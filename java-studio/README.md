@@ -310,3 +310,12 @@ Modifier à nouveau un objet sur la même image met à jour sa clé existante po
 Dans la timeline Animation, cliquer sur un élément ou une clé sélectionne ses propriétés sans ouvrir son tiroir. Seule la flèche déplie/replie les pistes.
 
 Dans Animation, **Ctrl D** et **Ctrl C/V** conservent le style et la pose au moment de la copie, sans reprendre les images clés ; la nouvelle base reste indépendante de l’animation source.
+
+### Organisation et configuration de l’atelier Animation
+
+- **Regrouper → Par type / Par scène / Liste libre** organise les pistes en tiroirs. La poignée à gauche du nom permet de les réordonner ; le trait de dépôt indique la destination. Cet ordre est sauvegardé dans l’animation et ne change pas les calques. Les nouveaux objets rejoignent la fin de leur catégorie.
+- Les bornes de présence, les clés et la durée des effets s’aimantent à la tête de lecture à moins de 8 pixels ; **Alt** contourne cette aimantation. **Espace** lance/suspend la lecture, **← / →** recule/avance d’une image, hors champs de saisie. **Maj + déplacement** contraint un objet ou une sélection à l’axe horizontal ou vertical ; le panoramique Espace + glisser reste disponible.
+- Dans les pistes, la **molette** défile horizontalement, **Ctrl + molette** zoome autour du pointeur. Les marges inactives avant zéro et après la fin permettent de centrer les premières/dernières secondes. La molette sur les noms conserve le défilement vertical de la liste.
+- La scène, la tête de lecture, la sélection, la boucle, le zoom/panoramique, les tiroirs et le défilement des propriétés, la hauteur/zoom/défilement de timeline, ses filtres et son onglet sont restaurés par document.
+
+Dans **Fichier → Enregistrer la configuration de l’interface…**, choisis un fichier JSON séparé : les modifications de vue sont ensuite enregistrées automatiquement dans ce fichier lorsque le navigateur autorise l’écriture. Le mécanisme de fichiers liés est partagé avec celui des projets ; le cache du navigateur assure aussi la restauration immédiate. **Exporter la configuration de l’interface** télécharge une copie ; **Importer une configuration d’interface** permet de la reprendre dans un autre navigateur, après avoir ouvert/importé l’animation correspondante. L’import recharge l’interface après sauvegarde du document. Les navigateurs sans accès aux fichiers utilisent le téléchargement/import JSON. Le fichier contient les réglages et la position de la palette d’outils, sans les objets, médias ou images clés du projet.

@@ -88,7 +88,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       await page.mouse.move(b.x + b.width / 2, b.y + b.height / 2);
       await page.mouse.down();
       await page.mouse.move(
-        b.x + b.width / 2 + (delta / 8) * lane.width,
+        b.x + b.width / 2 + (delta / Number(await page.locator(".animation-tracks-world").getAttribute("data-time-span"))) * lane.width,
         b.y + b.height / 2,
         { steps },
       );

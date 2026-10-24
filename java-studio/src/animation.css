@@ -1014,3 +1014,14 @@
 .animation-property-track.direct-object-property .property-track-label {padding-left:25px;}
 .object-track-rename {flex:1;min-width:0;max-width:100%;font:inherit;font-size:11px;padding:4px 5px;}
 .property-sequence-name {max-width:85px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.55;font-size:9px;margin-right:6px;}
+
+/* Categories share the timeline grid; ordering never changes scene layers. */
+.timeline-folder-row {display:grid;grid-template-columns:var(--animation-label-width,280px) minmax(0,1fr);min-height:29px;background:var(--panel);border-bottom:1px solid var(--line);}
+.timeline-folder-name {position:sticky;left:0;z-index:3;display:flex;align-items:center;gap:8px;padding:6px 12px;border:0;background:var(--panel);color:var(--muted);text-align:left;font:inherit;font-size:11px;cursor:pointer;}
+.timeline-folder-name span {flex:1;}.timeline-folder-name small{font-variant-numeric:tabular-nums;opacity:.7;}
+.track-reorder-grip {display:grid;place-items:center;padding:2px;border:0;background:transparent;color:var(--muted);cursor:grab;opacity:.6;}
+.track-reorder-grip:hover {opacity:1;color:var(--accent);}
+.animation-object-track.row-drop-before > .track-name {box-shadow:inset 0 2px var(--accent);}
+.animation-object-track.row-drop-after > .track-name {box-shadow:inset 0 -2px var(--accent);}
+.track-lane::before,.timeline-ruler::before {content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to right,color-mix(in srgb,var(--ink) 5%,transparent) 0 var(--timeline-active-start,0%),transparent var(--timeline-active-start,0%) var(--timeline-active-end,100%),color-mix(in srgb,var(--ink) 5%,transparent) var(--timeline-active-end,100%) 100%);border-left:0;}
+.timeline-grouping {font:inherit;font-size:11px;max-width:150px;}

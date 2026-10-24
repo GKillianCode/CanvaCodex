@@ -3,7 +3,7 @@ import { reactive, computed } from "vue";
 import AnimationAudioVolume from "./AnimationAudioVolume.vue";
 import { Music2 } from "lucide-vue-next";
 import { audioWavePath, audioTimeLabel } from "../animationAudioModel.js";
-const props = defineProps({ studio: Object, span: Number }),
+const props = defineProps({ studio: Object, span: Number, offset:{type:Number,default:0} }),
   s = reactive(props.studio),
   a = s.animation;
 const emit = defineEmits(["scrub"]);
@@ -12,7 +12,7 @@ const wave = computed(() =>
     a.audio.asset,
     a.config.audio.start,
     a.config.duration,
-    props.span,
+    a.config.duration,
   ),
 );
 </script>
@@ -39,6 +39,7 @@ const wave = computed(() =>
     >
       <svg
         v-if="wave"
+        :style="{left:offset/span*100+'%',width:a.config.duration/span*100+'%',right:'auto'}"
         viewBox="0 0 1000 64"
         preserveAspectRatio="none"
         role="img"
@@ -53,7 +54,7 @@ const wave = computed(() =>
       }}</span>
       <i
         class="track-cursor"
-        :style="{ left: (a.time / span) * 100 + '%' }"
+        :style="{ left: ((a.time+offset) / span) * 100 + '%' }"
       ></i>
     </div>
   </div>

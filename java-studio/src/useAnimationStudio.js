@@ -1,3 +1,4 @@
+import {visibleBlocks} from './model.js';
 import {enclosingBounds} from './selection.js';
 import {patternChannels,normalizeBackground,backgroundModes} from './sceneBackground.js';
 import {normalizeCounter,counterText} from "./animationCounter.js";
@@ -15,7 +16,7 @@ import { boundColor } from "./colors.js";
 import { storyboardAt, storyboardDuration } from "./animationStoryboard.js";
 import { normalizeEffect } from "./animationEffects.js";
 import { addSceneEngine } from "./animationEngines.js";
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import {
   normalizeAnimation,
   animationFields,
@@ -38,15 +39,17 @@ import {makeSlimeDemo} from "./animationSlimeDemo.js";
 import { makeAnimationExample } from "./animationExamples.js";
 const copy = (v) => JSON.parse(JSON.stringify(v));
 export function useAnimationStudio(s) {
-  const panX = ref(0),
-    panY = ref(0),
+  const panX = ref(s.editorView?.value.panX||0),
+    panY = ref(s.editorView?.value.panY||0),
     spaceHeld = ref(false),
     panning = ref(false);
   let panCleanup = () => {};
+  const ui=s.editorView||ref({});
+  const restoringView=ref(false);
   const time = ref(0),
     playing = ref(false),
     preview = ref(true),
-    loop = ref(true),
+    loop = ref(ui.value.loop!==false),
     selectedClip = ref(""),
     field = ref("x"),
     ease = ref("smooth"),
@@ -80,7 +83,7 @@ export function useAnimationStudio(s) {
   }
   const inspectedEffect=ref(null);
   function inspectEffect(id){const e=config.value.effects.find(e=>e.id===id);if(!e||!s.current.value.positions[e.key])return;stop();s.selected.value=e.key;s.selectedKeys.value=[e.key];activeKey.value=null;activeFrame.value=null;inspectedEffect.value={id,sequence:(inspectedEffect.value?.sequence||0)+1};}
-  const construction = ref(true);
+  const construction = ref(ui.value.construction!==false);
   function setConstruction(value) { stop(); construction.value = value; preview.value = true; }
   const editorScene = computed(() => preview.value ? animationScene(s.current.value, config.value, time.value).scene : s.current.value);
   const motionPrefs=ref({name:'Mon mouvement',duration:1,motion:'builtin-fade'});
@@ -145,10 +148,25 @@ export function useAnimationStudio(s) {
               (f) => f.field === oldKey.field && f.time === oldKey.time,
             ) || null
           : null;
-      time.value = same ? Math.min(time.value, scene.animation.duration) : 0;
+      restoringView.value=true;
+      ui.value.sceneId=scene.id;
+      const remembered=ui.value.scenes?.[scene.id];
+      time.value = same ? Math.min(time.value, scene.animation.duration) : Math.max(0,Math.min(scene.animation.duration,Number(remembered?.time)||0));
+      if(!same){
+        s.selectedKeys.value=(remembered?.selection||[]).filter(k=>scene.positions[k]);
+        s.selected.value=s.selectedKeys.value.length===1?s.selectedKeys.value[0]:null;
+        if(scene.animation.clips.some(c=>c.id===remembered?.clip))selectedClip.value=remembered.clip;
+      }
+      nextTick(()=>restoringView.value=false);
     },
     { immediate: true },
   );
+  watch([time,selectedClip,s.selectedKeys,loop,construction,panX,panY,...(s.zoom?[s.zoom]:[])],()=>{
+    if(restoringView.value)return;
+    ui.value.sceneId=s.current.value.id;ui.value.loop=loop.value;ui.value.construction=construction.value;ui.value.panX=panX.value;ui.value.panY=panY.value;
+    if(s.zoom)ui.value.sceneZoom=s.zoom.value;
+    ui.value.scenes||={};ui.value.scenes[s.current.value.id]={...(ui.value.scenes[s.current.value.id]||{}),time:time.value,clip:selectedClip.value,selection:[...s.selectedKeys.value]};
+  },{deep:true});
   const audio = useAnimationAudio(s, {time,playing,busy,stop,seek,requestDelete});
   watch([time, preview, construction, pathEditing], s.requestDraw);
   watch(diagnostics,s.requestDraw,{deep:true});
@@ -303,17 +321,19 @@ export function useAnimationStudio(s) {
     activeKey.value = next;
     s.endGesture();
   }
+  let spaceUsed=false;
   function keyboard(event) {
-    if (
-      event.code !== "Space" ||
-      event.target.isContentEditable ||
-      ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)
-    )
-      return;
-    if (event.type === "keydown") {
-      spaceHeld.value = true;
-      event.preventDefault();
-    } else spaceHeld.value = false;
+    if(event.target.isContentEditable||event.target.closest?.('[contenteditable="true"], [role="dialog"], [role="menu"]')||['INPUT','TEXTAREA','SELECT','VIDEO'].includes(event.target.tagName)||event.ctrlKey||event.metaKey||event.altKey||busy.value)return;
+    const root=s.canvas?.value?.closest('.animation-studio');
+    if(root && event.target!==document.body && !root.contains(event.target))return;
+    if(event.code==='Space'){
+      event.preventDefault();event.stopImmediatePropagation();
+      if(event.type==='keydown'){if(!event.repeat){spaceHeld.value=true;spaceUsed=false;}}
+      else {const toggle=spaceHeld.value&&!spaceUsed;spaceHeld.value=false;if(toggle)play();}
+    }else if(event.type==='keydown'&&['ArrowLeft','ArrowRight'].includes(event.key)){
+      event.preventDefault();event.stopImmediatePropagation();
+      seek((Math.round(time.value*config.value.fps)+(event.key==='ArrowRight'?1:-1))/config.value.fps);
+    }
   }
   function blur() {
     spaceHeld.value = false;
@@ -324,7 +344,7 @@ export function useAnimationStudio(s) {
     event.preventDefault();
     event.stopPropagation();
     panCleanup();
-    panning.value = true;
+    panning.value = true;spaceUsed=true;
     const pointerId = event.pointerId;
     const target = event.currentTarget;
     target.setPointerCapture?.(pointerId);
@@ -355,9 +375,13 @@ export function useAnimationStudio(s) {
     target.addEventListener("lostpointercapture", end);
     panCleanup = end;
   }
+  let viewport;
+  const rememberViewport=()=>{if(viewport)ui.value.viewport={left:viewport.scrollLeft,top:viewport.scrollTop};};
   onMounted(() => {
-    window.addEventListener("keydown", keyboard);
-    window.addEventListener("keyup", keyboard);
+    viewport=s.canvas?.value?.closest(".canvas-space");
+    requestAnimationFrame(()=>{if(viewport){viewport.scrollLeft=ui.value.viewport?.left||0;viewport.scrollTop=ui.value.viewport?.top||0;viewport.addEventListener("scroll",rememberViewport,{passive:true});}});
+    window.addEventListener("keydown", keyboard,true);
+    window.addEventListener("keyup", keyboard,true);
     window.addEventListener("blur", blur);
   });
   function stop() {
@@ -1006,6 +1030,8 @@ export function useAnimationStudio(s) {
     return c;
   }
   function introduceObjects(keys) {
+    const visible=visibleBlocks(s.current.value);
+    config.value.timelineOrder=[...new Set([...(config.value.timelineOrder||[]).filter(key=>key==='$scene'||visible.includes(key)),...visible])];
     for (const key of keys) config.value.presences[key] = normalizePresence({start: time.value});
   }
   function setPresence(keys, field, value) {
@@ -1208,8 +1234,9 @@ export function useAnimationStudio(s) {
     stop();
     cancel();
     blur();
-    window.removeEventListener("keydown", keyboard);
-    window.removeEventListener("keyup", keyboard);
+    viewport?.removeEventListener("scroll",rememberViewport);
+    window.removeEventListener("keydown", keyboard,true);
+    window.removeEventListener("keyup", keyboard,true);
     window.removeEventListener("blur", blur);
   });
   return {
@@ -1287,6 +1314,7 @@ export function useAnimationStudio(s) {
     example,
     exportVideo,
     cancel,
+    restoringView,
     evaluate: () => animationScene(s.current.value, config.value, time.value),
   };
 }

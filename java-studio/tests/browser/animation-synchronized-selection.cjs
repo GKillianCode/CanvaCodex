@@ -20,6 +20,18 @@ if(!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base||''))throw Error('Isola
   });
   const canvas=page.locator('canvas[aria-label^="Diapo :"]');await canvas.waitFor();
   async function screen(x,y){const r=await canvas.boundingBox();return{x:r.x+(x+320)/2560*r.width,y:r.y+(y+180)/1440*r.height};}
+  // Shift constrains the shared drag gesture to its dominant axis, for one or several objects.
+  await page.evaluate(()=>live().animation.setAutoKey(false));
+  async function lockedDrag(keys,dx,dy){
+    const initial=await page.evaluate(keys=>{const s=live();s.selected.value=keys.length===1?keys[0]:null;s.selectedKeys.value=keys;return JSON.parse(JSON.stringify(s.current.value.positions));},keys);
+    const from=await screen(initial.a.x+80,initial.a.y+60),to=await screen(initial.a.x+80+dx,initial.a.y+60+dy);
+    await page.keyboard.down('Shift');await page.mouse.move(from.x,from.y);await page.mouse.down();await page.mouse.move(to.x,to.y,{steps:10});await page.mouse.up();await page.keyboard.up('Shift');
+    const after=await page.evaluate(()=>live().animation.evaluate().scene.positions);
+    for(const key of keys){if(Math.abs(dx)>Math.abs(dy)){assert.equal(after[key].y,initial[key].y);assert(Math.abs(after[key].x-initial[key].x-dx)<1);}else{assert.equal(after[key].x,initial[key].x);assert(Math.abs(after[key].y-initial[key].y-dy)<1);}}
+    await page.evaluate(initial=>{Object.assign(live().current.value.positions,initial);live().animation.config.value.clips=[];live().animation.selectedClip.value='';live().selected.value=null;live().selectedKeys.value=[];live().requestDraw?.();},initial);
+  }
+  await lockedDrag(['a'],100,20);await lockedDrag(['a','b','c'],20,90);
+  await page.evaluate(()=>live().animation.setAutoKey(true));
   // Select the three images using the actual shared canvas interaction.
   await page.keyboard.down('Control');
   for(const [x,y]of [[330,310],[660,350],[990,390]]){const p=await screen(x,y);await page.mouse.click(p.x,p.y);}

@@ -17,7 +17,7 @@ import AnimationEffects from "./AnimationEffects.vue";
 import AnimationEngines from "./AnimationEngines.vue";
 import PaletteColor from "./PaletteColor.vue";
 import AnimationProperties from "./AnimationProperties.vue";
-import { reactive, ref, watch, nextTick, provide, computed } from "vue";
+import { reactive, ref, watch, nextTick, provide, computed, onMounted, onUnmounted } from "vue";
 import { fonts, fontCss } from "../fonts.js";
 import { textRoles, textRole } from "../textRoles.js";
 import { presets, visibleBlocks, blockLabel, blockType } from "../model.js";
@@ -60,12 +60,18 @@ import ComponentsPanel from "./ComponentsPanel.vue";
 import MultiProperties from "./MultiProperties.vue";
 const props = defineProps({ studio: Object }),
   s = reactive(props.studio),
-  section = ref("element"),
-  category = ref("style"),
+  ui = s.isAnimation ? s.editorView : null,
+  section = ref(ui?.inspector?.section || "element"),
+  category = ref(ui?.inspector?.category || "style"),
   panel = ref(null),
-  scrolls = {};
+  scrolls = reactive({...ui?.inspector?.scrolls});
 const body = computed(() => panel.value?.body);
-const drawers = reactive({});
+const drawers = reactive({...ui?.inspector?.drawers});
+function saveInspector(){if(ui)ui.inspector={section:section.value,category:category.value,drawers:{...drawers},scrolls:{...scrolls}};}
+function rememberScroll(){if(body.value)scrolls[scrollKey.value]=body.value.scrollTop;}
+watch([section,category,drawers,scrolls],saveInspector,{deep:true});
+onMounted(()=>{if(body.value){body.value.scrollTop=scrolls[scrollKey.value]||0;body.value.addEventListener("scroll",rememberScroll,{passive:true});}});
+onUnmounted(()=>{body.value?.removeEventListener("scroll",rememberScroll);saveInspector();});
 provide("inspectorDrawers", drawers);
 const tabs = computed(() => [
     ["element", "Objet", Square],
@@ -123,6 +129,7 @@ watch(
 watch(
   () => s.selectionScope,
   (value) => {
+    if(s.animation?.restoringView)return;
     if (!["layers", "components"].includes(section.value))
       switchTo(value === "slides" ? "slide" : "element");
   },
@@ -130,6 +137,7 @@ watch(
 watch(
   () => s.selectedKeys.join("|"),
   () => {
+    if(s.animation?.restoringView)return;
     if (s.isAnimation && s.selectedKeys.length) {
       switchTo("element");
     }
