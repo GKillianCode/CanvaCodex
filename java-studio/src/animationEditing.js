@@ -1,9 +1,14 @@
-export function editableClip(clips, selectedId, key, time) {
+// Compare on the scene frame grid while retaining subframe times in saved documents.
+export function sameKeyTime(a, b, fps = 0) {
+  return fps > 0 ? Math.round(a * fps) === Math.round(b * fps) : Math.abs(a - b) < .0001;
+}
+export function editableClip(clips, selectedId, key, time, field = null, fps = 0) {
   const selected = clips.find(
     (c) => c.id === selectedId && c.keys.length === 1 && c.keys[0] === key,
   );
+  const keyed = field ? clips.filter(c=>c.keys.length===1&&c.keys[0]===key&&c.frames?.some(f=>f.field===field&&sameKeyTime(c.start+f.time,time,fps))) : [];
   return (
-    selected ||
+    keyed.find(c=>c.id===selectedId) || keyed.at(-1) || selected ||
     clips
       .filter(
         (c) =>
@@ -19,6 +24,7 @@ export function moveKeySelection(
   entries,
   delta,
   origins = entries.map((r) => r.key.time),
+  fps = 0,
 ) {
   const min = Math.max(...entries.map((r, i) => -origins[i])),
     max = Math.min(...entries.map((r, i) => r.clip.duration - origins[i]));
@@ -34,7 +40,7 @@ export function moveKeySelection(
           f !== r.key &&
           !entries.some((e) => e.key === f) &&
           f.field === r.key.field &&
-          Math.abs(f.time - r.time) < 1e-6,
+          sameKeyTime(r.clip.start+f.time,r.clip.start+r.time,fps),
       ),
     )
   )

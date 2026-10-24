@@ -1,3 +1,4 @@
+import {sameKeyTime} from './animationEditing.js';
 import {enclosingBounds} from './selection.js';
 import {patternChannels} from './sceneBackground.js';
 import {evaluatePatternBackground} from './animationBackground.js';
@@ -708,10 +709,15 @@ export function animationParticles(clip, time, origin) {
   }
   return out;
 }
-export function addAnimationKey(clip, field, time, value, ease = "smooth") {
-  clip.frames = clip.frames.filter(
-    (f) => !(f.field === field && Math.abs(f.time - time) < 0.0001),
-  );
-  clip.frames.push({ field, time, value, ease, curve: [0.25, 0.1, 0.25, 1] });
-  clip.frames.sort((a, b) => a.time - b.time);
+export function addAnimationKey(clip, field, time, value, ease = "smooth", fps = 0) {
+  const matches=f=>f.field===field&&sameKeyTime((clip.start||0)+f.time,(clip.start||0)+time,fps);
+  const existing=clip.frames.findLast(matches);
+  // Updating a value preserves its curve and identity; editor writes use the scene frame grid.
+  clip.frames=clip.frames.filter(f=>!matches(f)||f===existing);
+  const key=existing||{field,time,value,ease,curve:[.25,.1,.25,1]};
+  key.value=value;
+  if(fps>0)key.time=Math.max(0,Math.min(clip.duration??120,Math.round(((clip.start||0)+time)*fps)/fps-(clip.start||0)));
+  if(!existing)clip.frames.push(key);
+  clip.frames.sort((a,b)=>a.time-b.time);
+  return key;
 }

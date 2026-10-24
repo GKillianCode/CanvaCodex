@@ -304,3 +304,5 @@ Le tiroir **Scène** de la timeline suit la même présentation directe que les 
 Les commandes audio sont sous la durée de l’extrait. Le pourcentage ouvre une palette de volume verticale, repliée par défaut, sans débordement sur la forme d’onde.
 
 La vue Audio utilise une colonne gauche de 180 px, alignée sur la règle ; le curseur ne déborde plus au-dessus des commandes lors du défilement horizontal.
+
+Modifier à nouveau un objet sur la même image met à jour sa clé existante pour la propriété concernée, même après un changement de sélection, sans superposition de clés et en conservant sa courbe.

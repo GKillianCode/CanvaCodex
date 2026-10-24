@@ -241,7 +241,7 @@ function dragKey(event, c, key) {
   }
   gesture(e => {
     const delta = Math.round((e.clientX - x) / rect.width * view.value.span * a.config.fps) / a.config.fps;
-    const moved = moveKeySelection(entries, delta, origins);
+    const moved = moveKeySelection(entries, delta, origins,a.config.fps);
     indicate(e, !moved);
   },c.keys[0]||null);
   indicate(event);
