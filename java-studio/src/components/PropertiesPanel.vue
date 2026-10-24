@@ -1,4 +1,5 @@
 <script setup>
+import SelectionActions from "./SelectionActions.vue";
 import TimecodeInput from "./TimecodeInput.vue";
 import AnimationCounterProperties from "./AnimationCounterProperties.vue";
 import AnimationPresenceProperties from "./AnimationPresenceProperties.vue";
@@ -13,10 +14,10 @@ import AnimationAudioProperties from "./AnimationAudioProperties.vue";
 import AnimationBackground from "./AnimationBackground.vue";
 import AnimationKeyInspector from "./AnimationKeyInspector.vue";
 import AnimationKeyButton from "./AnimationKeyButton.vue";
+import AnimationWorkbench from "./AnimationWorkbench.vue";
 import AnimationEffects from "./AnimationEffects.vue";
 import AnimationEngines from "./AnimationEngines.vue";
 import PaletteColor from "./PaletteColor.vue";
-import AnimationProperties from "./AnimationProperties.vue";
 import { reactive, ref, watch, nextTick, provide, computed, onMounted, onUnmounted } from "vue";
 import { fonts, fontCss } from "../fonts.js";
 import { textRoles, textRole } from "../textRoles.js";
@@ -61,10 +62,13 @@ import MultiProperties from "./MultiProperties.vue";
 const props = defineProps({ studio: Object }),
   s = reactive(props.studio),
   ui = s.isAnimation ? s.editorView : null,
-  section = ref(ui?.inspector?.section || "element"),
-  category = ref(ui?.inspector?.category || "style"),
+  section = ref(ui?.inspector?.section === "engines" ? "element" : ui?.inspector?.section || "slide"),
+  category = ref(ui?.inspector?.section === "engines" ? "motion" : ui?.inspector?.category || "style"),
   panel = ref(null),
   scrolls = reactive({...ui?.inspector?.scrolls});
+const sceneTitle=ref(s.current.title),objectName=ref(s.selectedName);
+watch(()=>[s.current.id,s.selected,s.selectedName],()=>{objectName.value=s.selectedName;});
+watch(()=>[s.current.id,s.current.title],()=>{sceneTitle.value=s.current.title;});
 const body = computed(() => panel.value?.body);
 const drawers = reactive({...ui?.inspector?.drawers});
 function saveInspector(){if(ui)ui.inspector={section:section.value,category:category.value,drawers:{...drawers},scrolls:{...scrolls}};}
@@ -84,16 +88,17 @@ const tabs = computed(() => [
           : "Diapo",
       Presentation,
     ],
-    ...(s.isAnimation ? [["engines", "Animation", Sparkles]] : []),
+
     ["layers", "Calques", Layers],
     ["components", "Composants", Box],
   ]),
-  categories = [
+  categories = computed(() => [
     ["style", "Style", SlidersHorizontal],
     ["colors", "Couleurs", Palette],
     ["layout", "Placement", Move],
     ["motion", "Animation", Sparkles],
-  ];
+    ...(s.selectedKeys.length>=2?[["components","Composant",Box]]:[]),
+  ]);
 const scrollKey = computed(
   () =>
     section.value + ":" + (section.value === "element" ? category.value : ""),
@@ -116,7 +121,7 @@ watch(
   () => s.animation?.inspectedEffect,
   async (request) => {
     if (!request) return;
-    switchTo("engines");
+    switchTo("element");chooseCategory("motion");
     for (const key of Object.keys(drawers)) drawers[key] = false;
     drawers["effect-" + request.id] = true;
     await nextTick();
@@ -131,16 +136,15 @@ watch(
   (value) => {
     if(s.animation?.restoringView)return;
     if (!["layers", "components"].includes(section.value))
-      switchTo(value === "slides" ? "slide" : "element");
+      switchTo(value === "slides" || !s.selectedKeys.length ? "slide" : "element");
   },
 );
 watch(
   () => s.selectedKeys.join("|"),
   () => {
     if(s.animation?.restoringView)return;
-    if (s.isAnimation && s.selectedKeys.length) {
-      switchTo("element");
-    }
+    if(s.selectedKeys.length)switchTo("element");else if (!["layers","components"].includes(section.value))switchTo("slide");
+    if(s.selectedKeys.length<2&&category.value==="components")category.value="style";
     if (s.isAnimation && section.value === "engines" && s.selectedKeys.length)
       switchTo("element");
     if (
@@ -156,6 +160,8 @@ watch(
   },
   { flush: "pre" },
 );
+function renameScene(event){const title=event.target.value.trim();if(title&&title!==s.current.title){s.animation.beginGesture();s.current.title=title;s.animation.endGesture();}event.target.value=s.current.title;}
+watch(()=>s.animation?.restoringView,(value)=>{if(value===false&&!["layers","components"].includes(section.value))switchTo(s.selectedKeys.length?"element":"slide");});
 const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
   isText = computed(() => ["text", "code"].includes(s.selectedType)),
   object = computed(() => s.current.elements[s.selected]);
@@ -170,84 +176,11 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
     @resize="s.resizePanel($event, 'inspectorWidth')"
     ><template #context>
       <div
-        v-if="section === 'element' && s.selectedKeys.length"
-        class="inspector-object"
-      >
-        <div>
-          <strong>{{
-            s.selected
-              ? blockLabel(s.current, s.selected)
-              : "Sélection multiple"
-          }}</strong
-          ><small>{{
-            {
-              text: "Texte",
-              code: "Code Java",
-              shape: "Forme",
-              image: "Image",
-              table: "Tableau",
-              bits: "Octets et bits",
-            }[
-              s.selectedKeys.length > 1
-                ? s.multiType?.split(":")[0]
-                : s.selectedType
-            ] || "Groupe d’objets"
-          }}</small>
-        </div>
-        <button
-          v-if="s.selected && (isText || s.selectedType === 'table') && (!s.isAnimation || !s.animation.config.counters[s.selected])"
-          class="icon-btn"
-          aria-label="Éditer le contenu"
-          title="Éditer le contenu"
-          @click="
-            s.workspace = 'editor';
-            s.editSelected();
-          "
-        >
-          <Pencil :size="15" /></button
-        ><button
-          class="icon-btn"
-          @click="s.duplicateSelected"
-          aria-label="Dupliquer la sélection"
-          title="Dupliquer · Ctrl D"
-        >
-          <Copy :size="15" /></button
-        ><button
-          class="icon-btn"
-          :aria-label="
-            s.selectedKeys.every((k) => s.current.positions[k]?.locked)
-              ? 'Déverrouiller la sélection'
-              : 'Verrouiller la sélection'
-          "
-          :title="
-            s.selectedKeys.every((k) => s.current.positions[k]?.locked)
-              ? 'Déverrouiller'
-              : 'Verrouiller le placement'
-          "
-          @click="s.toggleLock()"
-        >
-          <component
-            :is="
-              s.selectedKeys.every((k) => s.current.positions[k]?.locked)
-                ? Lock
-                : LockOpen
-            "
-            :size="15"
-          /></button
-        ><button
-          class="icon-btn"
-          @click="s.removeBlock"
-          aria-label="Supprimer la sélection"
-          title="Supprimer"
-        >
-          <Trash2 :size="15" />
-        </button>
-      </div>
-      <div
         v-if="
           section === 'element' && s.selectedKeys.length && !s.animation?.engine
         "
         class="inspector-categories"
+        :style="{gridTemplateColumns:`repeat(${categories.length},minmax(0,1fr))`}"
       >
         <button
           v-for="[id, label, icon] in categories"
@@ -260,7 +193,9 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
         </button>
       </div> </template
     ><AnimationPresenceProperties v-if="s.isAnimation && section === 'element' && s.selectedKeys.length" :studio="s" />
-    <AnimationKeyInspector v-if="s.isAnimation" :studio="s" /><InspectorDrawer
+    <AnimationKeyInspector v-if="s.isAnimation" :studio="s" />
+    <InspectorDrawer v-if="section==='element' && s.selectedKeys.length && (category==='style'||s.animation?.engine)" id="identity" :title="s.selectedKeys.length===1?'Nom de l’objet':'Actions de la sélection'"><label v-if="s.selected">Nom<input v-model="objectName" maxlength="100" aria-label="Nom de l’élément" :placeholder="blockLabel(s.current,s.selected)" @change="s.selectedName=objectName.trim()" @keydown.enter="$event.target.blur()"/></label><p v-else class="field-help">{{s.selectedKeys.length}} objets sélectionnés</p><SelectionActions :edit="s.selected && (isText||s.selectedType==='table') && !s.animation?.config.counters[s.selected]?s.editSelected:undefined" :duplicate="s.duplicateSelected" :toggle-lock="()=>s.toggleLock()" :locked="s.selectedKeys.every(k=>s.current.positions[k]?.locked)" :remove="s.removeBlock"/></InspectorDrawer>
+    <InspectorDrawer
       v-if="section === 'element' && s.selectedInstance"
       id="component-instance"
       title="Composant lié"
@@ -299,9 +234,9 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
       </button></InspectorDrawer
     >
     <AnimationEffects
-      v-if="s.isAnimation && section === 'engines'"
+      v-if="s.isAnimation && section === 'element' && category === 'motion' && !s.animation.engine"
       :studio="s"
-    /><ComponentsPanel v-else-if="section === 'components'" :studio="s" />
+    /><ComponentsPanel v-if="section === 'components' || section==='element' && category==='components' && s.selectedKeys.length>=2" :studio="s" />
     <section v-else-if="section === 'layers'" class="layers-panel">
       <p class="field-help">
         Premier plan en haut · {{ visibleBlocks(s.current).length }} objets
@@ -462,11 +397,9 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
         :studio="s"
         :mode="category"
       />
+      <InspectorDrawer v-if="s.selectedKeys.length>1 && category==='colors' && s.selectedKeys.every(k=>validSvgSource(s.current.elements[k]?.src))" id="svg-colors" title="Couleurs des SVG"><SvgProperties :image="s.current.elements[s.selectedKeys[0]]" :images="s.selectedKeys.map(k=>s.current.elements[k])" :theme="s.theme" :studio="s"/></InspectorDrawer>
       <AnimationCounterProperties v-if="s.isAnimation && s.selected && s.animation.config.counters[s.selected] && category === 'style'" :studio="s" />
-      <AnimationProperties
-        v-if="s.isAnimation && category === 'motion'"
-        :studio="s"
-      /><InspectorDrawer
+<InspectorDrawer
         v-if="
           category === 'motion' &&
           s.selectedKeys.length &&
@@ -508,14 +441,6 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
       >
       <template v-if="s.selected && s.selectedKeys.length === 1">
         <div v-show="category === 'style'">
-          <InspectorDrawer id="identity" title="Nom de l’objet"
-            ><label
-              >Nom<input
-                v-model="s.selectedName"
-                :placeholder="blockLabel(s.current, s.selected)"
-                maxlength="100"
-                aria-label="Nom de l’élément" /></label
-          ></InspectorDrawer>
           <InspectorDrawer v-if="isText" id="typography" title="Typographie"
             ><label v-if="s.selectedType === 'text'"
               >Style de texte<select
@@ -714,7 +639,7 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
             v-if="s.selectedType === 'image' && validSvgSource(object.src)"
             id="svg-colors"
             title="Couleurs du SVG"
-            ><SvgProperties :image="object" :theme="s.theme" /></InspectorDrawer
+            ><SvgProperties :image="object" :theme="s.theme" :studio="s" /></InspectorDrawer
           ><InspectorDrawer
             v-if="s.selectedType === 'image'"
             id="image-effects"
@@ -869,6 +794,7 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
             ><template v-if="s.isAnimation" #actions
               ><AnimationKeyButton :studio="s" field="scale" /></template
           ></NumberRange>
+          <template v-if="s.isAnimation"><NumberRange v-for="[field,label,min,max,step] in [['skewX','Inclinaison X',-80,80,1],['skewY','Inclinaison Y',-80,80,1],['contentScale','Échelle du contenu',0.1,5,0.05]]" :key="field" :label="label" :min="min" :max="max" :step="step" :unit="field==='contentScale'?'×':'°'" :model-value="s.animation.propertyValue(field)" @update:model-value="s.animation.setProperty(field,$event)"><template #actions><AnimationKeyButton :studio="s" :field="field"/></template></NumberRange></template>
           <p class="field-help">
             Objets, texte, contours et espacements sont redimensionnés ensemble.
             Maj + poignée conserve les proportions.
@@ -922,7 +848,7 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
       ><BackgroundProperties :studio="s" /></InspectorDrawer
     ><template v-if="section === 'slide' && s.isAnimation"
       ><InspectorDrawer id="animation-scene" title="Scène"
-        ><label>Nom<input v-model="s.current.title" maxlength="200" /></label
+        ><label>Nom<input :key="s.current.id" v-model="sceneTitle" maxlength="200" @change="renameScene($event)" @keydown.enter="renameScene($event);$event.target.blur()" /></label
         ><TimecodeInput
           :model-value="s.animation.config.duration"
           label="Durée de la scène"
@@ -943,7 +869,7 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
           Le cadre central est exporté. Les objets peuvent être placés à
           l’extérieur pour entrer dans l’image.
         </p></InspectorDrawer
-      ><AnimationAudioProperties :studio="s" /></template
+      ><AnimationAudioProperties :studio="s" /><AnimationWorkbench :studio="s" context="scene"/></template
     ><template v-else-if="section === 'slide' && s.view === 'banners'"
       ><InspectorDrawer id="overlay-format" title="Composition"
         ><label v-if="s.banner.type === 'java-primitive'"

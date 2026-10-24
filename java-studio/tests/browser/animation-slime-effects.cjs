@@ -62,6 +62,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     );
     const root = p.locator("#qa-slime");
     await root.getByLabel("Pistes de la sélection", { exact: true }).check();
+    await root.locator('[data-object="shapeSlime"] .object-track-name button[aria-expanded]').click();
     assert.equal(await root.locator(".effect-timeline-track").count(), 1);
     await root
       .getByRole("button", {
@@ -76,11 +77,12 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     );
     assert.equal(
       await root
-        .getByRole("button", { name: "Animation · propriétés", exact: true })
+        .getByRole("button", { name: "Animation", exact: true })
         .getAttribute("aria-pressed"),
       "true",
     );
     await root.getByLabel("Pistes de la sélection", { exact: true }).uncheck();
+    for(const button of await root.locator('.object-track-name button[aria-expanded]').all())if(await button.isEnabled()&&await button.getAttribute('aria-expanded')==='false')await button.click();
     assert.ok((await root.locator(".effect-timeline-track").count()) > 10);
     const checks = await p.evaluate(async () => {
       const { renderAnimation } = await import("/src/animationRender.js"),

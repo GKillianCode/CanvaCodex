@@ -383,3 +383,10 @@
 
 .element-context .menu-file {display:flex;align-items:center;width:100%;border-radius:7px;padding:10px;color:inherit;font-size:12px;}
 .element-context .menu-file:focus-within {outline:1px solid var(--mint);outline-offset:-2px;}
+
+/* Shared insertion hierarchy across creation studios. */
+
+.insert-submenu>summary{list-style:none;display:flex;align-items:center;gap:9px;cursor:pointer;padding:10px 12px;border-radius:6px;color:inherit;font-size:12px}
+.insert-submenu>summary::-webkit-details-marker{display:none}.insert-submenu>summary span{flex:1}.insert-submenu[open]>summary>svg:last-child{transform:rotate(90deg)}.insert-submenu>summary:hover{background:color-mix(in srgb,currentColor 7%,transparent)}.insert-submenu>div{border-left:1px solid var(--border);margin:0 6px 5px 18px;padding-left:5px}.insert-submenu>div>button,.insert-submenu>div>label{width:100%}
+
+.insert-submenu>summary:not(:has(svg))::after{content:"›";margin-left:auto}.insert-submenu[open]>summary:not(:has(svg))::after{transform:rotate(90deg)}

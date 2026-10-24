@@ -16,11 +16,11 @@ const s = reactive(props.studio);
     :title="
       'Enregistrer la clé à ' +
       s.animation.time.toFixed(2) +
-      ' s · clic droit pour retirer'
+      ' s · cliquer pour ajouter ou retirer'
     "
     :aria-label="'Clé · ' + field"
     :aria-pressed="!!s.animation.keyAt(field)"
-    @click.prevent="s.animation.recordProperty(field)"
+    @click.prevent="s.animation.toggleProperty(field)"
     @contextmenu.prevent="
       s.animation.keyAt(field) && s.animation.toggleProperty(field)
     "

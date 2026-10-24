@@ -2,7 +2,7 @@
 import {videoAnimationLabels} from "../videoProperties.js";
 import {setBlockName,blockType,visibleBlocks} from '../model.js';
 import {patternLabels} from "../sceneBackground.js";
-import { normalizePresence, presenceTiming } from "../animationPresence.js";
+import { normalizePresence, presenceTiming, movePresenceAnimation } from "../animationPresence.js";
 import TimecodeInput from "./TimecodeInput.vue";
 import {audioTimeLabel} from "../animationAudioModel.js";
 import AnimationAudioTrack from "./AnimationAudioTrack.vue";
@@ -191,14 +191,15 @@ function dragPresence(event,key,edge) {
   if(event.button!==0 || a.busy) return;
   event.preventDefault(); event.stopPropagation(); a.stop(); selectPresence(key);
   const lane=event.currentTarget.closest('.track-lane').getBoundingClientRect(), x=event.clientX,
-    original=normalizePresence(a.config.presences[key]), end=Math.min(a.config.duration,original.end??a.config.duration), span=end-original.start, frame=1/a.config.fps;
+    original=normalizePresence(a.config.presences[key]), end=Math.min(a.config.duration,original.end??a.config.duration), span=end-original.start, frame=1/a.config.fps, snapshot=JSON.parse(JSON.stringify({presences:a.config.presences,clips:a.config.clips,effects:a.config.effects,members:[key]}));
+  if(edge==='move'){for(let i=0;i<snapshot.members.length;i++)for(const clip of snapshot.clips)if(clip.keys.includes(snapshot.members[i]))for(const member of clip.keys)if(!snapshot.members.includes(member))snapshot.members.push(member);}
   gesture(e=>{
     const delta=Math.round((e.clientX-x)/lane.width*view.value.span*a.config.fps)/a.config.fps;
     const range={...original};
     if(edge==='start') range.start=Math.max(0,Math.min(end-frame,snapTime(original.start+delta,lane,e)));
     else if(edge==='end') range.end=Math.max(original.start+frame,Math.min(a.config.duration,snapTime(end+delta,lane,e)));
     else {let start=original.start+delta;const first=snapTime(start,lane,e),last=snapTime(start+span,lane,e)-span;const candidates=[first,last].filter(v=>Math.abs(v-start)>1e-9).sort((x,y)=>Math.abs(x-start)-Math.abs(y-start));if(candidates.length)start=candidates[0];range.start=Math.max(0,Math.min(a.config.duration-span,start));range.end=range.start+span;}
-    a.config.presences[key]=normalizePresence(range);
+    if(edge==='move')movePresenceAnimation(a.config,snapshot,key,range.start);else a.config.presences[key]=normalizePresence(range);
     const at=edge==='end'?range.end:range.start;
     draggingKey.value={time:at,frame:Math.round(at*a.config.fps),x:Math.max(8,Math.min(window.innerWidth-240,e.clientX+14)),y:Math.max(8,Math.min(window.innerHeight-64,e.clientY+22)),blocked:false};
   },key);
@@ -345,7 +346,7 @@ async function zoomAt(value, event) {
 function wheel(event) {
   if(event.ctrlKey||event.metaKey){event.preventDefault();zoomAt(zoom.value*Math.exp(-event.deltaY*.002),event);return;}
   if(event.target.closest('.track-name,.property-track-label,.timeline-folder-name'))return;
-  event.preventDefault();tracks.value.scrollLeft+=event.deltaX||event.deltaY;
+  event.preventDefault();if(event.shiftKey||Math.abs(event.deltaX)>Math.abs(event.deltaY))tracks.value.scrollLeft+=event.deltaX||event.deltaY;else tracks.value.scrollTop+=event.deltaY;
 }
 function context(event, c, key) {
   event.preventDefault();

@@ -40,6 +40,7 @@ function surface(i, w, h) {
   x.globalCompositeOperation = "source-over";
   x.filter = "none";
   x.shadowBlur = 0;
+  x.shadowOffsetX=0;x.shadowOffsetY=0;
   return [c, x];
 }
 const sampleCache = new Map();
@@ -540,19 +541,16 @@ export function createVisualEffectRenderer(
               : `hue-rotate(${e.amount}deg)`;
         dx.drawImage(src, 0, 0);
       } else if (["shadow", "glow", "neon"].includes(e.kind)) {
-        dx.shadowColor = color;
-        dx.shadowBlur = Math.abs(amount);
-        if (e.kind === "shadow") {
-          dx.shadowOffsetX = amount * 0.4;
-          dx.shadowOffsetY = amount * 0.6;
-        }
-        if (e.kind === "neon")
-          dx.globalAlpha = 0.85 + 0.15 * Math.sin(phase * 3);
-        dx.drawImage(src, 0, 0);
-        if (e.kind !== "shadow") {
-          dx.drawImage(src, 0, 0);
-          dx.shadowBlur = 0;
-          dx.drawImage(src, 0, 0);
+        if(e.kind==='shadow'){dx.shadowColor=color;dx.shadowBlur=Math.abs(amount);dx.shadowOffsetX=amount*.4;dx.shadowOffsetY=amount*.6;dx.drawImage(src,0,0);}
+        else {
+          // Tint the silhouette first: transparent SVGs often contain black pixels,
+          // whose original colour must not determine the halo colour.
+          dx.drawImage(src,0,0);dx.globalCompositeOperation='source-in';dx.fillStyle=color;dx.fillRect(0,0,W,H);
+          dx.globalCompositeOperation='source-over';
+          const [mask,mx]=surface(2,W,H);mx.drawImage(dst,0,0);
+          dx.clearRect(0,0,W,H);dx.filter=`blur(${Math.abs(amount)*ratio}px)`;
+          dx.globalAlpha=e.kind==='neon'?.85+.15*Math.sin(phase*3):1;
+          dx.drawImage(mask,0,0);dx.drawImage(mask,0,0);dx.filter='none';dx.globalAlpha=1;dx.drawImage(src,0,0);
         }
       } else if (e.kind === "flicker") {
         dx.globalAlpha =

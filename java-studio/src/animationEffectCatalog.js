@@ -1,3 +1,4 @@
+import {parseSvgColorField} from './svgColors.js';
 // Shared metadata for the effect picker, normalization, presets and timeline labels.
 export const effectCatalog = [
   ["fade", "Fondu", "Révéler", "Apparition ou disparition douce.", 100],
@@ -219,6 +220,7 @@ export function parseEffectField(field) {
   return m ? { id: m[1], property: m[2] } : null;
 }
 export function effectFieldLabel(field, effects = []) {
+  const paint=parseSvgColorField(field);if(paint)return "SVG · "+paint;
   const p = parseEffectField(field);
   if (!p) return field;
   const e = effects.find((e) => e.id === p.id);

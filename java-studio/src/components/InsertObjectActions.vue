@@ -1,29 +1,39 @@
 <script setup>
-import { reactive } from "vue";
-import { Plus } from "lucide-vue-next";
+import { reactive, computed } from "vue";
+import { Plus, Type, Image, Shapes, ChevronRight } from "lucide-vue-next";
 import { VIDEO_FILE_ACCEPT } from "../videoMedia.js";
-const props = defineProps({ studio: Object, contextual: Boolean });
-const s = reactive(props.studio),
+const props = defineProps({ studio: Object, contextual: Boolean }),
+  s = reactive(props.studio),
   emit = defineEmits(["done"]);
-// Both insertion menus invoke the same existing studio actions.
-const objects = [
-  ["text", "Texte", "Ajouter un texte"],
-  ["title", "Titre", "Ajouter un titre"],
-  ["subtitle", "Sous-titre", "Ajouter un sous-titre"],
-  ["list", "Liste", "Ajouter une liste"],
-  ["image", "Image", "Ajouter une image"],
-  ["code", "Code Java", "Ajouter du code"],
-  ["table", "Tableau", "Ajouter un tableau"],
-  ["bits", "Octets et bits", "Ajouter des octets et bits"],
-];
+const categories = computed(() => [
+  {
+    name: "Texte",
+    icon: Type,
+    items: [
+      ["text", "Texte"],
+      ["title", "Titre"],
+      ["subtitle", "Sous-titre"],
+      ["list", "Liste"],
+      ...(s.isAnimation ? [["counter", "Compteur animé"]] : []),
+    ],
+  },
+  {
+    name: "Médias et données",
+    icon: Image,
+    items: [
+      ["image", "Image / SVG"],
+      ...(!s.isThumbnail ? [["video", "Vidéo"]] : []),
+      ["code", "Code Java"],
+      ["table", "Tableau"],
+      ["bits", "Octets et bits"],
+    ],
+  },
+  { name: "Formes", icon: Shapes, items: [["shape", "Galerie de formes"]] },
+]);
 function add(type) {
   s.workspace = "editor";
-  s.addBlock(type);
-  emit("done");
-}
-function shapes() {
-  s.workspace = "editor";
-  s.openShapes();
+  if (type === "shape") s.openShapes();
+  else s.addBlock(type);
   emit("done");
 }
 function video(event) {
@@ -32,43 +42,49 @@ function video(event) {
 }
 </script>
 <template>
-  <button
-    v-for="[type, label, context] in objects"
-    :key="type"
-    :role="contextual ? 'menuitem' : undefined"
-    :data-insert="type"
-    @click="add(type)"
-  >
-    <Plus v-if="!contextual" :size="14" />{{ contextual ? context : label }}
-  </button>
-  <button
-    v-if="s.isAnimation"
-    :role="contextual ? 'menuitem' : undefined"
-    data-insert="counter"
-    @click="add('counter')"
-  >
-    <Plus v-if="!contextual" :size="14" />{{
-      contextual ? "Ajouter un compteur animé" : "Compteur animé"
-    }}
-  </button>
-  <button
-    :role="contextual ? 'menuitem' : undefined"
-    data-insert="shape"
-    @click="shapes"
-  >
-    <Plus v-if="!contextual" :size="14" />{{
-      contextual ? "Ajouter une forme" : "Formes"
-    }}
-  </button>
-  <label
-    v-if="!s.isThumbnail"
-    class="menu-file"
-    :role="contextual ? 'menuitem' : undefined"
-    data-insert="video"
-    >Importer une vidéo<input
-      type="file"
-      :accept="VIDEO_FILE_ACCEPT"
-      aria-label="Importer une vidéo"
-      @change="video"
-  /></label>
+  <template v-for="category in categories" :key="category.name">
+    <details v-if="contextual" class="insert-submenu">
+      <summary>
+        <component :is="category.icon" :size="15" /><span>{{
+          category.name
+        }}</span
+        ><ChevronRight :size="14" />
+      </summary>
+      <div role="menu" :aria-label="category.name">
+        <template v-for="[type, label] in category.items" :key="type"
+          ><label
+            v-if="type === 'video'"
+            class="menu-file"
+            role="menuitem"
+            data-insert="video"
+            >Importer une vidéo<input
+              type="file"
+              :accept="VIDEO_FILE_ACCEPT"
+              aria-label="Importer une vidéo"
+              @change="video" /></label
+          ><button
+            v-else
+            role="menuitem"
+            :data-insert="type"
+            @click="add(type)"
+          >
+            {{ label }}
+          </button></template
+        >
+      </div>
+    </details>
+    <template v-else
+      ><template v-for="[type, label] in category.items" :key="type"
+        ><label v-if="type === 'video'" class="menu-file" data-insert="video"
+          >Importer une vidéo<input
+            type="file"
+            :accept="VIDEO_FILE_ACCEPT"
+            aria-label="Importer une vidéo"
+            @change="video" /></label
+        ><button v-else :data-insert="type" @click="add(type)">
+          <Plus :size="14" />{{ label }}
+        </button></template
+      ></template
+    >
+  </template>
 </template>

@@ -2165,3 +2165,9 @@
 }
 :root[data-appearance="light"] .element-context .menu-file:focus-within {outline:1px solid var(--mint);outline-offset:-2px
 }
+:root[data-appearance="light"] .insert-submenu>summary {border-radius:6px;color:inherit
+}
+:root[data-appearance="light"] .insert-submenu>summary:hover {background:color-mix(in srgb,currentColor 7%,transparent)
+}
+:root[data-appearance="light"] .insert-submenu>div {border-left:1px solid var(--border)
+}

@@ -32,10 +32,12 @@ export function imageDrawingRect(p,img,fit='contain') {
   const w=img.width*scale, height=img.height*scale;
   return {x:p.x+(p.w-w)/2,y:p.y+(h-height)/2,w,h:height};
 }
+const lastMediaFrames=new Map();
 export function drawImageBlock(ctx,s,key,theme,options={}) {
   const p=s.positions[key], e=s.elements[key], h=p.h||360;
   if(!e.src||e.background)round(ctx,p.x,p.y,p.w,h,18,theme.panel);
-  const asset=e.src?(e.mediaKind==='video'?videoAsset(s.id,key,e.src):imageAsset(svgImageSource(e,theme))):null;
+  let asset=e.src?(e.mediaKind==='video'?videoAsset(s.id,key,e.src):imageAsset(svgImageSource(e,theme))):null;
+  if(e.mediaKind!=='video'&&e.src){const id=s.id+':'+key,prior=lastMediaFrames.get(id);if(asset?.ready){lastMediaFrames.delete(id);lastMediaFrames.set(id,{source:e.src,asset});let bytes=0;for(const [id,item]of [...lastMediaFrames].reverse()){bytes+=item.asset.bytes||0;if(bytes>32*1024*1024||lastMediaFrames.size>100)lastMediaFrames.delete(id);}}else if(prior?.source===e.src)asset=prior.asset;}
   if(e.mediaKind==='video'&&asset)syncVideo(asset,e,options.videoTime||0,options.videoLive===true);
   if (!asset?.ready) {
     const glow=ctx.createRadialGradient(p.x+p.w/2,p.y+h/2,0,p.x+p.w/2,p.y+h/2,p.w/2);glow.addColorStop(0,theme.accent+'28');glow.addColorStop(1,theme.panel);ctx.fillStyle=glow;ctx.fillRect(p.x+16,p.y+16,p.w-32,h-32);

@@ -21,7 +21,7 @@ import {
   applyMotion,
 } from "../animationPresets.js";
 import { localAssets, upsertAsset, removeAsset } from "../localAssets.js";
-const props = defineProps({ studio: Object }),
+const props = defineProps({ studio: Object, context:{type:String,default:"all"} }),
   s = reactive(props.studio),
   a = s.animation;
 const { name, duration, motion } = toRefs(a.motionPrefs);
@@ -128,7 +128,7 @@ function connector() {
 </script>
 <template>
   <InspectorDrawer
-    v-if="s.selected && !a.engine"
+    v-if="!['scene','motion'].includes(context) && s.selected && !a.engine"
     id="workflow-attachments"
     title="Attaches et références"
     :icon="Link"
@@ -221,7 +221,7 @@ function connector() {
       </button>
     </div>
   </InspectorDrawer>
-  <InspectorDrawer id="workflow-events" title="Événements" :icon="GitBranch"
+  <InspectorDrawer v-if="['scene','all'].includes(context)" id="workflow-events" title="Événements" :icon="GitBranch"
     ><p class="field-help">
       Déclenche une action à un instant, à la fin d’une séquence ou au contact
       d’un bloc physique. Les boucles sont signalées et ne lancent pas de
@@ -322,7 +322,7 @@ function connector() {
       </button>
     </div>
   </InspectorDrawer>
-  <InspectorDrawer id="workflow-camera" title="Caméra" :icon="Camera"
+  <InspectorDrawer v-if="['scene','all'].includes(context)" id="workflow-camera" title="Caméra" :icon="Camera"
     ><p class="field-help">
       Le cadre violet suit la caméra au temps courant. La zone assombrie reste
       hors champ ; les objets gardent leurs coordonnées de construction.
@@ -379,7 +379,7 @@ function connector() {
     </button>
   </InspectorDrawer>
   <InspectorDrawer
-    id="workflow-presets"
+    v-if="['motion','all'].includes(context) && s.selectedKeys.length" id="workflow-presets"
     title="Mouvements réutilisables"
     :icon="Bookmark"
     ><p class="field-help">
@@ -444,7 +444,7 @@ function connector() {
     </p></InspectorDrawer
   >
   <InspectorDrawer
-    id="workflow-diagnostics"
+    v-if="['scene','all'].includes(context)" id="workflow-diagnostics"
     title="Diagnostic visuel"
     :icon="Activity"
     ><p class="field-help">Repères réservés à l’éditeur, exclus de l’export.</p>

@@ -88,3 +88,12 @@ export function applyPresenceMotion(scene, states) {
     scene.positions[key] = p;
   }
 }
+
+// Move a presence and its animation together; resizing a boundary never retimes keys.
+export function movePresenceAnimation(config, snapshot, key, start){
+  const original=normalizePresence(snapshot.presences?.[key]),delta=start-original.start;
+  const members=snapshot.members||[key];
+  for(const member of members){const range=normalizePresence(snapshot.presences?.[member]);config.presences[member]=normalizePresence({...range,start:range.start+delta,end:(range.end??config.duration)+delta});}
+  for(const clip of config.clips){const source=snapshot.clips.find(c=>c.id===clip.id);if(source?.keys.some(k=>members.includes(k)))clip.start=source.start+delta;}
+  for(const effect of config.effects){const source=snapshot.effects.find(e=>e.id===effect.id);if(source&&members.includes(source.key))effect.start=source.start+delta;}
+}

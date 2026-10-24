@@ -1,8 +1,16 @@
 <script setup>
 import { ref, onMounted, onBeforeUnmount, watch } from "vue";
+import { releaseImages } from "../imageCache.js";
+const imageScope = Symbol("effect-preview");
 import { effectSample } from "../animationEffectExamples.js";
+import { prepareImages } from "../render.js";
 import { renderAnimation } from "../animationRender.js";
-const props = defineProps({ kind: String, theme: Object }),
+const props = defineProps({
+    kind: String,
+    theme: Object,
+    sample: Object,
+    autoplay: Boolean,
+  }),
   canvas = ref(null);
 let scene,
   raf = 0,
@@ -21,6 +29,7 @@ function stop() {
   draw();
 }
 function play() {
+  cancelAnimationFrame(raf);
   start = performance.now();
   const tick = (now) => {
     draw(((now - start) / 1000) % 2.6);
@@ -30,8 +39,22 @@ function play() {
 }
 onMounted(() => {
   scene = effectSample(props.kind);
-  scene.elements.sample.stroke = props.theme.ink;
+  if (props.sample) {
+    const input = JSON.parse(JSON.stringify(props.sample));
+    scene.elements.sample = input.element;
+    scene.positions.sample = {
+      ...input.position,
+      x: 700,
+      y: 300,
+      w: 520,
+      h: 480,
+    };
+    if (input.position.w && input.position.h)
+      scene.positions.sample.h = (520 * input.position.h) / input.position.w;
+    prepareImages([scene], props.theme, imageScope).then(draw);
+  } else scene.elements.sample.stroke = props.theme.ink;
   draw();
+  if (props.autoplay) play();
 });
 watch(
   () => props.theme,
@@ -39,7 +62,10 @@ watch(
     if (scene) draw();
   },
 );
-onBeforeUnmount(() => cancelAnimationFrame(raf));
+onBeforeUnmount(() => {
+  cancelAnimationFrame(raf);
+  releaseImages(imageScope);
+});
 </script>
 <template>
   <canvas
@@ -48,7 +74,7 @@ onBeforeUnmount(() => cancelAnimationFrame(raf));
     height="90"
     aria-hidden="true"
     @pointerenter="play"
-    @pointerleave="stop"
+    @pointerleave="!autoplay && stop()"
   />
 </template>
 <style scoped>

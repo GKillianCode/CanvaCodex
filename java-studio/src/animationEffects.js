@@ -27,7 +27,7 @@ export function normalizeEffect(r = {}, i = 0) {
     name: String(
       r.name || effectCatalog.find((e) => e.id === r.kind)?.name || "",
     ).slice(0, 80),
-    start: n(r.start, 0, 0, 120),
+    start: n(r.start, 0, -120, 120),
     duration: n(r.duration, 1.5, 0.05, 120),
     progress: n(r.progress, -1, -1, 1),
     reverse: r.reverse === true,

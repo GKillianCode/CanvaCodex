@@ -20,17 +20,18 @@ if(!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base||''))throw Error('Isola
   assert.deepEqual(dropped.names,['drop.MP4','image.png']);assert.equal(dropped.video.autoplay,true);assert.match(dropped.video.src,/^frame-video:/);if(application==='animation')assert.equal(dropped.presence.start,2);
   await page.waitForFunction(()=>live().toast.value.includes('média(s) ajouté'));
   await page.evaluate(()=>live().undo());await page.waitForFunction(()=>Object.keys(live().current.value.elements).length===0);await page.evaluate(()=>live().redo());await page.waitForFunction(()=>Object.keys(live().current.value.elements).length===2);
+  const aligned=await page.evaluate(async()=>{const s=live();s.selected.value=null;s.selectedKeys.value=Object.keys(s.current.value.elements);s.centerObjects('x');await tick();const poses=s.animation?s.animation.editorScene.value.positions:s.current.value.positions,keys=s.selectedKeys.value;const left=Math.min(...keys.map(k=>poses[k].x)),right=Math.max(...keys.map(k=>poses[k].x+poses[k].w));return (left+right)/2;});assert(Math.abs(aligned-960)<.01);
   // Header and context menu consume the same insertion component.
   await page.locator('#test-studio .app-menu-trigger').filter({hasText:'Insérer'}).click();
   const headerItems=await page.locator('#test-studio .app-menu-popover [data-insert]').evaluateAll(es=>es.map(e=>e.dataset.insert));
   await canvas.click({button:'right',position:{x:30,y:150}});
-  const menu=page.locator('#test-studio .element-context');const contextItems=await menu.locator('[data-insert]').evaluateAll(es=>es.map(e=>e.dataset.insert));assert.deepEqual(contextItems,headerItems);assert(headerItems.includes('bits'));assert(headerItems.includes('title'));assert(headerItems.includes('list'));assert(headerItems.includes('video'));assert.equal(headerItems.includes('counter'),application==='animation');
+  const menu=page.locator('#test-studio .element-context');const contextItems=await menu.locator('[data-insert]').evaluateAll(es=>es.map(e=>e.dataset.insert));assert.deepEqual(contextItems.slice().sort(),headerItems.slice().sort());assert(headerItems.includes('bits'));assert(headerItems.includes('title'));assert(headerItems.includes('list'));assert(headerItems.includes('video'));assert.equal(headerItems.includes('counter'),application==='animation');
   const rect=await menu.boundingBox();assert(rect.y+rect.height<=1000);
-  await menu.locator('[data-insert="bits"]').click();assert.equal(await page.evaluate(()=>live().selectedType.value),'bits');assert.equal(await menu.count(),0);
+  await menu.getByText('Médias et données',{exact:true}).click();await menu.locator('[data-insert="bits"]').click();assert.equal(await page.evaluate(()=>live().selectedType.value),'bits');assert.equal(await menu.count(),0);
   await canvas.click({button:'right',position:{x:30,y:150}});await menu.locator('[data-insert="video"] input').setInputFiles(sample);
   await page.waitForFunction(()=>Object.values(live().current.value.elements).filter(e=>e.mediaKind==='video').length===2);assert.equal(await menu.count(),0);
   if(application==='animation'){
-   await canvas.click({button:'right',position:{x:30,y:150}});await menu.locator('[data-insert="counter"]').click();assert.ok(await page.evaluate(()=>live().animation.config.value.counters[live().selected.value]));
+   await canvas.click({button:'right',position:{x:30,y:150}});await menu.getByText('Texte',{exact:true}).first().click();await menu.locator('[data-insert="counter"]').click();assert.ok(await page.evaluate(()=>live().animation.config.value.counters[live().selected.value]));
   }
   // Changing scene while a file is being read must never insert into the new scene.
   await page.evaluate(()=>{window.originScene=live().current.value;window.originCount=Object.keys(originScene.elements).length;window.originalReader=FileReader.prototype.readAsDataURL;FileReader.prototype.readAsDataURL=function(...args){setTimeout(()=>originalReader.apply(this,args),150);};});

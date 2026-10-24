@@ -8,7 +8,7 @@ import NumberRange from "./NumberRange.vue";
 import PaletteColor from "./PaletteColor.vue";
 import AnimationKeyButton from "./AnimationKeyButton.vue";
 import EffectPreview from "./EffectPreview.vue";
-import { reactive, computed, ref } from "vue";
+import { reactive, computed, ref, watch, nextTick } from "vue";
 import {
   Plus,
   Trash2,
@@ -29,6 +29,7 @@ import {
   Search,
   Sparkles,
   Play,
+  X,
 } from "lucide-vue-next";
 import {
   effectCatalog,
@@ -65,6 +66,10 @@ const catalog = [
     ...legacy,
   ],
   names = Object.fromEntries(catalog.map((e) => [e.id, e]));
+const collection=ref("effects"),previewKind=ref(null),previewClose=ref(null);
+watch(()=>a.inspectedEffect,()=>{collection.value="effects";});
+watch(previewKind,async kind=>{if(kind){await nextTick();previewClose.value?.focus();}});
+const previewSample=computed(()=>{const key=s.selectedKeys[0],scene=a.editorScene;return key&&scene.elements[key]?{element:scene.elements[key],position:scene.positions[key]}:null;});
 const query = ref(""),
   group = ref("Révéler"),
   dragged = ref(""),
@@ -201,11 +206,12 @@ function fields(e) {
 }
 </script>
 <template>
+  <div class="animation-collections inspector-categories" style="grid-template-columns:repeat(3,minmax(0,1fr))"><button v-for="[id,name] in [['effects','Effets'],['motion','Mouvement'],['relations','Relations']]" :key="id" :class="{active:collection===id}" @click="collection=id">{{name}}</button></div>
   <p v-if="!s.selectedKeys.length" class="field-help">
     Sélectionne un objet, puis ajoute un effet. Les originaux restent
     modifiables.
   </p>
-  <template v-else>
+  <template v-else-if="collection==='effects'">
     <InspectorDrawer
       id="add-animation-effect"
       title="Ajouter un effet"
@@ -230,7 +236,7 @@ function fields(e) {
           type="button"
           class="effect-card"
           :title="item.description"
-          @click="add(item.id)"
+          @click="previewKind=item.id"
         >
           <EffectPreview
             v-if="visualEffectKinds.includes(item.id)"
@@ -675,12 +681,16 @@ function fields(e) {
         </div>
       </InspectorDrawer>
     </div>
-    <AnimationProperties :studio="s" />
+
   </template>
-  <AnimationVectorBridge :studio="s" />
-  <AnimationContacts :studio="s" /><AnimationWorkbench :studio="s" />
+  <Teleport to="body"><div v-if="previewKind" class="modal-backdrop effect-preview-backdrop" @click.self="previewKind=null"><section class="effect-preview-dialog" role="dialog" aria-modal="true" aria-label="Aperçu de l’effet" @keydown.esc="previewKind=null"><div class="export-heading"><h2>{{names[previewKind]?.name}}</h2><button ref="previewClose" class="icon-btn" aria-label="Fermer l’aperçu" @click="previewKind=null"><X :size="18"/></button></div><EffectPreview :key="previewKind" :kind="previewKind" :theme="s.theme" :sample="previewSample" autoplay/><p class="field-help">{{names[previewKind]?.description}}</p><div class="key-actions"><button class="btn" @click="previewKind=null">Annuler</button><button class="btn primary" @click="add(previewKind);previewKind=null">Appliquer à la sélection</button></div></section></div></Teleport>
+  <template v-if="collection==='motion'"><AnimationProperties :studio="s"/><AnimationWorkbench :studio="s" context="motion"/><AnimationVectorBridge :studio="s"/></template>
+  <template v-if="collection==='relations'"><AnimationContacts :studio="s"/><AnimationWorkbench :studio="s" context="relations"/></template>
 </template>
 <style scoped>
+.effect-preview-dialog{width:min(620px,calc(100vw - 40px));padding:24px;background:var(--panel,#172125);border:1px solid var(--border);border-radius:12px}
+.effect-preview-dialog :deep(canvas){height:280px;width:100%}
+
 .effect-search {
   display: flex;
   align-items: center;

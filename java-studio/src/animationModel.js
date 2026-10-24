@@ -1,3 +1,4 @@
+import {parseSvgColorField} from './svgColors.js';
 import {videoAnimationFields,normalizeVideoProperties} from './videoProperties.js';
 import {sameKeyTime} from './animationEditing.js';
 import {enclosingBounds} from './selection.js';
@@ -58,6 +59,7 @@ export const colorAnimationFields = [
   "backgroundColor2",
   "patternBase", "patternColor", "patternColor2",
 ];
+export const isColorAnimationField = field => colorAnimationFields.includes(field)||!!parseSvgColorField(field);
 export const animationFields = [
   ...videoAnimationFields,
   ...cameraFields,
@@ -205,7 +207,7 @@ export function normalizeAnimation(raw = {}) {
       hidden: c?.hidden === true,
       ...(c?.groupTransform === true ? {groupTransform:true} : {}),
       easing: animationEasings.includes(c?.easing) ? c.easing : "smooth",
-      start: number(c?.start, 0, 0, 120),
+      start: number(c?.start, 0, -120, 120),
       duration: number(c?.duration, 8, 0.1, 120),
       markers: [
         ...new Set(
@@ -232,16 +234,16 @@ export function normalizeAnimation(raw = {}) {
       frames: list(c?.frames, 1000)
         .filter(
           (f) =>
-            (animationFields.includes(f?.field)||parseEffectField(f?.field)) &&
+            (animationFields.includes(f?.field)||parseEffectField(f?.field)||parseSvgColorField(f?.field)) &&
             Number.isFinite(Number(f?.time)) &&
-            (colorAnimationFields.includes(f.field)
+            (isColorAnimationField(f.field)
               ? /^#[a-f0-9]{6}$/i.test(f.value)
               : Number.isFinite(Number(f.value))),
         )
         .map((f) => ({
           field: f.field,
           time: number(f.time, 0, 0, 120),
-          value: colorAnimationFields.includes(f.field)
+          value: isColorAnimationField(f.field)
             ? f.value
             : number(f.value, 0, -10000, 10000),
           ease: discreteAnimationFields.includes(f.field)
@@ -466,6 +468,7 @@ export function animationScene(scene, raw, time, options={}) {
           );
       if (base.size && !clip.frames.some((k) => k.field === "size"))
         p.size = base.size * Math.sqrt(sx * sy);
+      for(const field of new Set(clip.frames.map(f=>f.field))){const paint=parseSvgColorField(field);if(!paint||!result.elements[key]?.src)continue;const value=frameValue(clip.frames,field,local,null);if(value)result.elements[key]={...result.elements[key],svgColors:{...result.elements[key].svgColors,[paint]:{color:value,colorRole:null}}};}
       const color = frameValue(clip.frames, "color", local, null);
       if (color) {
         p.textStyle = { ...p.textStyle, color, colorRole: "" };
@@ -526,7 +529,7 @@ export function animationScene(scene, raw, time, options={}) {
         t,
         engine.particles.color,
       );
-      if (c.frames.some((f) => colorAnimationFields.includes(f.field)))
+      if (c.frames.some((f) => isColorAnimationField(f.field)))
         engine.particles.colorRole = null;
     }
     engine.particles = normalizeParticles(engine.particles);

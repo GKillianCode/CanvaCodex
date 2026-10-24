@@ -138,13 +138,16 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     });
     const root = p.locator("#qa-effects");
     await root
-      .getByRole("button", { name: "Animation · propriétés", exact: true })
+      .getByRole("button", { name: "Animation", exact: true })
       .click();
     await root.getByText("Ajouter un effet", { exact: true }).click();
     await root
       .locator(".effect-gallery")
       .getByRole("button", { name: "Dissolution", exact: true })
       .click();
+    await p.evaluate(()=>document.querySelector('#qa-effects').style.zIndex='auto');
+    await p.getByRole('dialog',{name:'Aperçu de l’effet'}).getByRole('button',{name:'Appliquer à la sélection'}).click();
+    await p.evaluate(()=>document.querySelector('#qa-effects').style.zIndex='2000');
     await p.waitForTimeout(200);
     await root
       .locator('[data-drawer^="effect-"] summary')
@@ -208,6 +211,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       );
     }, e.id);
     // Existing timeline spans also position effects. Their duration handle stretches them.
+    const drawer=root.locator('[data-object="shapeObject"] .object-track-name button[aria-expanded]');if(await drawer.getAttribute('aria-expanded')==='false')await drawer.click();
     const span = root
       .locator(".effect-timeline-track")
       .filter({ hasText: "Dissolution" })
@@ -250,6 +254,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       await designRepository(videoRepository(), "vector").save(d);
       return d.id;
     });
+    await root.getByRole("button",{name:"Mouvement",exact:true}).click();
     await root.getByText("Depuis l’atelier vectoriel", { exact: true }).click();
     await root
       .getByRole("button", { name: "Charger mes illustrations", exact: true })
@@ -311,7 +316,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       s.selectedKeys.value = [key];
     });
     await root
-      .getByRole("button", { name: "Animation · propriétés", exact: true })
+      .getByRole("button", { name: "Animation", exact: true })
       .click();
     await root.getByText("Ajouter un effet", { exact: true }).click();
     await p.screenshot({ path: "/tmp/frame-effects-dark.png" });

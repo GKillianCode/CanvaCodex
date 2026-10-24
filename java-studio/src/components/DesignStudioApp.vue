@@ -68,6 +68,7 @@ import TransformFields from "./TransformFields.vue";
 import SegmentedProportions from "./SegmentedProportions.vue";
 import ThemeGallery from "./ThemeGallery.vue";
 import { ensureAssets, localAssets } from "../localAssets.js";
+import SelectionActions from "./SelectionActions.vue";
 import InspectorShell from "./InspectorShell.vue";
 import InspectorDrawer from "./InspectorDrawer.vue";
 import FloatingToolPalette from "./FloatingToolPalette.vue";
@@ -189,7 +190,7 @@ watch(
     if (ids) {
       tab.value = "object";
       s.settings = false;
-    }
+    }else if(tab.value!=="layers"){tab.value="document";}
   },
 );
 const libraryPage = ref(1);
@@ -1256,7 +1257,7 @@ defineExpose({ flush: s.flush });
 
           <div
             v-show="
-              tab !== 'layers' && (tab === 'document' || s.selection.length)
+              tab === 'document' && !s.selection.length
             "
             class="design-inspector-heading"
           >
@@ -1440,42 +1441,12 @@ defineExpose({ flush: s.flush });
           Sélectionne un objet pour le personnaliser.
         </p>
         <template v-else
-          ><div class="design-selection-actions">
-            <button
-              class="icon-btn"
-              title="Dupliquer · Ctrl D"
-              aria-label="Dupliquer la sélection"
-              @click="s.duplicate"
-            >
-              <Copy :size="15" /></button
-            ><button
-              class="icon-btn"
-              title="Supprimer la sélection"
-              aria-label="Supprimer la sélection"
-              @click="s.deleteSelection"
-            >
-              <Trash2 :size="15" /></button
-            ><button
-              class="icon-btn"
-              title="Verrouiller / déverrouiller"
-              @click="
-                s.edit(() => s.selected.forEach((e) => (e.locked = !e.locked)))
-              "
-            >
-              <Lock :size="15" />
-            </button>
-          </div>
+          ><InspectorDrawer id="design-identity" :title="s.object?'Nom de l’objet':'Actions de la sélection'"><label v-if="s.object">Nom<input :value="s.object.name" maxlength="100" @change="s.change('name',$event.target.value)"/></label><SelectionActions :duplicate="s.duplicate" :remove="s.deleteSelection" :locked="s.selected.every(e=>e.locked)" :toggle-lock="()=>s.edit(()=>{const locked=!s.selected.every(e=>e.locked);s.selected.forEach(e=>e.locked=locked);})"/></InspectorDrawer>
           <InspectorDrawer
             id="design-4"
             title="Position et dimensions"
             :icon="Square"
           >
-            <label v-if="s.object"
-              >Nom<input
-                :value="s.object.name"
-                maxlength="100"
-                @change="s.change('name', $event.target.value)"
-            /></label>
             <TransformFields
               v-if="s.object"
               :value="{
@@ -1871,7 +1842,7 @@ defineExpose({ flush: s.flush });
       role="menu"
       :style="{ left: s.context.x + 'px', top: s.context.y + 'px' }"
     >
-      <button
+      <details class="insert-submenu" open><summary>Ajouter</summary><div>      <button
         role="menuitem"
         @click="action(() => s.add('text', {}, s.context?.point))"
       >
@@ -1941,8 +1912,8 @@ defineExpose({ flush: s.flush });
         Ajouter un tableau
       </button>
       <button role="menuitem" @click="action(choosePen)">
-        Dessiner avec la plume</button
-      ><template v-if="s.selected.length"
+        Dessiner avec la plume</button>
+      </div></details><template v-if="s.selected.length"
         ><hr />
         <button role="menuitem" @click="action(s.copy)">
           Copier <span>Ctrl C</span></button

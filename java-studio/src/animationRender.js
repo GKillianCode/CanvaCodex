@@ -16,11 +16,11 @@ export function renderAnimation(
   theme,
   config,
   time,
-  { guides = false, positions = null, camera=true, diagnostics=null } = {},
+  { guides = false, positions = null, positionSceneId=null, camera=true, diagnostics=null } = {},
 ) {
   const state = animationScene(scene, config, time);
   for(const [key,media]of Object.entries(state.scene.elements||{}))if(media.mediaKind==='video')state.scene.elements[key]={...media,videoClock:videoPlaybackState(scene,key,time).time};
-  if(positions) Object.assign(state.scene.positions, positions);
+  if(positions&&(!positionSceneId||positionSceneId===scene.id)) Object.assign(state.scene.positions, positions);
   applyPresenceMotion(state.scene,state.presence);
   ctx.save();
   drawAnimationSceneBackground(ctx,state.scene,state.config,theme);

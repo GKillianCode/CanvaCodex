@@ -30,10 +30,6 @@ function direction(id) {
   <div class="animation-engines">
     <template v-if="a.engine"
       ><InspectorDrawer id="engine-main" title="Repère et émission" :icon="Move"
-        ><label
-          >Nom<input
-            v-model="s.current.elements[a.engine.key].name"
-            maxlength="100" /></label
         ><label class="checkbox-label"
           ><input type="checkbox" v-model="a.engine.enabled" />Activé</label
         >

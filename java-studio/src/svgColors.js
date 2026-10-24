@@ -29,3 +29,9 @@ export function svgImageSource(element,theme={}){if(!element.svgColors||!Object.
  const markup=mapPaints(info.markup,(key,original)=>{const binding=replacements[key],color=binding&&boundColor(binding,'color',theme);return hex(color)?preserveAlpha(original,color):original;});
  const result=safeSvg(markup)?encode(markup):element.src;rendered.set(element,{source:element.src,signature,result});return result;
 }
+
+// Stable colour channels: the original SVG paint remains the identity, never its replacement.
+export const svgColorField=key=>'svgColor:'+encodeURIComponent(key);
+export function parseSvgColorField(field){if(typeof field!=='string'||!field.startsWith('svgColor:'))return null;try{const key=decodeURIComponent(field.slice(9));return key.length<=160&&paint(key)?key:null;}catch{return null;}}
+
+export function svgPaintHex(color){if(color==='currentcolor')return '#000000';const ctx=document.createElement('canvas').getContext('2d');ctx.fillStyle='#000000';ctx.fillStyle=color;const v=ctx.fillStyle;if(/^#[\da-f]{6}(?:[\da-f]{2})?$/i.test(v))return v.slice(0,7);const channels=v.match(/[\d.]+/g);return channels?.length>=3?'#'+channels.slice(0,3).map(v=>Math.round(Number(v)).toString(16).padStart(2,'0')).join(''):'#000000';}

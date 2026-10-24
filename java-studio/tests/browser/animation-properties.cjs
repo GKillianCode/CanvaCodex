@@ -54,7 +54,8 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       .getByLabel("Échelle de la sélection · valeur", { exact: true })
       .fill("150");
     await root.getByLabel("Clé · scale", { exact: true }).click();
-    await root.getByLabel("Clé · scale", { exact: true }).click();
+    assert.equal(await root.getByLabel("Clé · scale",{exact:true}).getAttribute('aria-pressed'),'false');
+    await root.getByLabel("Échelle de la sélection · valeur",{exact:true}).fill('150');
     let scale = await p.evaluate(() => {
       let s = getLive();
       return {
@@ -75,19 +76,20 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
         .count(),
       0,
     );
+    await p.evaluate(()=>getLive().deselect());
     await root
-      .getByRole("button", { name: "Animation · propriétés", exact: true })
+      .getByRole("button", { name: "Scène · propriétés", exact: true })
       .click();
     await root.getByText("Caméra", { exact: true }).click();
     await root
       .getByLabel("Zoom de la caméra · valeur", { exact: true })
       .fill("100");
-    await root.getByLabel("Clé · cameraZoom", { exact: true }).click();
+
     await p.evaluate(() => getLive().animation.seek(1));
     await root
       .getByLabel("Zoom de la caméra · valeur", { exact: true })
       .fill("150");
-    await root.getByLabel("Clé · cameraZoom", { exact: true }).click();
+
     const result = await p.evaluate(() => {
       const s = getLive(),
         panel = document.querySelector("#qa-full .inspector-body"),
@@ -99,7 +101,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
           (f) => f.field === "cameraZoom",
         ).length,
         body: panel.getBoundingClientRect().bottom,
-        timeline: line.getBoundingClientRect().top,
+        timeline: line.getBoundingClientRect().bottom,
         overflow: getComputedStyle(panel).overflowY,
         hidden: !!s.animation.activeKey.value,
       };
@@ -123,7 +125,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
     assert.deepEqual(errors, []);
     await p.screenshot({ path: "/tmp/frame-scale-camera-ui.png" });
     console.log(
-      "OK full editor scale, idempotent diamonds, camera keys and bounded scroll",
+      "OK full editor scale, toggle diamonds, camera keys and bounded scroll",
       result,
     );
   } finally {

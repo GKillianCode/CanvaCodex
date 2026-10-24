@@ -20,7 +20,7 @@ if(!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base||''))throw Error('Isola
  await page.evaluate(async()=>{live().addBlock('text');await tick();live().closeEdit();});
  const keys=await rows();assert.deepEqual(keys.slice(0,3),['texta','textc','textb']);assert.match(keys[3],/^text/);assert.equal(keys.at(-1),'shape1');
  // Native wheel scrolls horizontally and leaves scene timing untouched.
- const lane=page.locator('[data-object="texta"] .track-lane');await lane.scrollIntoViewIfNeeded();const lb=await lane.boundingBox();await page.mouse.move(lb.x+100,lb.y+15);await page.mouse.wheel(0,250);await page.waitForTimeout(100);
+ const lane=page.locator('[data-object="texta"] .track-lane');await lane.scrollIntoViewIfNeeded();const lb=await lane.boundingBox();await page.mouse.move(lb.x+100,lb.y+15);await page.keyboard.down('Shift');await page.mouse.wheel(0,250);await page.keyboard.up('Shift');await page.waitForTimeout(100);
  assert.ok(await page.locator('.animation-tracks').evaluate(e=>e.scrollLeft)>0);
  // Real keyboard events seek frames, never nudge selected objects.
  await page.locator('.animation-timeline').focus();await page.evaluate(()=>live().animation.seek(2));const positions=await page.evaluate(()=>JSON.stringify(live().current.value.positions));await page.keyboard.press('ArrowRight');assert.equal(await page.evaluate(()=>live().animation.time.value),61/30);await page.keyboard.press('ArrowLeft');assert.equal(await page.evaluate(()=>live().animation.time.value),2);assert.equal(await page.evaluate(()=>JSON.stringify(live().current.value.positions)),positions);
@@ -33,7 +33,7 @@ if(!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base||''))throw Error('Isola
  await page.evaluate(async()=>{const s=live();s.index.value=1;await tick();s.animation.seek(3.8);s.zoom.value=140;s.animation.panX.value=31;s.animation.panY.value=-18;s.animation.loop.value=false;s.selected.value='texta';s.selectedKeys.value=['texta'];await tick();});
  await page.getByLabel('Animations de texta',{exact:true}).click();await page.getByLabel('Dossier Formes',{exact:true}).click();
  const ruler=await page.locator('.timeline-ruler').boundingBox();await page.mouse.move(Math.min(1200,ruler.x+ruler.width/2),ruler.y+12);await page.keyboard.down('Control');await page.mouse.wheel(0,-200);await page.keyboard.up('Control');await page.waitForTimeout(100);
- await page.getByLabel('Scène · propriétés',{exact:true}).click();await page.locator('[data-drawer="scene-background"] > summary').click();
+ await page.evaluate(()=>live().deselect());await page.getByLabel('Scène · propriétés',{exact:true}).click();await page.locator('[data-drawer="scene-background"] > summary').click();
  await page.locator('.inspector-body').evaluate(e=>e.scrollTop=80);
  await page.getByRole('button',{name:'Audio',exact:true}).click();await page.locator('.animation-tracks').evaluate(e=>e.scrollLeft=360);
 
@@ -42,7 +42,7 @@ if(!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base||''))throw Error('Isola
  await page.evaluate(async()=>{testApp.unmount();await mountTest();});await page.waitForTimeout(150);
  const actual=await page.evaluate(()=>{const s=live();return {scene:s.current.value.id,time:s.animation.time.value,loop:s.animation.loop.value,zoom:s.zoom.value,panX:s.animation.panX.value,selection:s.selectedKeys.value,ui:s.editorView.value};});
  
- assert.equal(actual.scene,expected.sceneId);assert.equal(actual.time,3.8);assert.equal(actual.loop,false);assert.equal(actual.zoom,140);assert.equal(actual.panX,31);assert.deepEqual(actual.selection,['texta']);assert.equal(actual.ui.timeline.panel,'audio');assert.equal(actual.ui.inspector.section,'slide');assert.equal(actual.ui.timeline.height,expected.timeline.height);assert.equal(actual.ui.timeline.zoom,expected.timeline.zoom);assert.equal(actual.ui.inspector.drawers['scene-background'],true);assert.equal(await page.locator('.inspector-body').evaluate(e=>e.scrollTop),expected.inspector.scrolls['slide:']||0);assert.equal(await page.locator('.animation-tracks').evaluate(e=>e.scrollLeft),360);
+ assert.equal(actual.scene,expected.sceneId);assert.equal(actual.time,3.8);assert.equal(actual.loop,false);assert.equal(actual.zoom,140);assert.equal(actual.panX,31);assert.deepEqual(actual.selection,[]);assert.equal(actual.ui.timeline.panel,'audio');assert.equal(actual.ui.inspector.section,'slide');assert.equal(actual.ui.timeline.height,expected.timeline.height);assert.equal(actual.ui.timeline.zoom,expected.timeline.zoom);assert.equal(actual.ui.inspector.drawers['scene-background'],true);assert.equal(await page.locator('.inspector-body').evaluate(e=>e.scrollTop),expected.inspector.scrolls['slide:']||0);assert.equal(await page.locator('.animation-tracks').evaluate(e=>e.scrollLeft),360);
  // Export is a real portable file, without scene content.
  const download=page.waitForEvent('download');await page.evaluate(()=>live().exportEditorView());const file=await download;const fs=require('node:fs');const exported=JSON.parse(fs.readFileSync(await file.path(),'utf8'));assert.equal(exported.format,'frame-editor-configuration');assert.equal(exported.view.loop,false);assert(!exported.slides);
  // The existing linked-file writer automatically updates the selected external JSON.

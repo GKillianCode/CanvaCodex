@@ -1,6 +1,6 @@
 <script setup>
-import { ref } from "vue";
-defineProps({
+import { ref, computed } from "vue";
+const props = defineProps({
   tabs: Array,
   active: String,
   count: { type: Number, default: 0 },
@@ -9,6 +9,18 @@ defineProps({
 });
 const emit = defineEmits(["select", "resize"]);
 const body = ref(null);
+const contextId = computed(() =>
+  props.count
+    ? props.tabs.find((t) => ["element", "object"].includes(t[0]))?.[0]
+    : props.tabs.find((t) => ["slide", "document"].includes(t[0]))?.[0],
+);
+const shownTabs = computed(() =>
+  props.tabs.filter(
+    (t) =>
+      !["element", "object", "slide", "document"].includes(t[0]) ||
+      t[0] === contextId.value,
+  ),
+);
 defineExpose({ body });
 </script>
 <template>
@@ -25,14 +37,15 @@ defineExpose({ body });
       }}</small>
     </div>
     <nav
+      v-if="!count"
       class="inspector-navigation"
       :style="{
-        gridTemplateColumns: 'repeat(' + tabs.length + ',minmax(0,1fr))',
+        gridTemplateColumns: 'repeat(' + shownTabs.length + ',minmax(0,1fr))',
       }"
       aria-label="Rubriques des propriétés"
     >
       <button
-        v-for="[id, label, icon] in tabs"
+        v-for="[id, label, icon] in shownTabs"
         :key="id"
         :class="{ active: active === id }"
         :aria-label="label + ' · propriétés'"

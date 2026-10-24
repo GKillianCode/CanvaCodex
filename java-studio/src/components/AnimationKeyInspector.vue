@@ -8,6 +8,7 @@ import AnimationCurveEditor from "./AnimationCurveEditor.vue";
 import { reactive, computed } from "vue";
 import {
   animationEasings,
+  isColorAnimationField,
   discreteAnimationFields,
 } from "../animationModel.js";
 const props = defineProps({ studio: Object }),
@@ -115,12 +116,7 @@ const labels = {
             @change="f.value = $event.target.checked ? 1 : 0" /><input
             v-else
             :type="
-              [
-                'color',
-                'strokeColor',
-                'backgroundColor',
-                'backgroundColor2',
-              ].includes(f.field)
+              isColorAnimationField(f.field)
                 ? 'color'
                 : 'number'
             "
@@ -128,12 +124,7 @@ const labels = {
             :value="f.value"
             step="0.1"
             @input="
-              f.value = [
-                'color',
-                'strokeColor',
-                'backgroundColor',
-                'backgroundColor2',
-              ].includes(f.field)
+              f.value = isColorAnimationField(f.field)
                 ? $event.target.value
                 : Number($event.target.value)
             " /></label
