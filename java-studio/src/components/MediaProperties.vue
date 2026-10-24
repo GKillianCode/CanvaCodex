@@ -1,6 +1,20 @@
 <script setup>
+import { reactive } from "vue";
+import AnimationKeyButton from "./AnimationKeyButton.vue";
+import { videoControls, normalizeVideoProperties } from "../videoProperties.js";
+import { VIDEO_FILE_ACCEPT } from "../videoMedia.js";
 import NumberRange from "./NumberRange.vue";
-defineProps({ element: Object, theme: Object });
+const props = defineProps({ element: Object, theme: Object, studio: Object });
+const s = props.studio ? reactive(props.studio) : null;
+function value(field) {
+  return s?.animation
+    ? s.animation.propertyValue(field, true)
+    : normalizeVideoProperties(props.element)[field];
+}
+function update(field, value) {
+  if (s?.animation?.shouldKey(field)) s.animation.setProperty(field, value);
+  else props.element[field] = value;
+}
 const emit = defineEmits(["upload", "play", "video"]);
 </script>
 <template>
@@ -8,7 +22,7 @@ const emit = defineEmits(["upload", "play", "video"]);
     ><label class="menu-file"
       >Remplacer la vidéo<input
         type="file"
-        accept="video/mp4,video/webm,video/ogg,video/quicktime,.mov"
+        :accept="VIDEO_FILE_ACCEPT"
         @change="emit('video', $event)" /></label
     ><label class="checkbox-label"
       ><input type="checkbox" v-model="element.autoplay" />Lecture
@@ -22,13 +36,24 @@ const emit = defineEmits(["upload", "play", "video"]);
         min="0"
         step=".1"
         v-model.number="element.videoStart" /></label
-    ><button class="btn full" @click="emit('play')">
+    ><button class="btn full" :disabled="s?.animation?.busy||s?.overlayVideoBusy" @click="emit('play')">
       Lire / mettre en pause
     </button>
-    <p class="field-help">
-      Lecture visuelle sans son dans les exports Canvas. Le codec doit être pris
-      en charge par le navigateur.
-    </p></template
+    <NumberRange
+      v-for="control in videoControls"
+      :key="control.field"
+      :label="control.label"
+      :unit="control.unit"
+      :min="control.min"
+      :max="control.max"
+      :step="control.step"
+      :model-value="value(control.field)"
+      @update:model-value="update(control.field, $event)"
+      ><template #actions
+        ><AnimationKeyButton
+          v-if="s"
+          :studio="s"
+          :field="control.field" /></template></NumberRange></template
   ><label v-else class="image-upload"
     >{{ element.src ? "Remplacer l’image" : "Importer une image"
     }}<input

@@ -27,7 +27,7 @@ function choose(role) {
   <div class="palette-color">
     <label
       >{{ label
-      }}<select
+      }}<slot name="actions"/><select
         :aria-label="label + ' · palette du thème'"
         :value="element[field + 'Role'] || ''"
         @change="choose($event.target.value)"

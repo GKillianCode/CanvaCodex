@@ -81,10 +81,10 @@ export function videoFrameJobs({ token, binary, available = () => true }) {
           !Object.hasOwn(encodingFormats, spec.format) ||
           !Number.isInteger(spec.width) ||
           spec.width < 16 ||
-          spec.width > 2560 ||
+          spec.width > 3840 ||
           !Number.isInteger(spec.height) ||
           spec.height < 16 ||
-          spec.height > 1440 ||
+          spec.height > 2160 ||
           !Number.isInteger(spec.fps) ||
           spec.fps < 1 ||
           spec.fps > 60 ||
@@ -190,6 +190,33 @@ export function videoFrameJobs({ token, binary, available = () => true }) {
         if (!n) throw Error("Lot vide.");
         return json(res, 200, { next: current.next });
       }
+      if (req.method === "POST" && parts[1] === "audio") {
+        if (current.audio) throw Error("Audio déjà reçu.");
+        const data = await body(req, 64 * 1024 * 1024);
+        if (
+          data.length < 48 ||
+          data.toString("ascii", 0, 4) !== "RIFF" ||
+          data.toString("ascii", 8, 12) !== "WAVE" ||
+          data.toString("ascii", 12, 16) !== "fmt " ||
+          data.readUInt32LE(16) !== 16 ||
+          data.readUInt16LE(20) !== 1 ||
+          data.readUInt16LE(22) !== 2 ||
+          data.readUInt32LE(24) !== 24000 ||
+          data.readUInt16LE(34) !== 16 ||
+          data.readUInt16LE(32) !== 4 ||
+          data.readUInt32LE(28) !== 96000 ||
+          data.readUInt32LE(4) !== data.length - 8 ||
+          (data.length - 44) % 4 !== 0 ||
+          data.toString("ascii", 36, 40) !== "data" ||
+          data.readUInt32LE(40) !== data.length - 44 ||
+          data.length >
+            Math.ceil((current.count / current.fps + 1) * 24000) * 4 + 44
+        )
+          throw Error("Piste audio invalide.");
+        current.audio = join(current.folder, "audio.wav");
+        await writeFile(current.audio, data, { flag: "wx", mode: 0o600 });
+        return json(res, 200, { audio: true });
+      }
       if (req.method === "POST" && parts[1] === "finish") {
         if (current.next !== current.count)
           throw Error("Capture incomplète. Relance l’export.");
@@ -202,6 +229,7 @@ export function videoFrameJobs({ token, binary, available = () => true }) {
             binary,
             signal: current.controller.signal,
             inputOptions: ["-framerate", String(current.fps)],
+            audioInput: current.audio,
             quality: current.quality,
             maxBytes: 2 * 1024 * 1024 * 1024,
           },

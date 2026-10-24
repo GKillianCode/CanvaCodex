@@ -4,12 +4,12 @@ Branche `codex/test-animation-studio`, [PR #127](https://github.com/GKillianCode
 
 ## Espace de travail et propriétés
 
-L’atelier est accessible depuis l’accueil, une vidéo ou `#/animations`. Chaque animation possède ses fichiers, sa sauvegarde et ses scènes successives. Plusieurs animations indépendantes sont plusieurs supports de la vidéo.
+L’atelier est accessible depuis l’accueil, une vidéo ou `#/animations`. Chaque animation possède ses fichiers, sa sauvegarde et ses scènes successives. Une scène ajoutée reprend les réglages de fond de la dernière scène du document (mode, couleurs, liaison au thème et angle du dégradé), sans recopier ses objets, effets ou images clés. Plusieurs animations indépendantes sont plusieurs supports de la vidéo.
 
 Le cadre central délimite la vidéo, avec bordure complète sur fond uni ou transparent. L’extérieur de la scène est un plateau fini à points en clair/sombre. Les points s’arrêtent à sa bordure extérieure ; la zone de travail autour reste unie. Les objets peuvent dépasser du cadre. Ctrl + molette zoome la scène ; bouton central ou Espace + glisser déplace la vue. Les points, repères et commandes ne sont pas exportés.
 
 - **Objet** : les propriétés communes aux autres ateliers, ou uniquement les paramètres du moteur sélectionné. Sélectionner un objet ou moteur revient à sa fiche de propriétés.
-- **Scène** : nom, durée de 0,1 à 120 s, 24/30/60 images par seconde, fond et palette.
+- **Scène** : nom, durée en **minutes / secondes / images**, 24/30/60 images par seconde, fond et palette. Les images suivent la cadence de la scène (15 images à 30 i/s = 0,5 s). La durée reste limitée à 120 s ; le minimum est arrondi à la première image entière au-dessus de 0,1 s. Les anciens projets conservent leur durée et le stockage interne reste en secondes.
 - **Animation** : effets ajoutés à la sélection, regroupés en Mouvement, Déformation, Génération et Physique 2D ; séquences, clés, splines et références.
 - **Calques / Composants** : outils partagés avec Diaporama, sans duplication du panneau.
 
@@ -18,6 +18,52 @@ Styles par mots, textes progressifs, SVG, images, tableaux, bits, groupes, verro
 ## Disposition initiale et état animé
 
 **Disposition initiale** permet de travailler la géométrie de base et laisse le texte entier visible. **État animé** calcule le rendu au temps du curseur, sans remplacer cette base. Déplacer la disposition initiale d’un moteur translate également ses clés X/Y propres ; les clés ne le ramènent plus à son ancienne position au lancement. Un moteur attaché à une spline suit toujours sa trajectoire.
+
+## Timeline compacte
+
+Les vues **Images clés / Audio** et les commandes de lecture partagent une seule ligne : début, image précédente/suivante, lecture/pause, timecode, **Boucle**, Construction/État animé et Clés auto. Les noms des commandes apparaissent au survol ; les légendes de temps et d’audio ne prennent plus une ligne supplémentaire. La position dans le fichier audio reste accessible au survol du timecode. Boucle est un bouton activable, pas une checkbox.
+
+Le raccourci d’aperçu de cette barre est retiré ; **Animer / Exporter** reste dans l’en-tête. Copier/coller/supprimer les clés sont intégrés à la barre d’actions existante. Hauteur initiale de timeline réduite de 340 à 260 px ; les contrôles occupent une ligne même sur une fenêtre étroite, avec défilement horizontal si nécessaire. La poignée de hauteur et le zoom temporel restent disponibles.
+
+## Présence des objets
+
+Un objet ajouté au curseur commence **à cet instant**, même sans clip et sans Clés auto. Dans **Objet → Style → Présence dans la scène**, règle **Apparaît à** et **Disparaît à**, ou utilise **Commencer / Terminer au curseur**. La fin peut suivre automatiquement celle de la scène. Les boutons **Aller au début / Aller à la fin** placent exactement la tête de lecture aux bornes de présence de l’objet de référence (premier de la sélection), sans modifier ces bornes ; la lecture est arrêtée. Une fin automatique conduit à la fin de scène. La présence reste indépendante des séquences de mouvement : un texte peut exister de 5 à 7 s dans une scène de 10 s sans clés d’opacité artificielles.
+
+Dans la vue **Images clés**, les pistes sont rangées dans des **tiroirs par objet**. La barre de l’en-tête indique directement son apparition et sa disparition ; aucune liste Présence séparée n’est ajoutée en haut. Déplie le tiroir pour retrouver directement les propriétés animées et les effets de l’objet, sans tiroir de séquence intermédiaire ni seconde barre verte. Si plusieurs séquences animent le même objet, un petit libellé sur chaque propriété les distingue. Une séquence ciblant plusieurs objets apparaît une seule fois, sous le premier objet ; les pistes globales sont regroupées sous Scène, dont les propriétés de caméra et de fond sont elles aussi accessibles directement, sans tiroir intermédiaire. Les clés apparaissent sur la ligne d’objet repliée ou dans les propriétés dépliées, sans doublon ; les marqueurs vides restent sur la ligne d’objet. Un double-clic sur cette ligne permet d’ajouter une image clé. Clic droit sur son nom → **Renommer** permet de modifier le nom partagé de l’objet (Entrée valide, Échap annule). Sélectionner un objet, une séquence ou une image clé conserve l’état ouvert/fermé de son tiroir. Seule la petite flèche le déplie ou le replie. L’en-tête du tiroir conserve trois actions accessibles même replié : activer/désactiver ses séquences et effets, masquer la piste dans la timeline, supprimer ses animations après confirmation. La suppression conserve l’objet et sa plage de présence ; elle se défait en une seule annulation et nettoie les événements/clés liés aux animations retirées. **Pistes masquées** réaffiche les tiroirs masqués pour les restaurer ; ce masquage de vue ne change pas le rendu. Les séquences et effets gardent aussi leur suppression individuelle. Glisse sa barre de présence pour déplacer la plage, ou ses extrémités pour changer son début et sa fin, avec aimantation aux images de la scène. Le tiroir propose les animations d’apparition/disparition partagées (fondu, glissements, zoom, etc.) et leurs durées. Elles se déroulent à l’intérieur de la plage ; les longues transitions sont limitées à la moitié de la plage chacune. Un objet est visible dès le début inclus, absent à partir de sa fin explicite. Les anciens objets sans réglage gardent leur comportement.
+
+Les textes, images, formes, formes libres, tableaux, code et bits ajoutés utilisent cette présence. Un objet absent ne gêne pas la sélection à la souris ; la liste des calques et sa ligne de présence restent accessibles. Le texte progressif commence à la naissance de l’objet. Duplication, historique et sauvegarde conservent les réglages ; une copie dupliquée démarre au curseur courant. Les transitions modifient la copie de rendu, pas la pose éditable ni les valeurs des clés.
+
+Le champ **Maintien final**, partagé par tous les blocs dans Présence dans la scène, est à **zéro par défaut**. Il réserve un intervalle à l’intérieur de la présence, avant la transition de sortie ; la fin de présence reste inchangée. Les durées sont limitées à l’espace disponible. La timeline distingue le maintien (zone légèrement teintée) et la sortie (hachures). Les clés manuelles des autres animations gardent leurs instants ; le compteur utilise automatiquement cet intervalle pour terminer plus tôt.
+
+## Compteurs animés
+
+Utilise **Insérer → Compteur animé** ou **clic droit → Ajouter un compteur**. C’est un texte standard : police, taille, couleur, alignement et autres styles utilisent les propriétés communes. Dans **Objet → Style → Compteur animé**, choisis les valeurs de départ/d’arrivée et le rythme. La durée est automatiquement celle de la plage réglée dans **Présence dans la scène**, désormais premier tiroir des propriétés de chaque objet (moteurs inclus), quelle que soit la catégorie. Le champ Durée du comptage calculée est informatif, sans second réglage indépendant. Le maintien final et la durée de sortie sont retranchés du temps disponible pour compter. **Affichage du compteur** propose le remplacement des chiffres ou le **défilement des valeurs**. Dans ce second mode, la valeur entière (par exemple 2026 → 2025) glisse dans le bloc, avec quatre sens : gauche vers droite, droite vers gauche, haut vers bas ou bas vers haut. Le cadre masque les valeurs à l’extérieur. Le calcul évalue seulement deux valeurs voisines à chaque image, même sur une grande plage ; aucun tableau de toutes les dates n’est créé. Le compteur monte ou descend automatiquement selon ses bornes. Les propriétés de texte et les images clés habituelles (couleur, taille, position, etc.) restent disponibles, avec le même rendu dans l’éditeur, l’aperçu et l’export.
+
+Le compteur prend sa valeur de départ à l’apparition et atteint sa valeur d’arrivée **avant le maintien et l’effacement** (ou sur la dernière image visible s’il n’y a ni maintien ni sortie). Par exemple, présence 5–15 s, sortie 1 s et maintien 2 s : comptage 5–12 s, cible lisible 12–14 s, puis effacement 14–15 s. Même avec un maintien nul, la cible est atteinte avant que la sortie commence. Une fin automatique suit la fin de scène. Modifier le début, la fin ou la durée de scène recalcule automatiquement la vitesse pour les quatre rythmes, les deux sens et les deux modes d’affichage. Les anciennes durées indépendantes de compteur sont ignorées à la normalisation ; la plage de présence devient la référence unique. Sur une présence d’une seule image, seule la valeur finale peut être montrée. Les limites de durée de scène (120 s) et d’export existantes restent inchangées. Il ne demande aucun clip ni clé préalable.
+
+Le mode **Nombre** compte dans les deux sens ; les zéros initiaux utilisent la largeur du maximum (`000` pour 100, `0000000` pour un million). Décimales, séparateur décimal, séparation des milliers et texte avant/après sont réglables. Le mode **Temps** respecte les retenues à 60 secondes et 60 minutes, affiche HH:MM:SS ou MM:SS et accepte un séparateur personnalisé (`:`, `.`, `,`, vide…). Le rythme peut être constant, progressif, accéléré ou décéléré, calculé par l’interpolation existante. Les valeurs sont évaluées à chaque image : un grand intervalle peut franchir plusieurs entiers entre deux images. L’aperçu et les exports utilisent le même rendu déterministe.
+
+## Audio de référence
+
+Dans **Scène → Audio de référence**, importe un fichier MP3, WAV, Ogg, M4A, AAC, FLAC ou WebM lisible par le navigateur. Le fichier est partagé par toutes les scènes de l’animation. À la première importation, leurs débuts d’extrait se suivent selon leur durée ; remplacer le fichier conserve les débuts déjà configurés.
+
+Règle **Début dans le fichier** dans ce tiroir avec les quatre champs **h / min / s / images** par défaut, à la cadence de la scène (24, 30 ou 60 i/s). Le réglage **Unité du timecode** reste accessible avant même d’importer un audio ; il permet aussi de choisir les millisecondes. À 30 i/s, `00:00:21:15` vaut 21,5 secondes, et non 21,015 secondes. Ce choix est conservé dans le navigateur et s’applique aussi aux compteurs de lecture/aperçu et à la règle audio. Changer d’unité ne modifie aucune valeur enregistrée ; les secondes restent la représentation interne. Par exemple, 00 h, 00 min, 33 s et 000 ms correspondent exactement à 33 secondes ; 00 s et 330 ms correspondent à 0,330 seconde. Les anciennes valeurs sont conservées sans réinterprétation. La fin est calculée avec la durée de la scène : début 20 s et scène de 11 s donnent l’extrait 00:00:20.000–00:00:31.000. Le début, la fin calculée et la durée sont affichés séparément. Modifier explicitement le début arrête la lecture et ramène le curseur de scène à zéro : un départ à 33 s reste 33 s même si le curseur était auparavant à 5 s. En lecture ou lors du déplacement du curseur ensuite, le temps source est début + temps de scène (scène 2 s → fichier 35 s). Modifier la durée modifie automatiquement la longueur affichée, sans imposer de manipulation sur la forme d’onde. Une nouvelle scène reprend la source précédente et commence après son extrait ; chaque début reste ensuite indépendant et modifiable. Au-delà de la fin du fichier, la partie restante est silencieuse.
+
+La timeline a deux vues exclusives, **Images clés** et **Audio**, avec la même barre de lecture. Audio affiche uniquement l’extrait de la scène sélectionnée. Sa règle affiche les positions dans le fichier audio en HH:MM:SS.mmm ; la barre de lecture commune garde le temps relatif dans la scène. Les compteurs de lecture et d’aperçu utilisent également les champs heures/minutes/secondes/millisecondes ; « Dans l’audio » indique séparément la position absolue dans le fichier. Un début à 33 s et une scène de 33 s donnent donc une plage source de 00:00:33.000 à 00:01:06.000. Clique sur la forme d’onde pour déplacer la lecture ; Ctrl + molette utilise le zoom temporel existant. Le bouton haut-parleur coupe/réactive le son sans masquer le graphe. À côté, **Volume** règle l’écoute de 0 à 100 %, avec curseur et pourcentage. Le contrôle est partagé avec l’aperçu ; le niveau et le mode muet sont mémorisés séparément dans le navigateur. Changer le volume en mode muet conserve le silence jusqu’à sa réactivation. Le volume reste une préférence d’écoute, sans modification du fichier source ni ajout de son à l’export vidéo. Les audios compressés sont décodés intégralement une fois puis préparés en PCM temporaire pour éviter les recherches approximatives dans les index MP3 VBR. Le lecteur et son transport restent partagés ; aucune conversion manuelle ni réimportation requise pour les références existantes. Seul le fichier original est sauvegardé/exporté ; la source PCM temporaire est libérée au changement de référence ou à la fermeture. Pour limiter la mémoire, la fréquence de cette écoute de travail est adaptée à la durée (48 kHz sur les fichiers courts, jusqu’à 8 kHz pour une heure). Les WAV sont lus directement. La lecture sonore reste disponible dans Images clés, et le passage entre les deux vues conserve le temps courant.
+
+Lecture, pause, recherche, boucle et aperçu réutilisent l’horloge Animation. Le lecteur attend les données de l’extrait et la fin du repositionnement avant de démarrer le son ; les événements de disponibilité et de fin de recherche relancent la synchronisation. En mode Toutes les scènes, chaque scène lit son propre extrait, même avec des débuts non consécutifs. La piste audio reste une référence de travail : les vidéos exportées gardent leur fonctionnement sans cette bande-son.
+
+Le fichier original et une enveloppe de forme d’onde sont conservés une seule fois dans IndexedDB, via le dépôt de médias local existant. Les scènes et leur historique gardent uniquement une référence et un début ; aucun audio n’est encodé dans localStorage. L’analyse locale utilise un décodage à 8 kHz et des extrema à 100 Hz, puis libère le buffer PCM ; la lecture utilise le fichier original. Limites d’import : 128 Mo et une heure. Les sauvegardes JSON de l’éditeur incluent le média une seule fois grâce au pipeline portable existant ; la sauvegarde globale inclut aussi le dépôt de médias. Aucun service distant ni IA.
+
+## Images clés automatiques
+
+Dans la barre de lecture, **Clés auto** active l’enregistrement des propriétés animables sans préparer leurs losanges. Place la tête de lecture, déplace/redimensionne/tourne un objet ou modifie ses couleurs, son contour, son opacité ou les paramètres animables d’un moteur : les clés apparaissent dans la timeline. Une première modification après le début conserve une clé de départ ; chaque objet d’une sélection multiple conserve ses valeurs initiales. Les mouvements à la souris sont validés en fin de geste.
+
+Exemple : compose à 0 s, active Clés auto, avance à 2 s et déplace un cercle en changeant son remplissage. L’application conserve sa position et sa couleur de départ et interpole vers ce nouvel état. À 4 s, tu peux commencer à modifier une autre propriété sans revenir à 0 s.
+
+Les effets ajoutés commencent à l’instant courant. Un objet ajouté, dupliqué, collé ou une image déposée avec Clés auto actif après 0 s apparaît à cet instant, sans être visible avant. Les réglages sans canal d’animation (contenu textuel, choix de police, etc.) restent des réglages statiques. La préférence est mémorisée dans le navigateur ; désactivée initialement, elle conserve le fonctionnement manuel existant. Les losanges restent utilisables pour poser une clé explicite, même sans changement de valeur. Activer/désactiver Clés auto, parcourir la timeline ou lire ne crée aucune clé.
+
+Pendant le glisser d’un losange, une bulle suit la souris et affiche son temps **dans la scène**, à la milliseconde, et son numéro d’image. Elle tient compte du début de la séquence, du zoom temporel et des limites du déplacement. Si une clé occupe déjà l’emplacement visé, la bulle indique le blocage et conserve le temps effectivement accepté. Elle disparaît au relâchement ou si la fenêtre perd le focus.
 
 ## Clés par propriété
 
@@ -33,7 +79,7 @@ Un losange plein indique une clé à cet instant ; un contour coloré indique un
 
 Les moteurs à particules disposent également de clés pour la force, la vitesse, la taille, la quantité, la durée de vie et la gravité. La couleur animée est prise dans le rendu réel de la palette.
 
-- Glisser un losange déplace son instant. Glisser la barre décale la séquence.
+- Glisser un losange déplace son instant. La seule barre de l’objet représente sa présence ; il n’y a plus de barre de séquence redondante. Les poignées de présence règlent les bornes de l’objet et conservent les instants des clés. Les pistes globales et les effets gardent leurs barres de durée indépendantes et déplaçables.
 - Double-clic ou clic droit → **Afficher cet état** place le curseur au temps exact, active le rendu animé et ouvre les valeurs de la clé à gauche.
 - Clic droit : dupliquer/supprimer une clé. La duplication la décale pour ne pas la recouvrir immédiatement.
 - Chaque ligne de propriété a sa propre interpolation : linéaire, progressive, accélération, décélération, instantanée ou Bézier. Les paramètres Bézier et valeurs individuelles restent à gauche.
@@ -165,3 +211,80 @@ La fenêtre Exporter regroupe l’aperçu, ses commandes de lecture et les infor
 MP4 : compression avec perte, trois qualités (CRF18/21/24 : élevée/équilibrée/compacte), équilibrée par défaut, H.2648bits YUV420/BT709 avec faststart. MKV : FFV1/BGRA sans perte, codeur arithmétique avec table personnalisée et contexte large, alpha exact ; les mêmes réglages améliorent la compression des autres exports MKV existants. MOV conserve QTRLE pour la compatibilité précédemment demandée : il reste volumineux, signalé dans l’interface. WebM reste disponible.
 
 Mesure réelle de la démo Slime5scènes : **54s,1920×1080,30fps,1620images,MP4 équilibré :5997527octets (~6Mo)**. Ce chiffre est propre à cette démo, pas une estimation garantie pour tout contenu. Source de référence : [options d’encodage FFmpeg](https://ffmpeg.org/ffmpeg-codecs.html) et [formats de rendu Kdenlive](https://docs.kdenlive.org/en/exporting/render.html). Aucun test direct du logiciel Kdenlive n’a été effectué.
+
+## Bibliothèque d’effets — 23 octobre 2026
+
+Nouvelle branche de test `test/animation-effects-library`, [PR #160](https://github.com/GKillianCode/CanvaCodex/pull/160), issue [#159](https://github.com/GKillianCode/CanvaCodex/issues/159). Elle prolonge les composants de la branche des ateliers ; aucune fusion automatique.
+
+### Prise en main
+
+1. Sélectionner un objet → onglet **Animation** → **Ajouter un effet**.
+2. Choisir une catégorie ou rechercher un nom. Les vignettes utilisent le vrai moteur et s’animent au survol.
+3. L’effet fonctionne immédiatement. Ouvrir son tiroir pour régler son début, sa durée et ses paramètres. Les effets temporels progressent automatiquement ; leurs losanges permettent un contrôle par clés.
+4. Glisser une poignée pour ordonner la pile, cocher pour activer/désactiver ; dupliquer, retirer (confirmation) ou réinitialiser. Les pistes d’effets dans la timeline se déplacent ; leur poignée droite règle la durée.
+5. **Mémoriser** enregistre réglages et clés dans la bibliothèque locale de mouvements existante. Les réglages sont réutilisables entre animations ; les références à d’autres objets et aux chemins doivent être choisies à nouveau. Aucun contenu d’image n’est copié dans ce préréglage.
+
+**Exemples → Laboratoire d’effets** ajoute quatre scènes indépendantes et modifiables : transformations/révélations, fragments, déformations et typographie. Les scènes existantes sont conservées.
+
+### Effets disponibles
+
+- Transformer : fondu entre deux objets/images, morphing de contours fermés natifs. Choisir l’objet d’arrivée dans le tiroir ; son original peut être masqué. Un fondu entre images opaques conserve son alpha à mi-transition.
+- Révéler : fondu, balayage directionnel, ouverture circulaire, dissolution, mosaïque et dessin progressif du contour natif.
+- Fragments : explosion, poussière, effondrement, reconstruction ; carrés/triangles, finesse, force, gravité, vent, rotation et décalage des départs.
+- Déformer : balancement depuis un pivot, ondulation, courbure, torsion 2D et déformation le long d’une spline existante. Le suivi d’objet sur spline et les outils de points historiques restent disponibles.
+- Graphisme : glitch, flou, ombre, halo, traînée du mouvement réel, pulsation, scintillement, désaturation, rotation de teinte et pointillés mobiles.
+- Typographie : néon, doré/métallique, reflet mobile et apparition/dispersion par lettre, mot ou ligne. Le moteur machine à écrire existant reste disponible dans Objet.
+
+La graine de variante est enregistrée : la lecture, le déplacement du curseur et l’export produisent les mêmes fragments. « Nouvelle variante » change cette graine. Les couleurs utilisent PaletteColor, donc le thème et les couleurs personnalisées. Les valeurs numériques utilisent NumberRange et les clés/interpolations utilisent la timeline existante.
+
+### Passerelle vectorielle
+
+Depuis **Animation → Depuis l’atelier vectoriel**, charger ses illustrations enregistrées, choisir un plan et l’ajouter comme **nouvelle scène**. Les formes, tracés libres, textes, images, groupes, dégradés et découpes restent des éléments natifs indépendants. La copie ne modifie pas l’original. Le format du plan est adapté à la scène 1920 × 1080 en conservant ses proportions. Limite existante : 100 objets par scène ; un plan plus grand doit être réparti.
+
+Autre accès : **Vectoriel → Fichier → Exporter pour Animation…** produit un JSON typé Animation, importable dans cet atelier. L’import SVG comme image et la recoloration utilisent toujours les moteurs SVG historiques. Un SVG importé comme image reste un objet ; utiliser un plan natif pour animer ses parties séparément.
+
+### Rendu et limites de cette version
+
+Même renderAnimation/renderSlide pour le travail, l’aperçu et les exports MOV/MKV/MP4 existants. Aucun service d’IA. Les transformations d’images sont des transitions calculées ; il ne s’agit pas d’une correspondance sémantique entre les détails de deux photographies. Le morphing concerne les silhouettes fermées simples sans trous ni image de remplissage ; les autres cibles utilisent un fondu. Fragmentation et déformations visuelles sont en 2D, avec des fragments de texture, pas une simulation 3D de matière.
+
+Les effets visuels utilisent trois surfaces temporaires réutilisées, plafonnées à 2048 px par côté ; au-delà, leur texture intermédiaire est réduite. Le nombre de cellules est borné (40 × 40, deux triangles éventuels par cellule). La traînée est limitée à huit échos et échantillonne le mouvement réel sans mémoriser les frames de la vidéo. Le rendu typographique réutilise les mesures et la disposition du texte existantes.
+
+## Slime enrichi — cinq scènes, 31 effets
+
+L’exemple Slime et le JSON à la racine utilisent désormais tous les effets dans le parcours continu de **54 secondes**. Le [guide détaillé](slime-effects.md) donne pour chaque scène les objets et les temps à observer. Ouvrir **Exemples → Slime · cinq mondes** pour ajouter la nouvelle version au document actuel, puis cocher **Toutes les scènes** dans l’aperçu/export. Les copies déjà modifiées par l’utilisateur ne sont pas remplacées automatiquement.
+
+Avec beaucoup de pistes, cocher **Sélection** pour se concentrer sur l’objet actif et les pistes globales. Cliquer sur le nom d’un effet dans la timeline ouvre directement son tiroir partagé. Les obstacles physiques, qui agissent sur la scène sans plage temporelle, restent dans leurs propriétés et ne présentent plus de fausse durée dans la timeline.
+
+Les événements proposent maintenant **Masquer un objet ou une flèche**, en complément de Faire apparaître. Plusieurs événements de visibilité sur une cible sont évalués dans l’ordre de leur déclenchement, y compris après une recherche temporelle en arrière.
+
+
+## Pistes autour du curseur, groupes et motifs animés
+
+**Autour du curseur**, activé par défaut et mémorisé dans le navigateur, affiche chaque tiroir d’objet de deux secondes avant son apparition à deux secondes après sa disparition. Revenir en arrière retrouve ses pistes ; décocher ce filtre retrouve toutes les pistes. Ce filtrage change uniquement la liste, pas le rendu ni les animations. Les pistes globales restent visibles. Une séquence commune à plusieurs objets reste accessible lorsqu’au moins un de ses membres est dans cette fenêtre. Pendant un déplacement, la piste manipulée reste visible jusqu’au relâchement.
+
+Une sélection groupée dispose de **Position et dimensions du groupe**, avec des clés communes pour la position, la taille et la rotation. Les nouveaux clips de groupe transforment les membres ensemble. Les anciens clips conservent leur comportement : ajouter une propriété commune crée au besoin une nouvelle couche de groupe à l’instant courant, sans réécrire leurs anciennes clés. Les mouvements réutilisables peuvent être appliqués à la sélection groupée et enregistrés depuis sa séquence ; leur transformation commune et les effets du membre de référence sont réutilisés.
+
+Dans **Scène → Fond et motifs**, les losanges permettent d’animer le type de fond, les couleurs, la rotation, la taille, l’espacement, l’épaisseur, l’opacité et les décalages horizontal/vertical des motifs. Les contrôles apparaissent selon le mode de fond choisi. Les valeurs numériques et couleurs suivent l’interpolation et la courbe de la séquence ; un changement de type de fond produit un fondu entre les deux types choisis. Le quinconce est un changement discret. Les préréglages enregistrent leurs propriétés à l’instant courant en une seule opération annulable.
+
+L’éditeur, l’aperçu et l’export utilisent le même fond évalué. Le format automatique prend aussi en compte les clés menant à un fond transparent pour conserver son alpha.
+
+
+Les courbes personnalisées peuvent dépasser leur cible pour les mouvements. Les canaux de couleur restent bornés à 0–255 et l’opacité du fondu entre types de fond à 0–100 %, afin de conserver un rendu continu jusqu’à la dernière clé, notamment lors d’une inversion fond/motif.
+
+
+## Animer plusieurs objets ensemble
+
+Sélectionne plusieurs objets avec **Ctrl + clic** (ou une zone de sélection), active **Clés auto**, place le curseur à l’instant voulu puis déplace la sélection. Les poignées communes permettent aussi de la tourner et de la redimensionner. Une seule séquence de transformation cible toute la sélection : les clés partagent les mêmes instants et courbes et les espacements sont conservés. Il n’est pas nécessaire de créer un groupe permanent.
+
+Dans **Objet → Placement → Position et dimensions de la sélection**, les positions et dimensions concernent le cadre commun, y compris avec Clés auto. L’échelle transforme aussi les distances entre objets ; elle ne fait pas seulement grossir chaque objet autour de son propre centre. **Animer la sélection** et les losanges manuels restent disponibles pour travailler sans Clés auto. Les propriétés communes comme l’opacité peuvent être réglées au même instant pour toute la sélection. Une transformation collective s’annule en une seule opération. Revenir aux propriétés individuelles puis transformer à nouveau la sélection retrouve sa séquence commune existante.
+
+
+Dans la piste **Audio**, les boutons muet et volume sont placés **sous la durée de l’extrait**. Cliquer sur le pourcentage ouvre un curseur vertical (haut = plus fort, bas = moins fort), avec saisie numérique. Le réglage reste dans la largeur du bloc gauche et ne recouvre pas la forme d’onde. Un second clic, un clic extérieur ou Échap referme la palette. Le même contrôle est utilisé dans l’aperçu ; niveau mémorisé et mode muet restent indépendants.
+
+La colonne gauche est plus compacte dans la vue Audio (180 px), avec la même largeur utilisée par la règle, la piste et le calcul de zoom. Après un défilement horizontal, une tête de lecture hors de la zone temporelle reste derrière les libellés fixes ; elle ne donne plus l’impression que l’audio commence sous les commandes.
+
+
+Une nouvelle modification à une image déjà occupée **met à jour la clé de la même propriété**, sans en créer une seconde. L’identification utilise l’image de la scène à sa cadence (24/30/60 i/s), pas seulement l’égalité de nombres décimaux. La courbe et l’interpolation existantes sont conservées ; un collage remplace explicitement les réglages par ceux copiés. Après un changement de piste ou de sélection, l’éditeur retrouve la clé existante de l’objet pour la propriété concernée. Les éventuels doublons de cette propriété à cette image sont retirés lors de la modification. Les autres propriétés, objets et instants restent indépendants. Un déplacement manuel vers une image déjà occupée par la même propriété reste refusé.
+
+
+**Ctrl D** et **Ctrl C / Ctrl V** reprennent désormais la pose et les propriétés de style évaluées à l’instant courant : position, dimensions, taille du texte, rotation et couleurs animées, ainsi que les styles statiques. Les clips et leurs images clés ne sont pas copiés. La copie devient une base indépendante, avec le décalage habituel de 24 px et une présence commençant au curseur. Pour le presse-papiers, l’apparence est capturée au moment de copier, même si le collage se fait plus tard. Les compteurs dupliqués gardent leur configuration spécifique existante. Les effets de rendu ne sont pas convertis en images ni transférés comme animations.

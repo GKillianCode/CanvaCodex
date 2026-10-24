@@ -85,7 +85,7 @@
 .animation-ruler,
 .animation-track {
   display: grid;
-  grid-template-columns: 210px minmax(250px, 1fr);
+  grid-template-columns: var(--animation-label-width, 280px) minmax(250px, 1fr);
   min-height: 44px;
   border-bottom: 1px solid color-mix(in srgb, currentColor 9%, transparent);
 }
@@ -93,6 +93,7 @@
   padding: 9px 16px;
 }
 .timeline-ruler {
+  isolation: isolate;
   position: relative;
   cursor: crosshair;
   margin: 0 22px 0 0;
@@ -326,7 +327,7 @@
 
 .animation-property-track {
   display: grid;
-  grid-template-columns: 210px minmax(250px, 1fr);
+  grid-template-columns: var(--animation-label-width, 280px) minmax(250px, 1fr);
   border-bottom: 1px solid color-mix(in srgb, currentColor 5%, transparent);
 }
 .animation-property-track .track-lane {
@@ -749,7 +750,7 @@
 .animation-ruler,
 .animation-track,
 .animation-property-track {
-  grid-template-columns: 280px minmax(250px, 1fr);
+  grid-template-columns: var(--animation-label-width, 280px) minmax(250px, 1fr);
 }
 .animation-track.muted .track-lane {
   opacity: 0.3;
@@ -892,3 +893,150 @@
 .animation-studio .inspector{overflow:hidden;display:flex;flex-direction:column}.animation-studio .inspector-body{flex:1;min-height:0;overflow-y:auto;overscroll-behavior:contain}
 
 .studio.animation-studio:not(.presenting) .inspector{height:100%;max-height:100%;align-self:stretch}
+
+.effect-timeline-track .track-name span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;color:var(--muted)}
+.effect-duration-handle{position:absolute;right:0;top:0;bottom:0;width:10px;border:0;border-radius:3px;background:var(--accent);cursor:ew-resize}
+
+.effect-track-owner{border:0;background:transparent;color:inherit;display:flex;flex:1;min-width:0;flex-direction:column;align-items:flex-start;text-align:left;gap:2px;padding:3px 0;cursor:pointer}.effect-track-owner span,.effect-track-owner small{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.effect-track-owner small{font-size:9px;color:var(--muted)}
+
+/* Same timeline palette in light/dark; never intercept the drag or cover header menus. */
+.animation-key-drag-time {
+  position: fixed;
+  z-index: 18;
+  pointer-events: none;
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  max-width: 224px;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--ink);
+  box-shadow: 0 4px 16px #0002;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+.animation-key-drag-time strong { color: var(--accent); }
+.animation-key-drag-time small { flex-basis: 100%; }
+
+.animation-audio-track { min-height: 68px; }
+.animation-audio-label { display: grid; gap: 4px; min-width: 0; }
+.animation-audio-label strong { display: flex; align-items: center; gap: 6px; font-size: 11px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.animation-audio-label small { color: var(--muted); font-variant-numeric: tabular-nums; }
+.animation-audio-lane { min-height: 64px; cursor: ew-resize; background: color-mix(in srgb, var(--accent) 4%, transparent); }
+.animation-audio-lane svg { position: absolute; inset: 0; width: 100%; height: 64px; pointer-events: none; }
+.animation-audio-lane path { fill: color-mix(in srgb, var(--accent) 40%, transparent); stroke: var(--accent); stroke-width: .5; }
+.animation-audio-lane.muted svg { opacity: .45; }
+.animation-audio-loading { display: block; padding: 20px 12px; color: var(--muted); font-size: 11px; }
+.animation-audio-import { position: relative; justify-content: center; cursor: pointer; }
+.animation-audio-import input { position: absolute; inset: 0; opacity: 0; width: 100%; cursor: pointer; }
+.animation-audio-import.disabled { opacity: .5; cursor: default; }
+.animation-audio-filename { display: block; overflow-wrap: anywhere; font-size: 12px; }
+.animation-audio-interval { font-variant-numeric: tabular-nums; }
+
+.animation-audio-label strong span { overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+.animation-audio-label strong svg { flex-shrink: 0; }
+.properties-panel .animation-audio-import { display: flex; flex-direction: row; gap: 8px; align-items: center; }
+
+.animation-timeline-views { display: flex; align-items: center; gap: 16px; padding: 8px 14px; border-bottom: 1px solid var(--line); flex-shrink: 0; flex-wrap: wrap; }
+.animation-timeline-views .workspace-switch button { display: inline-flex; align-items: center; gap: 7px; }
+.animation-timeline-views small { color: var(--muted); font-size: 11px; }
+.animation-audio-properties .btn { background: transparent; color: inherit; border: 1px solid var(--border); }
+
+.animation-tracks { scroll-padding-top: 44px; scroll-padding-bottom: 12px; }
+
+.animation-audio-interval { display:grid; gap:8px; margin:14px 0; font-size:11px; }
+.animation-audio-interval > div { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+.animation-audio-interval dt { color:var(--muted); }
+.animation-audio-interval dd { margin:0; font-variant-numeric:tabular-nums; white-space:nowrap; }
+
+.animation-transport .timeline-time { display: flex; flex-direction: column; gap: 3px; }
+.timeline-source-time { font-size: 10px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.animation-export-time { flex-wrap: wrap; }
+.animation-export-time > small { flex-basis: 100%; font-variant-numeric: tabular-nums; }
+.animation-export-time .timecode-input input { width: 100%; }
+
+.animation-audio-time-format {display:flex;flex-direction:column;gap:6px;margin-top:14px;font-size:12px;}
+
+.presence-span {position:absolute;top:8px;height:26px;border:1px solid var(--accent);border-radius:5px;background:color-mix(in srgb,var(--accent) 14%,transparent);cursor:grab;display:flex;align-items:center;justify-content:center;min-width:4px;}
+.presence-span small {font-size:10px;white-space:nowrap;overflow:hidden;padding:0 10px;font-variant-numeric:tabular-nums;pointer-events:none;}
+.presence-handle {position:absolute;top:0;bottom:0;width:9px;border:0;background:transparent;cursor:ew-resize;padding:0;}
+.presence-handle:hover {background:color-mix(in srgb,var(--accent) 30%,transparent);}
+.presence-handle.start {left:0;border-radius:4px 0 0 4px;}
+.presence-handle.end {right:0;border-radius:0 4px 4px 0;}
+
+.animation-presence-properties .btn {background:transparent;color:inherit;border:1px solid var(--border);}
+/* Object lifetime is the drawer header; sequences and properties live beneath it. */
+.animation-object-track {background:color-mix(in srgb,var(--panel) 97%,var(--ink));}
+.animation-track .object-track-name {padding:4px 10px;gap:7px;}
+.object-track-title {flex:1;min-width:0;text-align:left;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;background:transparent;color:var(--ink);border:0;padding:5px 0;font:inherit;font-size:11px;font-weight:600;cursor:pointer;}
+.object-track-name .icon-btn:disabled {opacity:.2;cursor:default;}
+.animation-track.animation-sequence-track .track-name,
+.effect-timeline-track .track-name {padding-left:25px;}
+.animation-property-track .property-track-label {padding-left:40px;}
+.animation-object-track .presence-span {border-color:color-mix(in srgb,var(--accent) 55%,transparent);background:color-mix(in srgb,var(--accent) 11%,transparent);}
+.animation-object-track .presence-span small {color:var(--ink);opacity:.8;}
+.animation-object-track .track-name small {font-variant-numeric:tabular-nums;border:1px solid var(--line);border-radius:4px;padding:2px 5px;}
+
+
+/* One shared compact row: timeline view, playback and construction controls. */
+.animation-timeline-header {display:flex;align-items:center;gap:12px;min-height:46px;padding:5px 14px;border-bottom:1px solid var(--line);flex-shrink:0;overflow-x:auto;scrollbar-width:thin;}
+.animation-timeline-header .animation-timeline-views {padding:0;border:0;flex-wrap:nowrap;flex-shrink:0;}
+.animation-timeline-header .animation-transport {padding:0;border:0;flex:1;flex-wrap:nowrap;justify-content:center;min-width:max-content;}
+.animation-timeline-header .bottom-tools {padding:0;border:0;background:transparent;gap:5px;flex-wrap:nowrap;}
+.animation-timeline-header .workspace-switch {margin:0;flex-shrink:0;}
+.animation-timeline-header .workspace-switch button {white-space:nowrap;font-size:11px;padding:6px 9px;min-height:28px;}
+.animation-timeline-header .timeline-time {padding:0 4px;}
+.animation-timeline-header .playback-loop {border:1px solid var(--line);border-radius:6px;color:var(--muted);}
+.animation-timeline-header .playback-loop.active,.animation-timeline-header .playback-toggle.active {background:color-mix(in srgb,var(--accent) 14%,transparent);border-color:var(--accent);color:var(--accent);}
+.animation-timeline .animation-key-tools {flex-wrap:nowrap;overflow-x:auto;justify-content:flex-start;padding:5px 14px;min-height:40px;gap:6px;flex-shrink:0;scrollbar-width:thin;}
+.animation-key-tools > * {flex-shrink:0;white-space:nowrap;}
+.animation-key-tools .animation-key-selection-tools {padding:0 0 0 8px;border-top:0;border-left:1px solid var(--line);margin-left:auto;gap:4px;}
+.animation-timeline-header .workspace-switch button,.animation-timeline-header .btn {background:transparent;color:var(--ink);}
+.animation-timeline-header .workspace-switch button.active,.animation-timeline-header .btn.active {background:color-mix(in srgb,var(--accent) 14%,transparent);color:var(--accent);border-color:var(--accent);}
+.animation-key-tools .btn:not(.primary) {background:transparent;color:var(--ink);border-color:var(--line);}
+.animation-key-tools .btn.primary {background:var(--accent);color:var(--panel);border-color:var(--accent);}
+
+.animation-object-track.timeline-group-hidden > .track-lane {opacity:.35;}
+.animation-object-track .icon-btn[aria-pressed="false"] {opacity:.5;}
+
+.presence-hold-zone,.presence-exit-zone {position:absolute;top:0;bottom:0;pointer-events:none;border-left:1px solid color-mix(in srgb,var(--accent) 45%,transparent);}
+.presence-hold-zone {background:color-mix(in srgb,var(--accent) 15%,transparent);}
+.presence-exit-zone {background:repeating-linear-gradient(130deg,transparent 0 4px,color-mix(in srgb,var(--ink) 9%,transparent) 4px 6px);}
+.presence-span small {position:relative;z-index:1;}
+.presence-handle {z-index:2;}
+
+
+
+/* Object properties sit directly beneath their owner, without a second sequence row. */
+.animation-property-track.direct-object-property .property-track-label {padding-left:25px;}
+.object-track-rename {flex:1;min-width:0;max-width:100%;font:inherit;font-size:11px;padding:4px 5px;}
+.property-sequence-name {max-width:85px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.55;font-size:9px;margin-right:6px;}
+
+/* Categories share the timeline grid; ordering never changes scene layers. */
+.timeline-folder-row {display:grid;grid-template-columns:var(--animation-label-width,280px) minmax(0,1fr);min-height:29px;background:var(--panel);border-bottom:1px solid var(--line);}
+.timeline-folder-name {position:sticky;left:0;z-index:3;display:flex;align-items:center;gap:8px;padding:6px 12px;border:0;background:var(--panel);color:var(--muted);text-align:left;font:inherit;font-size:11px;cursor:pointer;}
+.timeline-folder-name span {flex:1;}.timeline-folder-name small{font-variant-numeric:tabular-nums;opacity:.7;}
+.track-reorder-grip {display:grid;place-items:center;padding:2px;border:0;background:transparent;color:var(--muted);cursor:grab;opacity:.6;}
+.track-reorder-grip:hover {opacity:1;color:var(--accent);}
+.animation-object-track.row-drop-before > .track-name {box-shadow:inset 0 2px var(--accent);}
+.animation-object-track.row-drop-after > .track-name {box-shadow:inset 0 -2px var(--accent);}
+.track-lane::before,.timeline-ruler::before {content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(to right,color-mix(in srgb,var(--ink) 5%,transparent) 0 var(--timeline-active-start,0%),transparent var(--timeline-active-start,0%) var(--timeline-active-end,100%),color-mix(in srgb,var(--ink) 5%,transparent) var(--timeline-active-end,100%) 100%);border-left:0;}
+.timeline-grouping {font:inherit;font-size:11px;max-width:150px;}
+
+/* Properties keep the whole editor height; tracks occupy the workspace below the scene. */
+.animation-studio .editor{display:grid;grid-template-columns:var(--slides-width,185px) minmax(0,1fr) var(--inspector-width,320px);grid-template-rows:minmax(0,1fr) auto;overflow:hidden}
+.animation-studio .editor>.slides-panel{grid-column:1;grid-row:1;min-height:0;overflow:hidden;width:auto}
+.animation-studio .editor>.work-area{grid-column:2;grid-row:1;min-width:0;min-height:0}
+.animation-studio .editor>.animation-timeline{grid-column:1/3;grid-row:2;min-width:0}
+.animation-studio .editor>.properties-panel{grid-column:3;grid-row:1/3;min-width:0;width:auto}
+.animation-studio .editor:not(:has(>.slides-panel)){grid-template-columns:minmax(0,1fr) var(--inspector-width,320px)}
+.animation-studio .editor:not(:has(>.slides-panel))>.work-area{grid-column:1}
+.animation-studio .editor:not(:has(>.slides-panel))>.animation-timeline{grid-column:1}
+.animation-studio .editor:not(:has(>.slides-panel))>.properties-panel{grid-column:2}
+.animation-studio .editor:not(:has(>.properties-panel)){grid-template-columns:var(--slides-width,185px) minmax(0,1fr)}
+.animation-studio .editor:not(:has(>.properties-panel)):not(:has(>.slides-panel)){grid-template-columns:minmax(0,1fr)}
+.animation-studio .editor>.deck-canvas{grid-column:1/3;grid-row:1/3}
+.animation-tracks{scrollbar-width:auto}

@@ -1,3 +1,5 @@
+import { normalizeEffect } from "./animationEffects.js";
+import { parseEffectField, effectField } from "./animationEffectCatalog.js";
 import {
   normalizeAnimation,
   backgroundAnimationFields,
@@ -25,14 +27,19 @@ export function normalizeMotionPresets(raw) {
         rotation: Number(r.reference?.rotation) || 0,
       },
       clip: normalizeAnimation({ clips: [r.clip] }).clips[0],
+      effects: (Array.isArray(r.effects) ? r.effects : [])
+        .slice(0, 20)
+        .map(normalizeEffect),
       path: r.path ? normalizeAnimation({ paths: [r.path] }).paths[0] : null,
     }));
 }
-export function captureMotion(clip, position, path, name) {
-  if (!clip || clip.keys.length !== 1 || !position)
-    throw Error("Sélectionne une séquence d’un seul objet.");
+export function captureMotion(clip, position, path, name, effects = []) {
+  if (!clip || !clip.keys.length || !position)
+    throw Error("Sélectionne une séquence d’objet ou de groupe.");
+  const capturedEffects=effects.filter(e=>e.key===clip.keys[0]);
+  const effectIds=new Set(capturedEffects.map(e=>e.id));
   const frames = clip.frames.filter(
-    (f) =>
+    (f) => (!parseEffectField(f.field)||effectIds.has(parseEffectField(f.field).id)) &&
       ![
         ...backgroundAnimationFields,
         ...cameraFields,
@@ -48,6 +55,36 @@ export function captureMotion(clip, position, path, name) {
       reference: position,
       clip: { ...clip, keys: [], frames, particles: { enabled: false } },
       path,
+      effects: capturedEffects
+        .map((e) => ({ ...e, start: Math.max(0, e.start - clip.start) })),
+    },
+  ])[0];
+}
+export function captureEffect(
+  effect,
+  position,
+  clips = [],
+  name = effect.name,
+) {
+  const keys = clips.flatMap((c) =>
+    c.frames
+      .filter((f) => parseEffectField(f.field)?.id === effect.id)
+      .map((f) => ({
+        ...f,
+        time: Math.max(0, c.start + f.time - effect.start),
+      })),
+  );
+  const frames = [
+    ...new Map(keys.map((f) => [f.field + ":" + f.time, f])).values(),
+  ];
+  const duration = Math.max(effect.duration, ...frames.map((f) => f.time));
+  return normalizeMotionPresets([
+    {
+      id: crypto.randomUUID(),
+      name: name || "Mon effet",
+      reference: position,
+      clip: { duration, keys: [], frames },
+      effects: [{ ...effect, start: 0, key: "", target: "", pathId: "" }],
     },
   ])[0];
 }
@@ -61,7 +98,9 @@ export function applyMotion(preset, position, key, start, duration) {
   const clip = JSON.parse(JSON.stringify(preset.clip));
   clip.id = crypto.randomUUID();
   clip.name = preset.name;
-  clip.keys = [key];
+  const keys=Array.isArray(key)?key:[key];
+  clip.keys=keys;
+  if(keys.length>1)clip.groupTransform=true;else delete clip.groupTransform;
   clip.start = start;
   clip.duration = duration;
   clip.enabled = true;
@@ -94,7 +133,18 @@ export function applyMotion(preset, position, key, start, duration) {
     }));
     clip.pathId = path.id;
   } else clip.pathId = "";
-  return { clip, path };
+  const idMap = new Map(), effects=[];
+  for(const targetKey of keys)for(const e of preset.effects||[]) {
+    const id=crypto.randomUUID();
+    if(!idMap.has(e.id))idMap.set(e.id,[]);
+    idMap.get(e.id).push(id);
+    effects.push(normalizeEffect({...e,id,key:targetKey,target:'',pathId:path&&e.pathId===preset.path?.id?path.id:'',start:start+e.start*ratio,duration:e.duration*ratio}));
+  }
+  clip.frames=clip.frames.flatMap(f=>{
+    const p=parseEffectField(f.field);
+    return p&&idMap.has(p.id)?idMap.get(p.id).map(id=>({...f,field:effectField(id,p.property)})):[f];
+  });
+  return { clip, path, effects };
 }
 export const builtinMotions = normalizeMotionPresets([
   {

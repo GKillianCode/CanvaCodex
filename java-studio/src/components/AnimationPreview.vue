@@ -1,4 +1,7 @@
 <script setup>
+import AnimationAudioVolume from "./AnimationAudioVolume.vue";
+import TimecodeInput from "./TimecodeInput.vue";
+import {audioTimeLabel} from "../animationAudioModel.js";
 import { releaseImages } from '../imageCache.js';
 const imageScope=Symbol('preview');
 import { useModalScroll } from "../modalScroll.js";
@@ -185,6 +188,7 @@ onUnmounted(() => {
                 <component :is="a.playing ? Pause : Play" :size="17" />
               </button>
             </div>
+            <AnimationAudioVolume v-if="a.config.audio.src" :audio="a.audio"/>
             <input
               type="range"
               min="0"
@@ -194,17 +198,12 @@ onUnmounted(() => {
               aria-label="Position de lecture"
               @input="a.seekPlayback($event.target.value)"
             />
-            <label class="animation-export-time"
-              ><input
-                type="number"
-                min="0"
-                :max="a.totalDuration"
-                step=".01"
-                :value="a.playbackTime.toFixed(2)"
-                aria-label="Temps de l’aperçu"
-                @change="a.seekPlayback($event.target.value)"
-              /><span>/ {{ a.totalDuration }} s</span></label
-            >
+            <div class="animation-export-time">
+              <TimecodeInput :frame-rate="a.audio.frameRate" compact label="Temps de l’aperçu" :model-value="a.playbackTime"
+                :disabled="a.busy" @focusin="a.stop()" @update:model-value="a.seekPlayback" />
+              <span>/ {{ audioTimeLabel(a.totalDuration, a.audio.frameRate) }}</span>
+              <small v-if="a.config.audio.src">Dans l’audio : {{ audioTimeLabel(a.audio.position, a.audio.frameRate) }}</small>
+            </div>
             <label
               class="animation-export-loop"
               title="Boucler la lecture de l’aperçu"

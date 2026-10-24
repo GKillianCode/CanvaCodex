@@ -1117,7 +1117,6 @@
   flex: 1;
 }
 .design-center > .drawing-tool-palette {
-  z-index: 20;
   max-width: calc(100% - 24px);
   background: var(--ds-panel);
   color: var(--ds-ink);

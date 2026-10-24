@@ -138,7 +138,7 @@ export function presentationRecordings({
             current.output,
             current.format,
             {
-              binary,
+              binary,keepAudio:true,
               signal: current.controller.signal,
               maxBytes: Infinity,
               timeout: null,

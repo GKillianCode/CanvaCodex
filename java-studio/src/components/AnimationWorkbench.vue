@@ -12,6 +12,7 @@ import {
 import InspectorDrawer from "./InspectorDrawer.vue";
 import NumberRange from "./NumberRange.vue";
 import AnimationKeyButton from "./AnimationKeyButton.vue";
+import { enclosingBounds } from "../selection.js";
 import { attachmentCycle } from "../animationWorkflow.js";
 import { shapes } from "../shapes.js";
 import {
@@ -20,7 +21,7 @@ import {
   applyMotion,
 } from "../animationPresets.js";
 import { localAssets, upsertAsset, removeAsset } from "../localAssets.js";
-const props = defineProps({ studio: Object }),
+const props = defineProps({ studio: Object, context:{type:String,default:"all"} }),
   s = reactive(props.studio),
   a = s.animation;
 const { name, duration, motion } = toRefs(a.motionPrefs);
@@ -87,20 +88,22 @@ function event() {
 }
 function apply() {
   const preset = motions.value.find((m) => m.id === motion.value),
-    p = s.current.positions[s.selected];
+    p = s.selectedKeys.length>1 ? s.selectionBounds : s.current.positions[s.selected];
   if (!preset || !p) return;
   if (a.config.clips.length >= 100) throw Error("Limite de 100 séquences.");
+  if(a.config.effects.length+(preset.effects?.length||0)*s.selectedKeys.length>100)throw Error('Limite de 100 effets.');
   if (preset.path && a.config.paths.length >= 50)
     throw Error("Limite de 50 trajectoires.");
   const result = applyMotion(
     preset,
     p,
-    s.selected,
+    s.selectedKeys.length>1 ? [...s.selectedKeys] : s.selected,
     a.time,
     Number(duration.value),
   );
   a.beginGesture();
   a.config.clips.push(result.clip);
+  a.config.effects.push(...result.effects);
   if (result.path) a.config.paths.push(result.path);
   a.config.duration = Math.max(
     a.config.duration,
@@ -125,7 +128,7 @@ function connector() {
 </script>
 <template>
   <InspectorDrawer
-    v-if="s.selected && !a.engine"
+    v-if="!['scene','motion'].includes(context) && s.selected && !a.engine"
     id="workflow-attachments"
     title="Attaches et références"
     :icon="Link"
@@ -218,7 +221,7 @@ function connector() {
       </button>
     </div>
   </InspectorDrawer>
-  <InspectorDrawer id="workflow-events" title="Événements" :icon="GitBranch"
+  <InspectorDrawer v-if="['scene','all'].includes(context)" id="workflow-events" title="Événements" :icon="GitBranch"
     ><p class="field-help">
       Déclenche une action à un instant, à la fin d’une séquence ou au contact
       d’un bloc physique. Les boucles sont signalées et ne lancent pas de
@@ -260,7 +263,8 @@ function connector() {
       >
       <label
         >Action<select v-model="e.action" @change="e.target = ''">
-          <option value="show">Faire apparaître un objet</option>
+          <option value="show">Faire apparaître un objet ou une flèche</option>
+          <option value="hide">Masquer un objet ou une flèche</option>
           <option value="color">Changer une couleur</option>
           <option value="shape">Changer une forme</option>
           <option value="startClip">Démarrer une séquence</option>
@@ -318,7 +322,7 @@ function connector() {
       </button>
     </div>
   </InspectorDrawer>
-  <InspectorDrawer id="workflow-camera" title="Caméra" :icon="Camera"
+  <InspectorDrawer v-if="['scene','all'].includes(context)" id="workflow-camera" title="Caméra" :icon="Camera"
     ><p class="field-help">
       Le cadre violet suit la caméra au temps courant. La zone assombrie reste
       hors champ ; les objets gardent leurs coordonnées de construction.
@@ -375,7 +379,7 @@ function connector() {
     </button>
   </InspectorDrawer>
   <InspectorDrawer
-    id="workflow-presets"
+    v-if="['motion','all'].includes(context) && s.selectedKeys.length" id="workflow-presets"
     title="Mouvements réutilisables"
     :icon="Bookmark"
     ><p class="field-help">
@@ -397,26 +401,27 @@ function connector() {
         step=".1" /></label
     ><button
       class="btn full"
-      :disabled="!s.selected || !!a.engine"
+      :disabled="!s.selectedKeys.length || !!a.engine"
       @click="run(apply)"
     >
-      Appliquer à l’objet sélectionné</button
+      Appliquer à la sélection</button
     ><label
       >Nom du mouvement à enregistrer<input
         v-model="name"
         maxlength="80" /></label
     ><button
       class="btn full"
-      :disabled="!a.clip || a.clip.keys.length !== 1 || !!a.engine"
+      :disabled="!a.clip?.keys.length || !!a.engine"
       @click="
         run(() =>
           upsertAsset(
             'motions',
             captureMotion(
               a.clip,
-              s.current.positions[a.clip.keys[0]],
+              a.clip.groupTransform ? enclosingBounds(a.clip.keys.map(k=>s.current.positions[k]).filter(Boolean)) : s.current.positions[a.clip.keys[0]],
               a.config.paths.find((p) => p.id === a.clip.pathId),
               name,
+              a.config.effects,
             ),
           ),
         )
@@ -439,7 +444,7 @@ function connector() {
     </p></InspectorDrawer
   >
   <InspectorDrawer
-    id="workflow-diagnostics"
+    v-if="['scene','all'].includes(context)" id="workflow-diagnostics"
     title="Diagnostic visuel"
     :icon="Activity"
     ><p class="field-help">Repères réservés à l’éditeur, exclus de l’export.</p>

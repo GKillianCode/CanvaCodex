@@ -1,23 +1,37 @@
-import {seekVideos} from './videoMedia.js';
-import { resolveAnimationFormat } from "./animationExportSettings.js";
+import {releaseImages} from './imageCache.js';
+import {svgColors,parseSvgColorField,svgPaintHex} from './svgColors.js';
+import {mixVideoAudio,audioBufferStream} from './videoAudioExport.js';
+import {videoAnimationFields,normalizeVideoProperties} from './videoProperties.js';
+import {visibleBlocks} from './model.js';
+import {enclosingBounds} from './selection.js';
+import {patternChannels,normalizeBackground,backgroundModes} from './sceneBackground.js';
+import {normalizeCounter,counterText} from "./animationCounter.js";
+import {normalizePresence} from "./animationPresence.js";
+import {useAnimationAudio} from './useAnimationAudio.js';
+import {makeEffectsDemo} from "./animationEffectExamples.js";
+import {parseEffectField,effectField,effectProgress,effectCatalog} from "./animationEffectCatalog.js";
+import {lockVideoFrames,stopVideos,syncSceneVideos,seekVideos} from './videoMedia.js';
+import { resolveAnimationFormat, hasTransparentScenes } from "./animationExportSettings.js";
 import {makeWorkflowExample} from "./animationWorkflowExample.js";
 import {cameraFields} from "./animationWorkflow.js";
-import {editableClip,copyKeySelection} from "./animationEditing.js";
+import {editableClip,copyKeySelection,sameKeyTime} from "./animationEditing.js";
 import {splitSpline,removeSplinePoint} from "./splines.js";
 import { boundColor } from "./colors.js";
 import { storyboardAt, storyboardDuration } from "./animationStoryboard.js";
 import { normalizeEffect } from "./animationEffects.js";
 import { addSceneEngine } from "./animationEngines.js";
-import { ref, computed, watch, onMounted, onUnmounted } from "vue";
+import { ref, computed, watch, onMounted, onUnmounted, nextTick } from "vue";
 import {
   normalizeAnimation,
+  animationFields,
   animationScene,
-  addAnimationKey,
+  addAnimationKey as writeAnimationKey,
   frameValue,
   engineAnimationFields,
   shapeAnimationFields,
   discreteAnimationFields,
   colorAnimationFields,
+  isColorAnimationField,
   backgroundAnimationFields,
 } from "./animationModel.js";
 import {renderAnimationStoryboard} from "./animationStoryboardRender.js";
@@ -30,15 +44,17 @@ import {makeSlimeDemo} from "./animationSlimeDemo.js";
 import { makeAnimationExample } from "./animationExamples.js";
 const copy = (v) => JSON.parse(JSON.stringify(v));
 export function useAnimationStudio(s) {
-  const panX = ref(0),
-    panY = ref(0),
+  const panX = ref(s.editorView?.value.panX||0),
+    panY = ref(s.editorView?.value.panY||0),
     spaceHeld = ref(false),
     panning = ref(false);
   let panCleanup = () => {};
+  const ui=s.editorView||ref({});
+  const restoringView=ref(false);
   const time = ref(0),
     playing = ref(false),
     preview = ref(true),
-    loop = ref(true),
+    loop = ref(ui.value.loop!==false),
     selectedClip = ref(""),
     field = ref("x"),
     ease = ref("smooth"),
@@ -51,9 +67,32 @@ export function useAnimationStudio(s) {
     pathEditing = ref(false),
     activePath = ref("");
   const exportError = ref(""), exportPhase = ref("");
-  const construction = ref(true);
+  // Editing preference only: scene data continues to use the shared keyframe model.
+  const autoKey = ref(false);
+  try { autoKey.value = localStorage.getItem('frame-animation-auto-key') === 'true'; } catch {}
+  function setAutoKey(enabled) {
+    stop();
+    autoKey.value = !!enabled;
+    preview.value = true;
+    try { localStorage.setItem('frame-animation-auto-key', String(autoKey.value)); } catch {}
+  }
+  function commonField(scope, property) {
+    if(scope==='element'&&videoAnimationFields.includes(property)&&s.selectedKeys.value.every(key=>s.current.value.elements[key]?.mediaKind==='video'))return property;
+    if (scope === 'position' && animationFields.includes(property)) return property;
+    if (scope === 'style' && property === 'color') return 'color';
+    if (scope !== 'element' || s.selectedKeys.value.some(key => s.current.value.elements[key]?.type !== 'shape')) return null;
+    if (property === 'fill') return 'color';
+    return Object.keys(shapeAnimationFields).find(field => shapeAnimationFields[field] === property) || null;
+  }
+  function shouldKey(name) {
+    return autoKey.value || config.value.clips.some(c=>c.enabled&&c.frames.some(f=>f.field===name)&&(c.keys.length===0?[...backgroundAnimationFields,...cameraFields].includes(name):c.keys.some(k=>s.selectedKeys.value.includes(k))));
+  }
+  const inspectedEffect=ref(null);
+  function inspectEffect(id){const e=config.value.effects.find(e=>e.id===id);if(!e||!s.current.value.positions[e.key])return;stop();s.selected.value=e.key;s.selectedKeys.value=[e.key];activeKey.value=null;activeFrame.value=null;inspectedEffect.value={id,sequence:(inspectedEffect.value?.sequence||0)+1};}
+  const construction = ref(ui.value.construction!==false);
   function setConstruction(value) { stop(); construction.value = value; preview.value = true; }
-  const editorScene = computed(() => preview.value ? animationScene(s.current.value, config.value, time.value).scene : s.current.value);
+  const evaluatedState = computed(() => animationScene(s.current.value, config.value, time.value));
+  const editorScene = computed(() => preview.value ? evaluatedState.value.scene : s.current.value);
   const motionPrefs=ref({name:'Mon mouvement',duration:1,motion:'builtin-fade'});
   const keySelection=ref([]),keyClipboard=ref([]);
   const diagnostics=ref({bounds:false,collisions:false,contacts:false,attachments:false,forces:false,camera:true,paths:false});
@@ -116,10 +155,27 @@ export function useAnimationStudio(s) {
               (f) => f.field === oldKey.field && f.time === oldKey.time,
             ) || null
           : null;
-      time.value = same ? Math.min(time.value, scene.animation.duration) : 0;
+      restoringView.value=true;
+      ui.value.sceneId=scene.id;
+      const remembered=ui.value.scenes?.[scene.id];
+      time.value = same ? Math.min(time.value, scene.animation.duration) : Math.max(0,Math.min(scene.animation.duration,Number(remembered?.time)||0));
+      if(!same){
+        s.selectedKeys.value=(remembered?.selection||[]).filter(k=>scene.positions[k]);
+        s.selected.value=s.selectedKeys.value.length===1?s.selectedKeys.value[0]:null;
+        if(scene.animation.clips.some(c=>c.id===remembered?.clip))selectedClip.value=remembered.clip;
+      }
+      nextTick(()=>restoringView.value=false);
     },
     { immediate: true },
   );
+  watch([time,selectedClip,s.selectedKeys,loop,construction,panX,panY,...(s.zoom?[s.zoom]:[])],()=>{
+    if(restoringView.value)return;
+    ui.value.sceneId=s.current.value.id;ui.value.loop=loop.value;ui.value.construction=construction.value;ui.value.panX=panX.value;ui.value.panY=panY.value;
+    if(s.zoom)ui.value.sceneZoom=s.zoom.value;
+    ui.value.scenes||={};ui.value.scenes[s.current.value.id]={...(ui.value.scenes[s.current.value.id]||{}),time:time.value,clip:selectedClip.value,selection:[...s.selectedKeys.value]};
+  },{deep:true});
+  watch([time,playing,()=>s.current.value,()=>config.value,()=>busy.value],()=>{if(busy.value)stopVideos();else syncSceneVideos(s.current.value,time.value,playing.value);},{deep:true,flush:'post'});
+  const audio = useAnimationAudio(s, {time,playing,busy,stop,seek,requestDelete});
   watch([time, preview, construction, pathEditing], s.requestDraw);
   watch(diagnostics,s.requestDraw,{deep:true});
   watch(
@@ -267,23 +323,25 @@ export function useAnimationStudio(s) {
       s.endGesture();
       return;
     }
-    addAnimationKey(c, key.field, time, key.value, key.ease);
-    const next = c.frames.find((f) => f.field === key.field && f.time === time);
+    const next = addAnimationKey(c, key.field, time, key.value, key.ease);
+    next.ease=key.ease;
     next.curve = copy(key.curve || [0.25, 0.1, 0.25, 1]);
     activeKey.value = next;
     s.endGesture();
   }
+  let spaceUsed=false;
   function keyboard(event) {
-    if (
-      event.code !== "Space" ||
-      event.target.isContentEditable ||
-      ["INPUT", "TEXTAREA", "SELECT"].includes(event.target.tagName)
-    )
-      return;
-    if (event.type === "keydown") {
-      spaceHeld.value = true;
-      event.preventDefault();
-    } else spaceHeld.value = false;
+    if(event.target.isContentEditable||event.target.closest?.('[contenteditable="true"], [role="dialog"], [role="menu"]')||['INPUT','TEXTAREA','SELECT','VIDEO'].includes(event.target.tagName)||event.ctrlKey||event.metaKey||event.altKey||busy.value)return;
+    const root=s.canvas?.value?.closest('.animation-studio');
+    if(root && event.target!==document.body && !root.contains(event.target))return;
+    if(event.code==='Space'){
+      event.preventDefault();event.stopImmediatePropagation();
+      if(event.type==='keydown'){if(!event.repeat){spaceHeld.value=true;spaceUsed=false;}}
+      else {const toggle=spaceHeld.value&&!spaceUsed;spaceHeld.value=false;if(toggle)play();}
+    }else if(event.type==='keydown'&&['ArrowLeft','ArrowRight'].includes(event.key)){
+      event.preventDefault();event.stopImmediatePropagation();
+      seek((Math.round(time.value*config.value.fps)+(event.key==='ArrowRight'?1:-1))/config.value.fps);
+    }
   }
   function blur() {
     spaceHeld.value = false;
@@ -294,7 +352,7 @@ export function useAnimationStudio(s) {
     event.preventDefault();
     event.stopPropagation();
     panCleanup();
-    panning.value = true;
+    panning.value = true;spaceUsed=true;
     const pointerId = event.pointerId;
     const target = event.currentTarget;
     target.setPointerCapture?.(pointerId);
@@ -325,9 +383,13 @@ export function useAnimationStudio(s) {
     target.addEventListener("lostpointercapture", end);
     panCleanup = end;
   }
+  let viewport;
+  const rememberViewport=()=>{if(viewport)ui.value.viewport={left:viewport.scrollLeft,top:viewport.scrollTop};};
   onMounted(() => {
-    window.addEventListener("keydown", keyboard);
-    window.addEventListener("keyup", keyboard);
+    viewport=s.canvas?.value?.closest(".canvas-space");
+    requestAnimationFrame(()=>{if(viewport){viewport.scrollLeft=ui.value.viewport?.left||0;viewport.scrollTop=ui.value.viewport?.top||0;viewport.addEventListener("scroll",rememberViewport,{passive:true});}});
+    window.addEventListener("keydown", keyboard,true);
+    window.addEventListener("keyup", keyboard,true);
     window.addEventListener("blur", blur);
   });
   function stop() {
@@ -414,6 +476,7 @@ export function useAnimationStudio(s) {
           name: "Séquence " + (config.value.clips.length + 1),
           duration: config.value.duration,
           keys: [...s.selectedKeys.value],
+          groupTransform:s.selectedKeys.value.length>1,
         },
       ],
     }).clips[0];
@@ -438,22 +501,31 @@ export function useAnimationStudio(s) {
     pendingDelete.value = null;
     pending?.action();
   }
-  function removeClip() {
-    const id = selectedClip.value,
-      c = config.value.clips.find((c) => c.id === id),
-      scene = s.current.value;
-    if (!c) return;
-    requestDelete("la séquence « " + c.name + " »", () => {
+  function removeTracks(clipIds = [], effectIds = [], label = 'ces animations') {
+    if (busy.value || (!clipIds.length && !effectIds.length)) return;
+    const scene = s.current.value, clips = new Set(clipIds), effects = new Set(effectIds);
+    requestDelete(label, () => {
       s.beginGesture();
-      scene.animation.clips = scene.animation.clips.filter((c) => c.id !== id);
-      scene.animation.events=scene.animation.events.filter(e=>!(e.action==='startClip'&&e.target===id)&&!(e.trigger==='clipEnd'&&e.source===id));
-      if (selectedClip.value === id) {
-        selectedClip.value = "";
-        activeKey.value = null;
-        activeFrame.value = null;
-      }
+      const animation = scene.animation;
+      animation.clips = animation.clips.filter(c => !clips.has(c.id));
+      animation.events = animation.events.filter(e =>
+        !(e.action === 'startClip' && clips.has(e.target)) &&
+        !(e.trigger === 'clipEnd' && clips.has(e.source)));
+      animation.effects = animation.effects.filter(e => !effects.has(e.id));
+      for (const c of animation.clips)
+        c.frames = c.frames.filter(f => !effects.has(parseEffectField(f.field)?.id));
+      keySelection.value = keySelection.value.filter(r =>
+        !clips.has(r.clipId) && !effects.has(parseEffectField(r.key.field)?.id));
+      if (clips.has(selectedClip.value)) selectedClip.value = '';
+      activeKey.value = null;
+      activeFrame.value = null;
+      if (effects.has(inspectedEffect.value?.id)) inspectedEffect.value = null;
       s.endGesture();
     });
+  }
+  function removeClip() {
+    const c = config.value.clips.find(c => c.id === selectedClip.value);
+    if (c) removeTracks([c.id], [], 'la séquence « ' + c.name + ' »');
   }
   function addFrame() {
     const c = ensureClip();
@@ -596,9 +668,10 @@ export function useAnimationStudio(s) {
     }
   }
   function example(kind) {
+    if(kind==='effects'){const scenes=makeEffectsDemo();if(s.slides.value.length+scenes.length>100){s.notify('Quatre places de scène sont nécessaires.');return;}stop();s.beginGesture();const offset=Math.max(0,...s.slides.value.map(s=>s.grid.x))+1;for(const scene of scenes)scene.grid.x+=offset;const index=s.slides.value.length;s.slides.value.push(...scenes);s.index.value=index;s.endGesture();preview.value=true;s.notify('Laboratoire d’effets ajouté : quatre scènes modifiables.');return;}
     if(kind==='reference'){if(s.slides.value.length>=100)return;stop();s.beginGesture();const scene=makeWorkflowExample().slides[0];scene.id=crypto.randomUUID();scene.grid={x:Math.max(0,...s.slides.value.map(s=>s.grid.x))+1,y:0};s.slides.value.push(scene);s.index.value=s.slides.value.length-1;s.endGesture();preview.value=true;return;}
     if(kind === "slime") {
-      if(s.slides.value.length>96){s.notify("Quatre places de scène sont nécessaires.");return;}
+      if(s.slides.value.length>95){s.notify("Cinq places de scène sont nécessaires.");return;}
       stop();s.beginGesture();
       const scenes=makeSlimeDemo().slides;
       let offset=0;
@@ -607,7 +680,7 @@ export function useAnimationStudio(s) {
       const first=s.slides.value.length;
       s.slides.value.push(...scenes);s.index.value=first;
       s.endGesture();preview.value=true;
-      s.notify("Parcours Slime ajouté : quatre scènes, un personnage continu.");return;
+      s.notify("Parcours Slime ajouté : cinq scènes, un personnage continu et 31 effets.");return;
     }
     if (s.slides.value.length >= 100) {
       s.notify("Limite de 100 scènes.");
@@ -628,6 +701,7 @@ export function useAnimationStudio(s) {
     progress.value = 0;
     controller = new AbortController();
     const signal = controller.signal;
+    let releaseFrames;
     try {
     const scenes = copy(allScenes.value ? s.slides.value : [s.current.value]),
       scene = scenes[0],
@@ -642,7 +716,7 @@ export function useAnimationStudio(s) {
       width = exportWidth.value;
       if (
         outputFormat === "webm" &&
-        scenes.some((scene) => scene.animation?.background === "transparent")
+        hasTransparentScenes(scenes)
       )
         throw Error(
           "Pour conserver la transparence, choisis MOV ou MKV. WebM utilise un fond uni ou vert.",
@@ -655,6 +729,9 @@ export function useAnimationStudio(s) {
       await prepareFonts(scenes);
       await prepareImages(scenes, theme);
       if(signal.aborted)throw new DOMException("Export annulé.","AbortError");
+      releaseFrames=lockVideoFrames(scenes);
+      exportPhase.value="Préparation du son des vidéos…";
+      const soundtrack=await mixVideoAudio(scenes,{signal});
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = (canvas.width * 9) / 16;
@@ -666,6 +743,8 @@ export function useAnimationStudio(s) {
           MediaRecorder.isTypeSupported(v),
         );
         if (!mime) throw Error("WebM indisponible.");
+        await drawFrame(0);
+        const soundStream=await audioBufferStream(soundtrack?.buffer);
         exportPhase.value="Enregistrement WebM…";
         await new Promise((resolve, reject) => {
           let timer,
@@ -678,7 +757,7 @@ export function useAnimationStudio(s) {
             clearTimeout(timer);
             signal.removeEventListener("abort", abort);
             document.removeEventListener("visibilitychange", visibility);
-            stream?.getTracks().forEach((t) => t.stop());
+            stream?.getTracks().forEach((t) => t.stop());soundStream?.dispose();
           };
           const fail = (e) => {
             if (done) return;
@@ -700,6 +779,7 @@ export function useAnimationStudio(s) {
           try {
             draw(0);
             stream = canvas.captureStream(config.fps);
+            for(const track of soundStream?.stream.getAudioTracks()||[])stream.addTrack(track);
             recorder = new MediaRecorder(stream, { mimeType: mime });
             recorder.ondataavailable = (e) => {
               bytes += e.data.size;
@@ -727,16 +807,16 @@ export function useAnimationStudio(s) {
             };
             signal.addEventListener("abort", abort, { once: true });
             document.addEventListener("visibilitychange", visibility);
-            recorder.start(500);
+            recorder.start(500);soundStream?.start();
             const start = performance.now();
-            function tick() {
+            async function tick() {
               if (done) return;
               const t = Math.min(
                 config.duration,
                 (performance.now() - start) / 1000,
               );
               try {
-                draw(t);
+                await drawFrame(t);if(done)return;
                 progress.value = t / config.duration;
                 if (t === config.duration) recorder.stop();
                 else timer = setTimeout(tick, 1000 / config.fps);
@@ -749,8 +829,8 @@ export function useAnimationStudio(s) {
         });
       } else {
         const output = await exportAnimationFrames({
-          canvas, draw:async t=>{const part=storyboardAt(scenes,t);if(part){await seekVideos([part.scene],part.time);if(scenes[part.index+1])await seekVideos([scenes[part.index+1]],0);}draw(t);}, duration: config.duration, fps: config.fps,
-          format: outputFormat, quality, signal,
+          canvas, draw:drawFrame, duration: config.duration, fps: config.fps,
+          format: outputFormat, quality, signal,audio:soundtrack?.blob,
           onProgress(value,phase) { progress.value=value; exportPhase.value=phase==='encoding'?'Encodage…':'Création des images…'; },
         });
         if(signal.aborted)throw new DOMException('Export annulé.','AbortError');
@@ -758,6 +838,7 @@ export function useAnimationStudio(s) {
       }
       progress.value = 1;
       s.notify("Animation exportée.");
+      async function drawFrame(t){const part=storyboardAt(scenes,t);if(part){await seekVideos([part.scene],part.time);await prepareImages([animationScene(part.scene,part.scene.animation,part.time).scene],theme,"animation-frame");if(scenes[part.index+1]){await seekVideos([scenes[part.index+1]],0);await prepareImages([animationScene(scenes[part.index+1],scenes[part.index+1].animation,0).scene],theme,"animation-frame-next");}}draw(t);}
       function draw(t) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -771,24 +852,39 @@ export function useAnimationStudio(s) {
       if (e.name !== "AbortError") { exportError.value=e.message||"L’export a échoué."; s.notify(exportError.value); }
       else exportError.value="Export annulé.";
     } finally {
+      releaseFrames?.();releaseImages("animation-frame");releaseImages("animation-frame-next");
       exportPhase.value="";
       busy.value = false;
       controller = null;
     }
   }
-  function propertyValue(name, animated = preview.value) {
-    if(name==='scale')return clip.value?frameValue(clip.value.frames,'scale',time.value-clip.value.start,100):100;
+  function propertyValue(name, animated = preview.value, targetKey = null) {
+    if(patternChannels[name]) {
+      const background=normalizeBackground((animated?evaluatedState.value.scene:s.current.value).background);
+      const prop=patternChannels[name][0];
+      return prop==='mode'?backgroundModes.findIndex(([id])=>id===background.mode):prop==='stagger'?Number(background.stagger):['base','color','color2'].includes(prop)?boundColor(background,prop,s.theme.value):background[prop];
+    }
+    const ef=parseEffectField(name);
+    if(ef){const cfg=animated?evaluatedState.value.config:config.value;const e=cfg.effects.find(e=>e.id===ef.id);return e?(ef.property==='progress'?effectProgress(e,time.value):e[ef.property]):0;}
+    if(name==='scale'){if(!targetKey&&s.selectedKeys.value.length>1&&!clip.value?.groupTransform)return 100;const c=targetKey?editableClip(config.value.clips,selectedClip.value,targetKey,time.value,name,config.value.fps):clip.value;return c?frameValue(c.frames,'scale',time.value-c.start,100):100;}
     if([...backgroundAnimationFields,...cameraFields].includes(name)) {
-      if(cameraFields.includes(name)){const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;const p=name.slice(6);return cfg.camera[p[0].toLowerCase()+p.slice(1)];}
-      const cfg=animated?animationScene(s.current.value,config.value,time.value).config:config.value;
+      if(cameraFields.includes(name)){const cfg=animated?evaluatedState.value.config:config.value;const p=name.slice(6);return cfg.camera[p[0].toLowerCase()+p.slice(1)];}
+      const cfg=animated?evaluatedState.value.config:config.value;
       return name==='backgroundColor'?boundColor(cfg,'color',s.theme.value):name==='backgroundColor2'?cfg.color2:cfg.gradientAngle;
     }
-    const key =
+    if(!targetKey && s.selectedKeys.value.length>1) {
+      if(['x','y','w','h'].includes(name)) {
+        const scene=animated?evaluatedState.value.scene:s.current.value;
+        return enclosingBounds(s.selectedKeys.value.map(k=>scene.positions[k]).filter(Boolean))?.[name]||0;
+      }
+      if(name==='rotation')return clip.value?.groupTransform?frameValue(clip.value.frames,name,time.value-clip.value.start,0):0;
+    }
+    const key = targetKey ||
       clip.value?.keys.find((k) => s.selectedKeys.value.includes(k)) ||
       s.selected.value ||
       s.selectedKeys.value[0];
     const scene = animated
-        ? animationScene(s.current.value, config.value, time.value).scene
+        ? evaluatedState.value.scene
         : s.current.value,
       p = scene.positions[key];
     if (engine.value && (engineAnimationFields[name] || name === "color")) {
@@ -824,6 +920,9 @@ export function useAnimationStudio(s) {
             (clip.value?.duration || config.value.duration),
         ),
       );
+    const svgPaint=parseSvgColorField(name);
+    if(svgPaint){const binding=scene.elements[key]?.svgColors?.[svgPaint];return binding?boundColor(binding,'color',s.theme.value):svgPaintHex(svgPaint);}
+    if(videoAnimationFields.includes(name))return normalizeVideoProperties(scene.elements[key])[name];
     if (shapeAnimationFields[name]) {
       const e = scene.elements[key],
         prop = shapeAnimationFields[name];
@@ -846,19 +945,33 @@ export function useAnimationStudio(s) {
     );
   }
   function keyAt(name) {
-    const target=[...backgroundAnimationFields,...cameraFields].includes(name)?config.value.clips.find(c=>c.keys.length===0&&c.frames.some(f=>(cameraFields.includes(name)?cameraFields:backgroundAnimationFields).includes(f.field))):clip.value;
+    const target=[...backgroundAnimationFields,...cameraFields].includes(name)?config.value.clips.find(c=>c.keys.length===0&&c.frames.some(f=>(cameraFields.includes(name)?cameraFields:backgroundAnimationFields).includes(f.field))):s.selectedKeys.value.length===1?editableClip(config.value.clips,selectedClip.value,s.selectedKeys.value[0],time.value,name,config.value.fps):clip.value;
     return target?.frames.find(
       (f) =>
         f.field === name &&
-        Math.abs(f.time - (time.value - target.start)) < 0.0001,
+        sameKeyTime(target.start+f.time,time.value,config.value.fps),
     );
   }
   function ensureClip() {
+    if(s.selectedKeys.value.length>1 && (!clip.value?.groupTransform || clip.value.keys.length!==s.selectedKeys.value.length || !s.selectedKeys.value.every(key=>clip.value.keys.includes(key)))) {
+      const common=config.value.clips.findLast(c=>c.enabled&&c.groupTransform&&c.keys.length===s.selectedKeys.value.length&&s.selectedKeys.value.every(key=>c.keys.includes(key))&&time.value>=c.start&&time.value<=c.start+c.duration);
+      if(common)selectedClip.value=common.id;
+    }
+    if(s.selectedKeys.value.length>1 && clip.value?.keys.length>1 && !clip.value.groupTransform) {
+      // Add a group-frame layer at the cursor; never reinterpret existing group keys.
+      const previousId=clip.value.id;addClip();
+      if(clip.value?.id===previousId)return null;
+      if(clip.value){clip.value.start=time.value;clip.value.duration=Math.max(.1,config.value.duration-time.value);}
+      return clip.value;
+    }
     if (
       !clip.value ||
+      (s.selectedKeys.value.length>1 && (clip.value.keys.length!==s.selectedKeys.value.length || !s.selectedKeys.value.every(k=>clip.value.keys.includes(k)))) ||
       !s.selectedKeys.value.some((k) => clip.value.keys.includes(k))
-    )
-      addClip();
+    ) {
+      const previousId=clip.value?.id;addClip();
+      if(clip.value?.id===previousId)return null;
+    }
     return clip.value;
   }
   function ensureBackgroundClip(field){
@@ -868,70 +981,157 @@ export function useAnimationStudio(s) {
     if(c.start){for(const f of c.frames)f.time+=c.start;c.start=0;}c.duration=config.value.duration;
     selectedClip.value=c.id;return c;
   }
-  function setProperty(name, value) {
-    if (!Number.isFinite(Number(value)) && !colorAnimationFields.includes(name))
+  function setProperty(name, value, force = false, manageHistory = true, onlyKey = null) {
+    if (!Number.isFinite(Number(value)) && !isColorAnimationField(name))
       return;
     stop();
-    s.beginGesture();
+    if(manageHistory)s.beginGesture();
     try {
-      const previous = propertyValue(name, true),
-        c = [...backgroundAnimationFields,...cameraFields].includes(name) ? ensureBackgroundClip(name) : ensureClip();
-      if (!c) return;
-      const local = Math.max(0, Math.min(c.duration, time.value - c.start));
-      const interpolation =
-        c.frames.filter((f) => f.field === name && f.time <= local).at(-1)
-          ?.ease ||
-        c.frames.find((f) => f.field === name)?.ease ||
-        c.easing;
-      if (local > 0 && !c.frames.some((f) => f.field === name && f.time < local))
+      const sceneProperty = [...backgroundAnimationFields,...cameraFields].includes(name);
+      const grouped = !parseSvgColorField(name) && s.selectedKeys.value.length>1 && (['x','y','w','h','rotation','scale'].includes(name) || s.current.value.groups?.some(g=>g.keys.length===s.selectedKeys.value.length&&g.keys.every(k=>s.selectedKeys.value.includes(k))));
+      const targets = (autoKey.value || s.selectedKeys.value.length===1 || parseSvgColorField(name)) && !sceneProperty && !grouped
+        ? s.selectedKeys.value.filter(key => (!onlyKey||key===onlyKey) && s.current.value.positions[key] && (!parseSvgColorField(name)||svgColors(s.current.value.elements[key]?.src).includes(parseSvgColorField(name))) && (!parseEffectField(name) || config.value.effects.find(e => e.id === parseEffectField(name).id)?.key === key)) : [null];
+      for (const key of targets) {
+        const previous = propertyValue(name, true, key);
+        if (autoKey.value && !force && (previous === value ||
+            !isColorAnimationField(name) && Math.abs(Number(previous) - Number(value)) < 0.0001)) continue;
+        const c = sceneProperty ? ensureBackgroundClip(name) : key ? objectClip(key,name) : ensureClip();
+        if (!c) continue;
+        const local = Math.max(0, Math.min(c.duration, time.value - c.start));
+        const interpolation =
+          c.frames.filter((f) => f.field === name && f.time <= local).at(-1)
+            ?.ease ||
+          c.frames.find((f) => f.field === name)?.ease ||
+          c.easing;
+        if (local > 0 && !c.frames.some((f) => f.field === name && f.time < local))
+          addAnimationKey(
+            c,
+            name,
+            0,
+            previous,
+            discreteAnimationFields.includes(name) ? "hold" : interpolation,
+          );
         addAnimationKey(
           c,
           name,
-          0,
-          previous,
+          local,
+          isColorAnimationField(name) ? value : Number(value),
           discreteAnimationFields.includes(name) ? "hold" : interpolation,
         );
-      addAnimationKey(
-        c,
-        name,
-        local,
-        colorAnimationFields.includes(name) ? value : Number(value),
-        discreteAnimationFields.includes(name) ? "hold" : interpolation,
-      );
-      activeKey.value=null;activeFrame.value=null;
-      preview.value = true;
+        activeKey.value=null;activeFrame.value=null;
+        preview.value = true;
+      }
     } finally {
-      s.endGesture();
+      if(manageHistory)s.endGesture();
       s.requestDraw();
     }
   }
-  function commitPose(positions, origins, manageHistory = true) {
+  function addAnimationKey(c,field,local,value,ease) {
+    return writeAnimationKey(c,field,local,value,ease,config.value.fps);
+  }
+  function objectClip(key, field = null, afterGroups = false) {
+    let c = editableClip(config.value.clips, selectedClip.value, key, time.value,field,config.value.fps);
+    const overlay=afterGroups&&config.value.clips.some((item,i)=>item.enabled&&item.keys.length>1&&item.keys.includes(key)&&i>config.value.clips.indexOf(c));
+    if (!c||overlay) {
+      if (config.value.clips.length >= 100) return null;
+      const start=overlay?time.value:Math.min(config.value.duration-1/config.value.fps,config.value.presences[key]?.start??0);
+      c = normalizeAnimation({clips:[{id:crypto.randomUUID(), name:s.current.value.elements[key]?.name || "Mouvement", keys:[key], start, duration:config.value.duration-start}]}).clips[0];
+      config.value.clips.push(c);
+    }
+    // Editing before a track starts must not silently clamp the new key to its start.
+    if (time.value < c.start) {
+      for (const f of c.frames) f.time += c.start;
+      c.duration += c.start;
+      c.start = 0;
+    }
+    if (time.value > c.start + c.duration) c.duration = time.value - c.start;
+    if(field)for(const other of config.value.clips)if(other!==c&&other.keys.length===1&&other.keys[0]===key)
+      other.frames=other.frames.filter(f=>!(f.field===field&&sameKeyTime(other.start+f.time,time.value,config.value.fps)));
+    selectedClip.value = c.id;
+    return c;
+  }
+  function introduceObjects(keys) {
+    const visible=visibleBlocks(s.current.value);
+    config.value.timelineOrder=[...new Set([...(config.value.timelineOrder||[]).filter(key=>key==='$scene'||visible.includes(key)),...visible])];
+    for (const key of keys) config.value.presences[key] = normalizePresence({start: time.value});
+  }
+  function setPresence(keys, field, value) {
+    if (busy.value) return;
+    s.beginGesture();
+    for (const key of keys) {
+      if (!s.current.value.positions[key]) continue;
+      const range = normalizePresence(config.value.presences[key]);
+      if (field === 'start') {
+        range.start = Math.max(0,Math.min(config.value.duration - 1/config.value.fps,Number(value)||0));
+        if (range.end != null && range.end <= range.start) range.end = Math.min(config.value.duration, range.start+1/config.value.fps);
+      } else if (field === 'end') range.end = value == null ? null : Math.max(range.start+1/config.value.fps,Math.min(config.value.duration, Number(value)||0));
+      else range[field] = value;
+      config.value.presences[key] = normalizePresence(range);
+    }
+    s.endGesture(); s.requestDraw();
+  }
+  function setCounter(key, field, value, manageHistory = true) {
+    if(busy.value || s.current.value.elements[key]?.type !== 'text')return;
+    if(manageHistory)s.beginGesture();
+    const counter=normalizeCounter({...config.value.counters[key],[field]:value});
+    config.value.counters[key]=counter;
+    s.current.value.elements[key].text=counterText(counter,counter.from);
+    if(manageHistory)s.endGesture();s.requestDraw();
+  }
+  function commitSelectionPose(positions, origins) {
+    const keys=Object.keys(positions).filter(key=>origins[key]);
+    if(!keys.some(key=>['x','y','w','h','rotation'].some(field=>Math.abs((positions[key][field]||0)-(origins[key][field]||0))>.0001)))return;
+    const c=ensureClip();if(!c)return;
+    const before=animationScene(s.current.value,{...config.value,clips:config.value.clips.slice(0,config.value.clips.indexOf(c))},time.value).scene;
+    const input=enclosingBounds(keys.map(key=>before.positions[key]));
+    const local=Math.max(0,Math.min(c.duration,time.value-c.start));
+    const values=Object.fromEntries(['x','y','w','h','rotation'].map(field=>[field,frameValue(c.frames,field,local,field==='rotation'?0:input[field])]));
+    const write=(field,value)=>{
+      if(local>0&&!c.frames.some(f=>f.field===field))addAnimationKey(c,field,0,values[field],c.easing);
+      const interpolation=c.frames.filter(f=>f.field===field&&f.time<=local).at(-1)?.ease||c.easing;
+      addAnimationKey(c,field,local,value,interpolation);
+    };
+    const first=keys[0],from=origins[first],to=positions[first];
+    const rotation=(to.rotation||0)-(from.rotation||0);
+    if(Math.abs(rotation)>.0001)write('rotation',values.rotation+rotation);
+    // Shared handles transform all members with the same ratios; retain their spacing.
+    for(const field of ['w','h']){
+      const ratio=from[field]?to[field]/from[field]:1;
+      if(Number.isFinite(ratio)&&Math.abs(ratio-1)>.0001)write(field,values[field]*ratio);
+    }
+    const target=enclosingBounds(keys.map(key=>positions[key]));
+    const evaluated=animationScene(s.current.value,config.value,time.value).scene;
+    const actual=enclosingBounds(keys.map(key=>evaluated.positions[key]));
+    for(const field of ['x','y'])if(!c.pathId&&Math.abs(target[field]-actual[field])>.0001)write(field,values[field]+target[field]-actual[field]);
+    selectedClip.value=c.id;preview.value=true;
+  }
+  function commitPose(positions, origins, manageHistory = true, independent = false) {
     if(manageHistory)s.beginGesture();
     try {
+      if(!independent&&Object.keys(positions).length>1){commitSelectionPose(positions,origins);return;}
       for (const [key, p] of Object.entries(positions)) {
         const before = origins[key];
         if (!before) continue;
-        let c = editableClip(config.value.clips,selectedClip.value,key,time.value);
-        if (!c) {
-          if(config.value.clips.length >= 100) continue;
-          c = normalizeAnimation({clips:[{id:crypto.randomUUID(),name:s.current.value.elements[key]?.name || "Mouvement",keys:[key],duration:config.value.duration}]}).clips[0];
-          config.value.clips.push(c);
-        }
-        const local = Math.max(0, Math.min(c.duration,time.value-c.start));
         for(const field of ["x","y","w","h","rotation","size","contentScale"]) {
-          if(c.pathId && ["x","y"].includes(field)) continue;
           if(!Number.isFinite(p[field]) || Math.abs(p[field]-(before[field]||0))<0.0001) continue;
+          const c=objectClip(key,field,independent);if(!c)continue;
+          if(c.pathId && ["x","y"].includes(field)) continue;
+          const local=Math.max(0,Math.min(c.duration,time.value-c.start));
           if(local>0 && !c.frames.some(f=>f.field===field)) addAnimationKey(c,field,0,before[field]||0,c.easing);
           addAnimationKey(c,field,local,p[field],c.easing);
+          selectedClip.value=c.id;
         }
-        selectedClip.value=c.id;
       }
     } finally { if(manageHistory)s.endGesture(); s.requestDraw(); }
   }
   function toggleProperty(name) {
-    const f = keyAt(name);
-    if (f) deleteKey([...backgroundAnimationFields,...cameraFields].includes(name)?config.value.clips.find(c=>c.frames.includes(f)):clip.value, f);
-    else setProperty(name, propertyValue(name));
+    if(keyAt(name)){
+      s.beginGesture();
+      const sceneField=[...backgroundAnimationFields,...cameraFields].includes(name);
+      for(const c of config.value.clips){if(sceneField?c.keys.length===0:c.keys.some(k=>s.selectedKeys.value.includes(k)))c.frames=c.frames.filter(f=>!(f.field===name&&sameKeyTime(c.start+f.time,time.value,config.value.fps)));}
+      activeKey.value=null;activeFrame.value=null;s.endGesture();s.requestDraw();
+    }else if(parseSvgColorField(name)&&s.selectedKeys.value.length>1){s.beginGesture();try{for(const key of s.selectedKeys.value)if(svgColors(s.current.value.elements[key]?.src).includes(parseSvgColorField(name)))setProperty(name,propertyValue(name,true,key),true,false,key);}finally{s.endGesture();}}
+    else setProperty(name,propertyValue(name),true);
   }
   function setClipEasing(c, value) {
     s.beginGesture();
@@ -939,7 +1139,7 @@ export function useAnimationStudio(s) {
     for (const f of c.frames) f.ease = value;
     s.endGesture();
   }
-  function addEffect(kind) {
+  function addEffect(kind,settings={}) {
     if (!s.selectedKeys.value.length) {
       s.notify("Sélectionne un objet.");
       return;
@@ -948,18 +1148,21 @@ export function useAnimationStudio(s) {
     for (const key of s.selectedKeys.value) {
       if (config.value.effects.length >= 100) break;
       config.value.effects.push(
-        normalizeEffect({ id: crypto.randomUUID(), kind, key }),
+        normalizeEffect({ id: crypto.randomUUID(), kind, key, start:Math.min(time.value,Math.max(0,config.value.duration-.05)),duration:Math.min(1.5,Math.max(.05,config.value.duration-time.value)),...settings }),
       );
     }
     s.endGesture();
   }
   function removeEffect(id) {
-    requestDelete("cet effet", () => {
-      s.beginGesture();
-      config.value.effects = config.value.effects.filter((e) => e.id !== id);
-      s.endGesture();
-    });
+    removeTracks([], [id], 'cet effet');
   }
+  function moveEffect(id,beforeId,after=false){
+    const list=config.value.effects,from=list.findIndex(e=>e.id===id),to=list.findIndex(e=>e.id===beforeId);
+    if(from<0||to<0||from===to)return;
+    s.beginGesture();const [e]=list.splice(from,1);list.splice(list.findIndex(e=>e.id===beforeId)+(after?1:0),0,e);s.endGesture();
+  }
+  function duplicateEffect(id){const e=config.value.effects.find(e=>e.id===id);if(!e||config.value.effects.length>=100)return;s.beginGesture();const next=normalizeEffect({...copy(e),id:crypto.randomUUID(),name:(e.name||effectCatalog.find(c=>c.id===e.kind)?.name||'Effet')+' · copie'});config.value.effects.splice(config.value.effects.indexOf(e)+1,0,next);for(const c of config.value.clips){const frames=c.frames.filter(f=>parseEffectField(f.field)?.id===id).map(f=>({...copy(f),field:effectField(next.id,parseEffectField(f.field).property)}));c.frames.push(...frames);c.frames.sort((a,b)=>a.time-b.time);}s.endGesture();}
+  function resetEffect(id){const e=config.value.effects.find(e=>e.id===id);if(!e)return;requestDelete('les réglages et clés de cet effet',()=>{s.beginGesture();Object.assign(e,normalizeEffect({id:e.id,kind:e.kind,key:e.key,start:e.start}));for(const c of config.value.clips)c.frames=c.frames.filter(f=>parseEffectField(f.field)?.id!==id);s.endGesture();});}
   function attachEngine(parent) {
     const e = engine.value,
       p = s.current.value.positions[e?.key],
@@ -1047,7 +1250,7 @@ export function useAnimationStudio(s) {
   }
   function keyEntries(){return keySelection.value.map(r=>({clip:config.value.clips.find(c=>c.id===r.clipId),key:r.key})).filter(r=>r.clip?.frames.includes(r.key));}
   function copyKeys(){keyClipboard.value=copyKeySelection(keyEntries());s.notify(keyClipboard.value.length+" clé(s) copiée(s).");}
-  function pasteKeys(){const c=clip.value;if(!c||!keyClipboard.value.length)return;const start=time.value-c.start;if(start<0||keyClipboard.value.some(f=>start+f.time>c.duration)){s.notify("Les clés dépassent la durée de cette séquence.");return;}s.beginGesture();keySelection.value=[];for(const f of keyClipboard.value){addAnimationKey(c,f.field,start+f.time,f.value,f.ease);const key=c.frames.find(k=>k.field===f.field&&Math.abs(k.time-start-f.time)<1e-6);key.curve=copy(f.curve);keySelection.value.push({clipId:c.id,key});}s.endGesture();s.requestDraw();}
+  function pasteKeys(){const c=clip.value;if(!c||!keyClipboard.value.length)return;const start=time.value-c.start;if(start<0||keyClipboard.value.some(f=>start+f.time>c.duration)){s.notify("Les clés dépassent la durée de cette séquence.");return;}s.beginGesture();keySelection.value=[];for(const f of keyClipboard.value){const key=addAnimationKey(c,f.field,start+f.time,f.value,f.ease);key.ease=f.ease;key.curve=copy(f.curve);keySelection.value.push({clipId:c.id,key});}s.endGesture();s.requestDraw();}
   function deleteKeys(){const entries=keyEntries();if(!entries.length)return;requestDelete(entries.length+" clé(s) sélectionnée(s)",()=>{s.beginGesture();for(const r of entries)r.clip.frames=r.clip.frames.filter(k=>k!==r.key);keySelection.value=[];activeKey.value=null;s.endGesture();});}
   function cancel() {
     controller?.abort();
@@ -1056,12 +1259,16 @@ export function useAnimationStudio(s) {
     stop();
     cancel();
     blur();
-    window.removeEventListener("keydown", keyboard);
-    window.removeEventListener("keyup", keyboard);
+    viewport?.removeEventListener("scroll",rememberViewport);
+    window.removeEventListener("keydown", keyboard,true);
+    window.removeEventListener("keyup", keyboard,true);
     window.removeEventListener("blur", blur);
   });
   return {
+    audio,
     exportQuality,exportBackground,exportError,exportPhase,construction,setConstruction,editorScene,
+    autoKey,setAutoKey,shouldKey,commonField,introduceObjects,setPresence,setCounter,
+    inspectedEffect,inspectEffect,
     motionPrefs,keySelection,keyClipboard,selectKey,keyEntries,copyKeys,pasteKeys,deleteKeys,diagnostics,commitPose,selectedPathPoint,addPathPoint,removePathPoint,
     activeFrame,
     pendingDelete,
@@ -1079,10 +1286,10 @@ export function useAnimationStudio(s) {
     keyAt,
     setProperty,
     toggleProperty,
-    recordProperty:(name)=>setProperty(name,propertyValue(name)),
+    recordProperty:(name)=>setProperty(name,propertyValue(name),true),
     setClipEasing,
     addEffect,
-    removeEffect,
+    removeEffect,moveEffect,duplicateEffect,resetEffect,
     attachEngine,
     previewOpen,
     activeKey,
@@ -1123,7 +1330,7 @@ export function useAnimationStudio(s) {
     play,
     addClip,
     duplicateClip,
-    removeClip,
+    removeClip,removeTracks,
     addKey,
     addPath,
     removePath,
@@ -1132,6 +1339,7 @@ export function useAnimationStudio(s) {
     example,
     exportVideo,
     cancel,
-    evaluate: () => animationScene(s.current.value, config.value, time.value),
+    restoringView,
+    evaluate: () => evaluatedState.value,
   };
 }

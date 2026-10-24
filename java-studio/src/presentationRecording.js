@@ -1,3 +1,4 @@
+import {captureVideoAudio} from './videoMedia.js';
 import { ensureVideoEncoder } from "./videoEncoding.js";
 // MediaRecorder supplies timestamped, compressed chunks. Send each to the local
 // spool instead of retaining a whole presentation in browser memory.
@@ -38,7 +39,7 @@ export async function createPresentationRecording(
   const { id } = await request("?format=" + format, { method: "POST" });
   if (!/^[a-f0-9]{48}$/.test(id || "")) throw Error("Session vidéo invalide.");
   const controller = new AbortController();
-  let stream,
+  let audioCapture,stream,
     recorder,
     queue = Promise.resolve(),
     index = 0,
@@ -53,7 +54,7 @@ export async function createPresentationRecording(
   const onPageHide = () => {
     void cancel();
   };
-  const detach = () => globalThis.removeEventListener?.("pagehide", onPageHide);
+  const detach = () => {globalThis.removeEventListener?.("pagehide", onPageHide);audioCapture?.dispose();};
   async function cancel() {
     if (cancelled) return;
     cancelled = true;
@@ -76,6 +77,8 @@ export async function createPresentationRecording(
   }
   try {
     stream = canvas.captureStream(fps);
+    audioCapture=await captureVideoAudio();
+    for(const track of audioCapture?.stream.getAudioTracks()||[])stream.addTrack(track);
     recorder = new Recorder(stream, {
       mimeType: mime,
       videoBitsPerSecond: Math.round((16000000 * canvas.width) / 1920),

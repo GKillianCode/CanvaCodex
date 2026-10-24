@@ -1,3 +1,13 @@
+import {parseSvgColorField} from './svgColors.js';
+import {videoAnimationFields,normalizeVideoProperties} from './videoProperties.js';
+import {sameKeyTime} from './animationEditing.js';
+import {enclosingBounds} from './selection.js';
+import {patternChannels} from './sceneBackground.js';
+import {evaluatePatternBackground} from './animationBackground.js';
+import {normalizeCounters,counterText,counterScroll,counterTiming} from "./animationCounter.js";
+import {normalizePresences,presenceState} from "./animationPresence.js";
+import {normalizeSceneAudio} from './animationAudioModel.js';
+import {parseEffectField} from "./animationEffectCatalog.js";
 import {scaleObjects} from "./scaleObjects.js";
 const contactHistory=new WeakMap();
 import {normalizeAttachments,applyAttachments,normalizeEvents,eventSchedule,applyEvents,normalizeCamera,cameraFields} from "./animationWorkflow.js";
@@ -34,19 +44,24 @@ export const discreteAnimationFields = [
   "fillEnabled",
   "strokeEnabled",
   "dashed",
+  "patternStagger",
 ];
 export const backgroundAnimationFields = [
   "backgroundColor",
   "backgroundColor2",
   "backgroundAngle",
+  ...Object.keys(patternChannels),
 ];
 export const colorAnimationFields = [
   "color",
   "strokeColor",
   "backgroundColor",
   "backgroundColor2",
+  "patternBase", "patternColor", "patternColor2",
 ];
+export const isColorAnimationField = field => colorAnimationFields.includes(field)||!!parseSvgColorField(field);
 export const animationFields = [
+  ...videoAnimationFields,
   ...cameraFields,
   ...backgroundAnimationFields,
   ...Object.keys(shapeAnimationFields),
@@ -124,6 +139,9 @@ export function normalizeEngine(raw = {}, i = 0) {
 export function normalizeAnimation(raw = {}) {
   return {
     version: 5,
+    ...(Array.isArray(raw?.timelineOrder)?{timelineOrder:[...new Set(raw.timelineOrder.filter(k=>typeof k==='string'&&k.length<100))].slice(0,101)}:{}),
+    presences: normalizePresences(raw?.presences),
+    counters: normalizeCounters(raw?.counters),
     attachments:normalizeAttachments(raw?.attachments),events:normalizeEvents(raw?.events),camera:normalizeCamera(raw?.camera),
     actorKey: String(raw?.actorKey || "").slice(0, 100),
     actorId: String(raw?.actorId || "").slice(0, 100),
@@ -145,6 +163,7 @@ export function normalizeAnimation(raw = {}) {
     effects: list(raw?.effects, 100).map(normalizeEffect),
     colorRole: validColorRole(raw?.colorRole),
     engines: list(raw?.engines, 50).map(normalizeEngine),
+    audio: normalizeSceneAudio(raw?.audio),
     duration: number(raw?.duration, 8, 0.1, 120),
     fps: [24, 30, 60].includes(raw?.fps) ? raw.fps : 30,
     background: ["solid", "gradient"].includes(raw?.background)
@@ -186,8 +205,9 @@ export function normalizeAnimation(raw = {}) {
       enabled: c?.enabled !== false,
       collapsed: c?.collapsed === true,
       hidden: c?.hidden === true,
+      ...(c?.groupTransform === true ? {groupTransform:true} : {}),
       easing: animationEasings.includes(c?.easing) ? c.easing : "smooth",
-      start: number(c?.start, 0, 0, 120),
+      start: number(c?.start, 0, -120, 120),
       duration: number(c?.duration, 8, 0.1, 120),
       markers: [
         ...new Set(
@@ -214,16 +234,16 @@ export function normalizeAnimation(raw = {}) {
       frames: list(c?.frames, 1000)
         .filter(
           (f) =>
-            animationFields.includes(f?.field) &&
+            (animationFields.includes(f?.field)||parseEffectField(f?.field)||parseSvgColorField(f?.field)) &&
             Number.isFinite(Number(f?.time)) &&
-            (colorAnimationFields.includes(f.field)
+            (isColorAnimationField(f.field)
               ? /^#[a-f0-9]{6}$/i.test(f.value)
               : Number.isFinite(Number(f.value))),
         )
         .map((f) => ({
           field: f.field,
           time: number(f.time, 0, 0, 120),
-          value: colorAnimationFields.includes(f.field)
+          value: isColorAnimationField(f.field)
             ? f.value
             : number(f.value, 0, -10000, 10000),
           ease: discreteAnimationFields.includes(f.field)
@@ -274,11 +294,12 @@ export function easeAnimation(t, mode, curve = [0.25, 0.1, 0.25, 1]) {
 function mix(a, b, t) {
   if (typeof a === "string") {
     const v = [1, 3, 5].map((i) =>
-      Math.round(
+      // Curves may overshoot for motion, but RGB channels must stay valid.
+      Math.max(0, Math.min(255, Math.round(
         parseInt(a.slice(i, i + 2), 16) +
           (parseInt(b.slice(i, i + 2), 16) - parseInt(a.slice(i, i + 2), 16)) *
             t,
-      ),
+      ))),
     );
     return "#" + v.map((n) => n.toString(16).padStart(2, "0")).join("");
   }
@@ -330,6 +351,7 @@ export function animationScene(scene, raw, time, options={}) {
   }
   for (const clip of config.clips) {
     if (!clip.enabled || time < clip.start) continue;
+    for(const f of clip.frames){const ef=parseEffectField(f.field);if(!ef)continue;const e=config.effects.find(e=>e.id===ef.id);if(e)e[ef.property]=frameValue(clip.frames,f.field,Math.min(clip.duration,time-clip.start),e[ef.property]);}
     const local = Math.min(clip.duration, time - clip.start),
       progress = frameValue(
         clip.frames,
@@ -353,22 +375,28 @@ export function animationScene(scene, raw, time, options={}) {
         if (prop === "color") config.colorRole = null;
       }
     }
+    if(clip.frames.some(f=>patternChannels[f.field])) {
+      const bg=evaluatePatternBackground(result.background,clip.frames,local,frameValue,easeAnimation);
+      result.background=bg.background;result.backgroundBlend=bg.blend;
+    }
     for(const field of cameraFields)if(clip.frames.some(f=>f.field===field)){const prop=field.slice(6);const key=prop[0].toLowerCase()+prop.slice(1);config.camera[key]=frameValue(clip.frames,field,local,config.camera[key]);}
-    const keys = clip.keys.filter((k) => result.positions[k]),
-      anchor = result.positions[keys[0]];
+    const keys = clip.keys.filter((k) => result.positions[k]);
+    let anchor = result.positions[keys[0]];
     if (!anchor) continue;
-    const left = Math.min(...keys.map((k) => result.positions[k].x)),
-      top = Math.min(...keys.map((k) => result.positions[k].y)),
-      right = Math.max(
+    const bounds=clip.groupTransform?enclosingBounds(keys.map(k=>result.positions[k])):null;
+    const left = bounds?.x ?? Math.min(...keys.map((k) => result.positions[k].x)),
+      top = bounds?.y ?? Math.min(...keys.map((k) => result.positions[k].y)),
+      right = bounds ? bounds.x+bounds.w : Math.max(
         ...keys.map(
           (k) => result.positions[k].x + (result.positions[k].w || 0),
         ),
       ),
-      bottom = Math.max(
+      bottom = bounds ? bounds.y+bounds.h : Math.max(
         ...keys.map(
           (k) => result.positions[k].y + (result.positions[k].h || 0),
         ),
       );
+    if(clip.groupTransform && keys.length>1)anchor={x:left,y:top,w:right-left,h:bottom-top,rotation:0};
     const px = left + (right - left) * clip.pivotX,
       py = top + (bottom - top) * clip.pivotY;
     let sx = anchor.w
@@ -440,6 +468,7 @@ export function animationScene(scene, raw, time, options={}) {
           );
       if (base.size && !clip.frames.some((k) => k.field === "size"))
         p.size = base.size * Math.sqrt(sx * sy);
+      for(const field of new Set(clip.frames.map(f=>f.field))){const paint=parseSvgColorField(field);if(!paint||!result.elements[key]?.src)continue;const value=frameValue(clip.frames,field,local,null);if(value)result.elements[key]={...result.elements[key],svgColors:{...result.elements[key].svgColors,[paint]:{color:value,colorRole:null}}};}
       const color = frameValue(clip.frames, "color", local, null);
       if (color) {
         p.textStyle = { ...p.textStyle, color, colorRole: "" };
@@ -466,8 +495,15 @@ export function animationScene(scene, raw, time, options={}) {
         }
         result.elements[key] = normalizeShape(shape);
       }
+      if(result.elements[key]?.mediaKind==='video'){const media={...result.elements[key]};for(const field of videoAnimationFields)media[field]=frameValue(clip.frames,field,local,normalizeVideoProperties(media)[field]);result.elements[key]={...media,...normalizeVideoProperties(media)};}
       result.positions[key] = p;
       typingElapsed[key] = local * 1000;
+    }
+    if(clip.groupTransform && keys.length>1 && !point) {
+      const bounds=enclosingBounds(keys.map(k=>result.positions[k]));
+      const dx=frameValue(clip.frames,'x',local,left)-bounds.x,
+        dy=frameValue(clip.frames,'y',local,top)-bounds.y;
+      for(const key of keys){result.positions[key].x+=dx;result.positions[key].y+=dy;}
     }
     if(clip.frames.some(f=>f.field==='scale')){
       const poses=Object.fromEntries(keys.map(key=>[key,result.positions[key]]));
@@ -493,7 +529,7 @@ export function animationScene(scene, raw, time, options={}) {
         t,
         engine.particles.color,
       );
-      if (c.frames.some((f) => colorAnimationFields.includes(f.field)))
+      if (c.frames.some((f) => isColorAnimationField(f.field)))
         engine.particles.colorRole = null;
     }
     engine.particles = normalizeParticles(engine.particles);
@@ -613,7 +649,25 @@ export function animationScene(scene, raw, time, options={}) {
         y: parent.y + (parent.h || 0) / 2 + engine.offsetY - p.h / 2,
       };
   }
-  return { scene: result, typingElapsed, config, firedEvents,eventTimes:schedule.times,warnings:[...schedule.warnings,...attachmentWarnings] };
+  for(const [key,counter] of Object.entries(config.counters)) {
+    if(result.elements[key]?.type !== 'text') continue;
+    const timing=counterTiming(config.presences[key],config.duration,config.fps);
+    const value=time < timing.start ? counter.from : time >= timing.finish ? counter.to : frameValue([
+      {field:'counter',time:0,value:counter.from,ease:counter.easing},
+      {field:'counter',time:timing.duration,value:counter.to,ease:counter.easing},
+    ], 'counter', time-timing.start,counter.from);
+    result.elements[key]={...result.elements[key],text:counterText(counter,value)};
+    const scroll=counterScroll(counter,value);
+    if(scroll) (result.counterFrames??={})[key]=scroll;
+  }
+  const presence = {};
+  for (const [key, range] of Object.entries(config.presences)) {
+    if (!result.positions[key]) continue;
+    presence[key] = presenceState(range, time, config.duration, scene, key);
+    typingElapsed[key] = presence[key].elapsed;
+    if (!presence[key].visible) result.hiddenKeys = [...(result.hiddenKeys || []), key];
+  }
+  return { scene: result, presence, typingElapsed, config, firedEvents,eventTimes:schedule.times,warnings:[...schedule.warnings,...attachmentWarnings] };
 }
 // Closed-form, seeded particles: seeking and exporting do not depend on preview FPS.
 export function animationParticles(clip, time, origin) {
@@ -662,10 +716,15 @@ export function animationParticles(clip, time, origin) {
   }
   return out;
 }
-export function addAnimationKey(clip, field, time, value, ease = "smooth") {
-  clip.frames = clip.frames.filter(
-    (f) => !(f.field === field && Math.abs(f.time - time) < 0.0001),
-  );
-  clip.frames.push({ field, time, value, ease, curve: [0.25, 0.1, 0.25, 1] });
-  clip.frames.sort((a, b) => a.time - b.time);
+export function addAnimationKey(clip, field, time, value, ease = "smooth", fps = 0) {
+  const matches=f=>f.field===field&&sameKeyTime((clip.start||0)+f.time,(clip.start||0)+time,fps);
+  const existing=clip.frames.findLast(matches);
+  // Updating a value preserves its curve and identity; editor writes use the scene frame grid.
+  clip.frames=clip.frames.filter(f=>!matches(f)||f===existing);
+  const key=existing||{field,time,value,ease,curve:[.25,.1,.25,1]};
+  key.value=value;
+  if(fps>0)key.time=Math.max(0,Math.min(clip.duration??120,Math.round(((clip.start||0)+time)*fps)/fps-(clip.start||0)));
+  if(!existing)clip.frames.push(key);
+  clip.frames.sort((a,b)=>a.time-b.time);
+  return key;
 }

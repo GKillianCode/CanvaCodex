@@ -7,6 +7,7 @@ export async function exportAnimationFrames({
   fps,
   format,
   quality = "balanced",
+  audio,
   signal,
   onProgress = () => {},
   fetcher = globalThis.fetch,
@@ -93,6 +94,7 @@ export async function exportAnimationFrames({
       start = next;
       onProgress((start / count) * 0.9, "images");
     }
+    if(audio){await request(id+'/audio',{method:'POST',headers:{'Content-Type':'audio/wav'},body:audio});}
     onProgress(0.92, "encoding");
     const encoded = await request(id + "/finish", { method: "POST" }),
       blob = await encoded.blob();

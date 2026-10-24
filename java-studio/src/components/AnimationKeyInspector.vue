@@ -1,10 +1,14 @@
 <script setup>
+import {videoAnimationLabels} from "../videoProperties.js";
+import {patternLabels} from "../sceneBackground.js";
+import { effectFieldLabel } from "../animationEffectCatalog.js";
 import InspectorDrawer from "./InspectorDrawer.vue";
 import { Diamond } from "lucide-vue-next";
 import AnimationCurveEditor from "./AnimationCurveEditor.vue";
 import { reactive, computed } from "vue";
 import {
   animationEasings,
+  isColorAnimationField,
   discreteAnimationFields,
 } from "../animationModel.js";
 const props = defineProps({ studio: Object }),
@@ -16,6 +20,8 @@ const frames = computed(() =>
     : [],
 );
 const labels = {
+  ...videoAnimationLabels,
+  ...patternLabels,
   backgroundColor: "Fond · couleur 1",
   backgroundColor2: "Fond · couleur 2",
   backgroundAngle: "Fond · angle",
@@ -102,7 +108,7 @@ const labels = {
       </p>
       <div v-for="f in frames" :key="f.field" class="key-property">
         <label
-          >{{ labels[f.field]
+          >{{ labels[f.field] || effectFieldLabel(f.field, a.config.effects)
           }}<input
             v-if="discreteAnimationFields.includes(f.field)"
             type="checkbox"
@@ -110,12 +116,7 @@ const labels = {
             @change="f.value = $event.target.checked ? 1 : 0" /><input
             v-else
             :type="
-              [
-                'color',
-                'strokeColor',
-                'backgroundColor',
-                'backgroundColor2',
-              ].includes(f.field)
+              isColorAnimationField(f.field)
                 ? 'color'
                 : 'number'
             "
@@ -123,12 +124,7 @@ const labels = {
             :value="f.value"
             step="0.1"
             @input="
-              f.value = [
-                'color',
-                'strokeColor',
-                'backgroundColor',
-                'backgroundColor2',
-              ].includes(f.field)
+              f.value = isColorAnimationField(f.field)
                 ? $event.target.value
                 : Number($event.target.value)
             " /></label

@@ -9,40 +9,6 @@ const props = defineProps({ studio: Object }),
 </script>
 <template>
   <InspectorDrawer
-    id="animation-values"
-    title="Propriétés animées"
-    :icon="Diamond"
-    ><p class="field-help">
-      À l’instant du curseur, clique sur un losange pour poser ou retirer une
-      clé. Modifier une valeur crée sa clé.
-    </p>
-    <label
-      v-for="[field, label] in [
-        ['x', 'Position X'],
-        ['y', 'Position Y'],
-        ['w', 'Largeur'],
-        ['h', 'Hauteur'],
-        ['rotation', 'Rotation'],
-        ['opacity', 'Opacité'],
-        ['skewX', 'Inclinaison X'],
-        ['skewY', 'Inclinaison Y'],
-        ['contentScale', 'Échelle du contenu'],
-        ...(a.clip?.pathId ? [['progress', 'Progression du chemin']] : []),
-      ]"
-      :key="field"
-      >{{ label }}<AnimationKeyButton :studio="s" :field="field" /><input
-        type="number"
-        :value="a.propertyValue(field)"
-        :step="field === 'progress' || field === 'contentScale' ? 0.01 : 1"
-        :disabled="!!a.clip?.pathId && ['x', 'y'].includes(field)"
-        @change="a.setProperty(field, $event.target.value)" /></label
-    ><label v-if="!a.engine"
-      >Couleur<AnimationKeyButton :studio="s" field="color" /><input
-        type="color"
-        :value="a.propertyValue('color')"
-        @input="a.setProperty('color', $event.target.value)" /></label
-  ></InspectorDrawer>
-  <InspectorDrawer
     id="animation-clip"
     title="Séquence et mouvement"
     :icon="Move"
@@ -92,6 +58,7 @@ const props = defineProps({ studio: Object }),
         </option>
       </select></label
     >
+    <label v-if="a.clip?.pathId">Progression du chemin<AnimationKeyButton :studio="s" field="progress"/><input type="number" min="0" max="1" step="0.01" :value="a.propertyValue('progress')" @change="a.setProperty('progress',$event.target.value)"/></label>
     <p v-if="a.clip?.pathId" class="field-help">
       La spline pilote X et Y. Retire le chemin pour retrouver les pistes de
       position.

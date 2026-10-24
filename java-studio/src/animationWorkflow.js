@@ -94,7 +94,7 @@ export function normalizeEvents(raw) {
         : "time",
       time: num(r.time, 0, 0, 120),
       source: id(r.source),
-      action: ["show", "color", "shape", "startClip"].includes(r.action)
+      action: ["show", "hide", "color", "shape", "startClip"].includes(r.action)
         ? r.action
         : "show",
       target: id(r.target),
@@ -143,19 +143,28 @@ export function eventSchedule(config, contactTimes = {}) {
 }
 export function applyEvents(scene, config, time, times) {
   const fired = [];
-  for (const e of config.events.filter((e) => e.enabled)) {
+  const events = config.events
+      .filter((e) => e.enabled)
+      .sort((a, b) => (times[a.id] ?? Infinity) - (times[b.id] ?? Infinity)),
+    visibility = new Map();
+  for (const e of events)
+    if (["show", "hide"].includes(e.action) && !visibility.has(e.target)) {
+      const link = config.links.find((r) => r.id === e.target);
+      visibility.set(e.target, {
+        visible:
+          e.action === "show" ? false : link ? link.visible !== false : true,
+        opacity: scene.positions[e.target]?.opacity ?? 100,
+      });
+    }
+  for (const e of events) {
     const t = times[e.id] ?? Infinity,
       p = scene.positions[e.target],
       element = scene.elements[e.target],
       link = config.links.find((r) => r.id === e.target);
-    if (e.action === "show" && link) link.visible = time >= t;
-    if (e.action === "show" && p)
-      scene.positions[e.target] = {
-        ...p,
-        opacity: time >= t ? (p.opacity ?? 100) : 0,
-      };
     if (time < t) continue;
     fired.push(e.id);
+    if (["show", "hide"].includes(e.action))
+      visibility.get(e.target).visible = e.action === "show";
     if (e.action === "color" && element && /^#[a-f0-9]{6}$/i.test(e.value)) {
       scene.elements[e.target] = {
         ...element,
@@ -171,6 +180,15 @@ export function applyEvents(scene, config, time, times) {
       scene.elements[e.target] = {
         ...element,
         shape: normalizeShape({ shape: e.value }).shape,
+      };
+  }
+  for (const [key, v] of visibility) {
+    const link = config.links.find((r) => r.id === key);
+    if (link) link.visible = v.visible;
+    if (scene.positions[key])
+      scene.positions[key] = {
+        ...scene.positions[key],
+        opacity: v.visible ? v.opacity : 0,
       };
   }
   return fired;

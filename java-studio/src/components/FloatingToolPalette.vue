@@ -25,6 +25,7 @@ function savePalette() {
       storageKey,
       JSON.stringify({ ...position.value, collapsed: collapsed.value }),
     );
+    window.dispatchEvent(new CustomEvent("frame-editor-tools-position",{detail:props.application}));
   } catch {}
 }
 let gesture = null,

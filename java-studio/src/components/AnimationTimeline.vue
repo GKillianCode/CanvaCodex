@@ -1,6 +1,14 @@
 <script setup>
+import {videoAnimationLabels} from "../videoProperties.js";
+import {setBlockName,blockType,visibleBlocks} from '../model.js';
+import {patternLabels} from "../sceneBackground.js";
+import { normalizePresence, presenceTiming, movePresenceAnimation } from "../animationPresence.js";
+import TimecodeInput from "./TimecodeInput.vue";
+import {audioTimeLabel} from "../animationAudioModel.js";
+import AnimationAudioTrack from "./AnimationAudioTrack.vue";
+import {effectCatalog,effectFieldLabel,visualEffectKinds} from "../animationEffectCatalog.js";
 import {moveKeySelection} from "../animationEditing.js";
-import { reactive, ref, computed, onMounted, onUnmounted, nextTick } from "vue";
+import { reactive, ref, computed, watch, onMounted, onUnmounted, onBeforeUnmount, nextTick } from "vue";
 import {
   Play,
   Pause,
@@ -10,31 +18,196 @@ import {
   Plus,
   Trash2,
   Copy,
+  ClipboardPaste,
   Diamond,
+  AudioLines,
   Route,
-  Maximize2,
+  Repeat2,
   Eye,
   EyeOff,
   Power,
-  ChevronDown,
+  ChevronDown, GripVertical, Type, Shapes, Image, Video, Code, Table, Box, Sparkles, Presentation,
 } from "lucide-vue-next";
 import {
   animationFields,
   animationEasings,
   discreteAnimationFields,
 } from "../animationModel.js";
-import { timelineView, timelineTime } from "../animationTimelineView.js";
+import { timelineView, timelineTime, snapTimelineTime, orderedTracks, reorderTrack } from "../animationTimelineView.js";
 const props = defineProps({ studio: Object }),
   s = reactive(props.studio),
   a = s.animation,
-  height = ref(260),
-  zoom = ref(100),
+  ui=s.editorView||reactive({}),
+  height = ref(Math.max(180,Math.min(650,ui.timeline?.height||260))),
+  timelinePanel = ref(ui.timeline?.panel==='audio'?'audio':'keys'),
+  zoom = ref(ui.timeline?.zoom||100),
   tracks = ref(null),
   world = ref(null),
   menu = ref(null),
-  showHidden = ref(false);
-const view = computed(() => timelineView(a.config.duration, zoom.value));
+  renaming = ref(null), renameInput = ref(null),
+  draggingKey = ref(null),
+  showHidden = ref(ui.timeline?.showHidden===true), selectedOnly=ref(ui.timeline?.selectedOnly===true), nearPlayhead=ref(ui.timeline?.nearPlayhead!==false), draggedGroup=ref(null);
+const grouping=ref(['type','scene','none'].includes(ui.timeline?.grouping)?ui.timeline.grouping:'type');
+const rememberedPanel=ui.timeline?.panel;
+const closedFolders=reactive(new Set()),rowDrag=ref(null),rowDrop=ref(null),trackWidth=ref(0);
+let restoringTimeline=true,resizeObserver;
+try { if(ui.timeline?.nearPlayhead===undefined)nearPlayhead.value=localStorage.getItem('frame-animation-near-playhead')!=='false'; } catch {}
+watch(nearPlayhead,value=>{try{localStorage.setItem('frame-animation-near-playhead',String(value));}catch{}});
+const labelWidth=computed(()=>timelinePanel.value==='audio'?180:280);
+const visibleClips=computed(()=>a.config.clips.filter(c=>(!c.hidden||showHidden.value)&&(!selectedOnly.value||!s.selectedKeys.length||!c.keys.length||c.keys.some(k=>s.selectedKeys.includes(k)))));
+const visibleEffects=computed(()=>a.config.effects.filter(e=>visualEffectKinds.includes(e.kind)&&(!selectedOnly.value||!s.selectedKeys.length||s.selectedKeys.includes(e.key))));
+// Each sequence/effect belongs to one drawer, including sequences targeting several objects.
+const expandedGroups = reactive(new Set());
+const hiddenGroups = reactive(new Set());
+const groupId = key => s.current.id + ':' + key;
+function groupAnimations(key) {
+  return [
+    ...a.config.clips.filter(c => (c.keys[0] || '$scene') === key),
+    ...a.config.effects.filter(e => visualEffectKinds.includes(e.kind) && e.key === key),
+  ];
+}
+function groupIsNear(group) {
+  if(!nearPlayhead.value || !group.range || draggedGroup.value===group.key)return true;
+  const keys=new Set([group.key,...group.clips.flatMap(c=>c.keys)]);
+  return [...keys].some(key=>{
+    const timing=key===group.key?group.timing:presenceTiming(a.config.presences[key],a.config.duration);
+    return a.time>=timing.start-2 && a.time<=timing.end+2;
+  });
+}
+function toggleGroupHidden(key) {
+  const id = groupId(key);
+  if (hiddenGroups.has(id)) hiddenGroups.delete(id);
+  else hiddenGroups.add(id);
+}
+function toggleGroupEnabled(key) {
+  if (a.busy) return;
+  const animations = groupAnimations(key), enabled = !animations.some(c => c.enabled);
+  a.stop(); a.beginGesture();
+  animations.forEach(c => c.enabled = enabled);
+  a.endGesture();
+}
+function removeGroup(group) {
+  const animations = groupAnimations(group.key);
+  a.removeTracks(
+    animations.filter(c => 'keys' in c).map(c => c.id),
+    animations.filter(c => !('keys' in c)).map(c => c.id),
+    'les animations de « ' + group.name + ' » (l’objet et sa présence seront conservés)',
+  );
+}
+const trackGroups = computed(() => {
+  const groups = new Map();
+  function group(key) {
+    if (!groups.has(key)) groups.set(key, {
+      key, name: s.current.elements[key]?.name || s.current.blockNames?.[key] || (key === '$scene' ? 'Scène' : key),
+      range: s.current.positions[key] ? normalizePresence(a.config.presences[key]) : null,
+      timing: presenceTiming(a.config.presences[key],a.config.duration),
+      clips: [], effects: [],
+    });
+    return groups.get(key);
+  }
+  const matches = key => !selectedOnly.value || !s.selectedKeys.length || s.selectedKeys.includes(key);
+  for (const key of visibleBlocks(s.current)) {
+    if (s.current.positions[key] && matches(key)) group(key);
+  }
+  for (const c of visibleClips.value) group(c.keys[0] || '$scene').clips.push(c);
+  for (const effect of visibleEffects.value) group(effect.key).effects.push(effect);
+  const order=orderedTracks([...groups.keys()],a.config.timelineOrder||[]);
+  return order.map(key=>groups.get(key)).filter(g => (showHidden.value || !hiddenGroups.has(groupId(g.key))) &&
+    groupIsNear(g));
+});
+const types=[['scene','Scène',Presentation],['text','Textes',Type],['shape','Formes',Shapes],['image','Images',Image],['video','Vidéos',Video],['code','Code',Code],['table','Tableaux',Table],['bits','Bits',Box],['engine','Moteurs',Sparkles],['other','Autres',Box]];
+function trackType(group){return group.key==='$scene'?'scene':s.current.elements[group.key]?.engineKind?'engine':s.current.elements[group.key]?.mediaKind==='video'?'video':blockType(s.current,group.key);}
+const folders=computed(()=>{
+  if(grouping.value==='none')return [{id:'all',groups:trackGroups.value}];
+  if(grouping.value==='scene')return [{id:'current-scene',name:s.current.title||'Scène',icon:Presentation,groups:trackGroups.value}];
+  return types.map(([id,name,icon])=>({id,name,icon,groups:trackGroups.value.filter(g=>(types.some(t=>t[0]===trackType(g))?trackType(g):'other')===id)})).filter(f=>f.groups.length);
+});
+function rowOver(event,group){
+  if(!rowDrag.value||rowDrag.value===group.key)return;
+  const source=trackGroups.value.find(g=>g.key===rowDrag.value);
+  if(!source)return;
+  if(grouping.value==='type'&&trackType(source)!==trackType(group))return;
+  event.preventDefault();event.dataTransfer.dropEffect='move';
+  const r=event.currentTarget.getBoundingClientRect();rowDrop.value={key:group.key,before:event.clientY<r.y+r.height/2};
+}
+function dropRow(event,group){
+  if(!rowDrop.value||rowDrop.value.key!==group.key)return;
+  event.preventDefault();
+  const keys=orderedTracks([...visibleBlocks(s.current),...(a.config.clips.some(c=>!c.keys.length)?['$scene']:[])],a.config.timelineOrder||[]);
+  a.beginGesture();a.config.timelineOrder=reorderTrack(keys,rowDrag.value,group.key,rowDrop.value.before);a.endGesture();
+  rowDrag.value=null;rowDrop.value=null;
+}
+function saveTimeline(){
+  if(restoringTimeline)return;
+  ui.timeline={height:height.value,panel:timelinePanel.value,zoom:zoom.value,grouping:grouping.value,showHidden:showHidden.value,selectedOnly:selectedOnly.value,nearPlayhead:nearPlayhead.value};
+  ui.scenes||={};const state=ui.scenes[s.current.id]||={};
+  state.timeline={expanded:[...expandedGroups],hidden:[...hiddenGroups],folders:[...closedFolders],left:tracks.value?.scrollLeft??state.timeline?.left??0,top:tracks.value?.scrollTop??state.timeline?.top??0};
+}
+async function restoreTimeline(){
+  restoringTimeline=true;
+  const state=ui.scenes?.[s.current.id]?.timeline||{};
+  expandedGroups.clear();hiddenGroups.clear();closedFolders.clear();
+  (state.expanded||[]).forEach(k=>expandedGroups.add(k));(state.hidden||[]).forEach(k=>hiddenGroups.add(k));(state.folders||[]).forEach(k=>closedFolders.add(k));
+  await nextTick();
+  if(tracks.value){tracks.value.scrollLeft=state.left??(view.value.offset/view.value.span*(world.value?.querySelector('.timeline-ruler')?.getBoundingClientRect().width||0));tracks.value.scrollTop=state.top||0;}
+  restoringTimeline=false;
+}
+watch([height,timelinePanel,zoom,grouping,showHidden,selectedOnly,nearPlayhead,expandedGroups,hiddenGroups,closedFolders],saveTimeline,{deep:true});
+watch(()=>s.current.id,restoreTimeline);
+function timePercent(time){return (time+view.value.offset)/view.value.span*100;}
+function snapTime(time,lane,event){return event.altKey?time:snapTimelineTime(time,Math.round(a.time*a.config.fps)/a.config.fps,lane.width/view.value.span);}
+function toggleGroup(key) {
+  if (expandedGroups.has(key)) expandedGroups.delete(key);
+  else expandedGroups.add(key);
+}
+function selectGroup(group) {
+  if (s.current.positions[group.key]) selectPresence(group.key);
+  else if (group.clips[0]) a.selectClip(group.clips[0].id);
+}
+function objectContext(event,group) {
+  if(!group.range)return;
+  event.preventDefault();event.stopPropagation();
+  menu.value={group,x:Math.min(innerWidth-210,event.clientX),y:Math.min(innerHeight-100,event.clientY)};
+}
+function renameGroup(group) {
+  if(a.busy)return;
+  menu.value=null;renaming.value={key:group.key,name:group.name};
+  nextTick(()=>{const input=Array.isArray(renameInput.value)?renameInput.value[0]:renameInput.value;input?.focus();input?.select();});
+}
+function commitName() {
+  const value=renaming.value;renaming.value=null;
+  if(!value||a.busy||!value.name.trim())return;
+  const name=value.name.trim().slice(0,100);
+  if(name===(s.current.elements[value.key]?.name||s.current.blockNames?.[value.key]||value.key))return;
+  a.beginGesture();setBlockName(s.current,value.key,name);a.endGesture();
+}
+function objectMarkers(group) {
+  return group.clips.flatMap(c=>frameTimes(c)
+    .filter(t=>!expandedGroups.has(group.key)||!c.frames.some(f=>Math.abs(f.time-t)<.0001))
+    .map(t=>({c,t})));
+}
+function selectPresence(key) { s.selectLayer(key); }
+function dragPresence(event,key,edge) {
+  if(event.button!==0 || a.busy) return;
+  event.preventDefault(); event.stopPropagation(); a.stop(); selectPresence(key);
+  const lane=event.currentTarget.closest('.track-lane').getBoundingClientRect(), x=event.clientX,
+    original=normalizePresence(a.config.presences[key]), end=Math.min(a.config.duration,original.end??a.config.duration), span=end-original.start, frame=1/a.config.fps, snapshot=JSON.parse(JSON.stringify({presences:a.config.presences,clips:a.config.clips,effects:a.config.effects,members:[key]}));
+  if(edge==='move'){for(let i=0;i<snapshot.members.length;i++)for(const clip of snapshot.clips)if(clip.keys.includes(snapshot.members[i]))for(const member of clip.keys)if(!snapshot.members.includes(member))snapshot.members.push(member);}
+  gesture(e=>{
+    const delta=Math.round((e.clientX-x)/lane.width*view.value.span*a.config.fps)/a.config.fps;
+    const range={...original};
+    if(edge==='start') range.start=Math.max(0,Math.min(end-frame,snapTime(original.start+delta,lane,e)));
+    else if(edge==='end') range.end=Math.max(original.start+frame,Math.min(a.config.duration,snapTime(end+delta,lane,e)));
+    else {let start=original.start+delta;const first=snapTime(start,lane,e),last=snapTime(start+span,lane,e)-span;const candidates=[first,last].filter(v=>Math.abs(v-start)>1e-9).sort((x,y)=>Math.abs(x-start)-Math.abs(y-start));if(candidates.length)start=candidates[0];range.start=Math.max(0,Math.min(a.config.duration-span,start));range.end=range.start+span;}
+    if(edge==='move')movePresenceAnimation(a.config,snapshot,key,range.start);else a.config.presences[key]=normalizePresence(range);
+    const at=edge==='end'?range.end:range.start;
+    draggingKey.value={time:at,frame:Math.round(at*a.config.fps),x:Math.max(8,Math.min(window.innerWidth-240,e.clientX+14)),y:Math.max(8,Math.min(window.innerHeight-64,e.clientY+22)),blocked:false};
+  },key);
+}
+const view = computed(() => timelineView(a.config.duration, zoom.value,true));
+watch(() => !!a.config.audio.src, present => { if (present && !rememberedPanel) { timelinePanel.value = 'audio'; } }, {immediate:true});
 const labels = {
+  ...patternLabels,
   fillEnabled: "Remplissage activé",
   strokeEnabled: "Contour activé",
   dashed: "Pointillés",
@@ -57,6 +230,7 @@ const labels = {
   skewX: "Inclinaison X",
   skewY: "Inclinaison Y",
   opacity: "Opacité",
+  ...videoAnimationLabels,
   size: "Taille du texte",
   contentScale: "Échelle du contenu",
   scale: "Échelle · %",
@@ -74,38 +248,59 @@ const easeLabels = {
   bezier: "Bézier",
 };
 let cleanup = () => {};
-function gesture(move) {
+function gesture(move,owner=null) {
   cleanup();
+  draggedGroup.value=owner;
   a.beginGesture();
   const end = () => {
     window.removeEventListener("pointermove", move);
     window.removeEventListener("pointerup", end);
     window.removeEventListener("pointercancel", end);
+    window.removeEventListener("blur", end);
+    draggingKey.value = null;
+    draggedGroup.value=null;
     a.endGesture();
     cleanup = () => {};
   };
   window.addEventListener("pointermove", move);
   window.addEventListener("pointerup", end);
   window.addEventListener("pointercancel", end);
+  window.addEventListener("blur", end);
   cleanup = end;
 }
 function dragKey(event, c, key) {
+  if (event.button !== 0) return;
   event.preventDefault();
   event.stopPropagation();
   event.currentTarget.closest('.animation-timeline')?.focus({preventScroll:true});
   a.selectKey(c,key,event.ctrlKey||event.metaKey||event.shiftKey);
   const entries=a.keyEntries();if(!entries.length)return;
   const rect=event.currentTarget.parentElement.getBoundingClientRect(),x=event.clientX,origins=entries.map(r=>r.key.time);
-  gesture(e=>{const delta=Math.round((e.clientX-x)/rect.width*view.value.span*a.config.fps)/a.config.fps;moveKeySelection(entries,delta,origins);});
+  function indicate(e, blocked = false) {
+    draggingKey.value = {
+      time: c.start + key.time,
+      frame: Math.round((c.start + key.time) * a.config.fps),
+      x: Math.max(8, Math.min(window.innerWidth - 240, e.clientX + 14)),
+      y: Math.max(8, Math.min(window.innerHeight - 64, e.clientY + 22)),
+      blocked,
+    };
+  }
+  gesture(e => {
+    const delta = Math.round((e.clientX - x) / rect.width * view.value.span * a.config.fps) / a.config.fps;
+    const candidate=snapTime(c.start+origins[0]+delta,rect,e)-c.start-origins[0];
+    const moved = moveKeySelection(entries, candidate, origins,a.config.fps);
+    indicate(e, !moved);
+  },c.keys[0]||null);
+  indicate(event);
 }
-function keyShortcuts(e){if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if((e.ctrlKey||e.metaKey)&&['c','v'].includes(e.key.toLowerCase())){e.preventDefault();e.stopPropagation();if(e.key.toLowerCase()==='c')a.copyKeys();else a.pasteKeys();}if(e.key==='Delete'&&a.keyEntries().length){e.preventDefault();e.stopPropagation();a.deleteKeys();}}
+function keyShortcuts(e){if(timelinePanel.value!=='keys')return;if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName))return;if((e.ctrlKey||e.metaKey)&&['c','v'].includes(e.key.toLowerCase())){e.preventDefault();e.stopPropagation();if(e.key.toLowerCase()==='c')a.copyKeys();else a.pasteKeys();}if(e.key==='Delete'&&a.keyEntries().length){e.preventDefault();e.stopPropagation();a.deleteKeys();}}
 function scrub(event) {
   event.preventDefault();
   const rect = (
     event.currentTarget.closest(".timeline-ruler") || event.currentTarget
   ).getBoundingClientRect();
   const update = (e) =>
-    a.seek(timelineTime(e.clientX, rect.left, rect.width, view.value.span));
+    a.seek(timelineTime(e.clientX, rect.left, rect.width, view.value.span,view.value.offset));
   update(event);
   gesture(update);
 }
@@ -118,7 +313,7 @@ function resize(event) {
 }
 function dragClip(event, c) {
   event.preventDefault();
-  a.selectClip(c.id);
+  if(c.key){s.selected=c.key;s.selectedKeys=[c.key];}else a.selectClip(c.id);
   const rect = event.currentTarget.parentElement.getBoundingClientRect(),
     x = event.clientX,
     start = c.start;
@@ -136,27 +331,22 @@ function dragClip(event, c) {
       )),
   );
 }
+function resizeEffect(event,e){event.preventDefault();event.stopPropagation();const lane=event.currentTarget.closest('.track-lane').getBoundingClientRect(),x=event.clientX,duration=e.duration;gesture(ev=>{e.duration=Math.max(.05,Math.min(a.config.duration-e.start,snapTime(e.start+duration+(ev.clientX-x)/lane.width*view.value.span,lane,ev)-e.start));});}
 async function zoomAt(value, event) {
   const el = tracks.value;
   if (!el) return;
-  const rect = el.getBoundingClientRect(),
-    pointer = event ? event.clientX - rect.left : rect.width / 2,
-    oldWidth = world.value.getBoundingClientRect().width,
-    time =
-      ((el.scrollLeft + pointer - 280) / Math.max(1, oldWidth - 280)) *
-      view.value.span;
-  zoom.value = timelineView(a.config.duration, value).zoom;
+  const viewport=el.getBoundingClientRect(),pointer=event?event.clientX:viewport.left+viewport.width/2;
+  const old=world.value.querySelector('.timeline-ruler').getBoundingClientRect();
+  const time=(pointer-old.left)/old.width*view.value.span-view.value.offset;
+  zoom.value=timelineView(a.config.duration,value).zoom;
   await nextTick();
-  const width = world.value.getBoundingClientRect().width;
-  el.scrollLeft = Math.max(
-    0,
-    280 + (time / view.value.span) * (width - 280) - pointer,
-  );
+  const lane=world.value.querySelector('.timeline-ruler').getBoundingClientRect();
+  el.scrollLeft+=lane.left+(time+view.value.offset)/view.value.span*lane.width-pointer;
 }
 function wheel(event) {
-  if (!event.ctrlKey && !event.metaKey) return;
-  event.preventDefault();
-  zoomAt(zoom.value * Math.exp(-event.deltaY * 0.002), event);
+  if(event.ctrlKey||event.metaKey){event.preventDefault();zoomAt(zoom.value*Math.exp(-event.deltaY*.002),event);return;}
+  if(event.target.closest('.track-name,.property-track-label,.timeline-folder-name'))return;
+  event.preventDefault();if(event.shiftKey||Math.abs(event.deltaX)>Math.abs(event.deltaY))tracks.value.scrollLeft+=event.deltaX||event.deltaY;else tracks.value.scrollTop+=event.deltaY;
 }
 function context(event, c, key) {
   event.preventDefault();
@@ -173,11 +363,17 @@ function context(event, c, key) {
 function outside(event) {
   if (!event.target.closest(".animation-key-context")) menu.value = null;
 }
+function addObjectFrame(event, group) {
+  if(event.target.closest('button'))return;
+  const c=group.clips.find(c=>c.id===a.selectedClip)||group.clips[0];
+  if(!c)selectGroup(group);
+  addFrameAt(event,c);
+}
 function addFrameAt(event, c) {
   if (event.target.closest("button")) return;
   const rect = event.currentTarget.getBoundingClientRect();
-  a.selectClip(c.id);
-  a.seek(timelineTime(event.clientX, rect.left, rect.width, view.value.span));
+  if(c)a.selectClip(c.id);
+  a.seek(timelineTime(event.clientX, rect.left, rect.width, view.value.span,view.value.offset));
   a.addFrame();
 }
 function frameTimes(c) {
@@ -194,10 +390,13 @@ function deleteEvent(event) {
 }
 onMounted(() => {
   tracks.value.addEventListener("wheel", wheel, { passive: false });
+  let initialSize=true;
+  resizeObserver=new ResizeObserver(async entries=>{trackWidth.value=entries[0].contentRect.width;if(initialSize){initialSize=false;await nextTick();restoreTimeline();}});resizeObserver.observe(tracks.value);
   window.addEventListener("pointerdown", outside);
 });
+onBeforeUnmount(saveTimeline);
 onUnmounted(() => {
-  cleanup();
+  cleanup();resizeObserver?.disconnect();
   tracks.value?.removeEventListener("wheel", wheel);
   window.removeEventListener("pointerdown", outside);
 });
@@ -206,9 +405,9 @@ onUnmounted(() => {
   <section
     class="animation-timeline" tabindex="0"
     @keydown="keyShortcuts"
-    :style="{ height: height + 'px' }"
+    :style="{ height: height + 'px', '--animation-label-width':labelWidth+'px','--timeline-active-start':timePercent(0)+'%','--timeline-active-end':timePercent(a.config.duration)+'%' }"
     aria-label="Timeline de l’animation"
-    @keydown.delete.stop="!a.keyEntries().length&&deleteEvent($event)"
+    @keydown.delete.stop="timelinePanel === 'keys'&&!a.keyEntries().length&&deleteEvent($event)"
     @keydown.left.stop
     @keydown.right.stop
     @keydown.up.stop
@@ -219,6 +418,13 @@ onUnmounted(() => {
       aria-label="Redimensionner la timeline"
       @pointerdown="resize"
     ></button>
+    <div class="animation-timeline-header">
+    <div class="animation-timeline-views">
+      <div class="workspace-switch" role="group" aria-label="Vue de la timeline">
+        <button type="button" :class="{active:timelinePanel === 'keys'}" :aria-pressed="timelinePanel === 'keys'" @click="timelinePanel = 'keys'; menu = null"><Diamond :size="14" />Images clés</button>
+        <button type="button" :class="{active:timelinePanel === 'audio'}" :aria-pressed="timelinePanel === 'audio'" @click="timelinePanel = 'audio'; menu = null"><AudioLines :size="14" />Audio</button>
+      </div>
+    </div>
     <div class="animation-transport">
       <div class="bottom-tools">
         <button class="icon-btn" title="Début" @click="a.seek(0)">
@@ -230,33 +436,25 @@ onUnmounted(() => {
         >
           <ChevronLeft :size="16" /></button
         ><button
-          class="btn primary"
+          class="icon-btn playback-toggle"
+          :class="{active:a.playing}"
+          :aria-label="a.playing ? 'Pause' : 'Lire'"
           title="Lire ou mettre en pause l’animation"
           @click="a.play()"
         >
-          <component :is="a.playing ? Pause : Play" :size="16" />{{
-            a.playing ? "Pause" : "Lire"
-          }}</button
+          <component :is="a.playing ? Pause : Play" :size="16" /></button
         ><button
           class="icon-btn"
           title="Image suivante"
           @click="a.seek(a.time + 1 / a.config.fps)"
         >
           <ChevronRight :size="16" /></button
-        ><label class="timeline-time"
-          ><input
-            type="number"
-            :value="a.time.toFixed(2)"
-            min="0"
-            :max="a.config.duration"
-            step=".01"
-            aria-label="Temps en secondes"
-            @change="a.seek($event.target.value)"
-          />
-          s</label
-        ><label title="Recommencer la scène à la fin"
-          ><input type="checkbox" v-model="a.loop" />Boucle</label
         >
+        <div class="timeline-time" :title="a.config.audio.src ? 'Dans l’audio : ' + audioTimeLabel(a.audio.position,a.audio.frameRate) : 'Position dans la scène'">
+          <TimecodeInput dense hide-label :frame-rate="a.audio.frameRate" compact label="Temps de la scène" :model-value="a.time"
+            :disabled="a.busy" @focusin="a.stop()" @update:model-value="a.seek" />
+        </div>
+        <button type="button" class="icon-btn playback-loop" :class="{active:a.loop}" :aria-pressed="a.loop" aria-label="Boucle" :title="a.loop ? 'Désactiver la lecture en boucle' : 'Activer la lecture en boucle'" @click="a.loop=!a.loop"><Repeat2 :size="16"/></button>
         <div
           class="workspace-switch"
           title="Construction : état courant avec repères et éléments hors cadre. État animé : rendu cadré au même instant."
@@ -273,17 +471,17 @@ onUnmounted(() => {
           </button>
         </div>
         <button
-          class="icon-btn"
-          title="Ouvrir l’aperçu plein écran"
-          aria-label="Aperçu plein écran"
-          @click="
-            a.preview = true;
-            a.previewOpen = true;
-          "
-        >
-          <Maximize2 :size="15" />
-        </button>
+          type="button"
+          class="btn"
+          :class="{ active: a.autoKey }"
+          :aria-pressed="a.autoKey"
+          aria-label="Images clés automatiques"
+          :disabled="a.busy"
+          title="Clés auto : chaque modification d’une propriété animable est enregistrée à cet instant, avec une clé de départ si nécessaire. Les losanges restent disponibles."
+          @click="a.setAutoKey(!a.autoKey)"
+        ><Diamond :size="14" :fill="a.autoKey ? 'currentColor' : 'none'" />Clés auto</button>
       </div>
+    </div>
     </div>
     <div v-if="a.busy" class="animation-export-progress" role="status">
       Export · {{ Math.round(a.progress * 100) }} %<progress
@@ -292,7 +490,7 @@ onUnmounted(() => {
       ></progress
       ><button class="btn" @click="a.cancel()">Annuler</button>
     </div>
-    <div class="animation-key-tools">
+    <div v-if="timelinePanel === 'keys'" class="animation-key-tools">
       <button
         class="btn primary"
         title="Poser une image clé à cet instant, puis lui associer des propriétés avec les losanges"
@@ -302,7 +500,7 @@ onUnmounted(() => {
       </button>
       <button
         class="btn"
-        title="Créer une séquence pour les objets sélectionnés"
+        title="Créer une séquence commune : les objets sélectionnés se déplacent, tournent et changent d’échelle ensemble"
         @click="a.addClip()"
       >
         <Plus :size="14" />Animer la sélection</button
@@ -334,152 +532,102 @@ onUnmounted(() => {
         <Route :size="14" />Spline</button
       ><label title="Réafficher les séquences masquées"
         ><input type="checkbox" v-model="showHidden" />Pistes masquées</label
-      ><span class="field-help"
-        >Losanges dans les propriétés · Ctrl + molette : zoom temporel.</span
-      >
-    </div>
-    <div class="animation-key-selection-tools"><button class="btn" :disabled="!a.keySelection.length" title="Copier les clés sélectionnées · Ctrl C" @click="a.copyKeys()">Copier {{a.keySelection.length}} clé(s)</button><button class="btn" :disabled="!a.keyClipboard.length||!a.clip" title="Coller à la tête de lecture · Ctrl V" @click="a.pasteKeys()">Coller les clés</button><button class="icon-btn" :disabled="!a.keySelection.length" aria-label="Supprimer les clés sélectionnées" @click="a.deleteKeys()"><Trash2 :size="14"/></button><small>Ctrl ou Maj + clic : sélection multiple · glisser pour décaler ensemble.</small></div>
-<div ref="tracks" class="animation-tracks">
+      ><label title="Afficher les objets de 2 secondes avant leur apparition à 2 secondes après leur disparition"><input type="checkbox" v-model="nearPlayhead" aria-label="Pistes autour du curseur"/>Autour du curseur</label>
+      <label title="Afficher uniquement les pistes de la sélection et les pistes de scène"><input type="checkbox" v-model="selectedOnly" aria-label="Pistes de la sélection"/>Sélection</label>
+<label class="timeline-grouping">Regrouper <select v-model="grouping" aria-label="Regrouper les pistes"><option value="type">Par type</option><option value="scene">Par scène</option><option value="none">Liste libre</option></select></label>
+<div class="animation-key-selection-tools"><button class="icon-btn" :disabled="!a.keySelection.length" aria-label="Copier les clés sélectionnées" title="Copier les clés sélectionnées · Ctrl C" @click="a.copyKeys()"><Copy :size="14"/></button><button class="icon-btn" :disabled="!a.keyClipboard.length||!a.clip" aria-label="Coller les clés" title="Coller à la tête de lecture · Ctrl V" @click="a.pasteKeys()"><ClipboardPaste :size="14"/></button><button class="icon-btn" :disabled="!a.keySelection.length" aria-label="Supprimer les clés sélectionnées" @click="a.deleteKeys()"><Trash2 :size="14"/></button></div>    </div>
+
+<div ref="tracks" class="animation-tracks" @scroll.passive="saveTimeline">
       <div
         ref="world"
         class="animation-tracks-world"
-        :style="{ width: view.widthPercent + '%' }"
+        :style="{ width: labelWidth+Math.max(250,trackWidth-labelWidth)*view.widthPercent/100+'px' }" :data-time-span="view.span" :data-time-offset="view.offset"
       >
         <div class="animation-ruler">
-          <span>Séquences</span>
+          <span>{{ timelinePanel === 'audio' ? 'Temps dans le fichier' : 'Séquences' }}</span>
           <div class="timeline-ruler" @pointerdown="scrub">
             <span
               v-for="i in 9"
               :key="i"
-              :style="{ left: ((i - 1) / 8) * 100 + '%' }"
-              >{{ (((i - 1) * view.span) / 8).toFixed(1) }}</span
+              :style="{ left: timePercent((i-1)*a.config.duration/8)+'%', transform: timelinePanel === 'audio' ? (i === 1 ? 'none' : i === 9 ? 'translateX(-100%)' : undefined) : undefined }"
+              >{{ timelinePanel === 'audio' ? audioTimeLabel(a.config.audio.start + ((i - 1) * a.config.duration) / 8, a.audio.frameRate) : (((i - 1) * a.config.duration) / 8).toFixed(1) }}</span
             ><button
               class="playhead-head"
-              :style="{ left: (a.time / view.span) * 100 + '%' }"
+              :style="{ left: timePercent(a.time) + '%' }"
               title="Glisser pour déplacer la tête de lecture"
               aria-label="Tête de lecture"
               @pointerdown.stop="scrub"
             ></button
-            ><i :style="{ left: (a.time / view.span) * 100 + '%' }"></i>
+            ><i :style="{ left: timePercent(a.time) + '%' }"></i>
           </div>
         </div>
-        <template
-          v-for="c in a.config.clips.filter((c) => !c.hidden || showHidden)"
-          :key="c.id"
-          ><div
-            :class="[
-              'animation-track',
-              { active: a.selectedClip === c.id, muted: !c.enabled },
-            ]"
-          >
-            <div class="track-name" @click="a.selectClip(c.id)">
-              <button
-                class="icon-btn"
-                :title="
-                  c.collapsed
-                    ? 'Déplier les propriétés'
-                    : 'Replier les propriétés'
-                "
-                @click.stop="c.collapsed = !c.collapsed"
-              >
-                <ChevronDown
-                  :size="12"
-                  :style="{ transform: c.collapsed ? 'rotate(-90deg)' : '' }"
-                /></button
-              ><input
-                :aria-label="'Nom de la séquence ' + c.name"
-                v-model="c.name"
-                maxlength="100"
-                title="Renommer la séquence"
-                @pointerdown.stop
-              /><button
-                class="icon-btn"
-                :title="
-                  c.enabled
-                    ? 'Désactiver cette animation'
-                    : 'Réactiver cette animation'
-                "
-                :aria-pressed="c.enabled"
-                @click.stop="c.enabled = !c.enabled"
-              >
-                <Power
-                  :size="12"
-                  :style="{ opacity: c.enabled ? 1 : 0.35 }"
-                /></button
-              ><button
-                class="icon-btn"
-                :title="c.hidden ? 'Réafficher la piste' : 'Masquer la piste'"
-                @click.stop="c.hidden = !c.hidden"
-              >
-                <component :is="c.hidden ? EyeOff : Eye" :size="12" /></button
-              ><button
-                class="icon-btn"
-                title="Supprimer cette séquence"
-                @click.stop="
-                  a.selectClip(c.id);
-                  a.removeClip();
-                "
-              >
-                <Trash2 :size="12" />
+        <AnimationAudioTrack v-if="timelinePanel === 'audio'" :studio="s" :span="view.span" :offset="view.offset" @scrub="scrub" />
+        <template v-for="folder in timelinePanel==='keys'?folders:[]" :key="folder.id">
+          <div v-if="grouping!=='none'" class="timeline-folder-row">
+            <button class="timeline-folder-name" :aria-expanded="!closedFolders.has(folder.id)" :aria-label="'Dossier '+folder.name" @click="closedFolders.has(folder.id)?closedFolders.delete(folder.id):closedFolders.add(folder.id)"><ChevronDown :size="13" :style="{transform:closedFolders.has(folder.id)?'rotate(-90deg)':''}"/><component :is="folder.icon" :size="13"/><span>{{folder.name}}</span><small>{{folder.groups.length}}</small></button><div class="track-lane"></div>
+          </div>
+        <template v-for="group in closedFolders.has(folder.id)&&grouping!=='none'?[]:folder.groups" :key="group.key">
+          <div class="animation-track animation-object-track" :data-object="group.key" :class="{active:s.selectedKeys.includes(group.key), 'timeline-group-hidden':hiddenGroups.has(groupId(group.key)),'row-drop-before':rowDrop?.key===group.key&&rowDrop.before,'row-drop-after':rowDrop?.key===group.key&&!rowDrop.before}">
+            <div class="track-name object-track-name" @dragover="rowOver($event,group)" @drop="dropRow($event,group)" @contextmenu="objectContext($event,group)">
+              <button class="track-reorder-grip" draggable="true" :disabled="a.busy" :aria-label="'Déplacer la piste de '+group.name" title="Glisser pour réordonner les pistes" @dragstart="rowDrag=group.key;$event.dataTransfer.setData('text/plain',group.key);$event.dataTransfer.effectAllowed='move'" @dragend="rowDrag=null;rowDrop=null"><GripVertical :size="12"/></button>
+              <button class="icon-btn" :aria-label="'Animations de '+group.name" :aria-expanded="expandedGroups.has(group.key)" :disabled="!group.clips.length&&!group.effects.length" @click="toggleGroup(group.key)">
+                <ChevronDown :size="14" :style="{transform:expandedGroups.has(group.key)?'':'rotate(-90deg)'}"/>
               </button>
+              <input v-if="renaming?.key===group.key" ref="renameInput" class="object-track-rename" v-model="renaming.name" maxlength="100" aria-label="Nom de l’objet" @pointerdown.stop @keydown.stop @keydown.enter.prevent="commitName" @keydown.esc.prevent="renaming=null" @blur="commitName"/>
+              <button v-else class="object-track-title" @click="selectGroup(group)" :title="group.name">{{group.name}}</button>
+              <button class="icon-btn" :disabled="a.busy || !groupAnimations(group.key).length"
+                :aria-label="'Activer ou désactiver les animations de '+group.name"
+                :title="groupAnimations(group.key).some(c=>c.enabled)?'Désactiver les animations':'Réactiver les animations'"
+                :aria-pressed="groupAnimations(group.key).some(c=>c.enabled)"
+                @click.stop="toggleGroupEnabled(group.key)"><Power :size="12"/></button>
+              <button class="icon-btn" :disabled="a.busy"
+                :aria-label="'Masquer ou réafficher la piste de '+group.name"
+                :title="hiddenGroups.has(groupId(group.key))?'Réafficher la piste':'Masquer la piste (sans modifier le rendu)'"
+                :aria-pressed="!hiddenGroups.has(groupId(group.key))"
+                @click.stop="toggleGroupHidden(group.key)"><component :is="hiddenGroups.has(groupId(group.key))?EyeOff:Eye" :size="12"/></button>
+              <button class="icon-btn" :disabled="a.busy || !groupAnimations(group.key).length"
+                :aria-label="'Supprimer les animations de '+group.name"
+                title="Supprimer les animations de cet objet…"
+                @click.stop="removeGroup(group)"><Trash2 :size="12"/></button>
             </div>
-            <div
-              class="track-lane"
-              @pointerdown.self="a.selectClip(c.id)"
-              @dblclick.stop.prevent="addFrameAt($event, c)"
-            >
-              <span
-                class="clip-span"
-                :style="{
-                  left: (c.start / view.span) * 100 + '%',
-                  width: (c.duration / view.span) * 100 + '%',
-                }"
-                title="Glisser pour décaler la séquence"
-                @pointerdown="dragClip($event, c)"
-              ></span
-              ><button
-                v-for="t in frameTimes(c)"
-                :key="t"
-                class="frame-marker"
-                :class="{
-                  empty: !c.frames.some((f) => Math.abs(f.time - t) < 0.0001),
-                }"
-                :style="{ left: ((c.start + t) / view.span) * 100 + '%' }"
-                :aria-label="'Image clé à ' + t + ' secondes'"
-                :title="
-                  'Image clé · ' + t + ' s · double-clic : afficher cet état'
-                "
-                @pointerdown.stop
-                @click.stop="a.focusFrame(c, t)"
-                @dblclick.stop.prevent="a.focusFrame(c, t)"
-                @contextmenu.prevent.stop="
-                  menu = {
-                    c,
-                    frameTime: t,
-                    x: Math.min(innerWidth - 210, $event.clientX),
-                    y: Math.min(innerHeight - 180, $event.clientY),
-                  }
-                "
-              >
-                ◆</button
-              ><i
-                class="track-cursor"
-                :style="{ left: (a.time / view.span) * 100 + '%' }"
-              ></i>
+            <div class="track-lane" @pointerdown.self="selectGroup(group)" @dblclick.stop.prevent="addObjectFrame($event,group)">
+              <div v-if="group.range" class="presence-span" :style="{left:timePercent(Math.min(group.range.start,a.config.duration))+'%',width:Math.max(0,Math.min(group.range.end??a.config.duration,a.config.duration)-group.range.start)/view.span*100+'%'}" @pointerdown="dragPresence($event,group.key,'move')" :title="'Présence · '+audioTimeLabel(group.range.start,a.audio.frameRate)+' → '+audioTimeLabel(group.range.end??a.config.duration,a.audio.frameRate)+(group.timing.holdDuration ? ' · Maintien : '+audioTimeLabel(group.timing.holdStart,a.audio.frameRate)+' → '+audioTimeLabel(group.timing.exitStart,a.audio.frameRate) : '')">
+                <button class="presence-handle start" :aria-label="'Début de présence de '+group.key" title="Déplacer l’apparition" @pointerdown.stop="dragPresence($event,group.key,'start')"></button>
+                <span v-if="group.timing.holdDuration > 0" class="presence-hold-zone"
+                  :style="{left:(group.timing.holdStart-group.range.start)/(group.timing.end-group.range.start)*100+'%',width:group.timing.holdDuration/(group.timing.end-group.range.start)*100+'%'}"
+                  :title="'Maintien final · '+audioTimeLabel(group.timing.holdStart,a.audio.frameRate)+' → '+audioTimeLabel(group.timing.exitStart,a.audio.frameRate)"></span>
+                <span v-if="group.timing.exitDuration > 0" class="presence-exit-zone"
+                  :style="{left:(group.timing.exitStart-group.range.start)/(group.timing.end-group.range.start)*100+'%',width:group.timing.exitDuration/(group.timing.end-group.range.start)*100+'%'}"
+                  title="Transition de sortie"></span>
+                <small>{{ audioTimeLabel(group.range.start,a.audio.frameRate) }} → {{ audioTimeLabel(group.range.end??a.config.duration,a.audio.frameRate) }}</small>
+                <button class="presence-handle end" :aria-label="'Fin de présence de '+group.key" title="Déplacer la disparition" @pointerdown.stop="dragPresence($event,group.key,'end')"></button>
+              </div>
+              <button v-for="{c,t} in objectMarkers(group)" :key="c.id+':'+t" class="frame-marker"
+                :class="{empty:!c.frames.some(f=>Math.abs(f.time-t)<.0001)}"
+                :style="{left:timePercent(c.start+t)+'%'}"
+                :aria-label="'Image clé à '+t+' secondes'" :title="c.name+' · '+(c.start+t)+' s · double-clic : afficher cet état'"
+                @pointerdown.stop @click.stop="a.focusFrame(c,t)" @dblclick.stop.prevent="a.focusFrame(c,t)"
+                @contextmenu.prevent.stop="menu={c,frameTime:t,x:Math.min(innerWidth-210,$event.clientX),y:Math.min(innerHeight-180,$event.clientY)}">◆</button>
+              <i class="track-cursor" :style="{left:timePercent(a.time)+'%'}"></i>
             </div>
           </div>
-          <template v-if="a.selectedClip === c.id && !c.collapsed"
-            ><div
-              v-for="f in animationFields.filter((f) =>
+          <template v-if="expandedGroups.has(group.key)">
+        <template
+          v-for="c in group.clips"
+          :key="c.id"
+          >
+          <div
+              v-for="f in [...new Set([...animationFields,...c.frames.map(f=>f.field)])].filter((f) =>
                 c.frames.some((k) => k.field === f),
               )"
               :key="f"
-              class="animation-property-track"
+              class="animation-property-track direct-object-property" :class="{muted:!c.enabled}" :data-clip="c.id"
+              @pointerdown="a.selectedClip=c.id"
             >
-              <span class="property-track-label"
-                >{{ labels[f]
+              <span class="property-track-label" :title="group.clips.length>1 ? c.name : undefined"
+                ><small v-if="group.clips.length>1" class="property-sequence-name">{{c.name}}</small>{{ (labels[f]||effectFieldLabel(f,a.config.effects))
                 }}<select
-                  :aria-label="'Interpolation · ' + labels[f]"
+                  :aria-label="'Interpolation · ' + (labels[f]||effectFieldLabel(f,a.config.effects))"
                   :value="c.frames.find((k) => k.field === f)?.ease || c.easing"
                   title="Interpolation de cette propriété"
                   :disabled="discreteAnimationFields.includes(f)"
@@ -506,14 +654,14 @@ onUnmounted(() => {
                   :key="n"
                   :class="['key-diamond', { selected: a.activeKey === key || a.keySelection.some(r=>r.key===key) }]"
                   :style="{
-                    left: ((c.start + key.time) / view.span) * 100 + '%',
+                    left: timePercent(c.start+key.time) + '%',
                     top: '6px',
                   }"
                   :aria-label="
-                    labels[key.field] + ' à ' + key.time + ' secondes'
+                    (labels[key.field]||effectFieldLabel(key.field,a.config.effects)) + ' à ' + (c.start + key.time) + ' secondes'
                   "
                   :title="
-                    labels[key.field] + ' · ' + key.time + ' s · ' + key.value
+                    (labels[key.field]||effectFieldLabel(key.field,a.config.effects)) + ' · ' + (c.start + key.time) + ' s · ' + key.value
                   "
                   @pointerdown="dragKey($event, c, key)"
                   @dblclick.stop.prevent="a.focusKey(c, key)"
@@ -522,16 +670,33 @@ onUnmounted(() => {
                   ◆</button
                 ><i
                   class="track-cursor"
-                  :style="{ left: (a.time / view.span) * 100 + '%' }"
+                  :style="{ left: timePercent(a.time) + '%' }"
                 ></i>
-              </div></div></template
-        ></template>
-        <p v-if="!a.config.clips.length" class="animation-empty">
-          Sélectionne un objet puis « Animer la sélection ». Ajoute un moteur
-          par clic droit sur la scène.
+              </div></div></template>
+        <div v-for="effect in group.effects" :key="effect.id" class="animation-track effect-timeline-track">
+         <div class="track-name"><button class="icon-btn" :title="effect.enabled?'Désactiver l’effet':'Activer l’effet'" @click="effect.enabled=!effect.enabled"><Power :size="12"/></button><button class="effect-track-owner" :aria-label="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" :title="'Ouvrir les propriétés de '+(s.current.elements[effect.key]?.name||effect.key)" @click="a.inspectEffect(effect.id)"><span>{{effect.name||effectCatalog.find(e=>e.id===effect.kind)?.name||effect.kind}}</span><small>{{s.current.elements[effect.key]?.name||effect.key}}</small></button><button class="icon-btn" title="Supprimer cet effet" :disabled="a.busy" @click="a.removeEffect(effect.id)"><Trash2 :size="12"/></button></div>
+         <div class="track-lane"><span class="clip-span" :style="{left:timePercent(effect.start)+'%',width:effect.duration/view.span*100+'%',opacity:effect.enabled?1:.3}" title="Glisser pour déplacer l’effet" @pointerdown="dragClip($event,effect)"><button class="effect-duration-handle" aria-label="Ajuster la durée de l’effet" title="Glisser pour régler la durée" @pointerdown="resizeEffect($event,effect)"></button></span></div>
+        </div>
+          </template>
+        </template>
+        </template>
+        <p v-if="timelinePanel === 'keys'&&!trackGroups.length" class="animation-empty">
+          Aucune piste visible. Vérifie les filtres, active « Pistes masquées »
+          ou sélectionne un objet puis « Animer la sélection ».
         </p>
+        <p v-if="timelinePanel === 'audio' && !a.config.audio.src" class="animation-empty">Importe un audio dans Scène → Audio de référence pour afficher l’extrait ici.</p>
       </div>
     </div>
+    <output
+      v-if="draggingKey"
+      class="animation-key-drag-time"
+      aria-label="Position de l’image clé"
+      aria-live="off"
+      :style="{ left: draggingKey.x + 'px', top: draggingKey.y + 'px' }"
+    ><strong>{{ draggingKey.time.toLocaleString('fr-FR', {minimumFractionDigits: 3, maximumFractionDigits: 3}) }} s</strong>
+      <span>Image {{ draggingKey.frame }}</span>
+      <small v-if="draggingKey.blocked">Emplacement occupé</small>
+    </output>
     <div
       v-if="menu"
       class="animation-key-context"
@@ -539,7 +704,8 @@ onUnmounted(() => {
       :style="{ left: menu.x + 'px', top: menu.y + 'px' }"
       @pointerdown.stop
     >
-      <template v-if="menu.frameTime !== undefined"
+      <template v-if="menu.group"><button role="menuitem" :disabled="a.busy" @click="renameGroup(menu.group)">Renommer</button></template>
+      <template v-else-if="menu.frameTime !== undefined"
         ><button
           role="menuitem"
           @click="

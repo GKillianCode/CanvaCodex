@@ -3,7 +3,7 @@ export function createImageCache({
   maxBytes = 32 * 1024 * 1024,
   maxEntries = 100,
   createImage = () => new Image(),
-  notify = () => window.dispatchEvent(new Event("frame-images-ready")),
+  notify = src => window.dispatchEvent(new CustomEvent("frame-images-ready",{detail:src})),
 } = {}) {
   const images = new Map(),
     scopes = new Map();
@@ -46,7 +46,7 @@ export function createImageCache({
             (image.naturalHeight || image.height || 0) *
             4;
         trim();
-        notify();
+        notify(src);
         resolve();
       };
       image.onerror = () => resolve();

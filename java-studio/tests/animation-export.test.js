@@ -194,3 +194,14 @@ test('automatic animation format compresses opaque scenes and preserves transpar
   assert.equal(resolveAnimationFormat('auto',[{}]),'mkv');
   assert.equal(resolveAnimationFormat('mov',[{animation:{background:'solid'}}]),'mov');
 });
+
+test('animation audio is uploaded once before encoding and an upload error still releases the job', async()=>{
+ const requests=[],audio=new Blob(['wav']);
+ await assert.rejects(exportAnimationFrames({canvas:{width:16,height:16,toBlob:cb=>cb(new Blob([png()]))},draw:()=>{},duration:1,fps:1,format:'mp4',audio,fetcher:async(url,options)=>{
+  requests.push([url,options]);if(url.endsWith('capabilities'))return Response.json({formats:{mp4:true},token:'test'});
+  if(url.endsWith('/__frame_video_frames__/'))return Response.json({id:'job'});
+  if(url.endsWith('/audio')){assert.equal(options.body,audio);return Response.json({error:'Piste audio invalide'},{status:400});}
+  return Response.json({next:1});
+ }}),/Piste audio invalide/);
+ assert.equal(requests.filter(([url])=>url.endsWith('/audio')).length,1);assert.equal(requests.some(([url])=>url.endsWith('/finish')),false);assert.equal(requests.at(-1)[1].method,'DELETE');
+});

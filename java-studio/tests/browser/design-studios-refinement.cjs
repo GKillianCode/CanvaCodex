@@ -17,13 +17,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(url || ""))
     await p.goto(url + "/#/mise-en-page");
     await p.getByText("Ouvrir un exemple", { exact: true }).click();
     await p.getByLabel("Zone de création").waitFor();
-    await p
-      .getByRole("button", { name: "Objet · propriétés", exact: true })
-      .click();
-    assert.match(
-      await p.locator(".design-inspector-body").innerText(),
-      /Sélectionne un objet/,
-    );
+    assert.equal(await p.getByRole('button',{name:'Objet · propriétés',exact:true}).count(),0);
     await p
       .getByRole("button", { name: "Document · propriétés", exact: true })
       .first()

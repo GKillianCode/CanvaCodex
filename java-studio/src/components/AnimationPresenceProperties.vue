@@ -1,0 +1,149 @@
+<script setup>
+import { reactive, computed } from "vue";
+import { Clock, SkipBack, SkipForward } from "lucide-vue-next";
+import InspectorDrawer from "./InspectorDrawer.vue";
+import TimecodeInput from "./TimecodeInput.vue";
+import MotionProperties from "./MotionProperties.vue";
+import { normalizePresence, presenceTiming } from "../animationPresence.js";
+const props = defineProps({ studio: Object }),
+  s = reactive(props.studio),
+  a = s.animation;
+const range = computed(() =>
+  normalizePresence(a.config.presences[s.selectedKeys[0]]),
+);
+const timing = computed(() => presenceTiming(range.value,a.config.duration));
+function update(field, value) {
+  a.setPresence(s.selectedKeys, field, value);
+}
+</script>
+<template>
+  <InspectorDrawer
+    id="animation-presence"
+    class="animation-presence-properties"
+    title="Présence dans la scène"
+    :icon="Clock"
+  >
+    <p class="field-help">
+      Début et fin indépendants des séquences d’animation. Les réglages
+      s’appliquent à la sélection.
+    </p>
+    <div class="presence-navigation">
+      <button type="button" class="btn" :disabled="a.busy"
+        aria-label="Aller au début de présence"
+        title="Placer le curseur à l’apparition de l’objet"
+        @click="a.seek(range.start)">
+        <SkipBack :size="13" aria-hidden="true" />Aller au début
+      </button>
+      <button type="button" class="btn" :disabled="a.busy"
+        aria-label="Aller à la fin de présence"
+        title="Placer le curseur à la disparition de l’objet (ou à la fin de la scène)"
+        @click="a.seek(range.end ?? a.config.duration)">
+        <SkipForward :size="13" aria-hidden="true" />Aller à la fin
+      </button>
+    </div>
+    <TimecodeInput
+      label="Apparaît à"
+      :frame-rate="a.audio.frameRate"
+      :model-value="range.start"
+      :disabled="a.busy"
+      @update:model-value="update('start', $event)"
+    />
+    <button
+      type="button"
+      class="btn"
+      :disabled="a.busy"
+      @click="update('start', a.time)"
+    >
+      Commencer au curseur
+    </button>
+    <label class="presence-until-end"
+      ><input
+        type="checkbox"
+        :checked="range.end == null"
+        :disabled="a.busy"
+        @change="
+          update('end', $event.target.checked ? null : a.config.duration)
+        "
+      />Jusqu’à la fin de la scène</label
+    >
+    <TimecodeInput
+      v-if="range.end != null"
+      label="Disparaît à"
+      :frame-rate="a.audio.frameRate"
+      :model-value="range.end"
+      :disabled="a.busy"
+      @update:model-value="update('end', $event)"
+    />
+    <button
+      type="button"
+      class="btn"
+      :disabled="a.busy || a.time <= range.start"
+      @click="update('end', a.time)"
+    >
+      Terminer au curseur
+    </button>
+    <TimecodeInput
+      label="Maintien final"
+      :frame-rate="a.config.fps"
+      :model-value="timing.holdDuration"
+      :max="Math.max(0,timing.exitStart-timing.start)"
+      :disabled="a.busy"
+      @update:model-value="update('holdDuration',$event)"
+    />
+    <p class="field-help">Temps réservé avant la sortie, à l’intérieur de la présence.
+      Les compteurs atteignent leur cible avant ce maintien. Les images clés des autres blocs gardent leurs positions.</p>
+    <MotionProperties
+      compact
+      exit-label="Disparition"
+      :animation="range.entrance"
+      :exit-animation="range.exit"
+      @change="
+        (field, value) =>
+          update(field === 'animation' ? 'entrance' : 'exit', value)
+      "
+    />
+    <label v-if="range.entrance !== 'none'"
+      >Durée d’apparition · s<input
+        type="number"
+        min="0"
+        max="5"
+        step=".05"
+        :value="range.enterDuration"
+        @input="update('enterDuration', $event.target.value)"
+    /></label>
+    <label v-if="range.exit !== 'none'"
+      >Durée de disparition · s<input
+        type="number"
+        min="0"
+        max="5"
+        step=".05"
+        :value="range.exitDuration"
+        @input="update('exitDuration', $event.target.value)"
+    /></label>
+  </InspectorDrawer>
+</template>
+<style scoped>
+.presence-navigation {
+  display: flex;
+  gap: 6px;
+  margin: 12px 0;
+  flex-wrap: wrap;
+}
+.presence-navigation .btn {
+  flex: 1;
+  white-space: nowrap;
+  font-size: 11px;
+  padding: 7px;
+}
+
+.presence-until-end {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 14px 0;
+}
+.presence-until-end input {
+  width: auto;
+  margin: 0;
+}
+</style>
