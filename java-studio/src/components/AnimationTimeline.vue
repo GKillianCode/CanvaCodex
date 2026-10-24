@@ -1,4 +1,5 @@
 <script setup>
+import {videoAnimationLabels} from "../videoProperties.js";
 import {setBlockName,blockType,visibleBlocks} from '../model.js';
 import {patternLabels} from "../sceneBackground.js";
 import { normalizePresence, presenceTiming } from "../animationPresence.js";
@@ -228,6 +229,7 @@ const labels = {
   skewX: "Inclinaison X",
   skewY: "Inclinaison Y",
   opacity: "Opacité",
+  ...videoAnimationLabels,
   size: "Taille du texte",
   contentScale: "Échelle du contenu",
   scale: "Échelle · %",

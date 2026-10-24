@@ -323,3 +323,9 @@ Dans **Fichier → Enregistrer la configuration de l’interface…**, choisis u
 Les ateliers **Diaporama, Animation et Incrustation** acceptent le dépôt de vidéos MP4, WebM, Ogg et MOV pris en charge par le navigateur, seul ou avec des images. Le dépôt réutilise l’import et le stockage vidéo existants, les options des images et l’historique ; dans Animation, l’objet commence au curseur. Les fichiers vidéo dont le navigateur ne fournit pas le type sont reconnus par leur extension.
 
 **Insérer** et le **clic droit** utilisent la même liste partagée : texte, titre, sous-titre, liste, image, code, tableau, octets et bits, formes, import vidéo et compteur animé dans Animation. Le menu contextuel défile si nécessaire pour garder toutes ses actions accessibles.
+
+### Son et vitesse des vidéos importées
+
+Sélectionne une vidéo puis ouvre **Objet → Style → Vidéo et lecture** : **Volume vidéo** règle le niveau de 0 à 100 %, et **Vitesse de lecture** va de 0,1× à 4× (1× normal, 0,5× ralenti, 2× accéléré). Les contrôles réutilisent les réglettes communes de Frame. Dans Animation, chaque réglage dispose du même **losange d’image clé** que les autres propriétés ; Clés auto, courbes, copie et sauvegarde utilisent les pistes existantes.
+
+Les changements de vitesse font progresser le temps source sans saut, avec lecture/pause, présence et boucle synchronisées. Le son suit la vitesse, ce qui change aussi sa hauteur. Le mixage stéréo des vidéos présentes sur scène est inclus dans les exports Animation MP4/MOV/MKV/WebM, les exports d’incrustations et les enregistrements de présentation. L’audio de référence conserve son rôle de repère indépendant. Le volume de départ est 100 %, la vitesse 1× ; les paramètres et leurs clés sont conservés dans le JSON du projet.

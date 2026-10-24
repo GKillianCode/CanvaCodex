@@ -1,3 +1,5 @@
+import {mixVideoAudio,audioBufferStream} from './videoAudioExport.js';
+import {videoAnimationFields,normalizeVideoProperties} from './videoProperties.js';
 import {visibleBlocks} from './model.js';
 import {enclosingBounds} from './selection.js';
 import {patternChannels,normalizeBackground,backgroundModes} from './sceneBackground.js';
@@ -6,7 +8,7 @@ import {normalizePresence} from "./animationPresence.js";
 import {useAnimationAudio} from './useAnimationAudio.js';
 import {makeEffectsDemo} from "./animationEffectExamples.js";
 import {parseEffectField,effectField,effectProgress,effectCatalog} from "./animationEffectCatalog.js";
-import {seekVideos} from './videoMedia.js';
+import {lockVideoFrames,stopVideos,syncSceneVideos,seekVideos} from './videoMedia.js';
 import { resolveAnimationFormat, hasTransparentScenes } from "./animationExportSettings.js";
 import {makeWorkflowExample} from "./animationWorkflowExample.js";
 import {cameraFields} from "./animationWorkflow.js";
@@ -72,6 +74,7 @@ export function useAnimationStudio(s) {
     try { localStorage.setItem('frame-animation-auto-key', String(autoKey.value)); } catch {}
   }
   function commonField(scope, property) {
+    if(scope==='element'&&videoAnimationFields.includes(property)&&s.selectedKeys.value.every(key=>s.current.value.elements[key]?.mediaKind==='video'))return property;
     if (scope === 'position' && animationFields.includes(property)) return property;
     if (scope === 'style' && property === 'color') return 'color';
     if (scope !== 'element' || s.selectedKeys.value.some(key => s.current.value.elements[key]?.type !== 'shape')) return null;
@@ -167,6 +170,7 @@ export function useAnimationStudio(s) {
     if(s.zoom)ui.value.sceneZoom=s.zoom.value;
     ui.value.scenes||={};ui.value.scenes[s.current.value.id]={...(ui.value.scenes[s.current.value.id]||{}),time:time.value,clip:selectedClip.value,selection:[...s.selectedKeys.value]};
   },{deep:true});
+  watch([time,playing,()=>s.current.value,()=>config.value,()=>busy.value],()=>{if(busy.value)stopVideos();else syncSceneVideos(s.current.value,time.value,playing.value);},{deep:true,flush:'post'});
   const audio = useAnimationAudio(s, {time,playing,busy,stop,seek,requestDelete});
   watch([time, preview, construction, pathEditing], s.requestDraw);
   watch(diagnostics,s.requestDraw,{deep:true});
@@ -693,6 +697,7 @@ export function useAnimationStudio(s) {
     progress.value = 0;
     controller = new AbortController();
     const signal = controller.signal;
+    let releaseFrames;
     try {
     const scenes = copy(allScenes.value ? s.slides.value : [s.current.value]),
       scene = scenes[0],
@@ -720,6 +725,9 @@ export function useAnimationStudio(s) {
       await prepareFonts(scenes);
       await prepareImages(scenes, theme);
       if(signal.aborted)throw new DOMException("Export annulé.","AbortError");
+      releaseFrames=lockVideoFrames(scenes);
+      exportPhase.value="Préparation du son des vidéos…";
+      const soundtrack=await mixVideoAudio(scenes,{signal});
       const canvas = document.createElement("canvas");
       canvas.width = width;
       canvas.height = (canvas.width * 9) / 16;
@@ -731,6 +739,8 @@ export function useAnimationStudio(s) {
           MediaRecorder.isTypeSupported(v),
         );
         if (!mime) throw Error("WebM indisponible.");
+        await drawFrame(0);
+        const soundStream=await audioBufferStream(soundtrack?.buffer);
         exportPhase.value="Enregistrement WebM…";
         await new Promise((resolve, reject) => {
           let timer,
@@ -743,7 +753,7 @@ export function useAnimationStudio(s) {
             clearTimeout(timer);
             signal.removeEventListener("abort", abort);
             document.removeEventListener("visibilitychange", visibility);
-            stream?.getTracks().forEach((t) => t.stop());
+            stream?.getTracks().forEach((t) => t.stop());soundStream?.dispose();
           };
           const fail = (e) => {
             if (done) return;
@@ -765,6 +775,7 @@ export function useAnimationStudio(s) {
           try {
             draw(0);
             stream = canvas.captureStream(config.fps);
+            for(const track of soundStream?.stream.getAudioTracks()||[])stream.addTrack(track);
             recorder = new MediaRecorder(stream, { mimeType: mime });
             recorder.ondataavailable = (e) => {
               bytes += e.data.size;
@@ -792,16 +803,16 @@ export function useAnimationStudio(s) {
             };
             signal.addEventListener("abort", abort, { once: true });
             document.addEventListener("visibilitychange", visibility);
-            recorder.start(500);
+            recorder.start(500);soundStream?.start();
             const start = performance.now();
-            function tick() {
+            async function tick() {
               if (done) return;
               const t = Math.min(
                 config.duration,
                 (performance.now() - start) / 1000,
               );
               try {
-                draw(t);
+                await drawFrame(t);if(done)return;
                 progress.value = t / config.duration;
                 if (t === config.duration) recorder.stop();
                 else timer = setTimeout(tick, 1000 / config.fps);
@@ -814,8 +825,8 @@ export function useAnimationStudio(s) {
         });
       } else {
         const output = await exportAnimationFrames({
-          canvas, draw:async t=>{const part=storyboardAt(scenes,t);if(part){await seekVideos([part.scene],part.time);if(scenes[part.index+1])await seekVideos([scenes[part.index+1]],0);}draw(t);}, duration: config.duration, fps: config.fps,
-          format: outputFormat, quality, signal,
+          canvas, draw:drawFrame, duration: config.duration, fps: config.fps,
+          format: outputFormat, quality, signal,audio:soundtrack?.blob,
           onProgress(value,phase) { progress.value=value; exportPhase.value=phase==='encoding'?'Encodage…':'Création des images…'; },
         });
         if(signal.aborted)throw new DOMException('Export annulé.','AbortError');
@@ -823,6 +834,7 @@ export function useAnimationStudio(s) {
       }
       progress.value = 1;
       s.notify("Animation exportée.");
+      async function drawFrame(t){const part=storyboardAt(scenes,t);if(part){await seekVideos([part.scene],part.time);if(scenes[part.index+1])await seekVideos([scenes[part.index+1]],0);}draw(t);}
       function draw(t) {
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -836,6 +848,7 @@ export function useAnimationStudio(s) {
       if (e.name !== "AbortError") { exportError.value=e.message||"L’export a échoué."; s.notify(exportError.value); }
       else exportError.value="Export annulé.";
     } finally {
+      releaseFrames?.();
       exportPhase.value="";
       busy.value = false;
       controller = null;
@@ -903,6 +916,7 @@ export function useAnimationStudio(s) {
             (clip.value?.duration || config.value.duration),
         ),
       );
+    if(videoAnimationFields.includes(name))return normalizeVideoProperties(scene.elements[key])[name];
     if (shapeAnimationFields[name]) {
       const e = scene.elements[key],
         prop = shapeAnimationFields[name];

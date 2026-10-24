@@ -1,4 +1,5 @@
 <script setup>
+import {videoAnimationLabels} from "../videoProperties.js";
 import {patternLabels} from "../sceneBackground.js";
 import { effectFieldLabel } from "../animationEffectCatalog.js";
 import InspectorDrawer from "./InspectorDrawer.vue";
@@ -18,6 +19,7 @@ const frames = computed(() =>
     : [],
 );
 const labels = {
+  ...videoAnimationLabels,
   ...patternLabels,
   backgroundColor: "Fond · couleur 1",
   backgroundColor2: "Fond · couleur 2",

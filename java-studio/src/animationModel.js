@@ -1,3 +1,4 @@
+import {videoAnimationFields,normalizeVideoProperties} from './videoProperties.js';
 import {sameKeyTime} from './animationEditing.js';
 import {enclosingBounds} from './selection.js';
 import {patternChannels} from './sceneBackground.js';
@@ -58,6 +59,7 @@ export const colorAnimationFields = [
   "patternBase", "patternColor", "patternColor2",
 ];
 export const animationFields = [
+  ...videoAnimationFields,
   ...cameraFields,
   ...backgroundAnimationFields,
   ...Object.keys(shapeAnimationFields),
@@ -490,6 +492,7 @@ export function animationScene(scene, raw, time, options={}) {
         }
         result.elements[key] = normalizeShape(shape);
       }
+      if(result.elements[key]?.mediaKind==='video'){const media={...result.elements[key]};for(const field of videoAnimationFields)media[field]=frameValue(clip.frames,field,local,normalizeVideoProperties(media)[field]);result.elements[key]={...media,...normalizeVideoProperties(media)};}
       result.positions[key] = p;
       typingElapsed[key] = local * 1000;
     }

@@ -1,5 +1,7 @@
+import {mixVideoAudio} from './videoAudioExport.js';
+import {exportAnimationFrames} from './animationVideoExport.js';
 import {useEditorViewState,validEditorView} from './useEditorViewState.js';
-import {videoFileType,importVideoFile,toggleVideo,videosPlaying,stopVideos,portableVideoProject,restoreVideoProject} from './videoMedia.js';
+import {lockVideoFrames,videoElements,seekVideos,captureVideoAudio,videoFileType,importVideoFile,toggleVideo,videosPlaying,stopVideos,portableVideoProject,restoreVideoProject} from './videoMedia.js';
 import {createPresentationRecording} from './presentationRecording.js';
 import { releaseImages } from './imageCache.js';
 import {useDrawingTools} from "./useDrawingTools.js";
@@ -29,7 +31,7 @@ import {makeThumbnail,applyThumbnailIdentity,thumbnailPalette} from './thumbnail
 import {loadWorkspaces,saveWorkspaces,captureWorkspace,parseWorkspaceFile,workspaceNames} from './workspaceStorage.js';
 import {normalizeClip} from './overlayAnimation.js';
 import {overlayKeys} from './overlayTimeline.js';
-import {captureOverlayVideo,exportTransparentMovie,exportChromaMovie} from './overlayVideo.js';
+import {renderOverlayFrame,captureOverlayVideo,exportTransparentMovie,exportChromaMovie} from './overlayVideo.js';
 import {normalizeBits} from './bits.js';
 import { selectionOpacity,setObjectOpacity } from './objectOpacity.js';
 import { sceneAt,presentationSequence,addPedagogicalStep,movePedagogicalStep,removePedagogicalStep,allScenes } from './pedagogicalSteps.js';
@@ -207,7 +209,7 @@ export function useStudio(application='slides',creationContext=null) {
   function redo(){restoreHistory(history.redo());}
   function dragImages(e){if(presenting.value||!['slides','banners'].includes(view.value))return;if([...e.dataTransfer.types].includes('Files')){e.preventDefault();e.dataTransfer.dropEffect='copy';}}
   async function dropImages(e){
-    if(presenting.value||!['slides','banners'].includes(view.value))return;e.preventDefault();const files=[...e.dataTransfer.files].filter(f=>IMAGE_TYPES.includes(f.type)||!isThumbnail&&videoFileType(f)||!f.type&&/\.svg$/i.test(f.name));if(!files.length){notify(isThumbnail?'Dépose une image PNG, JPEG, WebP ou SVG.':'Dépose une image PNG, JPEG, WebP, SVG ou une vidéo MP4, WebM, Ogg ou MOV.');return;}
+    if(presenting.value||!['slides','banners'].includes(view.value))return;e.preventDefault();if(animation?.busy.value||overlayVideoBusy.value){notify('Termine l’export avant d’importer un média.');return;}const files=[...e.dataTransfer.files].filter(f=>IMAGE_TYPES.includes(f.type)||!isThumbnail&&videoFileType(f)||!f.type&&/\.svg$/i.test(f.name));if(!files.length){notify(isThumbnail?'Dépose une image PNG, JPEG, WebP ou SVG.':'Dépose une image PNG, JPEG, WebP, SVG ou une vidéo MP4, WebM, Ogg ou MOV.');return;}
     const slide=current.value,point=coords(e);historyGesture='drop:'+(++gestureId);
     try{let importError;const result=await insertDroppedImages(slide,files,point,async file=>{try{return videoFileType(file)?{src:await importVideoFile(file),mediaKind:'video',autoplay:true,videoLoop:false,videoStart:0}:await imageSource(file);}catch(error){importError=videoFileType(file)?error.message:imageImportError(error);throw error;}},()=>current.value===slide&&(slides.value.includes(slide)||banner.value.slide===slide));
       if(current.value!==slide){for(const key of result.keys){delete slide.elements[key];delete slide.positions[key];delete slide.fragments[key];}notify('Import annulé : la scène a changé.');return;}
@@ -479,8 +481,8 @@ export function useStudio(application='slides',creationContext=null) {
     slide.blockKeys=rest.includes(white)?[white,key,...rest.filter(k=>k!==white)]:[key,...rest];requestDraw();
   }
   async function uploadShapeImage(event){const file=event.target.files?.[0],slide=current.value,key=selected.value;event.target.value='';if(!file)return;try{const src=await imageSource(file);if(slide.elements[key]?.type==='shape'){slide.elements[key].imageSrc=src;slide.elements[key].imageFit='cover';slide.elements[key].imageOffsetX=0;slide.elements[key].imageOffsetY=0;slide.elements[key].filled=true;await prepareImages([slide],theme.value);notify('Image intégrée dans la forme ; contour conservé.');}}catch(error){notify(imageImportError(error));}}
-  async function uploadVideo(event,replace=false){const file=event.target.files?.[0],slide=current.value,replacement=replace?selected.value:null;event.target.value='';if(!file)return;try{const src=await importVideoFile(file);if(current.value!==slide||replacement&&!slide.elements[replacement]){notify('Import annulé : la scène ou l’objet a changé.');return;}const before=new Set(visibleBlocks(slide));if(!replacement)addBlock('image');const key=replacement||visibleBlocks(slide).find(k=>!before.has(k));if(!key)throw Error('Impossible d’ajouter un élément vidéo.');slide.elements[key]={...slide.elements[key],name:file.name.slice(0,100),src,mediaKind:'video',autoplay:true,videoLoop:false,videoStart:0};await prepareImages([slide],theme.value);requestDraw();notify('Vidéo importée. Lecture automatique modifiable dans les propriétés.');}catch(e){notify(e.message);}}
-  function playSelectedVideo(){const e=current.value.elements[selected.value];if(e?.mediaKind==='video'){toggleVideo(current.value.id,selected.value,e);requestDraw();}}
+  async function uploadVideo(event,replace=false){const file=event.target.files?.[0],slide=current.value,replacement=replace?selected.value:null;event.target.value='';if(!file)return;if(animation?.busy.value||overlayVideoBusy.value){notify('Termine l’export avant d’importer une vidéo.');return;}try{const src=await importVideoFile(file);if(current.value!==slide||replacement&&!slide.elements[replacement]){notify('Import annulé : la scène ou l’objet a changé.');return;}const before=new Set(visibleBlocks(slide));if(!replacement)addBlock('image');const key=replacement||visibleBlocks(slide).find(k=>!before.has(k));if(!key)throw Error('Impossible d’ajouter un élément vidéo.');slide.elements[key]={...slide.elements[key],name:file.name.slice(0,100),src,mediaKind:'video',autoplay:true,videoLoop:false,videoStart:0};await prepareImages([slide],theme.value);requestDraw();notify('Vidéo importée. Lecture automatique modifiable dans les propriétés.');}catch(e){notify(e.message);}}
+  function playSelectedVideo(){const scene=editingScene(),e=scene.elements[selected.value];if(e?.mediaKind==='video'){toggleVideo(scene.id,selected.value,e);requestDraw();}}
   async function uploadImage(event) {
     const file=event.target.files?.[0],slide=current.value,key=selected.value;event.target.value='';if(!file)return;
     try{const src=await imageSource(file);if(slide.elements[key]?.type==='image'){slide.elements[key].mediaKind='image';slide.elements[key].src=src;slide.elements[key].svgColors={};}await prepareImages([slide],theme.value);notify('Image intégrée, transparence conservée.');}
@@ -585,13 +587,21 @@ export function useStudio(application='slides',creationContext=null) {
   async function exportOverlayVideo(){
     if(overlayVideoBusy.value||videoEncoding.recovery.value)return;
     const overlay=captureOverlayVideo(banner.value),colors=structuredClone(toRaw(theme.value)),size={...resolution.value};
-    overlayVideoBusy.value=true;overlayVideoProgress.value=0;const controller=new AbortController();overlayVideoController=controller;
+    overlayVideoBusy.value=true;overlayVideoProgress.value=0;const controller=new AbortController();overlayVideoController=controller;let releaseFrames;
     try{await ensureVideoEncoder(overlay.clip.format,{signal:controller.signal});await prepareFonts(allScenes([overlay.slide]));await prepareImages(allScenes([overlay.slide]),colors);if(controller.signal.aborted)return;
+      releaseFrames=lockVideoFrames(allScenes([overlay.slide]));
       const c=document.createElement('canvas');c.width=size.width;c.height=size.height;const clip=normalizeClip(overlay.clip,overlayKeys(overlay.slide));
-      const blob=await (clip.format==='webm'?exportChromaMovie:exportTransparentMovie)({canvas:c,slide:overlay.slide,theme:colors,clip,signal:controller.signal,onProgress:value=>overlayVideoProgress.value=Math.round(value*100)});
+      const videos=videoElements([overlay.slide]);
+      if(videos.length&&clip.format!=='webm'){
+        const soundtrack=await mixVideoAudio([{...overlay.slide,animation:{duration:clip.duration,clips:[],presences:{}}}],{signal:controller.signal});
+        const blob=await exportAnimationFrames({canvas:c,draw:async time=>{await seekVideos([overlay.slide],time);renderOverlayFrame(c.getContext('2d'),overlay.slide,colors,clip,time,c.width,c.height);},duration:clip.duration,fps:30,format:clip.format,audio:soundtrack?.blob,signal:controller.signal,onProgress:value=>overlayVideoProgress.value=Math.round(value*100)});
+        download(blob,'frame-incrustation.'+clip.format,false);notify('Incrustation animée prête à télécharger.');return;
+      }
+      const soundtrack=videos.length?await mixVideoAudio([{...overlay.slide,animation:{duration:clip.duration,clips:[],presences:{}}}],{signal:controller.signal}):null;
+      const blob=await (clip.format==='webm'?exportChromaMovie:exportTransparentMovie)({canvas:c,slide:overlay.slide,theme:colors,clip,audio:soundtrack,prepareFrame:videos.length?time=>seekVideos([overlay.slide],time):undefined,signal:controller.signal,onProgress:value=>overlayVideoProgress.value=Math.round(value*100)});
       if(controller.signal.aborted)return;if(clip.format==='webm')download(blob,'frame-incrustation-chroma.webm',false);else await videoEncoding.save(blob,clip.format,'frame-incrustation-'+(clip.background==='transparent'?'alpha':'chroma')+'.'+clip.format,{signal:controller.signal,preview:false});notify('Incrustation animée prête à télécharger.');
     }catch(error){if(error.name!=='AbortError')notify(error.message||'Impossible d’exporter la vidéo.');else notify('Export annulé.');}
-    finally{overlayVideoBusy.value=false;overlayVideoController=null;}
+    finally{releaseFrames?.();overlayVideoBusy.value=false;overlayVideoController=null;}
   }
   async function png() { if(!await ensureFonts())return;await prepareImages([current.value],theme.value); const c = document.createElement('canvas'); c.width = resolution.value.width; c.height = resolution.value.height; const ctx = c.getContext('2d');ctx.scale(c.width/WIDTH,c.height/HEIGHT); if(isAnimation)renderAnimation(ctx,current.value,theme.value,current.value.animation,animation.time.value);else renderSlide(ctx, current.value, theme.value, renderOptions(current.value, index.value)); c.toBlob(blob => { if (blob) download(blob, isThumbnail?'frame-miniature.png':view.value === 'banners' ? 'frame-bandeau.png' : `frame-diapo-${index.value + 1}.png`); }, 'image/png'); }
   async function startPresentation(fromStart=true) { if(application!=='slides')return; cancelMarquee(); if(!await ensureFonts())return;await prepareImages(allScenes(slides.value),theme.value); closeEdit(); if(fromStart)index.value=0; view.value = 'slides'; notesVisible.value=true;presenting.value = true;tool.value='none';pointer=null;pointerDown=null; step.value = 0; revealMotion = null; stateMotion=null;presentationStarted.value=0;presentationSeconds.value=0;elapsed.value=0;strokes = []; trail.clear(); await nextTick(); observeStage(); resetTyping(); requestDraw(); }
@@ -629,15 +639,16 @@ export function useStudio(application='slides',creationContext=null) {
     }
     activeRecordingFormat='webm';recordingStopRequested=false;
     if (!canvas.value?.captureStream || !window.MediaRecorder) { notify('Enregistrement indisponible dans ce navigateur.'); return; }
+    let recordingAudio;
     try {
-      const chunks = []; stream = canvas.value.captureStream(30); const recordingStream = stream;
+      const chunks = []; stream = canvas.value.captureStream(30); const recordingStream = stream;const audioCapture=recordingAudio=await captureVideoAudio();for(const track of audioCapture?.stream.getAudioTracks()||[])stream.addTrack(track);
       const mime = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => MediaRecorder.isTypeSupported(m)); if (!mime) throw Error();
       recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: Math.round(10000000*resolution.value.width/1920) });
       recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
-      recorder.onerror = () => { recording.value = false; finalizing.value = false; clearInterval(timer); recordingStream.getTracks().forEach(t => t.stop()); notify('L’enregistrement a rencontré une erreur.'); };
-      recorder.onstop = () => { if(recordingStopRequested)download(new Blob(chunks, { type: mime }), 'frame-presentation.webm');else notify('La capture a été interrompue par le navigateur. Aucun export automatique n’a été lancé.');recording.value=false;clearInterval(timer);recordingStream.getTracks().forEach(t => t.stop()); finalizing.value = false; };
+      recorder.onerror = () => { audioCapture?.dispose(); recording.value = false; finalizing.value = false; clearInterval(timer); recordingStream.getTracks().forEach(t => t.stop()); notify('L’enregistrement a rencontré une erreur.'); };
+      recorder.onstop = () => { audioCapture?.dispose(); if(recordingStopRequested)download(new Blob(chunks, { type: mime }), 'frame-presentation.webm');else notify('La capture a été interrompue par le navigateur. Aucun export automatique n’a été lancé.');recording.value=false;clearInterval(timer);recordingStream.getTracks().forEach(t => t.stop()); finalizing.value = false; };
       recorder.start(1000); recording.value = true; started = Date.now(); elapsed.value = 0; timer = setInterval(() => elapsed.value = Math.floor((Date.now() - started) / 1000), 1000); requestDraw();
-    } catch { stream?.getTracks().forEach(t => t.stop()); notify('Impossible de lancer l’enregistrement.'); }
+    } catch { recordingAudio?.dispose();stream?.getTracks().forEach(t => t.stop()); notify('Impossible de lancer l’enregistrement.'); }
   }
   async function stopRecord() { if (!recording.value) return;if(preparingRecord){pendingRecordStop=true;return;} recording.value = false; finalizing.value = true; clearInterval(timer);
     if(['mp4','mov','mkv'].includes(activeRecordingFormat)){try{const blob=await liveMovie.stop();if(liveMovie.remote){if(lastExport.value)URL.revokeObjectURL(lastExport.value.url);lastExport.value={...blob,localCapture:true,size:Math.max(1,Math.round(blob.size/1024)),video:true,playable:false};const link=document.createElement('a');link.href=blob.url;link.download=blob.name;document.body.appendChild(link);link.click();link.remove();videoMeta.value='';videoPreview.value=true;}}catch(error){notify(error.message||'Finalisation vidéo impossible.');}finally{liveMovie=null;finalizing.value=false;requestDraw();}}else {recordingStopRequested=true;recorder.stop();}

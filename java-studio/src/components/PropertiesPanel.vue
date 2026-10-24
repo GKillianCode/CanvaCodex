@@ -662,8 +662,9 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
           <InspectorDrawer
             v-if="s.selectedType === 'image'"
             id="image-style"
-            title="Image et cadrage"
+            :title="object?.mediaKind==='video'?'Vidéo et lecture':'Image et cadrage'"
             ><MediaProperties
+              :studio="s"
               :element="object"
               :theme="s.theme"
               @upload="s.uploadImage"

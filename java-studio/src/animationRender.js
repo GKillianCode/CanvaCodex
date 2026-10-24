@@ -1,3 +1,4 @@
+import {videoPlaybackState} from './videoPlayback.js';
 import {applyPresenceMotion} from "./animationPresence.js";
 import {createVisualEffectRenderer} from "./animationVisualRender.js";
 import {applyCamera} from "./animationWorkflow.js";
@@ -18,6 +19,7 @@ export function renderAnimation(
   { guides = false, positions = null, camera=true, diagnostics=null } = {},
 ) {
   const state = animationScene(scene, config, time);
+  for(const [key,media]of Object.entries(state.scene.elements||{}))if(media.mediaKind==='video')state.scene.elements[key]={...media,videoClock:videoPlaybackState(scene,key,time).time};
   if(positions) Object.assign(state.scene.positions, positions);
   applyPresenceMotion(state.scene,state.presence);
   ctx.save();
