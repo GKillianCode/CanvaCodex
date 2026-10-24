@@ -308,3 +308,5 @@ La vue Audio utilise une colonne gauche de 180 px, alignée sur la règle ; le c
 Modifier à nouveau un objet sur la même image met à jour sa clé existante pour la propriété concernée, même après un changement de sélection, sans superposition de clés et en conservant sa courbe.
 
 Dans la timeline Animation, cliquer sur un élément ou une clé sélectionne ses propriétés sans ouvrir son tiroir. Seule la flèche déplie/replie les pistes.
+
+Dans Animation, **Ctrl D** et **Ctrl C/V** conservent le style et la pose au moment de la copie, sans reprendre les images clés ; la nouvelle base reste indépendante de l’animation source.

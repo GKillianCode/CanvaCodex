@@ -12,12 +12,12 @@ export function resizePosition(origin,handle,dx,dy,type) {
  const ratio=(west||east)&&(north||south)?Math.min(w/origin.w,h/origin.h):1;
  return {...origin,x,y,w,h,size:['image','shape','table','bits'].includes(type)?origin.size:Math.max(10,Math.min(260,origin.size*ratio))};
 }
-export function duplicateElement(s,key) {
+export function duplicateElement(s,key,sourceScene=s) {
  if(!visibleBlocks(s).includes(key)||Object.keys(s.elements).length>=MAX_ELEMENTS)return null;
- const type=blockType(s,key),copyKey=type+crypto.randomUUID().replaceAll('-','').slice(0,8),source=s.elements[key];
- s.elements[copyKey]=source?JSON.parse(JSON.stringify(source)):{type,text:blockText(s,key),weight:key==='title'?700:400,label:key==='title'?s.label:'',caption:key==='code'?s.codeTitle:''};
- s.elements[copyKey].custom=true;s.elements[copyKey].template=false;s.elements[copyKey].name=(blockLabel(s,key)+' · copie').slice(0,100);
- const p=s.positions[key];s.positions[copyKey]={...JSON.parse(JSON.stringify(p)),x:Math.min(10000,p.x+24),y:Math.min(10000,p.y+24)};s.fragments[copyKey]={...s.fragments[key]};return copyKey;
+ const type=blockType(sourceScene,key),copyKey=type+crypto.randomUUID().replaceAll('-','').slice(0,8),source=sourceScene.elements[key];
+ s.elements[copyKey]=source?JSON.parse(JSON.stringify(source)):{type,text:blockText(sourceScene,key),weight:key==='title'?700:400,label:key==='title'?sourceScene.label:'',caption:key==='code'?sourceScene.codeTitle:''};
+ s.elements[copyKey].custom=true;s.elements[copyKey].template=false;s.elements[copyKey].name=(blockLabel(sourceScene,key)+' · copie').slice(0,100);
+ const p=sourceScene.positions[key];s.positions[copyKey]={...JSON.parse(JSON.stringify(p)),x:Math.min(10000,p.x+24),y:Math.min(10000,p.y+24)};s.fragments[copyKey]={...sourceScene.fragments[key]};return copyKey;
 }
 
 export function normalizeAngle(value){return Number.isFinite(Number(value))?((Number(value)%360)+360)%360:0;}
