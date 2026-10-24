@@ -1,6 +1,6 @@
 # Mémoire du projet — CanvaCodex / Frame
 
-Dernière mise à jour : 23 octobre 2026 (Europe/Paris).
+Dernière mise à jour : 24 octobre 2026 (Europe/Paris).
 
 Ce fichier est l’unique mémoire et point d’entrée des consignes du projet. Le lire avant de travailler, le tenir à jour et respecter le workflow GitHub ci-dessous, en distinguant travail local et publication confirmée.
 
@@ -1919,3 +1919,10 @@ Validation : 495 tests Node et build réussis ; tests navigateur JSON cinq scèn
 
 - Issue #182 : flash reproduit avec une courbe Bézier dépassant sa cible pendant une inversion fond/motif. Le mix RGB produisait des chaînes invalides (ex. `#-37-37-37`), remplacées par normalizeBackground par la couleur de base. Bornage de chaque canal RGB à 0–255 dans l’interpolation partagée ; progression du fondu de types bornée à 0–1 pour éviter une globalAlpha invalide. Les dépassements numériques des mouvements restent disponibles, aucune courbe ni clé utilisateur réécrite.
 - Validation : test de régression échouant avant correction, puis 523 tests Node et build réussis, diff-check propre. Navigateur isolé : 26 comparaisons de pixels dans renderAnimation, inversion dans les deux sens, linéaire/progressive/Bézier avec dépassement, avant/à/après la dernière clé. Pixels de fin identiques au fond final statique ; données utilisateur non consultées/modifiées. PR #160 conservée ouverte sur `test/animation-effects-library`, sans fusion.
+
+
+### 24 octobre 2026 — animations synchronisées sur une sélection multiple
+
+- Issue #183 : déplacement, rotation et mise à l’échelle d’une sélection multiple enregistrés dans un clip groupTransform commun, sans créer de groupe permanent. Réutilise la sélection Ctrl/zone, les poignées et transformations editor/scaleObjects, ensureClip, les losanges et addAnimationKey, l’évaluation et l’historique existants. commitSelectionPose traduit les poses issues du geste en cadre commun, conserve les proportions/espacements et corrige son ancrage après rotation/échelle. Une opération annulable pour le geste entier. Les trajectoires existantes gardent le contrôle x/y lorsqu’un chemin est attaché.
+- Les propriétés géométriques x/y/w/h/rotation/scale en Clés auto utilisent aussi le cadre commun : plus de superposition de tous les objets sur une même coordonnée, ni d’échelle indépendante autour de chaque centre. Les propriétés de style sans groupe permanent gardent leurs pistes individuelles synchronisées au même curseur et leurs valeurs initiales distinctes. ensureClip retrouve un clip commun actif à membres identiques après un détour par une propriété individuelle ; pas de nouvelle piste collective inutile. Anciennes séquences et clés manuelles conservées. Le tiroir s’appelle Position et dimensions de la sélection, avec une aide contextuelle ; infobulle Animer la sélection précisée.
+- Validation : 523 tests Node et build réussis, diff-check propre. Navigateur isolé : trois images sélectionnées via Ctrl/clic réel et déplacement réel sur Canvas, interpolation à mi-parcours, rotation commune puis échelle à 150 %, maintien des espacements via le panneau, opacité synchronisée, réutilisation du clip après style, losange manuel, JSON et undo/redo. Régressions Clés auto et pistes contextuelles/fonds/groupes réussies. QA 5289 isolée, aucun projet utilisateur modifié. PR #160 maintenue ouverte sur `test/animation-effects-library`, sans fusion.

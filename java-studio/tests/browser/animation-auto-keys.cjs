@@ -138,7 +138,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       }),
       [0, 100],
     );
-    // Each selected object retains its own initial value, and a new edit is one undo step.
+    // Geometry is a common frame: retain spacing and record one synchronized undo step.
     const multi = await page.evaluate(async () => {
       const s = live(),
         a = s.animation,
@@ -150,7 +150,7 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       s.updateCommon("position", "x", 900);
       await tick();
       const tracks = a.config.value.clips.filter((c) =>
-        c.frames.some((f) => f.field === "x"),
+        c.frames.some((f) => f.field === "x" && c.start + f.time === 5),
       );
       const values = tracks.map((c) => ({
         keys: [...c.keys],
@@ -168,10 +168,10 @@ if (!/^http:\/\/(127\.0\.0\.1|localhost):5289$/.test(base || ""))
       ).length;
       return { values, afterUndo, afterRedo };
     });
-    assert.equal(multi.values.length, 2);
-    assert(multi.values.every((c) => c.keys.length === 1 && c.end === 900));
+    assert.equal(multi.values.length, 1);
+    assert(multi.values.every((c) => c.keys.length === 2 && c.end === 900));
     assert.equal(multi.afterUndo, false);
-    assert.equal(multi.afterRedo, 2);
+    assert.equal(multi.afterRedo, 1);
     // Emitter fields use the same automatic channels as object properties.
     assert.deepEqual(
       await page.evaluate(async () => {

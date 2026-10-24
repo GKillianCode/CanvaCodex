@@ -409,9 +409,10 @@ const pixels = (v) => Math.round((v * s.resolution.width) / 1920),
       <p v-if="!s.selectedKeys.length" class="inspector-empty">
         Sélectionne un objet pour le personnaliser.
       </p>
+      <p v-if="s.isAnimation && s.selectedKeys.length > 1 && category === 'layout'" class="field-help">{{s.selectedKeys.length}} objets : les déplacements, rotations et changements d’échelle sont animés ensemble, en conservant leur disposition. Active Clés auto puis place le curseur et transforme la sélection.</p>
       <InspectorDrawer
         v-if="s.isAnimation && s.selectedKeys.length > 1 && category === 'layout'"
-        id="selection-frame" title="Position et dimensions du groupe">
+        id="selection-frame" title="Position et dimensions de la sélection">
         <TransformFields :value="Object.fromEntries(['x','y','w','h','rotation'].map(field=>[field,field==='rotation'?s.animation.propertyValue(field):pixels(s.animation.propertyValue(field))]))"
           :limit="pixels(10000)" aria-suffix=" du groupe"
           @change="(field,event)=>s.animation.setProperty(field,field==='rotation'?Number(event.target.value):Number(event.target.value)*1920/s.resolution.width)">

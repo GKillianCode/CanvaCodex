@@ -425,7 +425,7 @@ onUnmounted(() => {
       </button>
       <button
         class="btn"
-        title="Créer une séquence pour les objets sélectionnés"
+        title="Créer une séquence commune : les objets sélectionnés se déplacent, tournent et changent d’échelle ensemble"
         @click="a.addClip()"
       >
         <Plus :size="14" />Animer la sélection</button

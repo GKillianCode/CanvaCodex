@@ -909,6 +909,10 @@ export function useAnimationStudio(s) {
     );
   }
   function ensureClip() {
+    if(s.selectedKeys.value.length>1 && (!clip.value?.groupTransform || clip.value.keys.length!==s.selectedKeys.value.length || !s.selectedKeys.value.every(key=>clip.value.keys.includes(key)))) {
+      const common=config.value.clips.findLast(c=>c.enabled&&c.groupTransform&&c.keys.length===s.selectedKeys.value.length&&s.selectedKeys.value.every(key=>c.keys.includes(key))&&time.value>=c.start&&time.value<=c.start+c.duration);
+      if(common)selectedClip.value=common.id;
+    }
     if(s.selectedKeys.value.length>1 && clip.value?.keys.length>1 && !clip.value.groupTransform) {
       // Add a group-frame layer at the cursor; never reinterpret existing group keys.
       const previousId=clip.value.id;addClip();
@@ -940,7 +944,7 @@ export function useAnimationStudio(s) {
     if(manageHistory)s.beginGesture();
     try {
       const sceneProperty = [...backgroundAnimationFields,...cameraFields].includes(name);
-      const grouped = s.selectedKeys.value.length>1 && s.current.value.groups?.some(g=>g.keys.length===s.selectedKeys.value.length&&g.keys.every(k=>s.selectedKeys.value.includes(k)));
+      const grouped = s.selectedKeys.value.length>1 && (['x','y','w','h','rotation','scale'].includes(name) || s.current.value.groups?.some(g=>g.keys.length===s.selectedKeys.value.length&&g.keys.every(k=>s.selectedKeys.value.includes(k))));
       const targets = autoKey.value && !sceneProperty && !grouped
         ? s.selectedKeys.value.filter(key => s.current.value.positions[key] && (!parseEffectField(name) || config.value.effects.find(e => e.id === parseEffectField(name).id)?.key === key)) : [null];
       for (const key of targets) {
@@ -1022,9 +1026,37 @@ export function useAnimationStudio(s) {
     s.current.value.elements[key].text=counterText(counter,counter.from);
     if(manageHistory)s.endGesture();s.requestDraw();
   }
+  function commitSelectionPose(positions, origins) {
+    const keys=Object.keys(positions).filter(key=>origins[key]);
+    if(!keys.some(key=>['x','y','w','h','rotation'].some(field=>Math.abs((positions[key][field]||0)-(origins[key][field]||0))>.0001)))return;
+    const c=ensureClip();if(!c)return;
+    const before=animationScene(s.current.value,{...config.value,clips:config.value.clips.slice(0,config.value.clips.indexOf(c))},time.value).scene;
+    const input=enclosingBounds(keys.map(key=>before.positions[key]));
+    const local=Math.max(0,Math.min(c.duration,time.value-c.start));
+    const values=Object.fromEntries(['x','y','w','h','rotation'].map(field=>[field,frameValue(c.frames,field,local,field==='rotation'?0:input[field])]));
+    const write=(field,value)=>{
+      if(local>0&&!c.frames.some(f=>f.field===field))addAnimationKey(c,field,0,values[field],c.easing);
+      const interpolation=c.frames.filter(f=>f.field===field&&f.time<=local).at(-1)?.ease||c.easing;
+      addAnimationKey(c,field,local,value,interpolation);
+    };
+    const first=keys[0],from=origins[first],to=positions[first];
+    const rotation=(to.rotation||0)-(from.rotation||0);
+    if(Math.abs(rotation)>.0001)write('rotation',values.rotation+rotation);
+    // Shared handles transform all members with the same ratios; retain their spacing.
+    for(const field of ['w','h']){
+      const ratio=from[field]?to[field]/from[field]:1;
+      if(Number.isFinite(ratio)&&Math.abs(ratio-1)>.0001)write(field,values[field]*ratio);
+    }
+    const target=enclosingBounds(keys.map(key=>positions[key]));
+    const evaluated=animationScene(s.current.value,config.value,time.value).scene;
+    const actual=enclosingBounds(keys.map(key=>evaluated.positions[key]));
+    for(const field of ['x','y'])if(!c.pathId&&Math.abs(target[field]-actual[field])>.0001)write(field,values[field]+target[field]-actual[field]);
+    selectedClip.value=c.id;preview.value=true;
+  }
   function commitPose(positions, origins, manageHistory = true) {
     if(manageHistory)s.beginGesture();
     try {
+      if(Object.keys(positions).length>1){commitSelectionPose(positions,origins);return;}
       for (const [key, p] of Object.entries(positions)) {
         const before = origins[key];
         if (!before) continue;

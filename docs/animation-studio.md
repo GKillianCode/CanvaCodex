@@ -270,3 +270,10 @@ L’éditeur, l’aperçu et l’export utilisent le même fond évalué. Le for
 
 
 Les courbes personnalisées peuvent dépasser leur cible pour les mouvements. Les canaux de couleur restent bornés à 0–255 et l’opacité du fondu entre types de fond à 0–100 %, afin de conserver un rendu continu jusqu’à la dernière clé, notamment lors d’une inversion fond/motif.
+
+
+## Animer plusieurs objets ensemble
+
+Sélectionne plusieurs objets avec **Ctrl + clic** (ou une zone de sélection), active **Clés auto**, place le curseur à l’instant voulu puis déplace la sélection. Les poignées communes permettent aussi de la tourner et de la redimensionner. Une seule séquence de transformation cible toute la sélection : les clés partagent les mêmes instants et courbes et les espacements sont conservés. Il n’est pas nécessaire de créer un groupe permanent.
+
+Dans **Objet → Placement → Position et dimensions de la sélection**, les positions et dimensions concernent le cadre commun, y compris avec Clés auto. L’échelle transforme aussi les distances entre objets ; elle ne fait pas seulement grossir chaque objet autour de son propre centre. **Animer la sélection** et les losanges manuels restent disponibles pour travailler sans Clés auto. Les propriétés communes comme l’opacité peuvent être réglées au même instant pour toute la sélection. Une transformation collective s’annule en une seule opération. Revenir aux propriétés individuelles puis transformer à nouveau la sélection retrouve sa séquence commune existante.

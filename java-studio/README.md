@@ -292,3 +292,6 @@ Dans **Scène → Fond et motifs**, les losanges animent couleurs, opacité, tai
 
 
 Les courbes Animation avec dépassement conservent des couleurs RGB valides et un fondu de fond borné, pour éviter un flash de la couleur de base en fin de transition. Les mouvements conservent leurs dépassements.
+
+
+Pour animer plusieurs objets ensemble, sélectionne-les avec **Ctrl + clic**, active **Clés auto**, avance le curseur puis déplace, tourne ou redimensionne la sélection. Les transformations partagent une séquence synchronisée et conservent les espacements, sans groupe permanent. Les réglages du cadre de sélection et les losanges manuels réutilisent cette même séquence.
